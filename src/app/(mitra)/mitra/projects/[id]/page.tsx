@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, Download, FileText, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, Calendar, Download, FileText, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { mockProjects } from "@/lib/mock-data/projects";
@@ -216,13 +216,7 @@ export default function MitraProjectDetailPage() {
                   return (
                     <li key={doc.id} className="flex items-start gap-2 text-sm">
                       {appDoc ? (
-                        appDoc.status === "Diverifikasi" ? (
-                          <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
-                        ) : appDoc.status === "Ditolak" ? (
-                          <XCircle className="h-4 w-4 mt-0.5 shrink-0 text-ptba-red" />
-                        ) : (
-                          <Clock className="h-4 w-4 mt-0.5 shrink-0 text-ptba-steel-blue" />
-                        )
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
                       ) : (
                         <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-light-gray" />
                       )}

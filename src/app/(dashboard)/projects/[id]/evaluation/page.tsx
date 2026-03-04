@@ -44,24 +44,10 @@ function EvalStatusPill({
   );
 }
 
-function DocStatusBadge({ status }: { status: string }) {
-  if (status === "Diverifikasi") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-        <CheckCircle2 className="h-3 w-3" /> Diverifikasi
-      </span>
-    );
-  }
-  if (status === "Ditolak") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-        <AlertCircle className="h-3 w-3" /> Ditolak
-      </span>
-    );
-  }
+function DocStatusBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-      <Clock className="h-3 w-3" /> Diunggah
+    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+      <CheckCircle2 className="h-3 w-3" /> Terunggah
     </span>
   );
 }
@@ -331,7 +317,7 @@ export default function EvaluationHubPage({
                         Dokumen Mitra
                       </span>
                       <span className="rounded-full bg-ptba-section-bg px-2 py-0.5 text-xs text-ptba-gray">
-                        {partner.documents.filter((d) => d.status === "Diverifikasi").length}/{partner.documents.length} terverifikasi
+                        {partner.documents.length} terunggah
                       </span>
                     </div>
                     {expandedDocs[partner.id] ? (
@@ -340,16 +326,6 @@ export default function EvaluationHubPage({
                       <ChevronDown className="h-4 w-4 text-ptba-gray" />
                     )}
                   </button>
-
-                  {/* Progress bar */}
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ptba-light-gray">
-                    <div
-                      className="h-full rounded-full bg-green-500 transition-all"
-                      style={{
-                        width: `${Math.round((partner.documents.filter((d) => d.status === "Diverifikasi").length / partner.documents.length) * 100)}%`,
-                      }}
-                    />
-                  </div>
 
                   {expandedDocs[partner.id] && (
                     <div className="mt-3 overflow-x-auto rounded-lg border border-ptba-light-gray">
@@ -367,10 +343,9 @@ export default function EvaluationHubPage({
                           {partner.documents.map((doc, docIdx) => (
                             <tr
                               key={doc.id}
-                              className={cn(
-                                docIdx % 2 === 0 ? "bg-white" : "bg-ptba-off-white",
-                                doc.status === "Ditolak" && "bg-red-50"
-                              )}
+                              className={
+                                docIdx % 2 === 0 ? "bg-white" : "bg-ptba-off-white"
+                              }
                             >
                               <td className="px-3 py-2 text-xs text-ptba-gray">{docIdx + 1}</td>
                               <td className="px-3 py-2">
@@ -380,7 +355,7 @@ export default function EvaluationHubPage({
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-xs text-ptba-gray">{formatDate(doc.uploadDate)}</td>
-                              <td className="px-3 py-2"><DocStatusBadge status={doc.status} /></td>
+                              <td className="px-3 py-2"><DocStatusBadge /></td>
                               <td className="px-3 py-2">
                                 <button
                                   onClick={() => alert(`Mengunduh: ${doc.name}`)}

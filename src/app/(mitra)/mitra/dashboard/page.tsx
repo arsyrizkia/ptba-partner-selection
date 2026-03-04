@@ -37,8 +37,7 @@ export default function MitraDashboardPage() {
 
   const docsUploaded = useMemo(() => {
     const total = applications.reduce((sum, a) => sum + a.documents.length, 0);
-    const verified = applications.reduce((sum, a) => sum + a.documents.filter((d) => d.status === "Diverifikasi").length, 0);
-    return total > 0 ? Math.round((verified / total) * 100) : 0;
+    return total;
   }, [applications]);
 
   return (
@@ -65,15 +64,12 @@ export default function MitraDashboardPage() {
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-ptba-gray">Dokumen Terverifikasi</p>
-              <p className="mt-1 text-3xl font-bold text-ptba-charcoal">{docsUploaded}%</p>
+              <p className="text-sm text-ptba-gray">Dokumen Terunggah</p>
+              <p className="mt-1 text-3xl font-bold text-ptba-charcoal">{docsUploaded}</p>
             </div>
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-ptba-gold">
               <FileCheck className="h-6 w-6 text-white" />
             </div>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-ptba-light-gray">
-            <div className={cn("h-full rounded-full", docsUploaded === 100 ? "bg-ptba-green" : "bg-ptba-gold")} style={{ width: `${docsUploaded}%` }} />
           </div>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
@@ -104,8 +100,6 @@ export default function MitraDashboardPage() {
                 const evalPct = app.currentEvalStep && app.totalEvalSteps
                   ? Math.round((app.currentEvalStep / app.totalEvalSteps) * 100)
                   : 0;
-                const verifiedDocs = app.documents.filter((d) => d.status === "Diverifikasi").length;
-                const docPct = app.documents.length > 0 ? Math.round((verifiedDocs / app.documents.length) * 100) : 0;
                 return (
                   <div key={app.id} className="rounded-lg border border-ptba-light-gray p-4">
                     <div className="flex items-start justify-between">
@@ -126,14 +120,9 @@ export default function MitraDashboardPage() {
                         <div className="h-full rounded-full bg-ptba-steel-blue" style={{ width: `${evalPct}%` }} />
                       </div>
                     </div>
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between text-xs text-ptba-gray mb-1">
-                        <span>Dokumen Terverifikasi</span>
-                        <span>{docPct}%</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
-                        <div className={cn("h-full rounded-full", docPct === 100 ? "bg-ptba-green" : "bg-ptba-gold")} style={{ width: `${docPct}%` }} />
-                      </div>
+                    <div className="mt-2 flex items-center justify-between text-xs text-ptba-gray">
+                      <span>Dokumen Terunggah</span>
+                      <span className="font-medium text-ptba-charcoal">{app.documents.length} dokumen</span>
                     </div>
                   </div>
                 );

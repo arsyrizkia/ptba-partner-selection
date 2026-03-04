@@ -220,7 +220,7 @@ export interface ApplicationDocument {
   id: string;
   documentTypeId: string;
   name: string;
-  status: 'Diunggah' | 'Diverifikasi' | 'Ditolak';
+  status: 'Diunggah';
   uploadDate: string;
   fileUrl?: string;
 }
