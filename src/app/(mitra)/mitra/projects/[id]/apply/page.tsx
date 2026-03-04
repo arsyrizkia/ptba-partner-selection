@@ -94,8 +94,7 @@ export default function MitraProjectApplyPage() {
   const canSubmit = allRequiredUploaded && confirmed;
 
   const handleSubmit = () => {
-    alert("Lamaran berhasil diajukan! Tim evaluasi akan meninjau dokumen Anda.");
-    router.push(`/mitra/projects/${projectId}`);
+    router.push(`/mitra/projects/${projectId}/apply/success`);
   };
 
   return (

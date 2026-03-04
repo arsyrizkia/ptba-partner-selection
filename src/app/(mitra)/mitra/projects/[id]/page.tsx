@@ -95,10 +95,10 @@ export default function MitraProjectDetailPage() {
             <p className="text-sm text-ptba-gray leading-relaxed">{project.description}</p>
           </div>
 
-          {/* PRD Document */}
+          {/* Dokumen Pendukung */}
           {project.prdDocument && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Dokumen PRD</h2>
+              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Dokumen Pendukung</h2>
               <div className="flex items-center justify-between rounded-lg border border-ptba-light-gray p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ptba-red/10">
