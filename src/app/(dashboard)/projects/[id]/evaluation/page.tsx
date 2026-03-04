@@ -1,21 +1,27 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   BarChart3,
   CheckCircle2,
   Clock,
   AlertCircle,
   ExternalLink,
+  FileText,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { formatDate } from "@/lib/utils/format";
 import { mockProjects } from "@/lib/mock-data/projects";
 import { mockPartners } from "@/lib/mock-data/partners";
 import { mockEvaluations } from "@/lib/mock-data/evaluations";
+import { mockApplications } from "@/lib/mock-data/applications";
 
 function EvalStatusPill({
   done,
@@ -38,6 +44,28 @@ function EvalStatusPill({
   );
 }
 
+function DocStatusBadge({ status }: { status: string }) {
+  if (status === "Diverifikasi") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+        <CheckCircle2 className="h-3 w-3" /> Diverifikasi
+      </span>
+    );
+  }
+  if (status === "Ditolak") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+        <AlertCircle className="h-3 w-3" /> Ditolak
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+      <Clock className="h-3 w-3" /> Diunggah
+    </span>
+  );
+}
+
 export default function EvaluationHubPage({
   params,
   searchParams,
@@ -48,6 +76,11 @@ export default function EvaluationHubPage({
   const { id } = use(params);
   const { partnerId: focusPartnerId } = use(searchParams);
   const router = useRouter();
+  const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
+
+  const toggleDocs = (partnerId: string) => {
+    setExpandedDocs((prev) => ({ ...prev, [partnerId]: !prev[partnerId] }));
+  };
 
   const project = mockProjects.find((p) => p.id === id);
 
@@ -70,6 +103,9 @@ export default function EvaluationHubPage({
     const eval0 = mockEvaluations.find(
       (e) => e.projectId === project.id && e.partnerId === pid
     );
+    const application = mockApplications.find(
+      (a) => a.projectId === project.id && a.partnerId === pid
+    );
     return {
       id: pid,
       name: partner?.name ?? pid,
@@ -85,6 +121,8 @@ export default function EvaluationHubPage({
       evalStatus: eval0?.status,
       totalScore: eval0?.totalScore,
       grade: eval0?.grade,
+      documents: application?.documents ?? [],
+      applicationStatus: application?.status,
     };
   });
 
@@ -279,6 +317,86 @@ export default function EvaluationHubPage({
                   )}
                 </div>
               </div>
+
+              {/* Dokumen Mitra Section */}
+              {partner.documents.length > 0 && (
+                <div className="mt-4 border-t border-ptba-light-gray pt-4">
+                  <button
+                    onClick={() => toggleDocs(partner.id)}
+                    className="flex w-full items-center justify-between text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                      <span className="text-sm font-semibold text-ptba-charcoal">
+                        Dokumen Mitra
+                      </span>
+                      <span className="rounded-full bg-ptba-section-bg px-2 py-0.5 text-xs text-ptba-gray">
+                        {partner.documents.filter((d) => d.status === "Diverifikasi").length}/{partner.documents.length} terverifikasi
+                      </span>
+                    </div>
+                    {expandedDocs[partner.id] ? (
+                      <ChevronUp className="h-4 w-4 text-ptba-gray" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-ptba-gray" />
+                    )}
+                  </button>
+
+                  {/* Progress bar */}
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ptba-light-gray">
+                    <div
+                      className="h-full rounded-full bg-green-500 transition-all"
+                      style={{
+                        width: `${Math.round((partner.documents.filter((d) => d.status === "Diverifikasi").length / partner.documents.length) * 100)}%`,
+                      }}
+                    />
+                  </div>
+
+                  {expandedDocs[partner.id] && (
+                    <div className="mt-3 overflow-x-auto rounded-lg border border-ptba-light-gray">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-ptba-section-bg">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-ptba-gray">No</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-ptba-gray">Dokumen</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-ptba-gray">Tanggal Upload</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-ptba-gray">Status</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-ptba-gray">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {partner.documents.map((doc, docIdx) => (
+                            <tr
+                              key={doc.id}
+                              className={cn(
+                                docIdx % 2 === 0 ? "bg-white" : "bg-ptba-off-white",
+                                doc.status === "Ditolak" && "bg-red-50"
+                              )}
+                            >
+                              <td className="px-3 py-2 text-xs text-ptba-gray">{docIdx + 1}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-3.5 w-3.5 text-ptba-steel-blue flex-shrink-0" />
+                                  <span className="text-xs font-medium text-ptba-charcoal">{doc.name}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-xs text-ptba-gray">{formatDate(doc.uploadDate)}</td>
+                              <td className="px-3 py-2"><DocStatusBadge status={doc.status} /></td>
+                              <td className="px-3 py-2">
+                                <button
+                                  onClick={() => alert(`Mengunduh: ${doc.name}`)}
+                                  className="inline-flex items-center gap-1 text-xs text-ptba-steel-blue hover:underline"
+                                >
+                                  <Download className="h-3 w-3" /> Unduh
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

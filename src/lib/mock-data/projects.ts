@@ -47,8 +47,8 @@ export const mockProjects: Project[] = [
     partners: ['M001', 'M005', 'M006'],
     createdBy: 'U002',
     createdAt: '2025-02-10T10:00:00Z',
-    isOpenForApplication: false,
-    applicationDeadline: '2026-02-15',
+    isOpenForApplication: true,
+    applicationDeadline: '2026-04-15',
     prdDocument: 'PRD_Gasifikasi_Batubara_Coal_to_SNG.pdf',
     requirements: [
       'Pengalaman di sektor gas dan/atau energi minimal 10 tahun',
@@ -95,6 +95,20 @@ export const mockProjects: Project[] = [
     partners: ['M003', 'M004'],
     createdBy: 'U002',
     createdAt: '2025-11-20T14:00:00Z',
+    isOpenForApplication: true,
+    applicationDeadline: '2026-05-30',
+    prdDocument: 'PRD_Coal_to_Methanol_Plant.pdf',
+    requirements: [
+      'Pengalaman di industri petrokimia atau konversi batubara minimal 10 tahun',
+      'Memiliki lisensi teknologi Coal-to-Methanol atau kemitraan dengan pemilik teknologi',
+      'Kemampuan pendanaan minimal Rp 500 Miliar',
+      'Sertifikasi ISO 9001, ISO 14001, dan OHSAS 18001',
+    ],
+    requiredDocuments: [
+      'akta_pendirian', 'siup', 'tdp_nib', 'npwp', 'laporan_keuangan',
+      'referensi_bank', 'pengalaman_kerja', 'sertifikat_iso', 'amdal_ukl_upl',
+      'profil_perusahaan', 'struktur_organisasi',
+    ],
   },
   {
     id: 'P005',
