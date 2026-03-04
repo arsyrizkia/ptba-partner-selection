@@ -1,0 +1,83 @@
+import { User } from '@/lib/types';
+
+export const mockUsers: User[] = [
+  {
+    id: 'U001',
+    name: 'Budi Santoso',
+    email: 'admin@bukitasam.co.id',
+    role: 'super_admin',
+    department: 'IT & Digital',
+  },
+  {
+    id: 'U002',
+    name: 'Siti Rahmawati',
+    email: 'ebd@bukitasam.co.id',
+    role: 'ebd',
+    department: 'Pengembangan Energi',
+  },
+  {
+    id: 'U003',
+    name: 'Ahmad Hidayat',
+    email: 'keuangan@bukitasam.co.id',
+    role: 'keuangan',
+    department: 'Keuangan Korporat',
+  },
+  {
+    id: 'U004',
+    name: 'Dewi Lestari',
+    email: 'hukum@bukitasam.co.id',
+    role: 'hukum',
+    department: 'Hukum & Regulasi',
+  },
+  {
+    id: 'U005',
+    name: 'Rudi Hartono',
+    email: 'risiko@bukitasam.co.id',
+    role: 'risiko',
+    department: 'Manajemen Risiko',
+  },
+  {
+    id: 'U006',
+    name: 'Ir. Bambang Wijaya',
+    email: 'direksi@bukitasam.co.id',
+    role: 'direksi',
+    department: 'Direksi',
+  },
+  {
+    id: 'U007',
+    name: 'Eko Prasetyo',
+    email: 'viewer@bukitasam.co.id',
+    role: 'viewer',
+    department: 'Sekretaris Perusahaan',
+  },
+  {
+    id: 'U008',
+    name: 'PT Perusahaan Gas Negara',
+    email: 'mitra_bei@bukitasam.co.id',
+    role: 'mitra',
+    department: 'Mitra Eksternal',
+    partnerId: 'M001',
+  },
+  {
+    id: 'U009',
+    name: 'PT Perusahaan Nusantara Restu Energi',
+    email: 'mitra_pgn@bukitasam.co.id',
+    role: 'mitra',
+    department: 'Mitra Eksternal',
+    partnerId: 'M006',
+  },
+  {
+    id: 'U010',
+    name: 'Fitri Handayani',
+    email: 'ebd2@bukitasam.co.id',
+    role: 'ebd',
+    department: 'Pengembangan Energi',
+  },
+  {
+    id: 'U011',
+    name: 'Dr. Maya Putri',
+    email: 'direksi2@bukitasam.co.id',
+    role: 'direksi',
+    department: 'Komisaris',
+  },
+];

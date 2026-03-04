@@ -1,0 +1,96 @@
+import type { UserRole } from '@/lib/types';
+
+export interface NavigationItem {
+  icon: string;
+  label: string;
+  href: string;
+  allowedRoles: UserRole[];
+}
+
+const ALL_INTERNAL: UserRole[] = [
+  'super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'direksi', 'viewer',
+];
+
+export const NAVIGATION: NavigationItem[] = [
+  {
+    icon: 'LayoutDashboard',
+    label: 'Dashboard',
+    href: '/dashboard',
+    allowedRoles: ALL_INTERNAL,
+  },
+  {
+    icon: 'FolderKanban',
+    label: 'Proyek',
+    href: '/projects',
+    allowedRoles: ['super_admin', 'ebd', 'direksi', 'keuangan', 'hukum', 'risiko'],
+  },
+  {
+    icon: 'Users',
+    label: 'Mitra',
+    href: '/partners',
+    allowedRoles: ['super_admin', 'ebd'],
+  },
+  {
+    icon: 'CheckSquare',
+    label: 'Persetujuan',
+    href: '/approvals',
+    allowedRoles: ['direksi', 'super_admin'],
+  },
+  {
+    icon: 'FileText',
+    label: 'Dokumen',
+    href: '/documents',
+    allowedRoles: ['super_admin', 'ebd', 'direksi', 'viewer'],
+  },
+  {
+    icon: 'Bell',
+    label: 'Notifikasi',
+    href: '/notifications',
+    allowedRoles: ALL_INTERNAL,
+  },
+  {
+    icon: 'Clock',
+    label: 'SLA Monitoring',
+    href: '/notifications/sla',
+    allowedRoles: ['super_admin', 'ebd', 'direksi'],
+  },
+  {
+    icon: 'Settings',
+    label: 'Manajemen Pengguna',
+    href: '/users',
+    allowedRoles: ['super_admin'],
+  },
+];
+
+export const MITRA_NAVIGATION: NavigationItem[] = [
+  {
+    icon: 'LayoutDashboard',
+    label: 'Dashboard',
+    href: '/mitra/dashboard',
+    allowedRoles: ['mitra'],
+  },
+  {
+    icon: 'FolderKanban',
+    label: 'Proyek Tersedia',
+    href: '/mitra/projects',
+    allowedRoles: ['mitra'],
+  },
+  {
+    icon: 'FileText',
+    label: 'Dokumen Saya',
+    href: '/mitra/documents',
+    allowedRoles: ['mitra'],
+  },
+{
+    icon: 'Building2',
+    label: 'Profil',
+    href: '/mitra/profile',
+    allowedRoles: ['mitra'],
+  },
+  {
+    icon: 'GitBranch',
+    label: 'Status',
+    href: '/mitra/status',
+    allowedRoles: ['mitra'],
+  },
+];
