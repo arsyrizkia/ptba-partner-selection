@@ -17,32 +17,41 @@ const demoAccounts = mockUsers.map((u) => ({
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginApi } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const redirectByRole = (role: string) => {
+    if (role === "mitra") {
+      router.push("/mitra/dashboard");
+    } else {
+      router.push("/dashboard");
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    const user = login(email);
-    if (!user) {
-      setError("Email tidak ditemukan. Gunakan salah satu akun demo di bawah.");
-      setIsLoading(false);
+    try {
+      // Try real API first
+      const user = await loginApi(email, password);
+      redirectByRole(user.role);
       return;
-    }
-
-    setTimeout(() => {
-      if (user.role === "mitra") {
-        router.push("/mitra/dashboard");
-      } else {
-        router.push("/dashboard");
+    } catch {
+      // Fall back to mock login if API is unavailable
+      const mockUser = login(email);
+      if (mockUser) {
+        setTimeout(() => redirectByRole(mockUser.role), 300);
+        return;
       }
-    }, 300);
+      setError("Email atau password salah.");
+      setIsLoading(false);
+    }
   };
 
   const handleDemoLogin = (demoEmail: string) => {
@@ -51,13 +60,7 @@ export default function LoginPage() {
     const user = login(demoEmail);
     if (user) {
       setIsLoading(true);
-      setTimeout(() => {
-        if (user.role === "mitra") {
-          router.push("/mitra/dashboard");
-        } else {
-          router.push("/dashboard");
-        }
-      }, 300);
+      setTimeout(() => redirectByRole(user.role), 300);
     }
   };
 

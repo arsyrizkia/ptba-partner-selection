@@ -8,8 +8,10 @@ import { DataTable } from "@/components/ui/data-table";
 import { mockUsers } from "@/lib/mock-data";
 import { ROLES, INTERNAL_ROLES } from "@/lib/constants/roles";
 import type { UserRole, User } from "@/lib/types";
-import { UserPlus, Shield, X, CheckCircle2, Mail, Building2 } from "lucide-react";
+import { UserPlus, Shield, X, CheckCircle2, Mail, Building2, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useAuth } from "@/lib/auth/auth-context";
+import { authApi, ApiClientError } from "@/lib/api/client";
 
 function getRoleBadgeVariant(role: UserRole) {
   switch (role) {
@@ -65,9 +67,12 @@ const rbacMatrix: Record<string, boolean[]> = {
 };
 
 export default function UsersPage() {
+  const { accessToken } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [users, setUsers] = useState<User[]>([...mockUsers]);
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
+  const [createError, setCreateError] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   // Create user form state
   const [newName, setNewName] = useState("");
@@ -91,24 +96,62 @@ export default function UsersPage() {
     setNewEmail("");
     setNewDepartment("");
     setNewRole("ebd");
+    setCreateError("");
   }
 
-  function handleCreateUser() {
-    const newUser: User = {
-      id: `U${String(users.length + 1).padStart(3, "0")}`,
-      name: newName,
-      email: newEmail,
-      role: newRole,
-      department: newDepartment || departmentSuggestions[newRole] || "",
-    };
-    setUsers((prev) => [...prev, newUser]);
-    setShowCreateModal(false);
-    resetForm();
-    setShowSuccess(newName);
-    setTimeout(() => setShowSuccess(null), 3000);
+  async function handleCreateUser() {
+    setCreateError("");
+    setIsSending(true);
+
+    try {
+      if (accessToken) {
+        // Real API call
+        const api = authApi();
+        const res = await api.createInternalUser(
+          {
+            name: newName,
+            email: newEmail,
+            role: newRole,
+            department: newDepartment || departmentSuggestions[newRole] || undefined,
+          },
+          accessToken
+        );
+        const newUser: User = {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          role: res.user.role as UserRole,
+          department: res.user.department,
+        };
+        setUsers((prev) => [...prev, newUser]);
+      } else {
+        // Fallback: mock create
+        const newUser: User = {
+          id: `U${String(users.length + 1).padStart(3, "0")}`,
+          name: newName,
+          email: newEmail,
+          role: newRole,
+          department: newDepartment || departmentSuggestions[newRole] || "",
+        };
+        setUsers((prev) => [...prev, newUser]);
+      }
+
+      setShowCreateModal(false);
+      resetForm();
+      setShowSuccess(newName);
+      setTimeout(() => setShowSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setCreateError(err.message);
+      } else {
+        setCreateError("Gagal mengirim undangan. Silakan coba lagi.");
+      }
+    } finally {
+      setIsSending(false);
+    }
   }
 
-  const canCreate = newName.trim() && newEmail.trim();
+  const canCreate = newName.trim() && newEmail.trim() && !isSending;
 
   const columns = [
     {
@@ -270,6 +313,14 @@ export default function UsersPage() {
               </div>
             </div>
 
+            {/* Error */}
+            {createError && (
+              <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {createError}
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex gap-3 mt-6">
               <button
@@ -283,8 +334,8 @@ export default function UsersPage() {
                 disabled={!canCreate}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-ptba-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Mail className="h-4 w-4" />
-                Kirim Undangan
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {isSending ? "Mengirim..." : "Kirim Undangan"}
               </button>
             </div>
           </div>
