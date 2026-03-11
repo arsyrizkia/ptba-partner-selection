@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import { mockUsers } from "@/lib/mock-data";
-import { ROLES, INTERNAL_ROLES } from "@/lib/constants/roles";
-import type { UserRole, User } from "@/lib/types";
-import { UserPlus, Shield, X, CheckCircle2, Mail, Building2, AlertCircle, Loader2 } from "lucide-react";
+import { ROLES } from "@/lib/constants/roles";
+import type { UserRole } from "@/lib/types";
+import { UserPlus, Shield, X, CheckCircle2, Mail, Building2, AlertCircle, Loader2, RotateCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi, ApiClientError } from "@/lib/api/client";
@@ -41,7 +40,17 @@ function getRoleLabel(role: UserRole): string {
   return found ? found.label : role;
 }
 
-type UserRow = (typeof mockUsers)[number] & Record<string, unknown>;
+interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  status: string;
+  partnerId: string | null;
+  createdAt: string;
+  [key: string]: unknown;
+}
 
 // Updated RBAC Matrix for new 8 roles
 const rbacModules = [
@@ -66,13 +75,31 @@ const rbacMatrix: Record<string, boolean[]> = {
   viewer:      [true,  false, false, false, false, false, true,  false],
 };
 
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "active":
+      return <Badge variant="success">Aktif</Badge>;
+    case "invited":
+      return <Badge variant="warning">Menunggu Aktivasi</Badge>;
+    case "disabled":
+      return <Badge variant="error">Nonaktif</Badge>;
+    default:
+      return <Badge variant="neutral">{status}</Badge>;
+  }
+}
+
 export default function UsersPage() {
   const { accessToken } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [users, setUsers] = useState<User[]>([...mockUsers]);
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showSuccess, setShowSuccess] = useState<string | null>(null);
   const [createError, setCreateError] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<ApiUser | null>(null);
 
   // Create user form state
   const [newName, setNewName] = useState("");
@@ -91,6 +118,31 @@ export default function UsersPage() {
     mitra: "Mitra Eksternal",
   };
 
+  // Fetch users from API on mount
+  useEffect(() => {
+    async function fetchUsers() {
+      if (!accessToken) {
+        setLoadError("Silakan login sebagai Super Admin untuk melihat daftar pengguna.");
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const api = authApi();
+        const res = await api.listUsers(accessToken);
+        setUsers(res.users as ApiUser[]);
+      } catch (err) {
+        if (err instanceof ApiClientError) {
+          setLoadError(err.message);
+        } else {
+          setLoadError("Gagal memuat data pengguna.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchUsers();
+  }, [accessToken]);
+
   function resetForm() {
     setNewName("");
     setNewEmail("");
@@ -104,42 +156,38 @@ export default function UsersPage() {
     setIsSending(true);
 
     try {
-      if (accessToken) {
-        // Real API call
-        const api = authApi();
-        const res = await api.createInternalUser(
-          {
-            name: newName,
-            email: newEmail,
-            role: newRole,
-            department: newDepartment || departmentSuggestions[newRole] || undefined,
-          },
-          accessToken
-        );
-        const newUser: User = {
-          id: res.user.id,
-          name: res.user.name,
-          email: res.user.email,
-          role: res.user.role as UserRole,
-          department: res.user.department,
-        };
-        setUsers((prev) => [...prev, newUser]);
-      } else {
-        // Fallback: mock create
-        const newUser: User = {
-          id: `U${String(users.length + 1).padStart(3, "0")}`,
+      if (!accessToken) {
+        setCreateError("Token tidak tersedia. Silakan login ulang.");
+        return;
+      }
+
+      const api = authApi();
+      const res = await api.createInternalUser(
+        {
           name: newName,
           email: newEmail,
           role: newRole,
-          department: newDepartment || departmentSuggestions[newRole] || "",
-        };
-        setUsers((prev) => [...prev, newUser]);
-      }
+          department: newDepartment || departmentSuggestions[newRole] || undefined,
+        },
+        accessToken
+      );
+
+      const newUser: ApiUser = {
+        id: res.user.id,
+        name: res.user.name,
+        email: res.user.email,
+        role: res.user.role,
+        department: res.user.department,
+        status: res.user.status,
+        partnerId: null,
+        createdAt: res.user.createdAt,
+      };
+      setUsers((prev) => [...prev, newUser]);
 
       setShowCreateModal(false);
       resetForm();
-      setShowSuccess(newName);
-      setTimeout(() => setShowSuccess(null), 3000);
+      setShowSuccess(newEmail);
+      setTimeout(() => setShowSuccess(null), 5000);
     } catch (err) {
       if (err instanceof ApiClientError) {
         setCreateError(err.message);
@@ -151,6 +199,48 @@ export default function UsersPage() {
     }
   }
 
+  async function handleResendInvitation(user: ApiUser) {
+    if (!accessToken || resendingId) return;
+    setResendingId(user.id);
+    try {
+      const apiClient = authApi();
+      await apiClient.resendInvitation(user.id, accessToken);
+      setShowSuccess(user.email);
+      setTimeout(() => setShowSuccess(null), 5000);
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Gagal mengirim ulang undangan.");
+      }
+      setTimeout(() => setLoadError(""), 5000);
+    } finally {
+      setResendingId(null);
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!accessToken || !showDeleteConfirm || deletingId) return;
+    const userId = showDeleteConfirm.id;
+    setDeletingId(userId);
+    try {
+      const apiClient = authApi();
+      await apiClient.deleteUser(userId, accessToken);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setShowDeleteConfirm(null);
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Gagal menghapus akun.");
+      }
+      setTimeout(() => setLoadError(""), 5000);
+      setShowDeleteConfirm(null);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const canCreate = newName.trim() && newEmail.trim() && !isSending;
 
   const columns = [
@@ -158,17 +248,17 @@ export default function UsersPage() {
       key: "name",
       label: "Nama",
       sortable: true,
-      render: (item: UserRow) => (
+      render: (item: ApiUser) => (
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-navy text-white text-xs font-medium">
-            {(item.name as string)
+            {item.name
               .split(" ")
               .map((n: string) => n[0])
               .slice(0, 2)
               .join("")}
           </div>
           <span className="font-medium text-ptba-charcoal">
-            {item.name as string}
+            {item.name}
           </span>
         </div>
       ),
@@ -186,7 +276,7 @@ export default function UsersPage() {
     {
       key: "role",
       label: "Peran",
-      render: (item: UserRow) => (
+      render: (item: ApiUser) => (
         <Badge variant={getRoleBadgeVariant(item.role as UserRole)}>
           {getRoleLabel(item.role as UserRole)}
         </Badge>
@@ -195,9 +285,35 @@ export default function UsersPage() {
     {
       key: "status",
       label: "Status",
-      render: () => (
-        <Badge variant="success">Aktif</Badge>
-      ),
+      render: (item: ApiUser) => getStatusBadge(item.status),
+    },
+    {
+      key: "actions",
+      label: "Aksi",
+      render: (item: ApiUser) => {
+        if (item.status !== "invited") return null;
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleResendInvitation(item); }}
+              disabled={resendingId === item.id}
+              title="Kirim ulang undangan"
+              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-section-bg transition-colors disabled:opacity-50"
+            >
+              {resendingId === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
+              Kirim Ulang
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(item); }}
+              title="Hapus akun & batalkan undangan"
+              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+              Hapus
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -213,11 +329,39 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {/* Success message */}
+      {/* Success toast */}
       {showSuccess && (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          Undangan berhasil dikirim ke <span className="font-semibold">{showSuccess}</span>. Menunggu pengguna mengaktifkan akun.
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-top-2 fade-in duration-300">
+          <div className="flex items-center gap-3 rounded-xl bg-white px-5 py-4 shadow-lg border border-green-200 min-w-[360px]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 shrink-0">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-ptba-charcoal">Undangan Terkirim</p>
+              <p className="text-xs text-ptba-gray mt-0.5">
+                Magic link dikirim ke <span className="font-medium text-ptba-charcoal">{showSuccess}</span>
+              </p>
+            </div>
+            <button onClick={() => setShowSuccess(null)} className="text-ptba-gray hover:text-ptba-charcoal shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center rounded-xl bg-white p-12 shadow-sm">
+          <Loader2 className="h-6 w-6 animate-spin text-ptba-navy mr-3" />
+          <span className="text-sm text-ptba-gray">Memuat data pengguna...</span>
+        </div>
+      )}
+
+      {/* Error state */}
+      {loadError && !isLoading && (
+        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {loadError}
         </div>
       )}
 
@@ -342,8 +486,49 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowDeleteConfirm(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 shrink-0">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-ptba-charcoal">Hapus Akun</h3>
+                <p className="text-xs text-ptba-gray">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+            </div>
+            <p className="text-sm text-ptba-charcoal mb-1">
+              Yakin ingin menghapus akun <span className="font-semibold">{showDeleteConfirm.name}</span>?
+            </p>
+            <p className="text-xs text-ptba-gray mb-5">
+              Email: {showDeleteConfirm.email} — Link aktivasi akan dibatalkan dan akun dihapus secara permanen.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={!!deletingId}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {deletingId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deletingId ? "Menghapus..." : "Hapus Akun"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* User Table */}
-      <DataTable columns={columns} data={users as UserRow[]} />
+      {!isLoading && !loadError && (
+        <DataTable columns={columns} data={users} />
+      )}
 
       {/* RBAC Matrix */}
       <Card padding="lg">

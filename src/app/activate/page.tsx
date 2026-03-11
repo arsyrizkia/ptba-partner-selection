@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Shield } from "lucide-react";
@@ -8,6 +8,13 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi, ApiClientError } from "@/lib/api/client";
 import type { UserRole } from "@/lib/types";
+
+interface TokenUser {
+  name: string;
+  email: string;
+  department: string;
+  role: string;
+}
 
 function ActivateForm() {
   const router = useRouter();
@@ -22,14 +29,49 @@ function ActivateForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [tokenUser, setTokenUser] = useState<TokenUser | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(true);
+  const [tokenError, setTokenError] = useState("");
 
-  if (!token) {
+  useEffect(() => {
+    if (!token) {
+      setTokenLoading(false);
+      return;
+    }
+    const fetchUser = async () => {
+      try {
+        const apiClient = authApi();
+        const data = await apiClient.verifyToken(token);
+        setTokenUser(data);
+      } catch (err) {
+        if (err instanceof ApiClientError) {
+          setTokenError(err.message);
+        } else {
+          setTokenError("Token tidak valid.");
+        }
+      } finally {
+        setTokenLoading(false);
+      }
+    };
+    fetchUser();
+  }, [token]);
+
+  if (tokenLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-ptba-navy border-t-transparent" />
+        <p className="mt-3 text-sm text-ptba-gray">Memverifikasi token...</p>
+      </div>
+    );
+  }
+
+  if (!token || tokenError) {
     return (
       <div className="text-center">
         <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-4" />
         <h2 className="text-lg font-bold text-ptba-charcoal mb-2">Token Tidak Valid</h2>
         <p className="text-sm text-ptba-gray mb-6">
-          Link aktivasi tidak valid atau sudah digunakan.
+          {tokenError || "Link aktivasi tidak valid atau sudah digunakan."}
         </p>
         <a
           href="/login"
@@ -107,9 +149,17 @@ function ActivateForm() {
           <Shield className="h-6 w-6 text-ptba-navy" />
         </div>
         <h2 className="text-lg font-bold text-ptba-charcoal">Aktivasi Akun</h2>
-        <p className="text-sm text-ptba-gray mt-1">
-          Buat kata sandi untuk mengaktifkan akun Anda
-        </p>
+        {tokenUser ? (
+          <p className="text-sm text-ptba-gray mt-1">
+            Halo <span className="font-semibold text-ptba-charcoal">{tokenUser.name}</span> dari divisi{" "}
+            <span className="font-semibold text-ptba-charcoal">{tokenUser.department}</span>,
+            silakan buat kata sandi untuk mengaktifkan akun Anda
+          </p>
+        ) : (
+          <p className="text-sm text-ptba-gray mt-1">
+            Buat kata sandi untuk mengaktifkan akun Anda
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">

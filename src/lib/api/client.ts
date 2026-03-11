@@ -68,6 +68,13 @@ export interface LoginResponse {
   };
 }
 
+export interface VerifyTokenResponse {
+  name: string;
+  email: string;
+  department: string;
+  role: string;
+}
+
 export interface ActivateResponse {
   message: string;
   accessToken: string;
@@ -117,6 +124,9 @@ export function authApi() {
         body: { email, password },
       }),
 
+    verifyToken: (token: string) =>
+      api<VerifyTokenResponse>(`/auth/verify-token?token=${encodeURIComponent(token)}`),
+
     activate: (token: string, password: string) =>
       api<ActivateResponse>("/auth/activate", {
         method: "POST",
@@ -135,6 +145,18 @@ export function authApi() {
 
     listUsers: (token: string) =>
       api<ListUsersResponse>("/auth/users", { token }),
+
+    resendInvitation: (userId: string, token: string) =>
+      api<{ message: string; activationLink: string }>(
+        `/auth/users/${userId}/resend-invitation`,
+        { method: "POST", token }
+      ),
+
+    deleteUser: (userId: string, token: string) =>
+      api<{ message: string }>(`/auth/users/${userId}`, {
+        method: "DELETE",
+        token,
+      }),
 
     refresh: (refreshToken: string) =>
       api<LoginResponse>("/auth/refresh", {
