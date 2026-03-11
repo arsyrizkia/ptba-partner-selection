@@ -39,6 +39,20 @@ export interface Project {
   isOpenForApplication?: boolean;
   winnerId?: string;
   winnerAnnouncedAt?: string;
+  phase?: ProjectPhase;
+  picAssignments?: PICAssignment[];
+  shortlistedPartners?: string[];
+  phase1Deadline?: string;
+  phase2Deadline?: string;
+  phase1Documents?: string[];
+  phase2Documents?: string[];
+  ptbaDocuments?: PTBADocument[];
+  registrationFee?: number;
+  phase2Config?: {
+    deadline: string;
+    registrationFee: number;
+    requiredDivisions: string[];
+  };
 }
 
 export interface Partner {
@@ -99,6 +113,8 @@ export interface Evaluation {
   status: 'Draft' | 'Selesai' | 'Disetujui';
   evaluatedBy: string;
   evaluatedAt: string;
+  phase?: 'phase1' | 'phase2';
+  phase1Eval?: Phase1Evaluation;
 }
 
 export interface EvalScore {
@@ -180,6 +196,13 @@ export interface Approval {
   approvedAt?: string;
   notes?: string;
   priority: 'Tinggi' | 'Sedang' | 'Rendah';
+  phase?: 'phase1' | 'phase2';
+  approvalCategory?: 'phase1_shortlist' | 'phase2_final' | 'evaluasi' | 'inisiasi' | 'dokumen' | 'penutupan';
+  evaluationSummary?: {
+    totalMitra: number;
+    lolos: number;
+    tidakLolos: number;
+  };
 }
 
 export interface Notification {
@@ -214,7 +237,53 @@ export interface SLAItem {
   dueDate: string;
 }
 
-export type ApplicationStatus = 'Dikirim' | 'Dalam Review' | 'Diterima' | 'Ditolak' | 'Terpilih';
+export type ApplicationStatus = 'Dikirim' | 'Dalam Review' | 'Diterima' | 'Ditolak' | 'Terpilih' | 'Shortlisted';
+
+export type ProjectPhase =
+  | 'phase1_registration'
+  | 'phase1_closed'
+  | 'phase1_evaluation'
+  | 'phase1_approval'
+  | 'phase1_announcement'
+  | 'phase1_approved'
+  | 'phase2_registration'
+  | 'phase2_evaluation'
+  | 'phase2_ranking'
+  | 'phase2_negotiation'
+  | 'phase2_approval'
+  | 'phase2_announcement'
+  | 'completed'
+  | 'cancelled';
+
+export interface PICAssignment {
+  role: UserRole;
+  userId: string;
+  userName: string;
+}
+
+export interface Phase1Criterion {
+  name: string;
+  score: number;
+  maxScore: number;
+  notes?: string;
+}
+
+export interface Phase1Evaluation {
+  partnerId: string;
+  partnerName: string;
+  criteria: Phase1Criterion[];
+  overallResult: 'Lolos' | 'Tidak Lolos';
+  evaluatedBy: string;
+  evaluatedAt: string;
+  notes?: string;
+}
+
+export interface PTBADocument {
+  id: string;
+  name: string;
+  type: string;
+  fileUrl?: string;
+}
 
 export interface ApplicationDocument {
   id: string;
@@ -236,4 +305,13 @@ export interface PartnerApplication {
   documents: ApplicationDocument[];
   currentEvalStep?: number;
   totalEvalSteps?: number;
+  phase?: 'phase1' | 'phase2';
+  phase1Documents?: ApplicationDocument[];
+  phase2Documents?: ApplicationDocument[];
+  phase1Result?: 'Lolos' | 'Tidak Lolos';
+  feePaymentStatus?: 'Belum Bayar' | 'Menunggu Verifikasi' | 'Sudah Bayar' | 'Ditolak';
+  feePaymentProof?: string;
+  feePaymentDate?: string;
+  feePaymentNotes?: string;
+  downloadedPTBADocs?: string[];
 }

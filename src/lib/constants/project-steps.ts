@@ -2,20 +2,26 @@ export interface ProjectStep {
   step: number;
   name: string;
   description: string;
+  phase: 'phase1' | 'phase2';
 }
 
 export const PROJECT_STEPS: ProjectStep[] = [
-  { step: 1, name: 'Inisiasi Proyek', description: 'Pembentukan tim dan penetapan ruang lingkup' },
-  { step: 2, name: 'Identifikasi Mitra', description: 'Pencarian dan penyaringan calon mitra' },
-  { step: 3, name: 'Pengumpulan Dokumen', description: 'Pengumpulan dokumen kualifikasi mitra' },
-  { step: 4, name: 'Evaluasi Pasar', description: 'Penilaian aspek pasar dan komersial' },
-  { step: 5, name: 'Evaluasi Teknis', description: 'Penilaian kapabilitas teknis' },
-  { step: 6, name: 'Evaluasi ESG', description: 'Penilaian Environmental, Social, Governance' },
-  { step: 7, name: 'Evaluasi Keuangan', description: 'Analisis KEP-100 dan rasio keuangan' },
-  { step: 8, name: 'Evaluasi Legal', description: 'Pemeriksaan aspek hukum dan kepatuhan' },
-  { step: 9, name: 'Evaluasi Risiko', description: 'Identifikasi dan analisis risiko' },
-  { step: 10, name: 'Konsolidasi Nilai', description: 'Penggabungan seluruh hasil evaluasi' },
-  { step: 11, name: 'Peringkat Mitra', description: 'Pemeringkatan berdasarkan skor akhir' },
-  { step: 12, name: 'Persetujuan', description: 'Proses persetujuan manajemen' },
-  { step: 13, name: 'Penetapan Mitra', description: 'Finalisasi dan penetapan mitra terpilih' },
+  // Phase 1: EoI / Pre-qualification
+  { step: 1, name: 'Inisiasi', description: 'Pembentukan tim dan penetapan ruang lingkup proyek', phase: 'phase1' },
+  { step: 2, name: 'Pendaftaran Mitra', description: 'Pembukaan pendaftaran Expression of Interest (EoI)', phase: 'phase1' },
+  { step: 3, name: 'Penutupan Pendaftaran', description: 'Penutupan periode pendaftaran EoI', phase: 'phase1' },
+  { step: 4, name: 'Evaluasi 1', description: 'Evaluasi EBD terhadap dokumen EoI mitra', phase: 'phase1' },
+  { step: 5, name: 'Persetujuan Tim', description: 'Persetujuan hasil evaluasi oleh tim internal', phase: 'phase1' },
+  { step: 6, name: 'Persetujuan Direksi', description: 'Persetujuan shortlist oleh Direksi', phase: 'phase1' },
+  { step: 7, name: 'Pengumuman Shortlist', description: 'Pengumuman mitra yang lolos ke Phase 2', phase: 'phase1' },
+  // Phase 2: Detailed Assessment
+  { step: 8, name: 'Pendaftaran Phase 2', description: 'Registrasi dan pembayaran biaya pendaftaran Phase 2', phase: 'phase2' },
+  { step: 9, name: 'Evaluasi 2', description: 'Evaluasi komprehensif multi-divisi (Keuangan, Hukum, Risiko, EBD)', phase: 'phase2' },
+  { step: 10, name: 'Peringkat', description: 'Pemeringkatan mitra berdasarkan skor evaluasi akhir', phase: 'phase2' },
+  { step: 11, name: 'Negosiasi', description: 'Negosiasi syarat dan ketentuan kerjasama', phase: 'phase2' },
+  { step: 12, name: 'Persetujuan BoD', description: 'Persetujuan akhir oleh Board of Directors', phase: 'phase2' },
+  { step: 13, name: 'Pengumuman Pemenang', description: 'Penetapan dan pengumuman mitra terpilih', phase: 'phase2' },
 ];
+
+export const PHASE1_STEPS = PROJECT_STEPS.filter((s) => s.phase === 'phase1');
+export const PHASE2_STEPS = PROJECT_STEPS.filter((s) => s.phase === 'phase2');

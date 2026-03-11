@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,7 @@ import {
   User,
   Clock,
   Shield,
-  AlertTriangle,
   Building2,
-  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -53,12 +51,20 @@ function getStatusVariant(status: string) {
 
 export default function ApprovalDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const approval = useMemo(
     () => mockApprovals.find((a) => a.id === id),
     [id]
   );
+
+  // Redirect Phase 1 shortlist approvals to the dedicated page
+  useEffect(() => {
+    if (approval?.approvalCategory === "phase1_shortlist") {
+      router.replace(`/projects/${approval.projectId}/approval/phase1`);
+    }
+  }, [approval, router]);
 
   const [submitted, setSubmitted] = useState(false);
 
@@ -69,6 +75,15 @@ export default function ApprovalDetailPage() {
       .filter((e) => e.projectId === approval.projectId)
       .sort((a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0));
   }, [approval]);
+
+  // Show loading state while redirecting
+  if (approval?.approvalCategory === "phase1_shortlist") {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-ptba-gray">Mengalihkan ke halaman persetujuan Phase 1...</p>
+      </div>
+    );
+  }
 
   if (!approval) {
     return (
@@ -95,6 +110,8 @@ export default function ApprovalDetailPage() {
     console.log("Disposisi:", { id, decision, notes });
   };
 
+  const isPhase2 = approval.phase === "phase2";
+
   return (
     <div className="space-y-6">
       <Link
@@ -119,6 +136,15 @@ export default function ApprovalDetailPage() {
             <p className="text-sm text-ptba-gray mt-1">{approval.type}</p>
           </div>
           <div className="flex gap-2">
+            {approval.phase && (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white ${
+                  approval.phase === "phase1" ? "bg-ptba-navy" : "bg-ptba-steel-blue"
+                }`}
+              >
+                {approval.phase === "phase1" ? "Fase 1" : "Fase 2"}
+              </span>
+            )}
             <Badge variant={getPriorityVariant(approval.priority)}>
               {approval.priority}
             </Badge>
@@ -186,80 +212,82 @@ export default function ApprovalDetailPage() {
         )}
       </Card>
 
-      {/* Mitra Direkomendasikan */}
-      <Card padding="lg">
-        <h3 className="text-lg font-semibold text-ptba-charcoal mb-4 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-ptba-steel-blue" />
-          Mitra Direkomendasikan
-        </h3>
-        {projectEvals.length > 0 ? (
-          <div className="space-y-3">
-            {projectEvals.map((ev, index) => {
-              const partner = mockPartners.find((p) => p.id === ev.partnerId);
-              return (
-                <div key={ev.id} className="rounded-xl border border-ptba-light-gray p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                        index === 0 ? "bg-ptba-gold/20 text-ptba-gold" :
-                        index === 1 ? "bg-gray-200 text-gray-600" :
-                        "bg-amber-100 text-amber-700"
-                      )}>
-                        {index + 1}
-                      </span>
-                      <div>
-                        <p className="font-semibold text-ptba-charcoal">{ev.partnerName}</p>
-                        <p className="text-xs text-ptba-gray">{partner?.code ?? ev.partnerId}</p>
+      {/* Mitra Direkomendasikan — only show for Phase 2 approvals */}
+      {isPhase2 && (
+        <Card padding="lg">
+          <h3 className="text-lg font-semibold text-ptba-charcoal mb-4 flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-ptba-steel-blue" />
+            Mitra Direkomendasikan
+          </h3>
+          {projectEvals.length > 0 ? (
+            <div className="space-y-3">
+              {projectEvals.map((ev, index) => {
+                const partner = mockPartners.find((p) => p.id === ev.partnerId);
+                return (
+                  <div key={ev.id} className="rounded-xl border border-ptba-light-gray p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <span className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
+                          index === 0 ? "bg-ptba-gold/20 text-ptba-gold" :
+                          index === 1 ? "bg-gray-200 text-gray-600" :
+                          "bg-amber-100 text-amber-700"
+                        )}>
+                          {index + 1}
+                        </span>
+                        <div>
+                          <p className="font-semibold text-ptba-charcoal">{ev.partnerName}</p>
+                          <p className="text-xs text-ptba-gray">{partner?.code ?? ev.partnerId}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-ptba-navy">{(ev.totalScore ?? 0).toFixed(1)}</p>
+                        <span className={cn(
+                          "inline-block rounded-full px-2 py-0.5 text-[10px] font-bold",
+                          ev.grade === "A" ? "bg-green-100 text-green-700" :
+                          ev.grade === "B" ? "bg-blue-100 text-blue-700" :
+                          "bg-amber-100 text-amber-700"
+                        )}>
+                          Grade {ev.grade ?? "-"}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-ptba-navy">{(ev.totalScore ?? 0).toFixed(1)}</p>
-                      <span className={cn(
-                        "inline-block rounded-full px-2 py-0.5 text-[10px] font-bold",
-                        ev.grade === "A" ? "bg-green-100 text-green-700" :
-                        ev.grade === "B" ? "bg-blue-100 text-blue-700" :
-                        "bg-amber-100 text-amber-700"
-                      )}>
-                        Grade {ev.grade ?? "-"}
-                      </span>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
+                        <p className="text-[10px] text-ptba-gray">Teknis</p>
+                        <p className="text-sm font-bold text-ptba-charcoal">{(ev.technical?.total ?? 0).toFixed(2)} / 5</p>
+                      </div>
+                      <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
+                        <p className="text-[10px] text-ptba-gray">Keuangan (KEP-100)</p>
+                        <p className="text-sm font-bold text-ptba-charcoal">{(ev.financial?.totalScore ?? 0).toFixed(1)}</p>
+                        <p className="text-[10px] text-ptba-gray">Grade {ev.financial?.grade ?? "-"}</p>
+                      </div>
+                      <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
+                        <p className="text-[10px] text-ptba-gray">Hukum</p>
+                        <p className={cn("text-sm font-bold",
+                          ev.legal?.overallStatus === "Lulus" ? "text-green-600" :
+                          ev.legal?.overallStatus === "Bersyarat" ? "text-amber-600" : "text-red-600"
+                        )}>{ev.legal?.overallStatus ?? "-"}</p>
+                      </div>
+                      <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
+                        <p className="text-[10px] text-ptba-gray">Risiko</p>
+                        <p className={cn("text-sm font-bold",
+                          ev.risk?.overallLevel === "Rendah" ? "text-green-600" :
+                          ev.risk?.overallLevel === "Sedang" ? "text-amber-600" : "text-red-600"
+                        )}>{ev.risk?.overallLevel ?? "-"}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
-                      <p className="text-[10px] text-ptba-gray">Teknis</p>
-                      <p className="text-sm font-bold text-ptba-charcoal">{(ev.technical?.total ?? 0).toFixed(2)} / 5</p>
-                    </div>
-                    <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
-                      <p className="text-[10px] text-ptba-gray">Keuangan (KEP-100)</p>
-                      <p className="text-sm font-bold text-ptba-charcoal">{(ev.financial?.totalScore ?? 0).toFixed(1)}</p>
-                      <p className="text-[10px] text-ptba-gray">Grade {ev.financial?.grade ?? "-"}</p>
-                    </div>
-                    <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
-                      <p className="text-[10px] text-ptba-gray">Hukum</p>
-                      <p className={cn("text-sm font-bold",
-                        ev.legal?.overallStatus === "Lulus" ? "text-green-600" :
-                        ev.legal?.overallStatus === "Bersyarat" ? "text-amber-600" : "text-red-600"
-                      )}>{ev.legal?.overallStatus ?? "-"}</p>
-                    </div>
-                    <div className="rounded-lg bg-ptba-section-bg p-2.5 text-center">
-                      <p className="text-[10px] text-ptba-gray">Risiko</p>
-                      <p className={cn("text-sm font-bold",
-                        ev.risk?.overallLevel === "Rendah" ? "text-green-600" :
-                        ev.risk?.overallLevel === "Sedang" ? "text-amber-600" : "text-red-600"
-                      )}>{ev.risk?.overallLevel ?? "-"}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-ptba-gray text-center py-4">
-            Belum ada data evaluasi mitra untuk proyek ini.
-          </p>
-        )}
-      </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-ptba-gray text-center py-4">
+              Belum ada data evaluasi mitra untuk proyek ini.
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* Disposisi Form */}
       {approval.status === "Menunggu" && !submitted && (

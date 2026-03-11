@@ -15,6 +15,9 @@ import {
   BarChart3,
   Target,
   ListChecks,
+  ArrowRight,
+  CheckCircle2,
+  Rocket,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
@@ -217,10 +220,35 @@ function NotificationList() {
 
 // ── EXECUTIVE DASHBOARD ─────────────────────────────────────────────
 
+function ExecutivePhase1InfoBanner() {
+  const approvedProjects = mockProjects.filter((p) => p.phase === "phase1_approved");
+  if (approvedProjects.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {approvedProjects.map((project) => (
+        <div
+          key={project.id}
+          className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4"
+        >
+          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-ptba-charcoal">{project.name}</p>
+            <p className="text-xs text-green-700">
+              Persetujuan Fase 1 telah diberikan — menunggu EBD memulai Fase 2
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ExecutiveDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-ptba-charcoal">Dashboard Eksekutif</h1>
+      <ExecutivePhase1InfoBanner />
       <KpiGrid kpis={executiveKpis} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -297,10 +325,49 @@ function ExecutiveDashboard() {
 
 // ── PROJECT DASHBOARD ───────────────────────────────────────────────
 
+function Phase1ApprovedBanner() {
+  const approvedProjects = mockProjects.filter((p) => p.phase === "phase1_approved");
+  if (approvedProjects.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-ptba-charcoal">
+        <AlertCircle className="h-4 w-4 text-ptba-gold" />
+        Tindakan Diperlukan
+      </h2>
+      {approvedProjects.map((project) => (
+        <Link
+          key={project.id}
+          href={`/projects/${project.id}`}
+          className="group flex items-center justify-between rounded-xl border border-green-200 bg-green-50 p-4 transition-shadow hover:shadow-md"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-ptba-charcoal">{project.name}</p>
+              <p className="text-xs text-green-700">
+                Fase 1 disetujui Direksi — {project.shortlistedPartners?.length ?? 0} mitra lolos, siap memulai Fase 2
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors group-hover:bg-ptba-steel-blue">
+            <Rocket className="h-3.5 w-3.5" />
+            Mulai Fase 2
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function ProjectDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-ptba-charcoal">Dashboard</h1>
+      <Phase1ApprovedBanner />
       <KpiGrid kpis={projectKpis} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">

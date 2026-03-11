@@ -82,7 +82,10 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
                 onClick={() => setShowUserMenu(false)}
               />
               <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-ptba-light-gray bg-white py-1 shadow-lg">
-                <button className="flex w-full items-center gap-2 px-4 py-2 text-sm text-ptba-charcoal hover:bg-ptba-section-bg">
+                <button
+                  onClick={() => { setShowUserMenu(false); router.push("/account"); }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-ptba-charcoal hover:bg-ptba-section-bg"
+                >
                   <User className="h-4 w-4" />
                   Profil Saya
                 </button>

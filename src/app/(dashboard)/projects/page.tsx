@@ -4,8 +4,9 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { mockProjects } from "@/lib/mock-data";
+import { mockProjects, mockUsers } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth/auth-context";
+import { canAccessProject } from "@/lib/utils/pic-access";
 
 const EVALUATOR_ROLES = ["keuangan", "hukum", "risiko"] as const;
 
@@ -35,16 +36,46 @@ function typeStyle(type: string) {
   }
 }
 
+function phaseInfo(phase?: string): { label: string; color: string } | null {
+  if (!phase) return null;
+  if (phase === "completed") return { label: "Selesai", color: "bg-ptba-green/10 text-ptba-green border-ptba-green/20" };
+  if (phase === "cancelled") return { label: "Dibatalkan", color: "bg-ptba-red/10 text-ptba-red border-ptba-red/20" };
+  if (phase.startsWith("phase1")) {
+    const sub: Record<string, string> = {
+      phase1_registration: "Phase 1 · Pendaftaran",
+      phase1_closed: "Phase 1 · Ditutup",
+      phase1_evaluation: "Phase 1 · Evaluasi",
+      phase1_approval: "Phase 1 · Persetujuan",
+      phase1_announcement: "Phase 1 · Pengumuman",
+    };
+    return { label: sub[phase] ?? "Phase 1", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
+  }
+  const sub2: Record<string, string> = {
+    phase2_registration: "Phase 2 · Pendaftaran",
+    phase2_evaluation: "Phase 2 · Evaluasi",
+    phase2_ranking: "Phase 2 · Peringkat",
+    phase2_negotiation: "Phase 2 · Negosiasi",
+    phase2_approval: "Phase 2 · Persetujuan",
+    phase2_announcement: "Phase 2 · Pengumuman",
+  };
+  return { label: sub2[phase] ?? "Phase 2", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
+}
+
 const STATUS_TABS = ["Semua", "Draft", "Evaluasi", "Persetujuan", "Selesai"];
 
 export default function ProjectsPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isEvaluator = EVALUATOR_ROLES.includes(role as typeof EVALUATOR_ROLES[number]);
 
-  // Evaluators only see projects in "Evaluasi" status
+  // Filter by PIC access and evaluator status
+  const accessibleProjects = useMemo(() => {
+    const currentUser = user ? mockUsers.find((u) => u.id === user.id) ?? user : null;
+    return mockProjects.filter((p) => canAccessProject(p, currentUser));
+  }, [user]);
+
   const baseProjects = isEvaluator
-    ? mockProjects.filter((p) => p.status === "Evaluasi")
-    : mockProjects;
+    ? accessibleProjects.filter((p) => p.status === "Evaluasi")
+    : accessibleProjects;
 
   const [activeTab, setActiveTab] = useState("Semua");
   const [search, setSearch] = useState("");
@@ -174,11 +205,25 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {filtered.map((project) => {
             const pct = Math.round((project.currentStep / project.totalSteps) * 100);
+            const pi = phaseInfo(project.phase);
+            const isP1 = project.phase?.startsWith("phase1");
+            const isP2 = project.phase?.startsWith("phase2");
+            const p1Steps = 7;
+            const p2Steps = 6;
+            const p1Filled = Math.min(project.currentStep, p1Steps);
+            const p2Filled = Math.max(0, project.currentStep - p1Steps);
+
             return (
               <Link
                 key={project.id}
                 href={`/projects/${project.id}`}
-                className="group block rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                className={cn(
+                  "group block rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md border-l-4",
+                  isP1 ? "border-l-ptba-navy" :
+                  isP2 ? "border-l-ptba-steel-blue" :
+                  project.phase === "completed" ? "border-l-ptba-green" :
+                  "border-l-ptba-light-gray"
+                )}
               >
                 {/* Top row */}
                 <div className="flex items-start justify-between gap-2 mb-3">
@@ -190,14 +235,19 @@ export default function ProjectsPage() {
                   </span>
                 </div>
 
-                {/* Type + Value */}
-                <div className="flex items-center gap-2 mb-3">
+                {/* Type + Value + Phase */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", typeStyle(project.type))}>
                     {project.type}
                   </span>
                   <span className="text-sm font-semibold text-ptba-charcoal">
                     {formatCapex(project.capexValue)}
                   </span>
+                  {pi && (
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold border", pi.color)}>
+                      {pi.label}
+                    </span>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -205,7 +255,7 @@ export default function ProjectsPage() {
                   {project.description}
                 </p>
 
-                {/* Progress */}
+                {/* Two-Phase Progress */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-ptba-gray mb-1.5">
                     <span className="flex items-center gap-1">
@@ -214,19 +264,34 @@ export default function ProjectsPage() {
                     </span>
                     <span className="font-medium">{pct}%</span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-ptba-light-gray">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        pct === 100 ? "bg-ptba-green" : pct >= 60 ? "bg-ptba-steel-blue" : "bg-ptba-gold"
-                      )}
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div className="flex items-center gap-0">
+                    {/* Phase 1 bar */}
+                    <div className="flex-1 h-1.5 overflow-hidden rounded-l-full bg-ptba-light-gray">
+                      <div
+                        className="h-full rounded-l-full bg-ptba-navy transition-all"
+                        style={{ width: `${(p1Filled / p1Steps) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-px h-2.5 bg-ptba-charcoal/20 mx-px" />
+                    {/* Phase 2 bar */}
+                    <div className="flex-1 h-1.5 overflow-hidden rounded-r-full bg-ptba-light-gray">
+                      <div
+                        className={cn(
+                          "h-full rounded-r-full transition-all",
+                          project.phase === "completed" ? "bg-ptba-green" : "bg-ptba-steel-blue"
+                        )}
+                        style={{ width: `${(p2Filled / p2Steps) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-0.5 flex justify-between text-[9px] text-ptba-gray/50">
+                    <span>P1</span>
+                    <span>P2</span>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="mt-3 flex items-center justify-between text-xs text-ptba-gray border-t border-ptba-light-gray/50 pt-3">
+                <div className="mt-2 flex items-center justify-between text-xs text-ptba-gray border-t border-ptba-light-gray/50 pt-3">
                   <span>{project.partners.length} mitra terdaftar</span>
                   <span>{new Date(project.startDate).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}</span>
                 </div>

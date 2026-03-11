@@ -3,16 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
-import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { mockUsers } from "@/lib/mock-data/users";
+import type { UserRole } from "@/lib/types";
 
 const STEPS = [
   { key: 1, label: "Informasi Dasar" },
   { key: 2, label: "Timeline & Pendaftaran" },
   { key: 3, label: "Persyaratan & Dokumen" },
-  { key: 4, label: "Ringkasan" },
+  { key: 4, label: "Penunjukan PIC" },
+  { key: 5, label: "Ringkasan" },
 ];
 
 const PROJECT_TYPES = [
@@ -31,6 +34,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORIES = ["legal", "keuangan", "teknis", "administrasi"] as const;
 
+const PIC_ROLES: { role: UserRole; label: string; description: string }[] = [
+  { role: "ebd", label: "EBD (Evaluasi Bisnis & Development)", description: "Bertanggung jawab atas evaluasi pasar, teknis, dan ESG" },
+  { role: "keuangan", label: "Keuangan", description: "Bertanggung jawab atas evaluasi keuangan (KEP-100)" },
+  { role: "hukum", label: "Hukum", description: "Bertanggung jawab atas evaluasi aspek legal" },
+  { role: "risiko", label: "Risiko", description: "Bertanggung jawab atas evaluasi dan mitigasi risiko" },
+  { role: "direksi", label: "Direksi", description: "Approver akhir untuk persetujuan proyek" },
+];
+
 export default function CreateProjectPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -44,17 +55,27 @@ export default function CreateProjectPage() {
   // Step 2
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [applicationDeadline, setApplicationDeadline] = useState("");
+  const [phase1Deadline, setPhase1Deadline] = useState("");
+  const [phase2Deadline, setPhase2Deadline] = useState("");
   const [supportingFiles, setSupportingFiles] = useState<string[]>([]);
   const [isOpenForApplication, setIsOpenForApplication] = useState(false);
 
   // Step 3
   const [requirements, setRequirements] = useState<string[]>([""]);
-  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [selectedPhase1Docs, setSelectedPhase1Docs] = useState<string[]>(
+    PHASE1_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
+  );
+  const [selectedPhase2Docs, setSelectedPhase2Docs] = useState<string[]>(
+    PHASE2_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
+  );
+  const [selectedLegacyDocs, setSelectedLegacyDocs] = useState<string[]>([]);
   const [customDocuments, setCustomDocuments] = useState<string[]>([]);
 
+  // Step 4 - PIC Assignments
+  const [picAssignments, setPicAssignments] = useState<Record<string, string>>({});
+
   const goNext = () => {
-    if (currentStep < 4) setCurrentStep((prev) => prev + 1);
+    if (currentStep < 5) setCurrentStep((prev) => prev + 1);
   };
   const goPrev = () => {
     if (currentStep > 1) setCurrentStep((prev) => prev - 1);
@@ -71,20 +92,8 @@ export default function CreateProjectPage() {
   };
 
   // Document selection handlers
-  const toggleDocument = (docId: string) => {
-    setSelectedDocuments((prev) =>
-      prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]
-    );
-  };
-
-  const toggleCategory = (category: string) => {
-    const categoryDocIds = DOCUMENT_TYPES.filter((d) => d.category === category).map((d) => d.id);
-    const allSelected = categoryDocIds.every((id) => selectedDocuments.includes(id));
-    if (allSelected) {
-      setSelectedDocuments((prev) => prev.filter((id) => !categoryDocIds.includes(id)));
-    } else {
-      setSelectedDocuments((prev) => [...new Set([...prev, ...categoryDocIds])]);
-    }
+  const toggleDoc = (docId: string, list: string[], setList: (v: string[]) => void) => {
+    setList(list.includes(docId) ? list.filter((id) => id !== docId) : [...list, docId]);
   };
 
   // Custom document handlers
@@ -103,6 +112,15 @@ export default function CreateProjectPage() {
   };
   const removeFile = (index: number) => {
     setSupportingFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // PIC handlers
+  const handlePICChange = (role: string, userId: string) => {
+    setPicAssignments((prev) => ({ ...prev, [role]: userId }));
+  };
+
+  const getUsersForRole = (role: UserRole) => {
+    return mockUsers.filter((u) => u.role === role);
   };
 
   const handleSubmit = () => {
@@ -162,7 +180,7 @@ export default function CreateProjectPage() {
                   </div>
                   <p
                     className={cn(
-                      "mt-1.5 text-[10px] font-medium text-center w-24",
+                      "mt-1.5 text-[10px] font-medium text-center w-20",
                       isActive ? "text-ptba-navy" : isCompleted ? "text-green-600" : "text-ptba-gray"
                     )}
                   >
@@ -170,7 +188,7 @@ export default function CreateProjectPage() {
                   </p>
                 </div>
                 {!isLast && (
-                  <div className={cn("h-0.5 w-10 mx-1 mb-5", isCompleted ? "bg-green-500" : "bg-ptba-light-gray")} />
+                  <div className={cn("h-0.5 w-8 mx-0.5 mb-5", isCompleted ? "bg-green-500" : "bg-ptba-light-gray")} />
                 )}
               </div>
             );
@@ -237,41 +255,32 @@ export default function CreateProjectPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Mulai</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className={inputClass}
-                />
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Selesai</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className={inputClass}
-                />
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
               </div>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">
-                Batas Waktu Pendaftaran Mitra
-              </label>
-              <input
-                type="date"
-                value={applicationDeadline}
-                onChange={(e) => setApplicationDeadline(e.target.value)}
-                className={inputClass}
-              />
+
+            {/* Phase deadlines */}
+            <div className="rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-ptba-steel-blue">Deadline Per Phase</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Phase 1 (EoI)</label>
+                  <input type="date" value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Phase 2 (Assessment)</label>
+                  <input type="date" value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
+                </div>
+              </div>
             </div>
+
             <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">
-                Dokumen Pendukung Proyek
-              </label>
-              <p className="mb-2 text-xs text-ptba-gray">
-                Upload dokumen yang dapat dilihat oleh mitra (TOR, spesifikasi teknis, gambar, dll.)
-              </p>
+              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Dokumen Pendukung Proyek</label>
+              <p className="mb-2 text-xs text-ptba-gray">Upload dokumen yang dapat dilihat oleh mitra (TOR, spesifikasi teknis, gambar, dll.)</p>
               <button
                 type="button"
                 onClick={handleAddFile}
@@ -288,11 +297,7 @@ export default function CreateProjectPage() {
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                         {file}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        className="text-ptba-red hover:text-red-700 transition-colors"
-                      >
+                      <button type="button" onClick={() => removeFile(index)} className="text-ptba-red hover:text-red-700 transition-colors">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -300,6 +305,7 @@ export default function CreateProjectPage() {
                 </div>
               )}
             </div>
+
             <div className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-4">
               <button
                 type="button"
@@ -321,9 +327,7 @@ export default function CreateProjectPage() {
               <div>
                 <p className="text-sm font-medium text-ptba-charcoal">Buka Pendaftaran Mitra</p>
                 <p className="text-xs text-ptba-gray">
-                  {isOpenForApplication
-                    ? "Mitra dapat mendaftar ke proyek ini"
-                    : "Pendaftaran mitra belum dibuka"}
+                  {isOpenForApplication ? "Mitra dapat mendaftar ke proyek ini" : "Pendaftaran mitra belum dibuka"}
                 </p>
               </div>
             </div>
@@ -372,22 +376,102 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            {/* Dokumen yang Diperlukan */}
+            {/* Phase 1 EoI Documents */}
+            <div className="space-y-3">
+              <div className="rounded-lg border border-ptba-steel-blue/30 overflow-hidden">
+                <div className="bg-ptba-steel-blue/10 px-4 py-2.5">
+                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Phase 1 - Dokumen EoI (Expression of Interest)</h3>
+                  <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra pada tahap pendaftaran awal</p>
+                </div>
+                <div className="divide-y divide-ptba-light-gray/50">
+                  {PHASE1_DOCUMENT_TYPES.map((doc) => {
+                    const isSelected = selectedPhase1Docs.includes(doc.id);
+                    return (
+                      <label
+                        key={doc.id}
+                        className={cn(
+                          "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors",
+                          isSelected ? "bg-ptba-steel-blue/5" : "hover:bg-ptba-off-white"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleDoc(doc.id, selectedPhase1Docs, setSelectedPhase1Docs)}
+                          className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-ptba-charcoal">
+                            {doc.name}
+                            {doc.required && <span className="ml-1 text-[10px] text-ptba-red">*Wajib</span>}
+                          </p>
+                          <p className="text-xs text-ptba-gray">{doc.description}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Phase 2 Documents */}
+            <div className="space-y-3">
+              <div className="rounded-lg border border-ptba-navy/30 overflow-hidden">
+                <div className="bg-ptba-navy/10 px-4 py-2.5">
+                  <h3 className="text-sm font-semibold text-ptba-navy">Phase 2 - Dokumen Detailed Assessment</h3>
+                  <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra yang lolos shortlist</p>
+                </div>
+                <div className="divide-y divide-ptba-light-gray/50">
+                  {PHASE2_DOCUMENT_TYPES.map((doc) => {
+                    const isSelected = selectedPhase2Docs.includes(doc.id);
+                    return (
+                      <label
+                        key={doc.id}
+                        className={cn(
+                          "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors",
+                          isSelected ? "bg-ptba-navy/5" : "hover:bg-ptba-off-white"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleDoc(doc.id, selectedPhase2Docs, setSelectedPhase2Docs)}
+                          className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy/20"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-ptba-charcoal">
+                            {doc.name}
+                            {doc.required && <span className="ml-1 text-[10px] text-ptba-red">*Wajib</span>}
+                          </p>
+                          <p className="text-xs text-ptba-gray">{doc.description}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Legacy/General Documents */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-ptba-charcoal">Dokumen yang Diperlukan</h2>
+              <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum (Opsional)</h3>
               {CATEGORIES.map((category) => {
-                const docs = DOCUMENT_TYPES.filter((d) => d.category === category);
-                const allSelected = docs.every((d) => selectedDocuments.includes(d.id));
+                const docs = LEGACY_DOCUMENT_TYPES.filter((d) => d.category === category);
+                const allSelected = docs.every((d) => selectedLegacyDocs.includes(d.id));
                 return (
                   <div key={category} className="rounded-lg border border-ptba-light-gray overflow-hidden">
-                    {/* Category header */}
                     <div className="flex items-center justify-between bg-ptba-section-bg px-4 py-2.5">
-                      <h3 className="text-sm font-semibold text-ptba-charcoal">
-                        {CATEGORY_LABELS[category]}
-                      </h3>
+                      <h3 className="text-sm font-semibold text-ptba-charcoal">{CATEGORY_LABELS[category]}</h3>
                       <button
                         type="button"
-                        onClick={() => toggleCategory(category)}
+                        onClick={() => {
+                          const categoryDocIds = docs.map((d) => d.id);
+                          if (allSelected) {
+                            setSelectedLegacyDocs((prev) => prev.filter((id) => !categoryDocIds.includes(id)));
+                          } else {
+                            setSelectedLegacyDocs((prev) => [...new Set([...prev, ...categoryDocIds])]);
+                          }
+                        }}
                         className={cn(
                           "text-xs font-medium transition-colors",
                           allSelected ? "text-ptba-red hover:text-red-700" : "text-ptba-steel-blue hover:text-ptba-navy"
@@ -396,10 +480,9 @@ export default function CreateProjectPage() {
                         {allSelected ? "Batal Semua" : "Pilih Semua"}
                       </button>
                     </div>
-                    {/* Documents */}
                     <div className="divide-y divide-ptba-light-gray/50">
                       {docs.map((doc) => {
-                        const isSelected = selectedDocuments.includes(doc.id);
+                        const isSelected = selectedLegacyDocs.includes(doc.id);
                         return (
                           <label
                             key={doc.id}
@@ -411,7 +494,7 @@ export default function CreateProjectPage() {
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleDocument(doc.id)}
+                              onChange={() => toggleDoc(doc.id, selectedLegacyDocs, setSelectedLegacyDocs)}
                               className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20"
                             />
                             <div>
@@ -469,8 +552,59 @@ export default function CreateProjectPage() {
           </div>
         )}
 
-        {/* Step 4: Ringkasan */}
+        {/* Step 4: Penunjukan PIC */}
         {currentStep === 4 && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-ptba-charcoal">Penunjukan PIC</h2>
+              <p className="text-sm text-ptba-gray mt-1">Tentukan penanggung jawab evaluasi untuk setiap divisi</p>
+            </div>
+
+            <div className="space-y-3">
+              {PIC_ROLES.map(({ role, label, description: desc }) => {
+                const usersForRole = getUsersForRole(role);
+                const selectedUserId = picAssignments[role] || "";
+                return (
+                  <div key={role} className="rounded-lg border border-ptba-light-gray p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ptba-navy/10">
+                        <UserPlus className="h-5 w-5 text-ptba-navy" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-ptba-charcoal">{label}</p>
+                        <p className="text-xs text-ptba-gray">{desc}</p>
+                        <select
+                          value={selectedUserId}
+                          onChange={(e) => handlePICChange(role, e.target.value)}
+                          className={cn(inputClass, "mt-2")}
+                        >
+                          <option value="">Pilih PIC...</option>
+                          {usersForRole.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} ({u.department})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {selectedUserId && (
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500 mt-1" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="rounded-lg bg-ptba-gold/10 border border-ptba-gold/20 p-3">
+              <p className="text-xs text-ptba-gray">
+                <span className="font-medium text-ptba-charcoal">Info:</span> Hanya PIC yang ditunjuk yang dapat mengakses dan melakukan evaluasi pada proyek ini. Super Admin dan Direksi tetap memiliki akses penuh.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Ringkasan */}
+        {currentStep === 5 && (
           <div className="space-y-6">
             <h2 className="text-lg font-semibold text-ptba-charcoal">Ringkasan Proyek</h2>
 
@@ -494,12 +628,6 @@ export default function CreateProjectPage() {
                     {parsedCapex > 0 ? formatCurrency(parsedCapex) : "-"}
                   </span>
                 </div>
-                <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Deskripsi</span>
-                  <span className="max-w-[60%] text-right text-sm font-medium text-ptba-charcoal">
-                    {description || "-"}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -510,95 +638,58 @@ export default function CreateProjectPage() {
               </div>
               <div className="divide-y divide-ptba-light-gray/50 px-4">
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Tanggal Mulai</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">{startDate || "-"}</span>
+                  <span className="text-sm text-ptba-gray">Periode Proyek</span>
+                  <span className="text-sm font-medium text-ptba-charcoal">{startDate || "-"} s/d {endDate || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Tanggal Selesai</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">{endDate || "-"}</span>
+                  <span className="text-sm text-ptba-gray">Deadline Phase 1</span>
+                  <span className="text-sm font-medium text-ptba-charcoal">{phase1Deadline || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Batas Pendaftaran Mitra</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">{applicationDeadline || "-"}</span>
-                </div>
-                <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Dokumen Pendukung</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">
-                    {supportingFiles.length > 0 ? `${supportingFiles.length} file` : "Belum ada"}
-                  </span>
+                  <span className="text-sm text-ptba-gray">Deadline Phase 2</span>
+                  <span className="text-sm font-medium text-ptba-charcoal">{phase2Deadline || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
                   <span className="text-sm text-ptba-gray">Pendaftaran Mitra</span>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      isOpenForApplication
-                        ? "bg-green-100 text-green-700"
-                        : "bg-ptba-gray/10 text-ptba-gray"
-                    )}
-                  >
+                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", isOpenForApplication ? "bg-green-100 text-green-700" : "bg-ptba-gray/10 text-ptba-gray")}>
                     {isOpenForApplication ? "Dibuka" : "Ditutup"}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Persyaratan */}
+            {/* Documents Summary */}
             <div className="rounded-lg border border-ptba-light-gray overflow-hidden">
               <div className="bg-ptba-section-bg px-4 py-2.5">
-                <h3 className="text-sm font-semibold text-ptba-charcoal">Persyaratan Mitra</h3>
+                <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen</h3>
               </div>
-              <div className="px-4 py-3">
-                {requirements.filter((r) => r.trim()).length > 0 ? (
-                  <ul className="space-y-1.5">
-                    {requirements
-                      .filter((r) => r.trim())
-                      .map((req, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-ptba-charcoal">
-                          <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ptba-navy" />
-                          {req}
-                        </li>
-                      ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-ptba-gray">Belum ada persyaratan ditambahkan</p>
+              <div className="px-4 py-3 space-y-2">
+                <p className="text-xs font-medium text-ptba-steel-blue">Phase 1 EoI: {selectedPhase1Docs.length} dokumen</p>
+                <p className="text-xs font-medium text-ptba-navy">Phase 2 Assessment: {selectedPhase2Docs.length} dokumen</p>
+                {selectedLegacyDocs.length > 0 && (
+                  <p className="text-xs text-ptba-gray">Kualifikasi Umum: {selectedLegacyDocs.length} dokumen</p>
                 )}
               </div>
             </div>
 
-            {/* Dokumen */}
+            {/* PIC Summary */}
             <div className="rounded-lg border border-ptba-light-gray overflow-hidden">
               <div className="bg-ptba-section-bg px-4 py-2.5">
-                <h3 className="text-sm font-semibold text-ptba-charcoal">
-                  Dokumen yang Diperlukan ({selectedDocuments.length + customDocuments.filter((d) => d.trim()).length})
-                </h3>
+                <h3 className="text-sm font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
               </div>
-              <div className="px-4 py-3">
-                {selectedDocuments.length > 0 || customDocuments.filter((d) => d.trim()).length > 0 ? (
-                  <div className="space-y-1.5">
-                    {selectedDocuments.map((docId) => {
-                      const doc = DOCUMENT_TYPES.find((d) => d.id === docId);
-                      if (!doc) return null;
-                      return (
-                        <div key={docId} className="flex items-center gap-2 text-sm text-ptba-charcoal">
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-                          {doc.name}
-                        </div>
-                      );
-                    })}
-                    {customDocuments
-                      .filter((d) => d.trim())
-                      .map((doc, i) => (
-                        <div key={`custom-${i}`} className="flex items-center gap-2 text-sm text-ptba-charcoal">
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-ptba-steel-blue" />
-                          {doc}
-                          <span className="text-[10px] text-ptba-gray">(custom)</span>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-ptba-gray">Belum ada dokumen dipilih</p>
-                )}
+              <div className="divide-y divide-ptba-light-gray/50 px-4">
+                {PIC_ROLES.map(({ role, label }) => {
+                  const userId = picAssignments[role];
+                  const user = userId ? mockUsers.find((u) => u.id === userId) : null;
+                  return (
+                    <div key={role} className="flex justify-between py-2.5">
+                      <span className="text-sm text-ptba-gray">{label}</span>
+                      <span className="text-sm font-medium text-ptba-charcoal">
+                        {user ? user.name : <span className="text-ptba-red text-xs">Belum ditunjuk</span>}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -612,7 +703,7 @@ export default function CreateProjectPage() {
           >
             {currentStep === 1 ? "Batal" : "Sebelumnya"}
           </button>
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <button
               onClick={goNext}
               className="rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"

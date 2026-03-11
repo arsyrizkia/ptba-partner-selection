@@ -6,6 +6,7 @@ export const mockEvaluations: Evaluation[] = [
     projectId: 'P001',
     partnerId: 'M001',
     partnerName: 'PT Perusahaan Gas Negara Tbk (PGN)',
+    phase: 'phase2',
     market: {
       subScores: [
         { name: 'Pangsa Pasar & Posisi Kompetitif', score: 5.00, weight: 0.30, notes: 'PGN merupakan pemimpin pasar gas bumi nasional dengan pangsa pasar dominan' },
@@ -231,6 +232,7 @@ export const mockEvaluations: Evaluation[] = [
     projectId: 'P001',
     partnerId: 'M004',
     partnerName: 'PT Medco Energi Internasional Tbk',
+    phase: 'phase2',
     market: {
       subScores: [
         { name: 'Pangsa Pasar & Posisi Kompetitif', score: 4.50, weight: 0.30, notes: 'INALUM merupakan holding industri pertambangan terbesar di Indonesia' },
@@ -473,6 +475,7 @@ export const mockEvaluations: Evaluation[] = [
     projectId: 'P002',
     partnerId: 'M001',
     partnerName: 'PT Perusahaan Gas Negara Tbk (PGN)',
+    phase: 'phase2',
     market: {
       subScores: [
         { name: 'Pangsa Pasar & Posisi Kompetitif', score: 4.00, weight: 0.30, notes: 'Posisi kuat di sektor minyak dan gas bumi Indonesia' },
@@ -608,6 +611,7 @@ export const mockEvaluations: Evaluation[] = [
     projectId: 'P003',
     partnerId: 'M006',
     partnerName: 'PT Pertamina New & Renewable Energy',
+    phase: 'phase2',
     market: {
       subScores: [
         { name: 'Pangsa Pasar & Posisi Kompetitif', score: 4.00, weight: 0.30, notes: 'Sub-holding Pertamina dengan fokus energi baru terbarukan, posisi strategis' },
@@ -816,6 +820,7 @@ export const mockEvaluations: Evaluation[] = [
     projectId: 'P002',
     partnerId: 'M006',
     partnerName: 'PT Pertamina New & Renewable Energy',
+    phase: 'phase2',
     market: {
       subScores: [
         { name: 'Pangsa Pasar & Posisi Kompetitif', score: 3.50, weight: 0.30, notes: 'PNRE masih membangun posisi pasar di sektor gasifikasi, namun didukung ekosistem Pertamina' },
@@ -857,6 +862,7 @@ export const mockEvaluations: Evaluation[] = [
     projectId: 'P002',
     partnerId: 'M005',
     partnerName: 'PT Indonesia Asahan Aluminium (INALUM)',
+    phase: 'phase2',
     market: {
       subScores: [
         { name: 'Pangsa Pasar & Posisi Kompetitif', score: 4.50, weight: 0.30, notes: 'INALUM sebagai holding BUMN pertambangan memiliki posisi dominan di sektor hilirisasi mineral' },
@@ -986,5 +992,116 @@ export const mockEvaluations: Evaluation[] = [
     status: 'Draft',
     evaluatedBy: 'U006',
     evaluatedAt: '2025-10-22T14:00:00Z',
+  },
+  // Phase 1 Evaluations for P001
+  {
+    id: 'EVAL-P1-001',
+    projectId: 'P001',
+    partnerId: 'M001',
+    partnerName: 'PT Perusahaan Gas Negara Tbk (PGN)',
+    phase: 'phase1',
+    phase1Eval: {
+      partnerId: 'M001',
+      partnerName: 'PT Perusahaan Gas Negara Tbk (PGN)',
+      criteria: [
+        { name: 'Kualitas Profil Perusahaan', score: 4, maxScore: 5, notes: 'Profil perusahaan sangat lengkap dan profesional' },
+        { name: 'Pengalaman Proyek Relevan', score: 5, maxScore: 5, notes: 'Pengalaman luas di sektor energi dan infrastruktur gas' },
+        { name: 'Kemampuan Pembiayaan', score: 4, maxScore: 5, notes: 'Kapasitas pendanaan kuat sebagai BUMN besar' },
+        { name: 'Gambaran Umum Keuangan', score: 4, maxScore: 5, notes: 'Kondisi keuangan sehat dan stabil' },
+        { name: 'Pemenuhan Persyaratan', score: 5, maxScore: 5, notes: 'Semua persyaratan terpenuhi' },
+      ],
+      overallResult: 'Lolos',
+      evaluatedBy: 'U002',
+      evaluatedAt: '2025-11-15T10:00:00Z',
+      notes: 'Mitra sangat qualified untuk melanjutkan ke Phase 2',
+    },
+    status: 'Selesai',
+    evaluatedBy: 'U002',
+    evaluatedAt: '2025-11-15T10:00:00Z',
+  },
+  {
+    id: 'EVAL-P1-002',
+    projectId: 'P001',
+    partnerId: 'M004',
+    partnerName: 'PT Medco Energi Internasional Tbk',
+    phase: 'phase1',
+    phase1Eval: {
+      partnerId: 'M004',
+      partnerName: 'PT Medco Energi Internasional Tbk',
+      criteria: [
+        { name: 'Kualitas Profil Perusahaan', score: 4, maxScore: 5, notes: 'Profil perusahaan baik dan terstruktur' },
+        { name: 'Pengalaman Proyek Relevan', score: 4, maxScore: 5, notes: 'Pengalaman cukup di sektor energi, terutama migas' },
+        { name: 'Kemampuan Pembiayaan', score: 5, maxScore: 5, notes: 'Kapasitas pembiayaan sangat kuat' },
+        { name: 'Gambaran Umum Keuangan', score: 4, maxScore: 5, notes: 'Keuangan sehat dengan revenue besar' },
+        { name: 'Pemenuhan Persyaratan', score: 4, maxScore: 5, notes: 'Persyaratan terpenuhi dengan baik' },
+      ],
+      overallResult: 'Lolos',
+      evaluatedBy: 'U002',
+      evaluatedAt: '2025-11-15T11:00:00Z',
+      notes: 'Layak melanjutkan ke Phase 2',
+    },
+    status: 'Selesai',
+    evaluatedBy: 'U002',
+    evaluatedAt: '2025-11-15T11:00:00Z',
+  },
+  // Phase 1 Evaluations for P002 (in progress)
+  {
+    id: 'EVAL-P1-003',
+    projectId: 'P002',
+    partnerId: 'M001',
+    partnerName: 'PT Perusahaan Gas Negara Tbk (PGN)',
+    phase: 'phase1',
+    phase1Eval: {
+      partnerId: 'M001',
+      partnerName: 'PT Perusahaan Gas Negara Tbk (PGN)',
+      criteria: [
+        { name: 'Kualitas Profil Perusahaan', score: 5, maxScore: 5, notes: 'PGN sebagai pemimpin gas nasional memiliki profil sangat kuat' },
+        { name: 'Pengalaman Proyek Relevan', score: 5, maxScore: 5, notes: 'Pengalaman sangat relevan di bidang gas dan gasifikasi' },
+        { name: 'Kemampuan Pembiayaan', score: 4, maxScore: 5, notes: 'Kemampuan pembiayaan baik untuk proyek >1T' },
+        { name: 'Gambaran Umum Keuangan', score: 4, maxScore: 5, notes: 'Kondisi keuangan stabil' },
+        { name: 'Pemenuhan Persyaratan', score: 5, maxScore: 5, notes: 'Semua persyaratan terpenuhi' },
+      ],
+      overallResult: 'Lolos',
+      evaluatedBy: 'U002',
+      evaluatedAt: '2026-01-10T09:00:00Z',
+    },
+    status: 'Selesai',
+    evaluatedBy: 'U002',
+    evaluatedAt: '2026-01-10T09:00:00Z',
+  },
+  {
+    id: 'EVAL-P1-004',
+    projectId: 'P002',
+    partnerId: 'M005',
+    partnerName: 'PT Indonesia Asahan Aluminium (INALUM)',
+    phase: 'phase1',
+    phase1Eval: {
+      partnerId: 'M005',
+      partnerName: 'PT Indonesia Asahan Aluminium (INALUM)',
+      criteria: [
+        { name: 'Kualitas Profil Perusahaan', score: 4, maxScore: 5, notes: 'Profil perusahaan baik sebagai holding BUMN' },
+        { name: 'Pengalaman Proyek Relevan', score: 3, maxScore: 5, notes: 'Pengalaman terbatas di gasifikasi, lebih ke smelting' },
+        { name: 'Kemampuan Pembiayaan', score: 5, maxScore: 5, notes: 'Kapasitas pembiayaan sangat kuat sebagai holding' },
+        { name: 'Gambaran Umum Keuangan', score: 4, maxScore: 5, notes: 'Keuangan sehat' },
+        { name: 'Pemenuhan Persyaratan', score: 3, maxScore: 5, notes: 'Beberapa persyaratan teknis belum optimal' },
+      ],
+      overallResult: 'Lolos',
+      evaluatedBy: 'U002',
+      evaluatedAt: '2026-01-10T10:00:00Z',
+      notes: 'Lolos dengan catatan: perlu melengkapi pengalaman gasifikasi di Phase 2',
+    },
+    status: 'Selesai',
+    evaluatedBy: 'U002',
+    evaluatedAt: '2026-01-10T10:00:00Z',
+  },
+  {
+    id: 'EVAL-P1-005',
+    projectId: 'P002',
+    partnerId: 'M006',
+    partnerName: 'PT Pertamina New & Renewable Energy',
+    phase: 'phase1',
+    status: 'Draft',
+    evaluatedBy: 'U002',
+    evaluatedAt: '2026-01-10T11:00:00Z',
   },
 ];

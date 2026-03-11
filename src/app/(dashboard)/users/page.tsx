@@ -1,13 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { mockUsers } from "@/lib/mock-data";
-import { ROLES } from "@/lib/constants/roles";
-import type { UserRole } from "@/lib/types";
-import { UserPlus, Shield } from "lucide-react";
+import { ROLES, INTERNAL_ROLES } from "@/lib/constants/roles";
+import type { UserRole, User } from "@/lib/types";
+import { UserPlus, Shield, X, CheckCircle2, Mail, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 function getRoleBadgeVariant(role: UserRole) {
@@ -64,6 +65,51 @@ const rbacMatrix: Record<string, boolean[]> = {
 };
 
 export default function UsersPage() {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [users, setUsers] = useState<User[]>([...mockUsers]);
+  const [showSuccess, setShowSuccess] = useState<string | null>(null);
+
+  // Create user form state
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newDepartment, setNewDepartment] = useState("");
+  const [newRole, setNewRole] = useState<UserRole>("ebd");
+
+  const departmentSuggestions: Record<string, string> = {
+    super_admin: "IT & Digital",
+    ebd: "Pengembangan Energi",
+    keuangan: "Keuangan Korporat",
+    hukum: "Hukum & Regulasi",
+    risiko: "Manajemen Risiko",
+    direksi: "Direksi",
+    viewer: "Sekretaris Perusahaan",
+    mitra: "Mitra Eksternal",
+  };
+
+  function resetForm() {
+    setNewName("");
+    setNewEmail("");
+    setNewDepartment("");
+    setNewRole("ebd");
+  }
+
+  function handleCreateUser() {
+    const newUser: User = {
+      id: `U${String(users.length + 1).padStart(3, "0")}`,
+      name: newName,
+      email: newEmail,
+      role: newRole,
+      department: newDepartment || departmentSuggestions[newRole] || "",
+    };
+    setUsers((prev) => [...prev, newUser]);
+    setShowCreateModal(false);
+    resetForm();
+    setShowSuccess(newName);
+    setTimeout(() => setShowSuccess(null), 3000);
+  }
+
+  const canCreate = newName.trim() && newEmail.trim();
+
   const columns = [
     {
       key: "name",
@@ -118,14 +164,135 @@ export default function UsersPage() {
         <h1 className="text-2xl font-bold text-ptba-charcoal">
           Manajemen Pengguna
         </h1>
-        <Button variant="gold" size="md">
+        <Button variant="gold" size="md" onClick={() => setShowCreateModal(true)}>
           <UserPlus className="h-4 w-4 mr-1.5" />
           Tambah Pengguna
         </Button>
       </div>
 
+      {/* Success message */}
+      {showSuccess && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Undangan berhasil dikirim ke <span className="font-semibold">{showSuccess}</span>. Menunggu pengguna mengaktifkan akun.
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCreateModal(false)}>
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-ptba-charcoal">Tambah Pengguna Baru</h2>
+                <p className="text-xs text-ptba-gray mt-0.5">Buat akun untuk stakeholder internal</p>
+              </div>
+              <button onClick={() => { setShowCreateModal(false); resetForm(); }} className="rounded-lg p-1.5 hover:bg-ptba-section-bg transition-colors">
+                <X className="h-5 w-5 text-ptba-gray" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-ptba-charcoal mb-1.5">
+                  <UserPlus className="h-4 w-4 text-ptba-gray" />
+                  Nama Lengkap
+                </label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Contoh: Ahmad Fauzi"
+                  className="w-full rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-charcoal placeholder:text-ptba-gray/50 focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-ptba-charcoal mb-1.5">
+                  <Mail className="h-4 w-4 text-ptba-gray" />
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="contoh@bukitasam.co.id"
+                  className="w-full rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-charcoal placeholder:text-ptba-gray/50 focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
+                />
+              </div>
+
+              {/* Role */}
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-ptba-charcoal mb-1.5">
+                  <Shield className="h-4 w-4 text-ptba-gray" />
+                  Peran
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => {
+                    const role = e.target.value as UserRole;
+                    setNewRole(role);
+                    setNewDepartment(departmentSuggestions[role] ?? "");
+                  }}
+                  className="w-full rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy bg-white"
+                >
+                  {ROLES.filter((r) => r.value !== "mitra").map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label} — {r.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Department */}
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-ptba-charcoal mb-1.5">
+                  <Building2 className="h-4 w-4 text-ptba-gray" />
+                  Departemen
+                </label>
+                <input
+                  type="text"
+                  value={newDepartment}
+                  onChange={(e) => setNewDepartment(e.target.value)}
+                  placeholder="Nama departemen"
+                  className="w-full rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-charcoal placeholder:text-ptba-gray/50 focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
+                />
+              </div>
+
+              {/* Info */}
+              <div className="rounded-lg bg-ptba-section-bg p-3 flex items-start gap-2.5">
+                <Mail className="h-4 w-4 text-ptba-steel-blue mt-0.5 shrink-0" />
+                <p className="text-xs text-ptba-gray">
+                  Undangan berisi magic link akan dikirim ke email pengguna. Pengguna akan diminta membuat kata sandi saat mengakses link tersebut.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setShowCreateModal(false); resetForm(); }}
+                className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleCreateUser}
+                disabled={!canCreate}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-ptba-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Mail className="h-4 w-4" />
+                Kirim Undangan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* User Table */}
-      <DataTable columns={columns} data={mockUsers as UserRow[]} />
+      <DataTable columns={columns} data={users as UserRow[]} />
 
       {/* RBAC Matrix */}
       <Card padding="lg">

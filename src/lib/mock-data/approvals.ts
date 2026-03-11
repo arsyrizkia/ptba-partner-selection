@@ -13,6 +13,8 @@ export const mockApprovals: Approval[] = [
     approvedAt: undefined,
     notes: 'Menunggu persetujuan Direksi untuk penetapan mitra PNRE pada proyek PLTS Tanjung Enim',
     priority: 'Tinggi',
+    phase: 'phase2',
+    approvalCategory: 'phase2_final',
   },
   {
     id: 'APR-002',
@@ -26,6 +28,8 @@ export const mockApprovals: Approval[] = [
     approvedAt: '2025-10-22T14:15:00Z',
     notes: 'Hasil evaluasi teknis PGN dan Medco Energi disetujui. PGN unggul dalam kapabilitas teknis.',
     priority: 'Tinggi',
+    phase: 'phase2',
+    approvalCategory: 'evaluasi',
   },
   {
     id: 'APR-003',
@@ -39,6 +43,13 @@ export const mockApprovals: Approval[] = [
     approvedAt: undefined,
     notes: 'Menunggu persetujuan Komisaris untuk shortlist mitra: PGN, INALUM, dan PNRE',
     priority: 'Tinggi',
+    phase: 'phase1',
+    approvalCategory: 'phase1_shortlist',
+    evaluationSummary: {
+      totalMitra: 3,
+      lolos: 2,
+      tidakLolos: 1,
+    },
   },
   {
     id: 'APR-004',
@@ -52,6 +63,8 @@ export const mockApprovals: Approval[] = [
     approvedAt: '2025-11-03T09:30:00Z',
     notes: 'Evaluasi keuangan KEP-100 untuk PGN (Grade AA) dan Medco Energi (Grade AA) disetujui.',
     priority: 'Sedang',
+    phase: 'phase2',
+    approvalCategory: 'evaluasi',
   },
   {
     id: 'APR-005',
@@ -65,6 +78,7 @@ export const mockApprovals: Approval[] = [
     approvedAt: undefined,
     notes: 'Menunggu persetujuan Komisaris untuk inisiasi proyek Coal-to-Methanol senilai Rp 2.5T',
     priority: 'Tinggi',
+    approvalCategory: 'inisiasi',
   },
   {
     id: 'APR-006',
@@ -78,6 +92,8 @@ export const mockApprovals: Approval[] = [
     approvedAt: undefined,
     notes: 'Dikembalikan: Perlu klarifikasi tambahan terkait sengketa lahan INALUM dan status perizinan PNRE. Mohon dilengkapi nota dinas penjelasan dari tim legal.',
     priority: 'Sedang',
+    phase: 'phase2',
+    approvalCategory: 'evaluasi',
   },
   {
     id: 'APR-007',
@@ -91,6 +107,7 @@ export const mockApprovals: Approval[] = [
     approvedAt: '2025-12-18T11:30:00Z',
     notes: 'Proyek rehabilitasi lahan pasca tambang telah selesai sesuai target. Persetujuan penutupan proyek diberikan.',
     priority: 'Rendah',
+    approvalCategory: 'penutupan',
   },
   {
     id: 'APR-008',
@@ -104,5 +121,27 @@ export const mockApprovals: Approval[] = [
     approvedAt: '2026-02-08T10:00:00Z',
     notes: 'Ditolak: Dokumen kelengkapan mitra PNRE belum memenuhi syarat. Laporan keuangan masih pending dan sertifikat ISO belum dilengkapi. Mohon mitra melengkapi dokumen terlebih dahulu.',
     priority: 'Sedang',
+    phase: 'phase1',
+    approvalCategory: 'dokumen',
+  },
+  {
+    id: 'APR-009',
+    projectId: 'P001',
+    projectName: 'Pengembangan PLTU Mulut Tambang 3x10 MW',
+    type: 'Persetujuan Shortlist Mitra',
+    status: 'Disetujui',
+    requestedBy: 'Siti Rahmawati',
+    requestedAt: '2025-09-15T09:00:00Z',
+    approver: 'Ir. Bambang Wijaya',
+    approvedAt: '2025-09-17T14:00:00Z',
+    notes: 'Shortlist Phase 1 disetujui. Kedua mitra (PGN dan Medco Energi) memenuhi syarat dan lolos ke Phase 2.',
+    priority: 'Tinggi',
+    phase: 'phase1',
+    approvalCategory: 'phase1_shortlist',
+    evaluationSummary: {
+      totalMitra: 2,
+      lolos: 2,
+      tidakLolos: 0,
+    },
   },
 ];

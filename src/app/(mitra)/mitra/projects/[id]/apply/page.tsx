@@ -2,12 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Upload, CheckCircle2, FileText, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Upload, CheckCircle2, FileText, AlertTriangle, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { mockProjects } from "@/lib/mock-data/projects";
 import { mockApplications } from "@/lib/mock-data/applications";
-import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { PHASE1_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
 export default function MitraProjectApplyPage() {
   const router = useRouter();
@@ -21,13 +21,19 @@ export default function MitraProjectApplyPage() {
     [projectId, user?.partnerId]
   );
 
-  const requiredDocTypes = useMemo(
-    () => (project?.requiredDocuments ?? []).map((id) => DOCUMENT_TYPES.find((d) => d.id === id)).filter(Boolean),
-    [project?.requiredDocuments]
-  );
+  // Phase 1 EoI document types
+  const phase1DocTypes = useMemo(() => {
+    if (project?.phase1Documents && project.phase1Documents.length > 0) {
+      return project.phase1Documents
+        .map((id) => PHASE1_DOCUMENT_TYPES.find((d) => d.id === id))
+        .filter(Boolean);
+    }
+    return PHASE1_DOCUMENT_TYPES;
+  }, [project?.phase1Documents]);
 
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState(false);
+  const [downloadedCG, setDownloadedCG] = useState(false);
 
   // Redirect if already applied
   if (existingApplication) {
@@ -64,7 +70,8 @@ export default function MitraProjectApplyPage() {
     );
   }
 
-  const isDeadlinePassed = project.applicationDeadline && new Date(project.applicationDeadline) < new Date();
+  const phase1DeadlineStr = project.phase1Deadline || project.applicationDeadline;
+  const isDeadlinePassed = phase1DeadlineStr && new Date(phase1DeadlineStr) < new Date();
   if (!project.isOpenForApplication || isDeadlinePassed) {
     return (
       <div className="space-y-6">
@@ -88,8 +95,8 @@ export default function MitraProjectApplyPage() {
     setUploadedDocs((prev) => ({ ...prev, [docId]: `${docName} (tersimpan)` }));
   };
 
-  const requiredCount = requiredDocTypes.filter((d) => d?.required).length;
-  const uploadedRequiredCount = requiredDocTypes.filter((d) => d?.required && uploadedDocs[d.id]).length;
+  const requiredCount = phase1DocTypes.filter((d) => d?.required).length;
+  const uploadedRequiredCount = phase1DocTypes.filter((d) => d?.required && uploadedDocs[d.id]).length;
   const allRequiredUploaded = uploadedRequiredCount === requiredCount;
   const canSubmit = allRequiredUploaded && confirmed;
 
@@ -104,27 +111,68 @@ export default function MitraProjectApplyPage() {
         <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Proyek
       </button>
 
-      <h1 className="text-2xl font-bold text-ptba-charcoal">Ajukan Lamaran</h1>
-      <p className="text-sm text-ptba-gray">Proyek: <span className="font-medium text-ptba-charcoal">{project.name}</span></p>
+      <div>
+        <h1 className="text-2xl font-bold text-ptba-charcoal">Ajukan Expression of Interest</h1>
+        <p className="text-sm text-ptba-gray mt-1">
+          Phase 1 - Proyek: <span className="font-medium text-ptba-charcoal">{project.name}</span>
+        </p>
+      </div>
 
-      {/* Profile Completeness Check */}
+      {/* Phase Info Banner */}
       <div className="rounded-xl bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 p-4">
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 shrink-0 text-ptba-steel-blue mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-ptba-charcoal">Pastikan profil perusahaan Anda sudah lengkap</p>
+            <p className="text-sm font-medium text-ptba-charcoal">Phase 1: Expression of Interest (EoI)</p>
             <p className="mt-0.5 text-xs text-ptba-gray">
-              Profil perusahaan yang lengkap akan meningkatkan peluang lamaran Anda diterima.{" "}
-              <a href="/mitra/profile" className="text-ptba-steel-blue hover:underline">Cek profil</a>
+              Pada tahap ini Anda diminta untuk mengirimkan dokumen EoI. Mitra yang lolos evaluasi Phase 1 akan diundang untuk melanjutkan ke Phase 2 (Detailed Assessment).
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Download Confidential Guarantee */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-ptba-charcoal mb-3">Dokumen dari PTBA</h2>
+        <div className="flex items-center justify-between rounded-lg border border-ptba-light-gray p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ptba-red/10">
+              <FileText className="h-5 w-5 text-ptba-red" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-ptba-charcoal">Confidential Guarantee Statement</p>
+              <p className="text-xs text-ptba-gray">Wajib diunduh sebelum mengirim EoI</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setDownloadedCG(true);
+              alert("Dokumen Confidential Guarantee Statement berhasil diunduh");
+            }}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+              downloadedCG
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-ptba-navy text-white hover:bg-ptba-navy/90"
+            )}
+          >
+            {downloadedCG ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Sudah Diunduh
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5" /> Unduh
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Document Upload Section */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-ptba-charcoal">Dokumen yang Diperlukan</h2>
+          <h2 className="text-lg font-semibold text-ptba-charcoal">Dokumen EoI yang Diperlukan</h2>
           <span className="text-sm text-ptba-gray">{uploadedRequiredCount}/{requiredCount} wajib terpenuhi</span>
         </div>
 
@@ -137,7 +185,7 @@ export default function MitraProjectApplyPage() {
         </div>
 
         <div className="space-y-3">
-          {requiredDocTypes.map((doc) => {
+          {phase1DocTypes.map((doc) => {
             if (!doc) return null;
             const isUploaded = !!uploadedDocs[doc.id];
             return (
@@ -202,7 +250,7 @@ export default function MitraProjectApplyPage() {
             className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-steel-blue"
           />
           <span className="text-sm text-ptba-gray">
-            Saya menyatakan bahwa seluruh dokumen yang diunggah adalah sah, asli, dan dapat dipertanggungjawabkan. Saya bersedia menerima konsekuensi apabila terdapat ketidaksesuaian data.
+            Saya menyatakan bahwa seluruh dokumen Expression of Interest yang diunggah adalah sah, asli, dan dapat dipertanggungjawabkan. Saya memahami bahwa EoI ini merupakan Phase 1 dari proses seleksi mitra dan bersedia mengikuti proses selanjutnya.
           </span>
         </label>
 
@@ -223,7 +271,7 @@ export default function MitraProjectApplyPage() {
                 : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
             )}
           >
-            Kirim Lamaran
+            Kirim EoI
           </button>
         </div>
       </div>

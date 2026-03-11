@@ -4,18 +4,23 @@ export interface DocumentTypeDef {
   description: string;
   required: boolean;
   category: 'legal' | 'keuangan' | 'teknis' | 'administrasi';
+  phase?: 'phase1' | 'phase2' | 'both';
 }
 
 /**
  * 17 jenis dokumen kualifikasi mitra sesuai TCK 5.1.3
+ * + Phase 1 EoI document types
+ * + Phase 2 detailed assessment document types
  */
 export const DOCUMENT_TYPES: DocumentTypeDef[] = [
+  // === Existing documents (both phases / legacy) ===
   {
     id: 'akta_pendirian',
     name: 'Akta Pendirian',
     description: 'Akta pendirian perusahaan beserta perubahannya yang telah disahkan',
     required: true,
     category: 'legal',
+    phase: 'both',
   },
   {
     id: 'siup',
@@ -23,6 +28,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Surat Izin Usaha Perdagangan yang masih berlaku',
     required: true,
     category: 'legal',
+    phase: 'both',
   },
   {
     id: 'tdp_nib',
@@ -30,6 +36,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Tanda Daftar Perusahaan atau Nomor Induk Berusaha',
     required: true,
     category: 'legal',
+    phase: 'both',
   },
   {
     id: 'npwp',
@@ -37,6 +44,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Nomor Pokok Wajib Pajak perusahaan',
     required: true,
     category: 'legal',
+    phase: 'both',
   },
   {
     id: 'laporan_keuangan',
@@ -44,6 +52,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Laporan keuangan audited 3 tahun terakhir',
     required: true,
     category: 'keuangan',
+    phase: 'both',
   },
   {
     id: 'referensi_bank',
@@ -51,6 +60,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Surat referensi dari bank yang menyatakan bonafiditas perusahaan',
     required: true,
     category: 'keuangan',
+    phase: 'both',
   },
   {
     id: 'pengalaman_kerja',
@@ -58,6 +68,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Daftar pengalaman pekerjaan sejenis dalam 5 tahun terakhir',
     required: true,
     category: 'teknis',
+    phase: 'both',
   },
   {
     id: 'sertifikat_iso',
@@ -65,6 +76,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Sertifikat sistem manajemen mutu (ISO 9001, ISO 14001, dll)',
     required: false,
     category: 'teknis',
+    phase: 'both',
   },
   {
     id: 'amdal_ukl_upl',
@@ -72,6 +84,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Dokumen Analisis Mengenai Dampak Lingkungan atau UKL-UPL',
     required: true,
     category: 'legal',
+    phase: 'both',
   },
   {
     id: 'surat_domisili',
@@ -79,6 +92,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Surat keterangan domisili perusahaan yang masih berlaku',
     required: true,
     category: 'administrasi',
+    phase: 'both',
   },
   {
     id: 'profil_perusahaan',
@@ -86,6 +100,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Company profile yang mencakup visi, misi, dan sejarah perusahaan',
     required: true,
     category: 'administrasi',
+    phase: 'both',
   },
   {
     id: 'struktur_organisasi',
@@ -93,6 +108,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Bagan struktur organisasi perusahaan beserta uraian tugas',
     required: true,
     category: 'administrasi',
+    phase: 'both',
   },
   {
     id: 'daftar_peralatan',
@@ -100,6 +116,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Daftar peralatan utama yang dimiliki atau disewa',
     required: true,
     category: 'teknis',
+    phase: 'both',
   },
   {
     id: 'daftar_tenaga_ahli',
@@ -107,6 +124,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Daftar tenaga ahli beserta kualifikasi dan sertifikat kompetensi',
     required: true,
     category: 'teknis',
+    phase: 'both',
   },
   {
     id: 'surat_pernyataan',
@@ -114,6 +132,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Surat pernyataan kesanggupan dan tidak dalam daftar hitam',
     required: true,
     category: 'administrasi',
+    phase: 'both',
   },
   {
     id: 'jaminan_penawaran',
@@ -121,6 +140,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Jaminan penawaran dari bank atau lembaga keuangan',
     required: true,
     category: 'keuangan',
+    phase: 'both',
   },
   {
     id: 'surat_kuasa',
@@ -128,5 +148,94 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Surat kuasa dari direktur utama kepada perwakilan yang berwenang',
     required: false,
     category: 'administrasi',
+    phase: 'both',
+  },
+
+  // === Phase 1 EoI Document Types ===
+  {
+    id: 'statement_eoi',
+    name: 'Statement of Expression of Interest',
+    description: 'Surat pernyataan minat untuk mengikuti proses seleksi mitra',
+    required: true,
+    category: 'administrasi',
+    phase: 'phase1',
+  },
+  {
+    id: 'compro',
+    name: 'Company Profile (Ringkas)',
+    description: 'Profil perusahaan ringkas mencakup sejarah, visi misi, dan kapabilitas utama',
+    required: true,
+    category: 'administrasi',
+    phase: 'phase1',
+  },
+  {
+    id: 'portfolio',
+    name: 'Portfolio Proyek',
+    description: 'Daftar dan ringkasan proyek-proyek relevan yang telah dikerjakan',
+    required: true,
+    category: 'teknis',
+    phase: 'phase1',
+  },
+  {
+    id: 'financial_overview',
+    name: 'Gambaran Umum Keuangan',
+    description: 'Ringkasan kondisi keuangan perusahaan (revenue, aset, ekuitas)',
+    required: true,
+    category: 'keuangan',
+    phase: 'phase1',
+  },
+  {
+    id: 'requirements_fulfillment',
+    name: 'Pemenuhan Persyaratan',
+    description: 'Dokumen yang menunjukkan pemenuhan persyaratan dasar proyek',
+    required: true,
+    category: 'administrasi',
+    phase: 'phase1',
+  },
+
+  // === Phase 2 Detailed Assessment Document Types ===
+  {
+    id: 'confidential_guarantee_signed',
+    name: 'Confidential Guarantee (Signed)',
+    description: 'Jaminan kerahasiaan yang telah ditandatangani',
+    required: true,
+    category: 'legal',
+    phase: 'phase2',
+  },
+  {
+    id: 'loi_signed',
+    name: 'Letter of Intent (Signed)',
+    description: 'Surat pernyataan niat kerjasama yang telah ditandatangani',
+    required: true,
+    category: 'legal',
+    phase: 'phase2',
+  },
+  {
+    id: 'proposal_detail',
+    name: 'Proposal Detail',
+    description: 'Proposal teknis dan komersial secara detail untuk proyek',
+    required: true,
+    category: 'teknis',
+    phase: 'phase2',
+  },
+  {
+    id: 'financial_detail',
+    name: 'Laporan Keuangan Detail',
+    description: 'Laporan keuangan audited lengkap 3 tahun terakhir dengan catatan',
+    required: true,
+    category: 'keuangan',
+    phase: 'phase2',
+  },
+  {
+    id: 'info_detail',
+    name: 'Informasi Detail Perusahaan',
+    description: 'Informasi lengkap perusahaan termasuk struktur kepemilikan, manajemen, dan operasi',
+    required: true,
+    category: 'administrasi',
+    phase: 'phase2',
   },
 ];
+
+export const PHASE1_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase1');
+export const PHASE2_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase2');
+export const LEGACY_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'both');
