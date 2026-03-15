@@ -1,47 +1,95 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Calendar, FileText, CheckCircle2 } from "lucide-react";
+import { Search, Calendar, FileText, CheckCircle2, Loader2, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockApplications } from "@/lib/mock-data/applications";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { api, projectApi } from "@/lib/api/client";
+import { formatCurrency } from "@/lib/utils/format";
 
-const TYPE_FILTERS = ["Semua", "CAPEX", "OPEX", "Strategis"] as const;
+interface MitraProject {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  capexValue: number;
+  description: string;
+  startDate: string;
+  phase: string;
+  isOpenForApplication: boolean;
+  phase1Deadline: string | null;
+  applicationCount: number;
+}
+
+interface MitraApplication {
+  id: string;
+  project_id: string;
+  project_name: string;
+  status: string;
+  applied_at: string;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  mining: "Pertambangan", power_generation: "Pembangkit Listrik", coal_processing: "Pengolahan Batubara",
+  infrastructure: "Infrastruktur", environmental: "Lingkungan", corporate: "Korporat", others: "Lainnya",
+};
+
+const TYPE_FILTERS = ["Semua", "mining", "power_generation", "coal_processing", "infrastructure", "environmental", "corporate", "others"] as const;
 
 function typeBadge(type: string) {
-  switch (type) {
-    case "CAPEX": return "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20";
-    case "OPEX": return "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20";
-    case "Strategis": return "bg-purple-100 text-purple-700 border border-purple-200";
-    default: return "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
-  }
+  const map: Record<string, string> = {
+    mining: "bg-amber-100 text-amber-700 border border-amber-200",
+    power_generation: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
+    coal_processing: "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20",
+    infrastructure: "bg-blue-100 text-blue-700 border border-blue-200",
+    environmental: "bg-green-100 text-green-700 border border-green-200",
+    corporate: "bg-gray-100 text-gray-600 border border-gray-200",
+    others: "bg-purple-100 text-purple-700 border border-purple-200",
+  };
+  return map[type] ?? "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
 }
 
 export default function MitraProjectsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { accessToken } = useAuth();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("Semua");
+  const [projects, setProjects] = useState<MitraProject[]>([]);
+  const [applications, setApplications] = useState<MitraApplication[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const userApplications = useMemo(
-    () => mockApplications.filter((a) => a.partnerId === user?.partnerId),
-    [user?.partnerId]
-  );
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoading(true);
+    Promise.all([
+      projectApi(accessToken).list(),
+      api<{ applications: MitraApplication[] }>("/applications", { token: accessToken }),
+    ]).then(([projRes, appRes]) => {
+      setProjects(projRes.data as unknown as MitraProject[]);
+      setApplications(appRes.applications || []);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [accessToken]);
 
   const appliedProjectIds = useMemo(
-    () => new Set(userApplications.map((a) => a.projectId)),
-    [userApplications]
+    () => new Set(applications.map((a) => a.project_id)),
+    [applications]
   );
 
-  const projects = useMemo(() => {
-    return mockProjects
-      .filter((p) => p.isOpenForApplication || appliedProjectIds.has(p.id))
+  const filtered = useMemo(() => {
+    return projects
       .filter((p) => typeFilter === "Semua" || p.type === typeFilter)
       .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()));
-  }, [typeFilter, search, appliedProjectIds]);
+  }, [projects, typeFilter, search]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">Memuat proyek...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -71,24 +119,23 @@ export default function MitraProjectsPage() {
                   : "bg-white border border-ptba-light-gray text-ptba-charcoal hover:bg-ptba-section-bg"
               )}
             >
-              {t}
+              {t === "Semua" ? t : (TYPE_LABELS[t] || t)}
             </button>
           ))}
         </div>
       </div>
 
       {/* Project Cards */}
-      {projects.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <FileText className="mx-auto h-12 w-12 text-ptba-light-gray" />
+          <FolderKanban className="mx-auto h-12 w-12 text-ptba-light-gray" />
           <p className="mt-3 text-ptba-gray">Tidak ada proyek yang ditemukan.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {projects.map((project) => {
+          {filtered.map((project) => {
             const hasApplied = appliedProjectIds.has(project.id);
-            const isDeadlinePassed = project.applicationDeadline && new Date(project.applicationDeadline) < new Date();
-            const requiredDocsCount = project.requiredDocuments?.length ?? 0;
+            const canApply = project.isOpenForApplication && !hasApplied;
 
             return (
               <button
@@ -101,17 +148,22 @@ export default function MitraProjectsPage() {
                     <h3 className="font-semibold text-ptba-charcoal truncate">{project.name}</h3>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", typeBadge(project.type))}>
-                        {project.type}
+                        {TYPE_LABELS[project.type] || project.type}
                       </span>
                       {hasApplied && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 border border-green-200">
                           <CheckCircle2 className="h-3 w-3" />
-                          Sudah Melamar
+                          Sudah Mendaftar
                         </span>
                       )}
-                      {!hasApplied && isDeadlinePassed && (
-                        <span className="inline-flex rounded-full bg-ptba-red/10 px-2.5 py-0.5 text-xs font-medium text-ptba-red border border-ptba-red/20">
-                          Deadline Lewat
+                      {canApply && (
+                        <span className="inline-flex rounded-full bg-ptba-navy/10 px-2.5 py-0.5 text-xs font-medium text-ptba-navy border border-ptba-navy/20">
+                          Pendaftaran Dibuka
+                        </span>
+                      )}
+                      {!project.isOpenForApplication && !hasApplied && (
+                        <span className="inline-flex rounded-full bg-ptba-gray/10 px-2.5 py-0.5 text-xs font-medium text-ptba-gray border border-ptba-gray/20">
+                          Belum Dibuka
                         </span>
                       )}
                     </div>
@@ -122,17 +174,21 @@ export default function MitraProjectsPage() {
                   {formatCurrency(project.capexValue)}
                 </p>
 
+                {project.description && (
+                  <p className="mt-2 text-xs text-ptba-gray line-clamp-2">{project.description}</p>
+                )}
+
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ptba-gray">
-                  {project.applicationDeadline && (
+                  {project.phase1Deadline && (
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      Deadline: {formatDate(project.applicationDeadline)}
+                      Deadline Fase 1: {new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   )}
-                  {requiredDocsCount > 0 && (
+                  {project.startDate && (
                     <span className="inline-flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5" />
-                      {requiredDocsCount} dokumen
+                      <Calendar className="h-3.5 w-3.5" />
+                      Mulai: {new Date(project.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   )}
                 </div>

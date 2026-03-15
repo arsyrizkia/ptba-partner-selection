@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
-import { mockUsers } from "@/lib/mock-data/users";
+import { useAuth } from "@/lib/auth/auth-context";
+import { authApi, projectApi, ApiClientError } from "@/lib/api/client";
 import type { UserRole } from "@/lib/types";
 
 const STEPS = [
@@ -19,10 +20,14 @@ const STEPS = [
 ];
 
 const PROJECT_TYPES = [
-  { value: "", label: "Pilih Tipe Proyek" },
-  { value: "CAPEX", label: "CAPEX" },
-  { value: "OPEX", label: "OPEX" },
-  { value: "Strategis", label: "Strategis" },
+  { value: "", label: "Pilih Sektor Proyek" },
+  { value: "mining", label: "Operasi Pertambangan" },
+  { value: "power_generation", label: "Pembangkit Listrik" },
+  { value: "coal_processing", label: "Pengolahan Batubara" },
+  { value: "infrastructure", label: "Infrastruktur" },
+  { value: "environmental", label: "Lingkungan & Reklamasi" },
+  { value: "corporate", label: "Layanan Korporat" },
+  { value: "others", label: "Lainnya" },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -42,9 +47,31 @@ const PIC_ROLES: { role: UserRole; label: string; description: string }[] = [
   { role: "direksi", label: "Direksi", description: "Approver akhir untuk persetujuan proyek" },
 ];
 
+interface InternalUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  status: string;
+}
+
 export default function CreateProjectPage() {
   const router = useRouter();
+  const { accessToken } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  // Internal users for PIC
+  const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    authApi().listUsers(accessToken).then((res) => {
+      setInternalUsers(res.users.filter((u) => u.role !== "mitra" && u.status === "active"));
+    }).catch(() => {});
+  }, [accessToken]);
 
   // Step 1
   const [projectName, setProjectName] = useState("");
@@ -57,7 +84,7 @@ export default function CreateProjectPage() {
   const [endDate, setEndDate] = useState("");
   const [phase1Deadline, setPhase1Deadline] = useState("");
   const [phase2Deadline, setPhase2Deadline] = useState("");
-  const [supportingFiles, setSupportingFiles] = useState<string[]>([]);
+  const [supportingFiles, setSupportingFiles] = useState<{ file: File; name: string }[]>([]);
   const [isOpenForApplication, setIsOpenForApplication] = useState(false);
 
   // Step 3
@@ -68,16 +95,45 @@ export default function CreateProjectPage() {
   const [selectedPhase2Docs, setSelectedPhase2Docs] = useState<string[]>(
     PHASE2_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
   );
-  const [selectedLegacyDocs, setSelectedLegacyDocs] = useState<string[]>([]);
-  const [customDocuments, setCustomDocuments] = useState<string[]>([]);
+  const [selectedLegacyDocs, setSelectedLegacyDocs] = useState<Record<string, "phase1" | "phase2" | "both">>({});
+  const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "both" }[]>([]);
 
   // Step 4 - PIC Assignments
   const [picAssignments, setPicAssignments] = useState<Record<string, string>>({});
 
+  const [stepError, setStepError] = useState("");
+
+  const validateStep = (step: number): string | null => {
+    switch (step) {
+      case 1:
+        if (!projectName.trim()) return "Nama proyek wajib diisi";
+        if (!projectType) return "Tipe proyek wajib dipilih";
+        return null;
+      case 2:
+        if (!startDate) return "Tanggal mulai wajib diisi";
+        if (!endDate) return "Tanggal selesai wajib diisi";
+        return null;
+      case 3:
+        if (selectedPhase1Docs.length === 0) return "Pilih minimal 1 dokumen Fase 1";
+        return null;
+      case 4:
+        return null;
+      default:
+        return null;
+    }
+  };
+
   const goNext = () => {
+    const err = validateStep(currentStep);
+    if (err) {
+      setStepError(err);
+      return;
+    }
+    setStepError("");
     if (currentStep < 5) setCurrentStep((prev) => prev + 1);
   };
   const goPrev = () => {
+    setStepError("");
     if (currentStep > 1) setCurrentStep((prev) => prev - 1);
   };
 
@@ -97,18 +153,27 @@ export default function CreateProjectPage() {
   };
 
   // Custom document handlers
-  const addCustomDocument = () => setCustomDocuments((prev) => [...prev, ""]);
+  const addCustomDocument = () => setCustomDocuments((prev) => [...prev, { name: "", phase: "both" }]);
   const removeCustomDocument = (index: number) => {
     setCustomDocuments((prev) => prev.filter((_, i) => i !== index));
   };
-  const updateCustomDocument = (index: number, value: string) => {
-    setCustomDocuments((prev) => prev.map((d, i) => (i === index ? value : d)));
+  const updateCustomDocName = (index: number, value: string) => {
+    setCustomDocuments((prev) => prev.map((d, i) => (i === index ? { ...d, name: value } : d)));
+  };
+  const updateCustomDocPhase = (index: number, value: "phase1" | "phase2" | "both") => {
+    setCustomDocuments((prev) => prev.map((d, i) => (i === index ? { ...d, phase: value } : d)));
   };
 
-  // Supporting files simulation
+  // Supporting files - real file selection
   const handleAddFile = () => {
-    const fileName = `Dokumen_${projectName.replace(/\s+/g, "_") || "Proyek"}_${supportingFiles.length + 1}.pdf`;
-    setSupportingFiles((prev) => [...prev, fileName]);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png";
+    input.onchange = (e) => {
+      const f = (e.target as HTMLInputElement).files?.[0];
+      if (f) setSupportingFiles((prev) => [...prev, { file: f, name: f.name }]);
+    };
+    input.click();
   };
   const removeFile = (index: number) => {
     setSupportingFiles((prev) => prev.filter((_, i) => i !== index));
@@ -120,12 +185,77 @@ export default function CreateProjectPage() {
   };
 
   const getUsersForRole = (role: UserRole) => {
-    return mockUsers.filter((u) => u.role === role);
+    return internalUsers.filter((u) => u.role === role);
   };
 
-  const handleSubmit = () => {
-    alert("Proyek berhasil dibuat!");
-    router.push("/projects");
+  const handleSubmit = async (andPublish = false) => {
+    if (!accessToken || !projectType) return;
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const reqs = requirements.filter((r) => r.trim());
+      const p1Docs = selectedPhase1Docs.map((id) => ({ documentTypeId: id }));
+      const p2Docs = selectedPhase2Docs.map((id) => ({ documentTypeId: id }));
+      const legacyDocs = Object.entries(selectedLegacyDocs).map(([id, phase]) => ({
+        documentTypeId: id,
+        phase,
+      }));
+      const pics = Object.entries(picAssignments)
+        .filter(([, userId]) => userId)
+        .map(([role, userId]) => {
+          const user = internalUsers.find((u) => u.id === userId);
+          return { role, userId, userName: user?.name };
+        });
+
+      const res = await projectApi(accessToken).create({
+        name: projectName,
+        type: projectType as any,
+        capexValue: Number(capexValue) || undefined,
+        description: description || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        phase1Deadline: phase1Deadline || undefined,
+        phase2Deadline: phase2Deadline || undefined,
+        requirements: reqs,
+        phase1Documents: p1Docs,
+        phase2Documents: p2Docs,
+        requiredDocuments: legacyDocs,
+        picAssignments: pics,
+        ptbaDocuments: [],
+      });
+
+      const newProjectId = res.data?.id;
+
+      // Upload supporting files to MinIO
+      if (newProjectId && supportingFiles.length > 0) {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+        for (const sf of supportingFiles) {
+          const formData = new FormData();
+          formData.append("file", sf.file);
+          formData.append("name", sf.name);
+          formData.append("type", "supporting");
+          await fetch(`${API_BASE}/projects/${newProjectId}/documents`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: formData,
+          });
+        }
+      }
+
+      if (andPublish && newProjectId) {
+        await projectApi(accessToken).publish(newProjectId);
+      }
+
+      router.push("/projects");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Gagal membuat proyek. Silakan coba lagi.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const parsedCapex = Number(capexValue) || 0;
@@ -210,7 +340,7 @@ export default function CreateProjectPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tipe Proyek</label>
+              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Sektor Proyek</label>
               <select
                 value={projectType}
                 onChange={(e) => setProjectType(e.target.value)}
@@ -224,7 +354,7 @@ export default function CreateProjectPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Nilai CAPEX</label>
+              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Nilai Proyek</label>
               <input
                 type="number"
                 placeholder="0"
@@ -255,25 +385,25 @@ export default function CreateProjectPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Mulai</label>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
+                <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Selesai</label>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
+                <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
               </div>
             </div>
 
             {/* Phase deadlines */}
             <div className="rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-ptba-steel-blue">Deadline Per Phase</h3>
+              <h3 className="text-sm font-semibold text-ptba-steel-blue">Deadline Per Fase</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Phase 1 (EoI)</label>
-                  <input type="date" value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1 (EoI)</label>
+                  <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Phase 2 (Assessment)</label>
-                  <input type="date" value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2 (Assessment)</label>
+                  <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
                 </div>
               </div>
             </div>
@@ -295,7 +425,7 @@ export default function CreateProjectPage() {
                     <div key={index} className="flex items-center justify-between rounded-lg bg-ptba-off-white px-3 py-2">
                       <span className="flex items-center gap-1.5 text-sm text-ptba-charcoal">
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        {file}
+                        {file.name}
                       </span>
                       <button type="button" onClick={() => removeFile(index)} className="text-ptba-red hover:text-red-700 transition-colors">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -376,11 +506,11 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            {/* Phase 1 EoI Documents */}
+            {/* Fase 1 EoI Documents */}
             <div className="space-y-3">
               <div className="rounded-lg border border-ptba-steel-blue/30 overflow-hidden">
                 <div className="bg-ptba-steel-blue/10 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Phase 1 - Dokumen EoI (Expression of Interest)</h3>
+                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Fase 1 - Dokumen EoI (Expression of Interest)</h3>
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra pada tahap pendaftaran awal</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
@@ -414,11 +544,11 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            {/* Phase 2 Documents */}
+            {/* Fase 2 Documents */}
             <div className="space-y-3">
               <div className="rounded-lg border border-ptba-navy/30 overflow-hidden">
                 <div className="bg-ptba-navy/10 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-ptba-navy">Phase 2 - Dokumen Detailed Assessment</h3>
+                  <h3 className="text-sm font-semibold text-ptba-navy">Fase 2 - Dokumen Detailed Assessment</h3>
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra yang lolos shortlist</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
@@ -454,10 +584,13 @@ export default function CreateProjectPage() {
 
             {/* Legacy/General Documents */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum (Opsional)</h3>
+              <div>
+                <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum (Opsional)</h3>
+                <p className="text-xs text-ptba-gray mt-0.5">Pilih dokumen dan tentukan fase pengumpulan untuk setiap dokumen</p>
+              </div>
               {CATEGORIES.map((category) => {
                 const docs = LEGACY_DOCUMENT_TYPES.filter((d) => d.category === category);
-                const allSelected = docs.every((d) => selectedLegacyDocs.includes(d.id));
+                const allSelected = docs.every((d) => d.id in selectedLegacyDocs);
                 return (
                   <div key={category} className="rounded-lg border border-ptba-light-gray overflow-hidden">
                     <div className="flex items-center justify-between bg-ptba-section-bg px-4 py-2.5">
@@ -465,11 +598,18 @@ export default function CreateProjectPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const categoryDocIds = docs.map((d) => d.id);
                           if (allSelected) {
-                            setSelectedLegacyDocs((prev) => prev.filter((id) => !categoryDocIds.includes(id)));
+                            setSelectedLegacyDocs((prev) => {
+                              const next = { ...prev };
+                              docs.forEach((d) => delete next[d.id]);
+                              return next;
+                            });
                           } else {
-                            setSelectedLegacyDocs((prev) => [...new Set([...prev, ...categoryDocIds])]);
+                            setSelectedLegacyDocs((prev) => {
+                              const next = { ...prev };
+                              docs.forEach((d) => { if (!(d.id in next)) next[d.id] = "both"; });
+                              return next;
+                            });
                           }
                         }}
                         className={cn(
@@ -482,26 +622,53 @@ export default function CreateProjectPage() {
                     </div>
                     <div className="divide-y divide-ptba-light-gray/50">
                       {docs.map((doc) => {
-                        const isSelected = selectedLegacyDocs.includes(doc.id);
+                        const isSelected = doc.id in selectedLegacyDocs;
                         return (
-                          <label
+                          <div
                             key={doc.id}
                             className={cn(
-                              "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors",
+                              "px-4 py-3 transition-colors",
                               isSelected ? "bg-ptba-steel-blue/5" : "hover:bg-ptba-off-white"
                             )}
                           >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleDoc(doc.id, selectedLegacyDocs, setSelectedLegacyDocs)}
-                              className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20"
-                            />
-                            <div>
-                              <p className="text-sm font-medium text-ptba-charcoal">{doc.name}</p>
-                              <p className="text-xs text-ptba-gray">{doc.description}</p>
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {
+                                  setSelectedLegacyDocs((prev) => {
+                                    const next = { ...prev };
+                                    if (isSelected) {
+                                      delete next[doc.id];
+                                    } else {
+                                      next[doc.id] = "both";
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20 cursor-pointer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-ptba-charcoal">{doc.name}</p>
+                                <p className="text-xs text-ptba-gray">{doc.description}</p>
+                              </div>
+                              {isSelected && (
+                                <select
+                                  value={selectedLegacyDocs[doc.id]}
+                                  onChange={(e) => {
+                                    const val = e.target.value as "phase1" | "phase2" | "both";
+                                    setSelectedLegacyDocs((prev) => ({ ...prev, [doc.id]: val }));
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none focus:border-ptba-steel-blue focus:ring-1 focus:ring-ptba-steel-blue/20"
+                                >
+                                  <option value="phase1">Fase 1</option>
+                                  <option value="phase2">Fase 2</option>
+                                  <option value="both">Fase 1 & 2</option>
+                                </select>
+                              )}
                             </div>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>
@@ -532,10 +699,19 @@ export default function CreateProjectPage() {
                         <input
                           type="text"
                           placeholder="Contoh: Sertifikat K3, Izin Lingkungan, dll."
-                          value={doc}
-                          onChange={(e) => updateCustomDocument(index, e.target.value)}
+                          value={doc.name}
+                          onChange={(e) => updateCustomDocName(index, e.target.value)}
                           className={cn(inputClass, "flex-1")}
                         />
+                        <select
+                          value={doc.phase}
+                          onChange={(e) => updateCustomDocPhase(index, e.target.value as "phase1" | "phase2" | "both")}
+                          className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none focus:border-ptba-steel-blue focus:ring-1 focus:ring-ptba-steel-blue/20"
+                        >
+                          <option value="phase1">Fase 1</option>
+                          <option value="phase2">Fase 2</option>
+                          <option value="both">Fase 1 & 2</option>
+                        </select>
                         <button
                           type="button"
                           onClick={() => removeCustomDocument(index)}
@@ -623,7 +799,7 @@ export default function CreateProjectPage() {
                   <span className="text-sm font-medium text-ptba-charcoal">{projectType || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Nilai CAPEX</span>
+                  <span className="text-sm text-ptba-gray">Nilai Proyek</span>
                   <span className="text-sm font-medium text-ptba-charcoal">
                     {parsedCapex > 0 ? formatCurrency(parsedCapex) : "-"}
                   </span>
@@ -642,11 +818,11 @@ export default function CreateProjectPage() {
                   <span className="text-sm font-medium text-ptba-charcoal">{startDate || "-"} s/d {endDate || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Deadline Phase 1</span>
+                  <span className="text-sm text-ptba-gray">Deadline Fase 1</span>
                   <span className="text-sm font-medium text-ptba-charcoal">{phase1Deadline || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Deadline Phase 2</span>
+                  <span className="text-sm text-ptba-gray">Deadline Fase 2</span>
                   <span className="text-sm font-medium text-ptba-charcoal">{phase2Deadline || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
@@ -664,10 +840,10 @@ export default function CreateProjectPage() {
                 <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen</h3>
               </div>
               <div className="px-4 py-3 space-y-2">
-                <p className="text-xs font-medium text-ptba-steel-blue">Phase 1 EoI: {selectedPhase1Docs.length} dokumen</p>
-                <p className="text-xs font-medium text-ptba-navy">Phase 2 Assessment: {selectedPhase2Docs.length} dokumen</p>
-                {selectedLegacyDocs.length > 0 && (
-                  <p className="text-xs text-ptba-gray">Kualifikasi Umum: {selectedLegacyDocs.length} dokumen</p>
+                <p className="text-xs font-medium text-ptba-steel-blue">Fase 1 EoI: {selectedPhase1Docs.length} dokumen</p>
+                <p className="text-xs font-medium text-ptba-navy">Fase 2 Assessment: {selectedPhase2Docs.length} dokumen</p>
+                {Object.keys(selectedLegacyDocs).length > 0 && (
+                  <p className="text-xs text-ptba-gray">Kualifikasi Umum: {Object.keys(selectedLegacyDocs).length} dokumen</p>
                 )}
               </div>
             </div>
@@ -680,7 +856,7 @@ export default function CreateProjectPage() {
               <div className="divide-y divide-ptba-light-gray/50 px-4">
                 {PIC_ROLES.map(({ role, label }) => {
                   const userId = picAssignments[role];
-                  const user = userId ? mockUsers.find((u) => u.id === userId) : null;
+                  const user = userId ? internalUsers.find((u) => u.id === userId) : null;
                   return (
                     <div key={role} className="flex justify-between py-2.5">
                       <span className="text-sm text-ptba-gray">{label}</span>
@@ -695,11 +871,26 @@ export default function CreateProjectPage() {
           </div>
         )}
 
+        {/* Step Validation Error */}
+        {stepError && (
+          <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {stepError}
+          </div>
+        )}
+
+        {/* Submit Error */}
+        {submitError && (
+          <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
+
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between mt-8 pt-4 border-t border-ptba-light-gray">
           <button
             onClick={currentStep === 1 ? () => router.push("/projects") : goPrev}
-            className="rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+            disabled={submitting}
+            className="rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50"
           >
             {currentStep === 1 ? "Batal" : "Sebelumnya"}
           </button>
@@ -711,12 +902,24 @@ export default function CreateProjectPage() {
               Selanjutnya
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              className="rounded-lg bg-ptba-gold px-5 py-2 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
-            >
-              Buat Proyek
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleSubmit(false)}
+                disabled={submitting || !projectName || !projectType}
+                className="flex items-center gap-2 rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Simpan Draft
+              </button>
+              <button
+                onClick={() => handleSubmit(true)}
+                disabled={submitting || !projectName || !projectType}
+                className="flex items-center gap-2 rounded-lg bg-ptba-gold px-5 py-2 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Publikasikan
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -21,7 +21,7 @@ export interface User {
 export interface Project {
   id: string;
   name: string;
-  type: 'CAPEX' | 'OPEX' | 'Strategis';
+  type: 'mining' | 'power_generation' | 'coal_processing' | 'infrastructure' | 'environmental' | 'corporate';
   status: 'Draft' | 'Evaluasi' | 'Persetujuan' | 'Selesai' | 'Dibatalkan';
   capexValue: number;
   description: string;
@@ -292,6 +292,57 @@ export interface ApplicationDocument {
   status: 'Diunggah';
   uploadDate: string;
   fileUrl?: string;
+}
+
+// ─── Negotiation Types ───
+
+export interface Negotiation {
+  id: string;
+  projectId: string;
+  applicationId: string;
+  partnerId: string;
+  partnerName?: string;
+  projectName?: string;
+  initialValue: number;
+  agreedValue?: number;
+  status: 'pending' | 'waiting_mitra_proposal' | 'waiting_ptba_review' | 'countered' | 'agreed' | 'failed';
+  currentRound: number;
+  conclusionNotes?: string;
+  deadline?: string;
+  agreedAt?: string;
+  rounds: NegotiationRound[];
+  documents: NegotiationDocument[];
+}
+
+export interface NegotiationRound {
+  id: string;
+  roundNumber: number;
+  party: 'mitra' | 'ptba';
+  proposedValue: number;
+  justification?: string;
+  costBreakdown?: CostBreakdownItem[];
+  status: 'submitted' | 'accepted' | 'countered' | 'rejected';
+  responseNotes?: string;
+  submittedBy?: string;
+  submittedAt: string;
+  respondedAt?: string;
+}
+
+export interface CostBreakdownItem {
+  item: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface NegotiationDocument {
+  id: string;
+  name: string;
+  type: 'boq' | 'supplier_quote' | 'berita_acara' | 'supporting';
+  fileKey?: string;
+  uploadedByRole: 'mitra' | 'ptba';
 }
 
 export interface PartnerApplication {

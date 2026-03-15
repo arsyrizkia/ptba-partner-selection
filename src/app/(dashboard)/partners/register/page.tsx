@@ -11,8 +11,7 @@ import { cn } from "@/lib/utils/cn";
 
 const STEPS = [
   { key: 1, label: "Informasi Perusahaan" },
-  { key: 2, label: "Pemegang Saham" },
-  { key: 3, label: "Kontak" },
+  { key: 2, label: "Kontak" },
 ];
 
 const industryOptions = [
@@ -28,16 +27,25 @@ const industryOptions = [
   { value: "Other", label: "Lainnya" },
 ];
 
-interface Shareholder {
-  id: number;
-  name: string;
-  percentage: string;
-  nationality: string;
-}
+// --- Validation helpers ---
+const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isValidPhone = (v: string) => {
+  const digitsOnly = v.replace(/\D/g, "");
+  return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+};
+const isPhoneChar = (v: string) => /^[\d\s()+\-]*$/.test(v);
+const isValidNpwp = (v: string) => /^[\d.\-]{15,20}$/.test(v);
+const isValidUrl = (v: string) =>
+  /^https?:\/\/.+\..+/.test(v) || /^www\..+\..+/.test(v);
+const isValidCompanyCode = (v: string) => /^[a-zA-Z0-9\-]{2,20}$/.test(v);
+
+type FieldErrors = Record<string, string>;
 
 export default function PartnerRegisterPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Step 1 state
   const [companyName, setCompanyName] = useState("");
@@ -51,45 +59,123 @@ export default function PartnerRegisterPage() {
   const [siup, setSiup] = useState("");
 
   // Step 2 state
-  const [shareholders, setShareholders] = useState<Shareholder[]>([
-    { id: 1, name: "", percentage: "", nationality: "Indonesia" },
-  ]);
-
-  // Step 3 state
   const [contactName, setContactName] = useState("");
   const [contactPosition, setContactPosition] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
 
-  const handleAddShareholder = () => {
-    setShareholders((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        name: "",
-        percentage: "",
-        nationality: "Indonesia",
-      },
-    ]);
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    validateField(field);
   };
 
-  const handleRemoveShareholder = (id: number) => {
-    if (shareholders.length <= 1) return;
-    setShareholders((prev) => prev.filter((s) => s.id !== id));
+  // Re-validate on change if field was already touched (immediate feedback)
+  const handleChange = (field: string, value: string, setter: (v: string) => void) => {
+    setter(value);
+    if (touched[field]) {
+      // Defer to next tick so state is updated
+      setTimeout(() => validateField(field), 0);
+    }
   };
 
-  const handleShareholderChange = (
-    id: number,
-    field: keyof Shareholder,
-    value: string
-  ) => {
-    setShareholders((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
-    );
+  // Restrict phone input to only valid chars and max 15 digits
+  const handlePhoneChange = (field: string, value: string, setter: (v: string) => void) => {
+    if (!isPhoneChar(value)) return; // reject invalid chars
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length > 15) return; // reject if too many digits
+    handleChange(field, value, setter);
   };
+
+  const validateField = (field: string): string => {
+    let err = "";
+    switch (field) {
+      case "companyName":
+        if (!companyName.trim()) err = "Nama perusahaan wajib diisi";
+        else if (companyName.trim().length < 3) err = "Minimal 3 karakter";
+        break;
+      case "companyCode":
+        if (!companyCode.trim()) err = "Kode perusahaan wajib diisi";
+        else if (!isValidCompanyCode(companyCode.trim()))
+          err = "Hanya huruf, angka, dan strip (2-20 karakter)";
+        break;
+      case "industry":
+        if (!industry) err = "Pilih industri perusahaan";
+        break;
+      case "phone":
+        if (!phone.trim()) err = "Nomor telepon wajib diisi";
+        else if (!isValidPhone(phone.trim()))
+          err = "Nomor telepon harus 7-15 digit";
+        break;
+      case "email":
+        if (!email.trim()) err = "Email perusahaan wajib diisi";
+        else if (!isValidEmail(email.trim()))
+          err = "Format email tidak valid";
+        break;
+      case "website":
+        if (!website.trim()) err = "Website wajib diisi";
+        else if (!isValidUrl(website.trim()))
+          err = "Gunakan format: https://www.contoh.com";
+        break;
+      case "npwp":
+        if (!npwp.trim()) err = "NPWP wajib diisi";
+        else if (!isValidNpwp(npwp.trim()))
+          err = "Format NPWP tidak valid (15 digit)";
+        break;
+      case "siup":
+        if (!siup.trim()) err = "SIUP/NIB wajib diisi";
+        break;
+      case "address":
+        if (!address.trim()) err = "Alamat wajib diisi";
+        break;
+      case "contactName":
+        if (!contactName.trim()) err = "Nama kontak wajib diisi";
+        break;
+      case "contactPosition":
+        if (!contactPosition.trim()) err = "Jabatan wajib diisi";
+        break;
+      case "contactPhone":
+        if (!contactPhone.trim()) err = "Nomor telepon kontak wajib diisi";
+        else if (!isValidPhone(contactPhone.trim()))
+          err = "Nomor telepon harus 7-15 digit";
+        break;
+      case "contactEmail":
+        if (!contactEmail.trim()) err = "Email kontak wajib diisi";
+        else if (!isValidEmail(contactEmail.trim()))
+          err = "Format email tidak valid";
+        break;
+    }
+    setFieldErrors((prev) => {
+      if (err) return { ...prev, [field]: err };
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    return err;
+  };
+
+  const validateStep = (step: number): boolean => {
+    const fieldsPerStep: Record<number, string[]> = {
+      1: ["companyName", "companyCode", "industry", "address", "phone", "email", "website", "npwp", "siup"],
+      2: ["contactName", "contactPosition", "contactPhone", "contactEmail"],
+    };
+    const fields = fieldsPerStep[step] || [];
+    const newTouched: Record<string, boolean> = {};
+    fields.forEach((f) => (newTouched[f] = true));
+    setTouched((prev) => ({ ...prev, ...newTouched }));
+
+    let hasError = false;
+    fields.forEach((f) => {
+      if (validateField(f)) hasError = true;
+    });
+    return !hasError;
+  };
+
+  const getError = (field: string) =>
+    touched[field] ? fieldErrors[field] : undefined;
 
   const goNext = () => {
-    if (currentStep < 3) setCurrentStep((prev) => prev + 1);
+    if (!validateStep(currentStep)) return;
+    if (currentStep < 2) setCurrentStep((prev) => prev + 1);
   };
 
   const goPrev = () => {
@@ -97,7 +183,7 @@ export default function PartnerRegisterPage() {
   };
 
   const handleSubmit = () => {
-    // Just UI, no actual submission - show alert
+    if (!validateStep(2)) return;
     alert("Data mitra berhasil disimpan (simulasi).");
     router.push("/partners");
   };
@@ -185,209 +271,168 @@ export default function PartnerRegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Nama Perusahaan"
-                placeholder="PT Contoh Perusahaan"
+                required
+                placeholder="Contoh: PT Maju Bersama"
+                hint="Nama lengkap perusahaan sesuai akta"
                 value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
+                onChange={(e) => handleChange("companyName", e.target.value, setCompanyName)}
+                onBlur={() => handleBlur("companyName")}
+                error={getError("companyName")}
               />
               <Input
                 label="Kode Perusahaan"
-                placeholder="ABC"
+                required
+                placeholder="Contoh: MJB"
+                hint="Kode singkat unik (huruf, angka, strip)"
                 value={companyCode}
-                onChange={(e) => setCompanyCode(e.target.value)}
+                onChange={(e) => handleChange("companyCode", e.target.value, setCompanyCode)}
+                onBlur={() => handleBlur("companyCode")}
+                error={getError("companyCode")}
               />
             </div>
 
             <Select
               label="Industri"
+              required
               options={industryOptions}
+              hint="Pilih bidang usaha utama perusahaan"
               value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
+              onChange={(e) => {
+                setIndustry(e.target.value);
+                setTouched((prev) => ({ ...prev, industry: true }));
+                setTimeout(() => validateField("industry"), 0);
+              }}
+              onBlur={() => handleBlur("industry")}
+              error={getError("industry")}
             />
 
             <Textarea
               label="Alamat"
-              placeholder="Jl. Contoh No. 123, Jakarta"
+              required
+              placeholder="Contoh: Jl. Sudirman No. 10, Kel. Kebon Sirih, Kec. Menteng, Jakarta Pusat 10340"
+              hint="Alamat lengkap kantor pusat beserta kode pos"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => handleChange("address", e.target.value, setAddress)}
+              onBlur={() => handleBlur("address")}
+              error={getError("address")}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Telepon"
-                placeholder="(021) 123-4567"
+                required
+                placeholder="Contoh: (021) 123-4567"
+                hint="Nomor telepon kantor, 7-15 digit"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange("phone", e.target.value, setPhone)}
+                onBlur={() => handleBlur("phone")}
+                error={getError("phone")}
               />
               <Input
-                label="Email"
+                label="Email Perusahaan"
+                required
                 type="email"
-                placeholder="info@perusahaan.co.id"
+                placeholder="Contoh: info@perusahaan.co.id"
+                hint="Email resmi perusahaan untuk korespondensi"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleChange("email", e.target.value, setEmail)}
+                onBlur={() => handleBlur("email")}
+                error={getError("email")}
               />
             </div>
 
             <Input
               label="Website"
-              placeholder="https://www.perusahaan.co.id"
+              required
+              placeholder="Contoh: https://www.perusahaan.co.id"
+              hint="Alamat website perusahaan (awali dengan https://)"
               value={website}
-              onChange={(e) => setWebsite(e.target.value)}
+              onChange={(e) => handleChange("website", e.target.value, setWebsite)}
+              onBlur={() => handleBlur("website")}
+              error={getError("website")}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="NPWP"
-                placeholder="01.000.000.0-000.000"
+                required
+                placeholder="Contoh: 01.234.567.8-901.234"
+                hint="Nomor Pokok Wajib Pajak (15 digit)"
                 value={npwp}
-                onChange={(e) => setNpwp(e.target.value)}
+                onChange={(e) => handleChange("npwp", e.target.value, setNpwp)}
+                onBlur={() => handleBlur("npwp")}
+                error={getError("npwp")}
               />
               <Input
-                label="SIUP"
-                placeholder="503/0000/SIUP/PM/2024"
+                label="SIUP/NIB"
+                required
+                placeholder="Contoh: 503/1234/SIUP/PM/2024"
+                hint="Surat Izin Usaha Perdagangan / Nomor Induk Berusaha"
                 value={siup}
-                onChange={(e) => setSiup(e.target.value)}
+                onChange={(e) => handleChange("siup", e.target.value, setSiup)}
+                onBlur={() => handleBlur("siup")}
+                error={getError("siup")}
               />
             </div>
           </div>
         )}
 
-        {/* Step 2: Pemegang Saham */}
+        {/* Step 2: Kontak */}
         {currentStep === 2 && (
           <div className="space-y-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <h2 className="text-lg font-semibold text-ptba-charcoal">
-                Pemegang Saham
+                Kontak Penanggung Jawab
               </h2>
-              <Button variant="outline" size="sm" onClick={handleAddShareholder}>
-                + Tambah Pemegang Saham
-              </Button>
+              <p className="mt-1 text-sm text-ptba-gray">
+                Data penanggung jawab yang dapat dihubungi terkait kemitraan.
+              </p>
             </div>
-
-            <div className="overflow-x-auto rounded-xl border border-ptba-light-gray">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-ptba-navy text-white">
-                    <th className="px-4 py-3 text-left font-medium">No</th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      Nama Pemegang Saham
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      Persentase (%)
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      Kewarganegaraan
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shareholders.map((sh, index) => (
-                    <tr
-                      key={sh.id}
-                      className={
-                        index % 2 === 0 ? "bg-white" : "bg-ptba-off-white"
-                      }
-                    >
-                      <td className="px-4 py-3">{index + 1}</td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          placeholder="Nama pemegang saham"
-                          value={sh.name}
-                          onChange={(e) =>
-                            handleShareholderChange(
-                              sh.id,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue focus:border-transparent"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          placeholder="0"
-                          min="0"
-                          max="100"
-                          value={sh.percentage}
-                          onChange={(e) =>
-                            handleShareholderChange(
-                              sh.id,
-                              "percentage",
-                              e.target.value
-                            )
-                          }
-                          className="w-24 rounded-lg border border-ptba-light-gray px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue focus:border-transparent"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          placeholder="Indonesia"
-                          value={sh.nationality}
-                          onChange={(e) =>
-                            handleShareholderChange(
-                              sh.id,
-                              "nationality",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue focus:border-transparent"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleRemoveShareholder(sh.id)}
-                          disabled={shareholders.length <= 1}
-                          className="text-ptba-red hover:text-red-700 disabled:text-ptba-light-gray disabled:cursor-not-allowed text-xs font-medium"
-                        >
-                          Hapus
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Kontak */}
-        {currentStep === 3 && (
-          <div className="space-y-5">
-            <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">
-              Kontak Penanggung Jawab
-            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Nama Kontak"
-                placeholder="Nama lengkap"
+                required
+                placeholder="Contoh: Budi Santoso"
+                hint="Nama lengkap penanggung jawab perusahaan"
                 value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
+                onChange={(e) => handleChange("contactName", e.target.value, setContactName)}
+                onBlur={() => handleBlur("contactName")}
+                error={getError("contactName")}
               />
               <Input
                 label="Jabatan"
-                placeholder="Direktur Utama"
+                required
+                placeholder="Contoh: Direktur Utama"
+                hint="Jabatan di perusahaan"
                 value={contactPosition}
-                onChange={(e) => setContactPosition(e.target.value)}
+                onChange={(e) => handleChange("contactPosition", e.target.value, setContactPosition)}
+                onBlur={() => handleBlur("contactPosition")}
+                error={getError("contactPosition")}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Telepon Kontak"
-                placeholder="0812-3456-7890"
+                required
+                placeholder="Contoh: 0812-3456-7890"
+                hint="Nomor HP yang bisa dihubungi, 7-15 digit"
                 value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange("contactPhone", e.target.value, setContactPhone)}
+                onBlur={() => handleBlur("contactPhone")}
+                error={getError("contactPhone")}
               />
               <Input
                 label="Email Kontak"
+                required
                 type="email"
-                placeholder="kontak@perusahaan.co.id"
+                placeholder="Contoh: budi@perusahaan.co.id"
+                hint="Email penanggung jawab untuk komunikasi"
                 value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
+                onChange={(e) => handleChange("contactEmail", e.target.value, setContactEmail)}
+                onBlur={() => handleBlur("contactEmail")}
+                error={getError("contactEmail")}
               />
             </div>
           </div>
@@ -403,7 +448,7 @@ export default function PartnerRegisterPage() {
           </Button>
 
           <div className="flex items-center gap-3">
-            {currentStep < 3 ? (
+            {currentStep < 2 ? (
               <Button variant="navy" onClick={goNext}>
                 Selanjutnya
               </Button>

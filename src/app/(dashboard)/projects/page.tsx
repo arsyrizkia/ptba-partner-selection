@@ -1,16 +1,30 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText } from "lucide-react";
+import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { mockProjects, mockUsers } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth/auth-context";
-import { canAccessProject } from "@/lib/utils/pic-access";
+import { projectApi } from "@/lib/api/client";
+
+interface ProjectItem {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  capexValue: number;
+  description: string;
+  startDate: string;
+  currentStep: number;
+  totalSteps: number;
+  phase: string;
+  applicationCount: number;
+}
 
 const EVALUATOR_ROLES = ["keuangan", "hukum", "risiko"] as const;
 
 function formatCapex(value: number): string {
+  if (!value) return "-";
   if (value >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toFixed(1)} T`;
   if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(0)} M`;
   return `Rp ${value.toLocaleString("id-ID")}`;
@@ -21,61 +35,74 @@ function statusStyle(status: string) {
     case "Evaluasi":   return "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20";
     case "Persetujuan": return "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20";
     case "Draft":      return "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
+    case "Dipublikasikan":  return "bg-teal-100 text-teal-700 border border-teal-200";
     case "Selesai":    return "bg-ptba-green/10 text-ptba-green border border-ptba-green/20";
     case "Dibatalkan": return "bg-ptba-red/10 text-ptba-red border border-ptba-red/20";
     default:           return "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
   }
 }
 
+const TYPE_LABELS: Record<string, string> = {
+  mining: "Pertambangan", power_generation: "Pembangkit Listrik", coal_processing: "Pengolahan Batubara",
+  infrastructure: "Infrastruktur", environmental: "Lingkungan", corporate: "Korporat", others: "Lainnya",
+};
+
 function typeStyle(type: string) {
-  switch (type) {
-    case "CAPEX":     return "bg-ptba-navy/10 text-ptba-navy";
-    case "OPEX":      return "bg-ptba-steel-blue/10 text-ptba-steel-blue";
-    case "Strategis": return "bg-ptba-gold/10 text-ptba-gold";
-    default:          return "bg-ptba-gray/10 text-ptba-gray";
-  }
+  const map: Record<string, string> = {
+    mining: "bg-amber-100 text-amber-700", power_generation: "bg-ptba-navy/10 text-ptba-navy",
+    coal_processing: "bg-ptba-gold/10 text-ptba-gold", infrastructure: "bg-ptba-steel-blue/10 text-ptba-steel-blue",
+    environmental: "bg-green-100 text-green-700", corporate: "bg-gray-100 text-gray-600",
+  };
+  return map[type] ?? "bg-ptba-gray/10 text-ptba-gray";
 }
 
 function phaseInfo(phase?: string): { label: string; color: string } | null {
   if (!phase) return null;
+  if (phase === "published") return null;
   if (phase === "completed") return { label: "Selesai", color: "bg-ptba-green/10 text-ptba-green border-ptba-green/20" };
   if (phase === "cancelled") return { label: "Dibatalkan", color: "bg-ptba-red/10 text-ptba-red border-ptba-red/20" };
   if (phase.startsWith("phase1")) {
     const sub: Record<string, string> = {
-      phase1_registration: "Phase 1 · Pendaftaran",
-      phase1_closed: "Phase 1 · Ditutup",
-      phase1_evaluation: "Phase 1 · Evaluasi",
-      phase1_approval: "Phase 1 · Persetujuan",
-      phase1_announcement: "Phase 1 · Pengumuman",
+      phase1_registration: "Fase 1 · Pendaftaran",
+      phase1_closed: "Fase 1 · Ditutup",
+      phase1_evaluation: "Fase 1 · Evaluasi",
+      phase1_approval: "Fase 1 · Persetujuan",
+      phase1_approved: "Fase 1",
+      phase1_announcement: "Fase 1 · Pengumuman",
     };
-    return { label: sub[phase] ?? "Phase 1", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
+    return { label: sub[phase] ?? "Fase 1", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
   }
   const sub2: Record<string, string> = {
-    phase2_registration: "Phase 2 · Pendaftaran",
-    phase2_evaluation: "Phase 2 · Evaluasi",
-    phase2_ranking: "Phase 2 · Peringkat",
-    phase2_negotiation: "Phase 2 · Negosiasi",
-    phase2_approval: "Phase 2 · Persetujuan",
-    phase2_announcement: "Phase 2 · Pengumuman",
+    phase2_registration: "Fase 2 · Pendaftaran",
+    phase2_evaluation: "Fase 2 · Evaluasi",
+    phase2_ranking: "Fase 2 · Peringkat",
+    phase2_negotiation: "Fase 2 · Negosiasi",
+    phase2_approval: "Fase 2 · Persetujuan",
+    phase2_announcement: "Fase 2 · Pengumuman",
   };
-  return { label: sub2[phase] ?? "Phase 2", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
+  return { label: sub2[phase] ?? "Fase 2", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
 }
 
-const STATUS_TABS = ["Semua", "Draft", "Evaluasi", "Persetujuan", "Selesai"];
+const STATUS_TABS = ["Semua", "Draft", "Dipublikasikan", "Evaluasi", "Persetujuan", "Selesai"];
 
 export default function ProjectsPage() {
-  const { role, user } = useAuth();
+  const { role, accessToken } = useAuth();
   const isEvaluator = EVALUATOR_ROLES.includes(role as typeof EVALUATOR_ROLES[number]);
 
-  // Filter by PIC access and evaluator status
-  const accessibleProjects = useMemo(() => {
-    const currentUser = user ? mockUsers.find((u) => u.id === user.id) ?? user : null;
-    return mockProjects.filter((p) => canAccessProject(p, currentUser));
-  }, [user]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoading(true);
+    projectApi(accessToken).list().then((res) => {
+      setProjects(res.data as unknown as ProjectItem[]);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [accessToken]);
 
   const baseProjects = isEvaluator
-    ? accessibleProjects.filter((p) => p.status === "Evaluasi")
-    : accessibleProjects;
+    ? projects.filter((p) => p.status === "Evaluasi")
+    : projects;
 
   const [activeTab, setActiveTab] = useState("Semua");
   const [search, setSearch] = useState("");
@@ -88,11 +115,19 @@ export default function ProjectsPage() {
     });
   }, [baseProjects, activeTab, search]);
 
-  // KPIs — scoped to visible projects
   const total = baseProjects.length;
   const evaluasi = baseProjects.filter((p) => p.status === "Evaluasi").length;
   const persetujuan = baseProjects.filter((p) => p.status === "Persetujuan").length;
   const selesai = baseProjects.filter((p) => p.status === "Selesai").length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">Memuat proyek...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -162,7 +197,6 @@ export default function ProjectsPage() {
 
       {/* Filter + Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Status Tabs — hidden for evaluators (they only see Evaluasi) */}
         {!isEvaluator && (
           <div className="flex gap-1 rounded-lg border border-ptba-light-gray bg-white p-1">
             {STATUS_TABS.map((tab) => (
@@ -181,8 +215,6 @@ export default function ProjectsPage() {
             ))}
           </div>
         )}
-
-        {/* Search */}
         <div className={cn("relative", isEvaluator ? "w-full" : "w-full sm:w-64")}>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ptba-gray" />
           <input
@@ -225,7 +257,6 @@ export default function ProjectsPage() {
                   "border-l-ptba-light-gray"
                 )}
               >
-                {/* Top row */}
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <h3 className="font-semibold text-ptba-charcoal leading-snug group-hover:text-ptba-steel-blue transition-colors line-clamp-2">
                     {project.name}
@@ -235,10 +266,9 @@ export default function ProjectsPage() {
                   </span>
                 </div>
 
-                {/* Type + Value + Phase */}
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", typeStyle(project.type))}>
-                    {project.type}
+                    {TYPE_LABELS[project.type] || project.type}
                   </span>
                   <span className="text-sm font-semibold text-ptba-charcoal">
                     {formatCapex(project.capexValue)}
@@ -250,12 +280,12 @@ export default function ProjectsPage() {
                   )}
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-ptba-gray leading-relaxed line-clamp-2 mb-4">
-                  {project.description}
-                </p>
+                {project.description && (
+                  <p className="text-xs text-ptba-gray leading-relaxed line-clamp-2 mb-4">
+                    {project.description}
+                  </p>
+                )}
 
-                {/* Two-Phase Progress */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-ptba-gray mb-1.5">
                     <span className="flex items-center gap-1">
@@ -265,7 +295,6 @@ export default function ProjectsPage() {
                     <span className="font-medium">{pct}%</span>
                   </div>
                   <div className="flex items-center gap-0">
-                    {/* Phase 1 bar */}
                     <div className="flex-1 h-1.5 overflow-hidden rounded-l-full bg-ptba-light-gray">
                       <div
                         className="h-full rounded-l-full bg-ptba-navy transition-all"
@@ -273,7 +302,6 @@ export default function ProjectsPage() {
                       />
                     </div>
                     <div className="w-px h-2.5 bg-ptba-charcoal/20 mx-px" />
-                    {/* Phase 2 bar */}
                     <div className="flex-1 h-1.5 overflow-hidden rounded-r-full bg-ptba-light-gray">
                       <div
                         className={cn(
@@ -290,10 +318,11 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                {/* Footer */}
                 <div className="mt-2 flex items-center justify-between text-xs text-ptba-gray border-t border-ptba-light-gray/50 pt-3">
-                  <span>{project.partners.length} mitra terdaftar</span>
-                  <span>{new Date(project.startDate).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}</span>
+                  <span>{project.applicationCount} mitra terdaftar</span>
+                  {project.startDate && (
+                    <span>{new Date(project.startDate).toLocaleDateString("id-ID", { year: "numeric", month: "short" })}</span>
+                  )}
                 </div>
               </Link>
             );

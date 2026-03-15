@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -14,57 +14,405 @@ import {
   Clock,
   XCircle,
   ImageIcon,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockApplications } from "@/lib/mock-data/applications";
+import { api, projectApi } from "@/lib/api/client";
 import { PHASE2_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatCurrency } from "@/lib/utils/format";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+
+type PaymentState = "belum" | "uploading" | "pending" | "verified" | "rejected";
+
+function mapPaymentStatus(status: string | null | undefined): PaymentState {
+  switch (status) {
+    case "Sudah Bayar":
+      return "verified";
+    case "Menunggu Verifikasi":
+      return "pending";
+    case "Ditolak":
+      return "rejected";
+    default:
+      return "belum";
+  }
+}
 
 export default function MitraPhase2Page() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const projectId = params.id as string;
 
-  const project = mockProjects.find((p) => p.id === projectId);
+  // Data state
+  const [project, setProject] = useState<any>(null);
+  const [application, setApplication] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const application = useMemo(
-    () =>
-      mockApplications.find(
-        (a) => a.projectId === projectId && a.partnerId === user?.partnerId
-      ),
-    [projectId, user?.partnerId]
-  );
-
-  // Local state - initialize from existing application data
-  type PaymentState = 'belum' | 'uploading' | 'pending' | 'verified' | 'rejected';
-  const initialPaymentState: PaymentState =
-    application?.feePaymentStatus === "Sudah Bayar" ? "verified" :
-    application?.feePaymentStatus === "Menunggu Verifikasi" ? "pending" :
-    application?.feePaymentStatus === "Ditolak" ? "rejected" : "belum";
-  const [paymentState, setPaymentState] = useState<PaymentState>(initialPaymentState);
-  const [paymentProofName, setPaymentProofName] = useState(application?.feePaymentProof ?? "");
+  // Payment state
+  const [paymentState, setPaymentState] = useState<PaymentState>("belum");
+  const [paymentProofName, setPaymentProofName] = useState("");
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [selectedProofFile, setSelectedProofFile] = useState<File | null>(null);
   const feePaid = paymentState === "verified";
-  const [downloadedDocs, setDownloadedDocs] = useState<Set<string>>(
-    new Set(application?.downloadedPTBADocs ?? [])
-  );
-  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>(
-    () => {
-      const existing: Record<string, string> = {};
-      if (application?.phase2Documents) {
-        for (const doc of application.phase2Documents) {
-          existing[doc.documentTypeId] = doc.name;
-        }
-      }
-      return existing;
-    }
-  );
+  const paymentProofRef = useRef<HTMLInputElement>(null);
+
+  // PTBA doc downloads
+  const [downloadedDocs, setDownloadedDocs] = useState<Set<string>>(new Set());
+  const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
+
+  // Phase 2 document uploads: docTypeId -> { name, uploading, dbId }
+  const [uploadedDocs, setUploadedDocs] = useState<
+    Record<string, { name: string; uploading: boolean; dbId?: string }>
+  >({});
+
+  // Submission
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // --- Guard: project not found ---
+  // ─── Fetch Data ───
+
+  const fetchData = useCallback(async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    setError("");
+    try {
+      const [projRes, appRes] = await Promise.all([
+        projectApi(accessToken).getById(projectId),
+        api<{ applications: any[] }>("/applications", { token: accessToken }),
+      ]);
+      setProject(projRes.data);
+
+      const existingBasic = (appRes.applications || []).find(
+        (a: any) => a.project_id === projectId
+      );
+
+      if (!existingBasic) {
+        setApplication(null);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch full detail to get documents
+      let existing = existingBasic;
+      try {
+        const detailRes = await api<{ application: any }>(
+          `/applications/${existingBasic.id}`,
+          { token: accessToken }
+        );
+        existing = detailRes.application;
+      } catch {
+        // Fall back to basic
+      }
+
+      setApplication(existing);
+
+      // Initialize payment state from API
+      setPaymentState(mapPaymentStatus(existing.fee_payment_status));
+      if (existing.fee_payment_proof) {
+        // Extract a display name from the file key
+        const proofDoc = existing.generalDocuments?.find(
+          (d: any) => d.document_type_id === "fee_payment_proof"
+        );
+        setPaymentProofName(proofDoc?.name || "Bukti Pembayaran");
+      }
+
+      // Initialize uploaded phase2 documents
+      if (existing.phase2Documents?.length) {
+        const restored: Record<string, { name: string; uploading: boolean; dbId?: string }> = {};
+        for (const doc of existing.phase2Documents) {
+          restored[doc.document_type_id] = {
+            name: doc.name,
+            uploading: false,
+            dbId: doc.id,
+          };
+        }
+        setUploadedDocs(restored);
+      }
+
+      // Check if already submitted for phase2
+      if (existing.phase === "phase2" && existing.status === "Dikirim") {
+        setSubmitted(true);
+      }
+    } catch {
+      setProject(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId, accessToken]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // ─── Handlers ───
+
+  const handleUploadProof = async (file: File) => {
+    if (!accessToken || !application?.id) return;
+    setError("");
+    setUploadingProof(true);
+    setPaymentState("uploading");
+
+    try {
+      const autoName = `Bukti_Transfer_${user?.name?.replace(/\s+/g, "_") || "Mitra"}`;
+
+      // Delete existing proof document if any
+      const existingProof = application.generalDocuments?.find(
+        (d: any) => d.document_type_id === "fee_payment_proof"
+      );
+      if (existingProof?.id) {
+        await fetch(
+          `${API_BASE}/applications/${application.id}/documents/${existingProof.id}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+      }
+
+      // Upload the file as a document
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentTypeId", "fee_payment_proof");
+      formData.append("name", autoName);
+      formData.append("phase", "general");
+
+      const uploadRes = await fetch(
+        `${API_BASE}/applications/${application.id}/documents`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        }
+      );
+
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        throw new Error(uploadData.error || "Gagal mengunggah bukti pembayaran");
+      }
+
+      const fileKey = uploadData.document?.file_key;
+      if (!fileKey) {
+        throw new Error("File key tidak ditemukan dari response upload");
+      }
+
+      // Update fee payment status on the application
+      await api("/applications/" + application.id + "/fee-payment", {
+        method: "PUT",
+        body: { fileKey },
+        token: accessToken,
+      });
+
+      setPaymentProofName(file.name);
+      setPaymentState("pending");
+
+      // Refresh application data
+      try {
+        const detailRes = await api<{ application: any }>(
+          `/applications/${application.id}`,
+          { token: accessToken }
+        );
+        setApplication(detailRes.application);
+      } catch {
+        // Non-critical
+      }
+    } catch (err: any) {
+      setError(err.message || "Gagal mengunggah bukti pembayaran");
+      setPaymentState("belum");
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
+  const handleDownloadDoc = async (docId: string, fileKey: string) => {
+    if (!accessToken || !application?.id) return;
+    setDownloadingDoc(docId);
+    setError("");
+
+    try {
+      // Record the download via API and get presigned URL
+      const res = await api<{ url: string; document: any }>(
+        `/applications/${application.id}/download-ptba-doc/${docId}`,
+        { method: "POST", token: accessToken }
+      );
+
+      // Download through the Next.js proxy using file key
+      const proxyRes = await fetch(
+        `/api/documents/download?key=${encodeURIComponent(fileKey)}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (!proxyRes.ok) {
+        throw new Error("Gagal mengunduh dokumen");
+      }
+
+      const blob = await proxyRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.document?.name || "document";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setDownloadedDocs((prev) => new Set(prev).add(docId));
+    } catch (err: any) {
+      setError(err.message || "Gagal mengunduh dokumen");
+    } finally {
+      setDownloadingDoc(null);
+    }
+  };
+
+  const handleUploadDoc = async (docTypeId: string, file: File) => {
+    if (!accessToken || !application?.id) return;
+    setError("");
+
+    const docTypeMeta = PHASE2_DOCUMENT_TYPES.find((d) => d.id === docTypeId);
+    const autoName = `${docTypeMeta?.name || docTypeId} - ${user?.name || "Mitra"}`;
+
+    const existingDoc = uploadedDocs[docTypeId];
+    setUploadedDocs((prev) => ({
+      ...prev,
+      [docTypeId]: { name: autoName, uploading: true },
+    }));
+
+    try {
+      // Delete old document if replacing
+      if (existingDoc?.dbId) {
+        await fetch(
+          `${API_BASE}/applications/${application.id}/documents/${existingDoc.dbId}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentTypeId", docTypeId);
+      formData.append("name", autoName);
+      formData.append("phase", "phase2");
+
+      const res = await fetch(
+        `${API_BASE}/applications/${application.id}/documents`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData,
+        }
+      );
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || "Gagal mengunggah dokumen");
+      }
+
+      setUploadedDocs((prev) => ({
+        ...prev,
+        [docTypeId]: {
+          name: autoName,
+          uploading: false,
+          dbId: resData.document?.id,
+        },
+      }));
+    } catch (err: any) {
+      setError(err.message || "Gagal mengunggah dokumen");
+      setUploadedDocs((prev) => {
+        const next = { ...prev };
+        delete next[docTypeId];
+        return next;
+      });
+    }
+  };
+
+  const handleDeleteDoc = async (docTypeId: string) => {
+    if (!accessToken || !application?.id) return;
+    const doc = uploadedDocs[docTypeId];
+    if (!doc?.dbId) return;
+
+    setUploadedDocs((prev) => ({
+      ...prev,
+      [docTypeId]: { ...prev[docTypeId], uploading: true },
+    }));
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/applications/${application.id}/documents/${doc.dbId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal menghapus dokumen");
+      }
+      setUploadedDocs((prev) => {
+        const next = { ...prev };
+        delete next[docTypeId];
+        return next;
+      });
+    } catch (err: any) {
+      setError(err.message || "Gagal menghapus dokumen");
+      setUploadedDocs((prev) => ({
+        ...prev,
+        [docTypeId]: { ...doc, uploading: false },
+      }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!accessToken || !application?.id) return;
+    setSubmitting(true);
+    setError("");
+
+    try {
+      await api(`/applications/${application.id}/submit-phase2`, {
+        method: "POST",
+        token: accessToken,
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || "Gagal mengirim dokumen Fase 2");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ─── Derived state ───
+
+  const registrationFee = project?.registrationFee ?? project?.registration_fee ?? 0;
+  const ptbaDocuments: any[] = project?.ptbaDocuments ?? project?.ptba_documents ?? [];
+
+  const requiredPhase2Count = PHASE2_DOCUMENT_TYPES.filter(
+    (d) => d.required
+  ).length;
+  const uploadedRequiredCount = PHASE2_DOCUMENT_TYPES.filter(
+    (d) => d.required && uploadedDocs[d.id]
+  ).length;
+  const allRequiredUploaded = uploadedRequiredCount === requiredPhase2Count;
+  const canSubmit = feePaid && allRequiredUploaded && !submitting && !submitted;
+
+  // ─── Loading state ───
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-navy" />
+        <span className="ml-3 text-ptba-gray">Memuat data...</span>
+      </div>
+    );
+  }
+
+  // ─── Guard: project not found ───
+
   if (!project) {
     return (
       <div className="space-y-6">
@@ -81,7 +429,8 @@ export default function MitraPhase2Page() {
     );
   }
 
-  // --- Guard: no application found ---
+  // ─── Guard: no application found ───
+
   if (!application) {
     return (
       <div className="space-y-6">
@@ -104,8 +453,9 @@ export default function MitraPhase2Page() {
     );
   }
 
-  // --- Guard: not shortlisted (phase1Result !== 'Lolos') ---
-  if (application.phase1Result !== "Lolos") {
+  // ─── Guard: not shortlisted (phase1_result !== 'Lolos') ───
+
+  if (application.phase1_result !== "Lolos") {
     return (
       <div className="space-y-6">
         <button
@@ -134,44 +484,8 @@ export default function MitraPhase2Page() {
     );
   }
 
-  // --- Derived state ---
-  const registrationFee = project.registrationFee ?? 0;
-  const ptbaDocuments = project.ptbaDocuments ?? [];
+  // ─── Success state ───
 
-  const requiredPhase2Count = PHASE2_DOCUMENT_TYPES.filter(
-    (d) => d.required
-  ).length;
-  const uploadedRequiredCount = PHASE2_DOCUMENT_TYPES.filter(
-    (d) => d.required && uploadedDocs[d.id]
-  ).length;
-  const allRequiredUploaded = uploadedRequiredCount === requiredPhase2Count;
-  const canSubmit = feePaid && allRequiredUploaded && !submitting && !submitted;
-
-  // --- Handlers ---
-  const handleUploadProof = () => {
-    const fileName = `Bukti_Transfer_${application?.partnerName?.replace(/\s+/g, '_') ?? 'Mitra'}.pdf`;
-    setPaymentProofName(fileName);
-    setPaymentState("pending");
-  };
-
-  const handleDownloadDoc = (docId: string) => {
-    setDownloadedDocs((prev) => new Set(prev).add(docId));
-  };
-
-  const handleUploadDoc = (docTypeId: string, docName: string) => {
-    setUploadedDocs((prev) => ({ ...prev, [docTypeId]: `${docName}.pdf` }));
-  };
-
-  const handleSubmit = () => {
-    setSubmitting(true);
-    // Simulate submission delay
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 1000);
-  };
-
-  // --- Success state ---
   if (submitted) {
     return (
       <div className="space-y-6">
@@ -206,6 +520,16 @@ export default function MitraPhase2Page() {
 
   return (
     <div className="space-y-6">
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Back button */}
       <button
         onClick={() => router.push(`/mitra/projects/${projectId}`)}
@@ -326,8 +650,24 @@ export default function MitraPhase2Page() {
           </div>
         </div>
 
+        {/* Hidden file input for payment proof */}
+        <input
+          ref={paymentProofRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.jpg,.jpeg,.png"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) {
+              setSelectedProofFile(f);
+              setPaymentProofName(f.name);
+            }
+            e.target.value = "";
+          }}
+        />
+
         {/* Payment state-specific UI */}
-        {paymentState === "belum" && (
+        {paymentState === "belum" && !selectedProofFile && (
           <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
             <Upload className="mx-auto h-8 w-8 text-ptba-gray mb-2" />
             <p className="text-sm font-medium text-ptba-charcoal mb-1">Upload Bukti Pembayaran</p>
@@ -335,12 +675,53 @@ export default function MitraPhase2Page() {
               Lakukan transfer sesuai nominal di atas, lalu unggah bukti transfer (PDF/JPG/PNG)
             </p>
             <button
-              onClick={handleUploadProof}
+              onClick={() => paymentProofRef.current?.click()}
               className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-5 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
             >
               <Upload className="h-4 w-4" />
-              Pilih File & Upload
+              Pilih File
             </button>
+          </div>
+        )}
+
+        {paymentState === "belum" && selectedProofFile && (
+          <div className="rounded-lg border border-ptba-steel-blue/30 bg-ptba-section-bg p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="h-5 w-5 text-ptba-steel-blue shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ptba-charcoal truncate">{selectedProofFile.name}</p>
+                <p className="text-xs text-ptba-gray">{(selectedProofFile.size / 1024).toFixed(0)} KB</p>
+              </div>
+              <button
+                onClick={() => { setSelectedProofFile(null); setPaymentProofName(""); }}
+                className="text-xs text-ptba-gray hover:text-ptba-red transition-colors"
+              >
+                Hapus
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => paymentProofRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-white transition-colors"
+              >
+                Ganti File
+              </button>
+              <button
+                onClick={() => handleUploadProof(selectedProofFile)}
+                className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-bold text-white hover:bg-ptba-navy/90 transition-colors"
+              >
+                <Upload className="h-4 w-4" />
+                Kirim Bukti Pembayaran
+              </button>
+            </div>
+          </div>
+        )}
+
+        {paymentState === "uploading" && (
+          <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
+            <Loader2 className="mx-auto h-8 w-8 text-ptba-gold animate-spin mb-2" />
+            <p className="text-sm font-medium text-ptba-charcoal mb-1">Mengunggah Bukti Pembayaran...</p>
+            <p className="text-xs text-ptba-gray">Mohon tunggu, file sedang diunggah.</p>
           </div>
         )}
 
@@ -371,10 +752,12 @@ export default function MitraPhase2Page() {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-red-800">Bukti Pembayaran Ditolak</p>
                 <p className="text-xs text-red-700 mt-0.5">
-                  {application?.feePaymentNotes ?? "Bukti pembayaran tidak valid. Silakan upload ulang bukti yang benar."}
+                  {application?.fee_payment_notes ?? "Bukti pembayaran tidak valid. Silakan upload ulang bukti yang benar."}
                 </p>
                 <button
-                  onClick={() => setPaymentState("belum")}
+                  onClick={() => {
+                    setPaymentState("belum");
+                  }}
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-xs font-semibold text-white hover:bg-ptba-steel-blue transition-colors"
                 >
                   <Upload className="h-3.5 w-3.5" />
@@ -432,11 +815,14 @@ export default function MitraPhase2Page() {
               Tidak ada dokumen PTBA untuk proyek ini.
             </p>
           ) : (
-            ptbaDocuments.map((doc) => {
-              const isDownloaded = downloadedDocs.has(doc.id);
+            ptbaDocuments.map((doc: any) => {
+              const docId = doc.id;
+              const fileKey = doc.fileKey ?? doc.file_key;
+              const isDownloaded = downloadedDocs.has(docId);
+              const isDownloading = downloadingDoc === docId;
               return (
                 <div
-                  key={doc.id}
+                  key={docId}
                   className={cn(
                     "rounded-lg border p-4 transition-colors",
                     isDownloaded
@@ -459,8 +845,8 @@ export default function MitraPhase2Page() {
                       </div>
                     </div>
                     <button
-                      onClick={() => handleDownloadDoc(doc.id)}
-                      disabled={!feePaid}
+                      onClick={() => handleDownloadDoc(docId, fileKey)}
+                      disabled={!feePaid || isDownloading}
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shrink-0",
                         feePaid
@@ -470,8 +856,12 @@ export default function MitraPhase2Page() {
                           : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
                       )}
                     >
-                      <Download className="h-3.5 w-3.5" />
-                      {isDownloaded ? "Unduh Ulang" : "Download"}
+                      {isDownloading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      {isDownloading ? "Mengunduh..." : isDownloaded ? "Unduh Ulang" : "Download"}
                     </button>
                   </div>
                 </div>
@@ -535,7 +925,9 @@ export default function MitraPhase2Page() {
 
         <div className="space-y-3">
           {PHASE2_DOCUMENT_TYPES.map((doc) => {
-            const isUploaded = !!uploadedDocs[doc.id];
+            const docState = uploadedDocs[doc.id];
+            const isUploaded = !!docState && !docState.uploading;
+            const isUploading = !!docState?.uploading;
             return (
               <div
                 key={doc.id}
@@ -548,7 +940,9 @@ export default function MitraPhase2Page() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0 flex-1">
-                    {isUploaded ? (
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 mt-0.5 shrink-0 animate-spin text-ptba-gold" />
+                    ) : isUploaded ? (
                       <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0 text-green-500" />
                     ) : (
                       <FileText className="h-5 w-5 mt-0.5 shrink-0 text-ptba-gray" />
@@ -565,33 +959,69 @@ export default function MitraPhase2Page() {
                       <p className="text-xs text-ptba-gray mt-0.5">
                         {doc.description}
                       </p>
-                      {isUploaded && (
+                      {isUploaded && docState && (
                         <p className="text-xs text-green-600 mt-1">
-                          {uploadedDocs[doc.id]}
+                          {docState.name}
                         </p>
+                      )}
+                      {isUploading && (
+                        <p className="text-xs text-ptba-gold mt-1">Mengunggah...</p>
                       )}
                     </div>
                   </div>
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex items-center gap-1.5">
                     {isUploaded ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Diunggah
+                      <>
+                        <button
+                          onClick={() => handleDeleteDoc(doc.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Hapus
+                        </button>
+                        <label className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors cursor-pointer">
+                          <Upload className="h-3 w-3" />
+                          Ganti
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleUploadDoc(doc.id, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </>
+                    ) : isUploading ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Mengunggah
                       </span>
                     ) : (
-                      <button
-                        onClick={() => handleUploadDoc(doc.id, doc.name)}
-                        disabled={!feePaid}
+                      <label
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                          "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
                           feePaid
                             ? "bg-ptba-navy text-white hover:bg-ptba-navy/90"
-                            : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+                            : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed pointer-events-none"
                         )}
                       >
                         <Upload className="h-3.5 w-3.5" />
                         Unggah
-                      </button>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                          disabled={!feePaid}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleUploadDoc(doc.id, f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
                     )}
                   </div>
                 </div>
@@ -638,12 +1068,13 @@ export default function MitraPhase2Page() {
             onClick={handleSubmit}
             disabled={!canSubmit}
             className={cn(
-              "rounded-lg px-6 py-2 text-sm font-bold transition-colors",
+              "rounded-lg px-6 py-2 text-sm font-bold transition-colors inline-flex items-center gap-2",
               canSubmit
                 ? "bg-ptba-gold text-ptba-charcoal hover:bg-ptba-gold-light"
                 : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
             )}
           >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {submitting ? "Mengirim..." : "Kirim Dokumen Fase 2"}
           </button>
         </div>

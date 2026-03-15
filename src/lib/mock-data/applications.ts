@@ -166,7 +166,7 @@ export const mockApplications: PartnerApplication[] = [
       { id: 'AD046', documentTypeId: 'profil_perusahaan', name: 'Company Profile PNRE', status: 'Diunggah', uploadDate: '2025-09-15' },
     ],
   },
-  // Phase 1 rejected application for M001
+  // Fase 1 rejected application for M001
   {
     id: 'APP008',
     partnerId: 'M001',
@@ -188,7 +188,7 @@ export const mockApplications: PartnerApplication[] = [
       { id: 'P1D030', documentTypeId: 'requirements_fulfillment', name: 'Pemenuhan Persyaratan PGN', status: 'Diunggah', uploadDate: '2025-11-05' },
     ],
   },
-  // Phase 1 applications for P002 (Gasifikasi)
+  // Fase 1 applications for P002 (Gasifikasi)
   {
     id: 'APP006',
     partnerId: 'M005',

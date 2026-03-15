@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import type { User, UserRole } from "@/lib/types";
 import { mockUsers } from "@/lib/mock-data/users";
 import { authApi, ApiClientError } from "@/lib/api/client";
@@ -48,6 +48,22 @@ function getStoredToken(): string | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(getStoredUser);
   const [accessToken, setAccessToken] = useState<string | null>(getStoredToken);
+
+  // Keep React state in sync when api client auto-refreshes the token
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stored = localStorage.getItem(TOKEN_KEY);
+      if (stored && stored !== accessToken) {
+        setAccessToken(stored);
+      }
+      // If tokens were cleared (force logout from api client), sync state
+      if (!stored && accessToken) {
+        setUser(null);
+        setAccessToken(null);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [accessToken]);
 
   const login = useCallback((email: string): User | null => {
     const found = mockUsers.find(

@@ -80,9 +80,11 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       {/* Navigation */}
       <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
         {filteredNav.map((item) => {
+          const isApprovalSubpage = currentPath.includes("/approval/");
           const isActive =
             currentPath === item.href ||
-            (item.href !== "/dashboard" && currentPath.startsWith(item.href));
+            (item.href === "/approvals" && isApprovalSubpage) ||
+            (item.href !== "/dashboard" && !isApprovalSubpage && currentPath.startsWith(item.href));
           const Icon = ICON_MAP[item.icon] ?? LayoutDashboard;
 
           return (

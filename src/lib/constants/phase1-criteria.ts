@@ -7,7 +7,7 @@ export interface Phase1CriteriaDef {
 }
 
 /**
- * 5 evaluation criteria for EBD Phase 1 evaluation
+ * 5 evaluation criteria for EBD Fase 1 evaluation
  * Total weight = 100%
  */
 export const PHASE1_CRITERIA: Phase1CriteriaDef[] = [

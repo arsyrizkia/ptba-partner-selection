@@ -9,8 +9,8 @@ export interface DocumentTypeDef {
 
 /**
  * 17 jenis dokumen kualifikasi mitra sesuai TCK 5.1.3
- * + Phase 1 EoI document types
- * + Phase 2 detailed assessment document types
+ * + Fase 1 EoI document types
+ * + Fase 2 detailed assessment document types
  */
 export const DOCUMENT_TYPES: DocumentTypeDef[] = [
   // === Existing documents (both phases / legacy) ===
@@ -151,7 +151,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     phase: 'both',
   },
 
-  // === Phase 1 EoI Document Types ===
+  // === Fase 1 EoI Document Types ===
   {
     id: 'statement_eoi',
     name: 'Statement of Expression of Interest',
@@ -193,7 +193,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     phase: 'phase1',
   },
 
-  // === Phase 2 Detailed Assessment Document Types ===
+  // === Fase 2 Detailed Assessment Document Types ===
   {
     id: 'confidential_guarantee_signed',
     name: 'Confidential Guarantee (Signed)',

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -9,8 +9,30 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { ApiClientError } from "@/lib/api/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const router = useRouter();
-  const { loginApi } = useAuth();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get("registered") === "1";
+  const justVerified = searchParams.get("verified") === "1";
+  const { loginApi, user, role } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      if (role === "mitra") {
+        router.replace("/mitra/dashboard");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [user, role, router]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +57,10 @@ export default function LoginPage() {
       redirectByRole(user.role);
     } catch (err) {
       if (err instanceof ApiClientError) {
+        if (err.code === "EMAIL_NOT_VERIFIED" && err.data?.email) {
+          router.push(`/verify-email?email=${encodeURIComponent(err.data.email as string)}`);
+          return;
+        }
         setError(err.message);
       } else {
         setError("Tidak dapat terhubung ke server. Silakan coba lagi.");
@@ -69,6 +95,20 @@ export default function LoginPage() {
 
         {/* Gold Accent Line */}
         <div className="mx-auto mb-8 h-[3px] w-16 rounded-full bg-ptba-gold" />
+
+        {/* Success message after registration */}
+        {justRegistered && (
+          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            Pendaftaran berhasil! Silakan login dengan akun Anda.
+          </div>
+        )}
+
+        {/* Success message after email verification */}
+        {justVerified && (
+          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            Email berhasil diverifikasi! Silakan login.
+          </div>
+        )}
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-5">

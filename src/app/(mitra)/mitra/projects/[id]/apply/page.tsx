@@ -1,42 +1,584 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Upload, CheckCircle2, FileText, AlertTriangle, Download } from "lucide-react";
+import {
+  ArrowLeft, Upload, CheckCircle2, FileText, AlertTriangle, Loader2,
+  Building2, DollarSign, Briefcase, ShieldCheck, ChevronDown, ChevronUp, Plus, Trash2,
+  PenLine, ClipboardCheck, Save,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockApplications } from "@/lib/mock-data/applications";
-import { PHASE1_DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { api, projectApi, ApiClientError } from "@/lib/api/client";
+import { partnerApi } from "@/lib/api/client";
+import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-types";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+
+// ─── Types ───
+
+interface ProjectExperience {
+  projectName: string;
+  location: string;
+  type: string;
+  year: string;
+  role: string;
+  projectCost: string;
+  description: string;
+}
+
+interface FinancialYear {
+  year: string;
+  currency: string;
+  totalAsset: string;
+  ebitda: string;
+  dscr: string;
+}
+
+const CURRENT_YEAR = new Date().getFullYear();
+const FINANCIAL_YEARS = [CURRENT_YEAR - 3, CURRENT_YEAR - 2, CURRENT_YEAR - 1];
+
+const PROJECT_TYPES = [
+  "EPC", "O&M", "Investor/Developer", "Konsultan", "Supplier", "Kontraktor", "Lainnya",
+];
+
+// ─── Document-to-Section mapping ───
+
+interface DocSectionConfig {
+  docId: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}
+
+const SECTION_ORDER: DocSectionConfig[] = [
+  { docId: "compro", title: "Informasi & Profil Perusahaan", icon: Building2, description: "Data perusahaan dan profil ringkas" },
+  { docId: "statement_eoi", title: "Surat Pernyataan EoI", icon: PenLine, description: "Surat pernyataan minat yang ditandatangani pejabat berwenang" },
+  { docId: "portfolio", title: "Pengalaman & Portfolio Proyek", icon: Briefcase, description: "Daftar pengalaman dan portfolio proyek relevan" },
+  { docId: "financial_overview", title: "Gambaran Umum Keuangan", icon: DollarSign, description: "Data keuangan perusahaan 3 tahun terakhir" },
+  { docId: "requirements_fulfillment", title: "Pemenuhan Persyaratan", icon: ClipboardCheck, description: "Konfirmasi pemenuhan persyaratan dasar proyek" },
+];
+
+// ─── File Upload Helper ───
+
+function FileUploadButton({
+  label,
+  accept,
+  uploaded,
+  uploading,
+  fileName,
+  onSelect,
+  onDelete,
+}: {
+  label: string;
+  accept?: string;
+  uploaded: boolean;
+  uploading: boolean;
+  fileName?: string;
+  onSelect: (file: File) => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <div className={cn(
+      "rounded-lg border p-3 transition-colors",
+      uploaded ? "border-green-200 bg-green-50/50" : "border-ptba-light-gray"
+    )}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {uploaded ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+          ) : uploading ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-ptba-gold" />
+          ) : (
+            <FileText className="h-4 w-4 shrink-0 text-ptba-gray" />
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-ptba-charcoal">{label}</p>
+            {fileName && <p className="text-[10px] text-green-600 truncate">{fileName}</p>}
+            {uploading && <p className="text-[10px] text-ptba-gold">Mengunggah...</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {uploaded && onDelete && (
+            <>
+              <button
+                onClick={onDelete}
+                className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="h-3 w-3" />
+                Hapus
+              </button>
+              <label className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors cursor-pointer">
+                <Upload className="h-3 w-3" />
+                Ganti
+                <input
+                  type="file"
+                  className="hidden"
+                  accept={accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onSelect(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </>
+          )}
+          {!uploaded && !uploading && (
+            <label className="inline-flex items-center gap-1 rounded-lg bg-ptba-navy px-2.5 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors cursor-pointer">
+              <Upload className="h-3 w-3" />
+              Unggah
+              <input
+                type="file"
+                className="hidden"
+                accept={accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onSelect(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Section Wrapper ───
+
+function Section({
+  number,
+  title,
+  icon: Icon,
+  complete,
+  open,
+  onToggle,
+  children,
+}: {
+  number: number;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  complete: boolean;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 p-5 text-left hover:bg-ptba-off-white/50 transition-colors"
+      >
+        <div className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+          complete ? "bg-green-500 text-white" : "bg-ptba-navy/10 text-ptba-navy"
+        )}>
+          {complete ? <CheckCircle2 className="h-4 w-4" /> : number}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-ptba-charcoal">{title}</p>
+        </div>
+        <Icon className="h-4 w-4 text-ptba-gray shrink-0" />
+        {open ? <ChevronUp className="h-4 w-4 text-ptba-gray" /> : <ChevronDown className="h-4 w-4 text-ptba-gray" />}
+      </button>
+      {open && <div className="border-t border-ptba-light-gray p-5 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Main Page ───
 
 export default function MitraProjectApplyPage() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const projectId = params.id as string;
 
-  const project = mockProjects.find((p) => p.id === projectId);
-  const existingApplication = useMemo(
-    () => mockApplications.find((a) => a.projectId === projectId && a.partnerId === user?.partnerId),
-    [projectId, user?.partnerId]
+  // Data
+  const [project, setProject] = useState<any>(null);
+  const [application, setApplication] = useState<any>(null);
+  const [_partner, setPartner] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [openSection, setOpenSection] = useState(1);
+
+  // Section: Informasi Perusahaan (compro)
+  const [companyName, setCompanyName] = useState("");
+  const [companyCode, setCompanyCode] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [companyStatus, setCompanyStatus] = useState("");
+  const [yearEstablished, setYearEstablished] = useState("");
+  const [countryEstablished, setCountryEstablished] = useState("Indonesia");
+
+  // Section: Surat Pernyataan EoI (statement_eoi)
+  const [signerName, setSignerName] = useState("");
+  const [signerPosition, setSignerPosition] = useState("");
+  const [signerDate, setSignerDate] = useState("");
+  const [eoiAgreed, setEoiAgreed] = useState(false);
+
+  // Section: Kriteria Keuangan (financial_overview)
+  const [financialYears, setFinancialYears] = useState<FinancialYear[]>(
+    FINANCIAL_YEARS.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", ebitda: "", dscr: "" }))
+  );
+  const [creditRatingAgency, setCreditRatingAgency] = useState("");
+  const [creditRatingValue, setCreditRatingValue] = useState("");
+
+  // Section: Pengalaman Proyek (portfolio)
+  const [experiences, setExperiences] = useState<ProjectExperience[]>([]);
+
+  // Section: Pemenuhan Persyaratan (requirements_fulfillment)
+  const [requirementAnswers, setRequirementAnswers] = useState<Record<number, boolean>>({});
+  const [requirementNotes, setRequirementNotes] = useState("");
+
+  // Section: Pernyataan Akhir
+  const [agreedFinal, setAgreedFinal] = useState(false);
+
+  // Document uploads tracking (docId → { name, uploading, dbId for deletion })
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, { name: string; uploading: boolean; dbId?: string }>>({});
+
+  // ─── Derived: which phase1 documents are required ───
+  // Read from project.requiredDocuments (from DB: project_required_documents table)
+  // Each entry has { documentTypeId, phase } — filter by phase === 'phase1'
+
+  const requiredPhase1Docs = useMemo(() => {
+    if (!project?.requiredDocuments || project.requiredDocuments.length === 0) {
+      return PHASE1_DOCUMENT_TYPES.map((d) => d.id);
+    }
+    return project.requiredDocuments
+      .filter((d: any) => d.phase === "phase1")
+      .map((d: any) => d.documentTypeId);
+  }, [project]);
+
+  const activeSections = useMemo(() => {
+    return SECTION_ORDER.filter((s) => requiredPhase1Docs.includes(s.docId));
+  }, [requiredPhase1Docs]);
+
+  // Additional phase1 documents (legacy/general docs assigned to phase1, not in standard EoI types)
+  const phase1EoiIds = new Set(PHASE1_DOCUMENT_TYPES.map((d) => d.id));
+  const additionalPhase1Docs = useMemo(() => {
+    if (!project?.requiredDocuments) return [];
+    return project.requiredDocuments
+      .filter((d: any) => (d.phase === "phase1" || d.phase === "both") && !phase1EoiIds.has(d.documentTypeId))
+      .map((d: any) => {
+        const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+        return {
+          id: d.documentTypeId,
+          name: meta?.name || d.documentTypeId.replace(/_/g, " "),
+          description: meta?.description || "",
+        };
+      });
+  }, [project]);
+
+  const hasDoc = (docId: string) => requiredPhase1Docs.includes(docId);
+
+  // ─── Fetch Data ───
+
+  const fetchData = useCallback(async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    try {
+      const [projRes, appRes] = await Promise.all([
+        projectApi(accessToken).getById(projectId),
+        api<{ applications: any[] }>("/applications", { token: accessToken }),
+      ]);
+      setProject(projRes.data);
+      const existingBasic = (appRes.applications || []).find((a: any) => a.project_id === projectId);
+
+      // If a draft/existing application exists, fetch full detail (includes documents)
+      let existing = existingBasic;
+      if (existingBasic?.id) {
+        try {
+          const detailRes = await api<{ application: any }>(`/applications/${existingBasic.id}`, { token: accessToken });
+          existing = detailRes.application;
+        } catch {
+          // Fall back to basic if detail fails
+        }
+      }
+      setApplication(existing || null);
+
+      // Restore uploaded documents from server
+      if (existing?.phase1Documents?.length) {
+        const restored: Record<string, { name: string; uploading: boolean; dbId?: string }> = {};
+        for (const doc of existing.phase1Documents) {
+          restored[doc.document_type_id] = { name: doc.name, uploading: false, dbId: doc.id };
+        }
+        setUploadedDocs(restored);
+      }
+
+      // Restore saved form data if exists
+      if (existing?.form_data) {
+        const fd = typeof existing.form_data === "string" ? JSON.parse(existing.form_data) : existing.form_data;
+        if (fd.signerName) setSignerName(fd.signerName);
+        if (fd.signerPosition) setSignerPosition(fd.signerPosition);
+        if (fd.signerDate) setSignerDate(fd.signerDate);
+        if (fd.eoiAgreed) setEoiAgreed(fd.eoiAgreed);
+        if (fd.financialYears) setFinancialYears(fd.financialYears);
+        if (fd.creditRatingAgency) setCreditRatingAgency(fd.creditRatingAgency);
+        if (fd.creditRatingValue) setCreditRatingValue(fd.creditRatingValue);
+        if (fd.experiences) setExperiences(fd.experiences);
+        if (fd.requirementAnswers) setRequirementAnswers(fd.requirementAnswers);
+        if (fd.requirementNotes) setRequirementNotes(fd.requirementNotes);
+        if (fd.agreedFinal) setAgreedFinal(fd.agreedFinal);
+      }
+
+      // Load partner profile
+      if (user?.partnerId) {
+        const p = await partnerApi(accessToken).getById(user.partnerId);
+        setPartner(p);
+        setCompanyName(p.name || "");
+        setCompanyCode(p.code || "");
+        setCompanyAddress(p.address || "");
+        setCompanyWebsite(p.website || "");
+        setCompanyStatus(p.status || "");
+        setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
+      }
+    } catch {
+      setProject(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId, accessToken, user?.partnerId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // ─── Upload Helper ───
+
+  const uploadDoc = async (docTypeId: string, _docName: string, file: File, phase = "phase1") => {
+    if (!accessToken) return;
+    setError("");
+    const existingDoc = uploadedDocs[docTypeId];
+
+    // Auto-name: document type name + company name
+    const docTypeMeta = [...PHASE1_DOCUMENT_TYPES, ...DOCUMENT_TYPES].find((dt) => dt.id === docTypeId);
+    const autoName = `${docTypeMeta?.name || docTypeId} - ${companyName || "Mitra"}`;
+
+    setUploadedDocs((prev) => ({ ...prev, [docTypeId]: { name: autoName, uploading: true } }));
+
+    try {
+      let appId = application?.id;
+      if (!appId) {
+        const res = await api<{ application: any }>("/applications", {
+          method: "POST",
+          body: { projectId },
+          token: accessToken,
+        });
+        appId = res.application.id;
+        setApplication(res.application);
+      }
+
+      // Delete old document if replacing
+      if (existingDoc?.dbId) {
+        await fetch(`${API_BASE}/applications/${appId}/documents/${existingDoc.dbId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentTypeId", docTypeId);
+      formData.append("name", autoName);
+      formData.append("phase", phase);
+
+      const res = await fetch(`${API_BASE}/applications/${appId}/documents`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData,
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || "Gagal mengunggah");
+      }
+
+      setUploadedDocs((prev) => ({ ...prev, [docTypeId]: { name: autoName, uploading: false, dbId: resData.document?.id } }));
+
+      // Auto-save form data after upload
+      await saveFormDataToServer(appId);
+    } catch (err: any) {
+      setError(err.message || "Gagal mengunggah dokumen");
+      setUploadedDocs((prev) => {
+        const next = { ...prev };
+        delete next[docTypeId];
+        return next;
+      });
+    }
+  };
+
+  // ─── Delete Document ───
+
+  const deleteDoc = async (docTypeId: string) => {
+    if (!accessToken || !application?.id) return;
+    const doc = uploadedDocs[docTypeId];
+    if (!doc?.dbId) return;
+
+    setUploadedDocs((prev) => ({ ...prev, [docTypeId]: { ...prev[docTypeId], uploading: true } }));
+    try {
+      const res = await fetch(`${API_BASE}/applications/${application.id}/documents/${doc.dbId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal menghapus dokumen");
+      }
+      setUploadedDocs((prev) => {
+        const next = { ...prev };
+        delete next[docTypeId];
+        return next;
+      });
+    } catch (err: any) {
+      setError(err.message || "Gagal menghapus dokumen");
+      setUploadedDocs((prev) => ({ ...prev, [docTypeId]: { ...doc, uploading: false } }));
+    }
+  };
+
+  // ─── Save Form Data ───
+
+  const buildFormData = () => ({
+    signerName,
+    signerPosition,
+    signerDate,
+    eoiAgreed,
+    financialYears,
+    creditRatingAgency,
+    creditRatingValue,
+    experiences,
+    requirementAnswers,
+    requirementNotes,
+    agreedFinal,
+    companyName,
+    companyAddress,
+    companyWebsite,
+    yearEstablished,
+    countryEstablished,
+  });
+
+  const saveFormDataToServer = async (appId: string) => {
+    if (!accessToken) return;
+    await fetch(`${API_BASE}/applications/${appId}/form-data`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ formData: buildFormData() }),
+    });
+  };
+
+  // ─── Submit ───
+
+  const handleSubmit = async () => {
+    if (!accessToken || !application?.id) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      // Save form data first
+      await saveFormDataToServer(application.id);
+
+      await api(`/applications/${application.id}/submit`, {
+        method: "POST",
+        token: accessToken,
+      });
+      router.push(`/mitra/projects/${projectId}/apply/success`);
+    } catch (err) {
+      if (err instanceof ApiClientError) setError(err.message);
+      else setError("Gagal mengirim pendaftaran");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ─── Save Draft ───
+
+  const handleSaveDraft = async () => {
+    if (!accessToken) return;
+    setSavingDraft(true);
+    setError("");
+    setDraftSaved(false);
+    try {
+      let appId = application?.id;
+      if (!appId) {
+        const res = await api<{ application: any }>("/applications", {
+          method: "POST",
+          body: { projectId },
+          token: accessToken,
+        });
+        appId = res.application.id;
+        setApplication(res.application);
+      }
+      await saveFormDataToServer(appId);
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 3000);
+    } catch (err) {
+      if (err instanceof ApiClientError) setError(err.message);
+      else setError("Gagal menyimpan draft");
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  // ─── Section Completeness ───
+
+  const isDoc = (id: string) => uploadedDocs[id] && !uploadedDocs[id].uploading;
+
+  // requirements from API are objects: { id, requirement, sortOrder }
+  const projectRequirements: string[] = (project?.requirements || []).map((r: any) =>
+    typeof r === "string" ? r : r.requirement
   );
 
-  // Phase 1 EoI document types
-  const phase1DocTypes = useMemo(() => {
-    if (project?.phase1Documents && project.phase1Documents.length > 0) {
-      return project.phase1Documents
-        .map((id) => PHASE1_DOCUMENT_TYPES.find((d) => d.id === id))
-        .filter(Boolean);
-    }
-    return PHASE1_DOCUMENT_TYPES;
-  }, [project?.phase1Documents]);
+  const sectionComplete: Record<string, boolean> = {
+    compro: !!companyName && !!companyAddress && isDoc("compro"),
+    statement_eoi: !!signerName && !!signerPosition && !!signerDate && eoiAgreed && isDoc("statement_eoi"),
+    portfolio: experiences.length > 0 && experiences.every((e) => e.projectName && e.role) && isDoc("portfolio"),
+    financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda) && isDoc("financial_overview"),
+    requirements_fulfillment: (projectRequirements.length
+      ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
+      : true) && isDoc("requirements_fulfillment"),
+    final: agreedFinal,
+  };
 
-  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
-  const [confirmed, setConfirmed] = useState(false);
-  const [downloadedCG, setDownloadedCG] = useState(false);
+  const activeSectionIds = activeSections.map((s) => s.docId);
+  const hasAdditionalDocs = additionalPhase1Docs.length > 0;
+  const additionalDocsComplete = hasAdditionalDocs ? additionalPhase1Docs.every((d: { id: string }) => isDoc(d.id)) : true;
+  const completedCount = activeSectionIds.filter((id) => sectionComplete[id]).length
+    + (hasAdditionalDocs && additionalDocsComplete ? 1 : 0)
+    + (sectionComplete.final ? 1 : 0);
+  const totalSections = activeSections.length + (hasAdditionalDocs ? 1 : 0) + 1;
+  const allComplete = activeSectionIds.every((id) => sectionComplete[id]) && additionalDocsComplete && sectionComplete.final;
 
-  // Redirect if already applied
-  if (existingApplication) {
+  // ─── Experience Handlers ───
+
+  const addExperience = () => setExperiences((prev) => [...prev, {
+    projectName: "", location: "", type: "", year: "", role: "", projectCost: "", description: "",
+  }]);
+  const removeExperience = (i: number) => setExperiences((prev) => prev.filter((_, idx) => idx !== i));
+  const updateExperience = (i: number, field: keyof ProjectExperience, value: string) =>
+    setExperiences((prev) => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
+
+  const inputClass = "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
+
+  // ─── Loading / Guards ───
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">Memuat...</span>
+      </div>
+    );
+  }
+
+  if (application && application.status !== "Draft") {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
@@ -44,12 +586,9 @@ export default function MitraProjectApplyPage() {
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">Anda sudah melamar pada proyek ini</p>
-          <p className="mt-1 text-sm text-ptba-gray">Status lamaran: {existingApplication.status}</p>
-          <button
-            onClick={() => router.push(`/mitra/projects/${projectId}`)}
-            className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
-          >
+          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">Anda sudah mendaftar pada proyek ini</p>
+          <p className="mt-1 text-sm text-ptba-gray">Status: {application.status}</p>
+          <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white">
             Lihat Detail Proyek
           </button>
         </div>
@@ -57,22 +596,7 @@ export default function MitraProjectApplyPage() {
     );
   }
 
-  if (!project) {
-    return (
-      <div className="space-y-6">
-        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> Kembali
-        </button>
-        <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <p className="text-ptba-gray">Proyek tidak ditemukan.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const phase1DeadlineStr = project.phase1Deadline || project.applicationDeadline;
-  const isDeadlinePassed = phase1DeadlineStr && new Date(phase1DeadlineStr) < new Date();
-  if (!project.isOpenForApplication || isDeadlinePassed) {
+  if (!project || !project.isOpenForApplication) {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
@@ -80,199 +604,600 @@ export default function MitraProjectApplyPage() {
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <AlertTriangle className="mx-auto h-12 w-12 text-ptba-gold" />
-          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">Proyek ini tidak menerima lamaran</p>
-          <p className="mt-1 text-sm text-ptba-gray">Deadline lamaran telah lewat atau proyek tidak terbuka.</p>
+          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">{!project ? "Proyek tidak ditemukan" : "Pendaftaran belum dibuka"}</p>
         </div>
       </div>
     );
   }
 
-  const handleSimulateUpload = (docId: string, docName: string) => {
-    setUploadedDocs((prev) => ({ ...prev, [docId]: docName }));
+  // Build dynamic section numbering
+  const getSectionNumber = (docId: string) => {
+    const idx = activeSections.findIndex((s) => s.docId === docId);
+    return idx + 1;
   };
+  const additionalDocsSectionNumber = activeSections.length + 1;
+  const finalSectionNumber = activeSections.length + (hasAdditionalDocs ? 1 : 0) + 1;
 
-  const handleUseSavedDoc = (docId: string, docName: string) => {
-    setUploadedDocs((prev) => ({ ...prev, [docId]: `${docName} (tersimpan)` }));
-  };
-
-  const requiredCount = phase1DocTypes.filter((d) => d?.required).length;
-  const uploadedRequiredCount = phase1DocTypes.filter((d) => d?.required && uploadedDocs[d.id]).length;
-  const allRequiredUploaded = uploadedRequiredCount === requiredCount;
-  const canSubmit = allRequiredUploaded && confirmed;
-
-  const handleSubmit = () => {
-    router.push(`/mitra/projects/${projectId}/apply/success`);
-  };
+  // Get phase1 doc metadata
+  const getDocMeta = (docId: string) => PHASE1_DOCUMENT_TYPES.find((d) => d.id === docId);
 
   return (
     <div className="space-y-6">
-      {/* Back */}
       <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Proyek
       </button>
 
       <div>
-        <h1 className="text-2xl font-bold text-ptba-charcoal">Ajukan Expression of Interest</h1>
+        <h1 className="text-2xl font-bold text-ptba-charcoal">Formulir Expression of Interest</h1>
         <p className="text-sm text-ptba-gray mt-1">
-          Phase 1 - Proyek: <span className="font-medium text-ptba-charcoal">{project.name}</span>
+          Fase 1 — <span className="font-medium text-ptba-charcoal">{project.name}</span>
         </p>
       </div>
 
-      {/* Phase Info Banner */}
-      <div className="rounded-xl bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 p-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-ptba-steel-blue mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-ptba-charcoal">Phase 1: Expression of Interest (EoI)</p>
-            <p className="mt-0.5 text-xs text-ptba-gray">
-              Pada tahap ini Anda diminta untuk mengirimkan dokumen EoI. Mitra yang lolos evaluasi Phase 1 akan diundang untuk melanjutkan ke Phase 2 (Detailed Assessment).
-            </p>
+      {/* EoI Description */}
+      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+        <div className="bg-ptba-navy px-5 py-3">
+          <p className="text-sm font-bold text-white">INFORMASI PENTING — BACA SEBELUM MENGISI FORMULIR</p>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-ptba-charcoal leading-relaxed">
+            Formulir Expression of Interest (EoI) ini merupakan tahap awal (<strong>Fase 1</strong>) dari proses seleksi mitra strategis PT Bukit Asam Tbk. Dengan mengisi formulir ini, perusahaan Anda menyatakan minat untuk berpartisipasi dalam proyek <strong>{project.name}</strong>.
+          </p>
+          <div className="rounded-lg bg-ptba-section-bg p-4">
+            <p className="text-xs font-semibold text-ptba-navy mb-2">Dokumen yang Diperlukan:</p>
+            <ol className="text-xs text-ptba-gray space-y-1.5 list-decimal list-inside">
+              {activeSections.map((sec) => {
+                const meta = getDocMeta(sec.docId);
+                return (
+                  <li key={sec.docId}>
+                    <strong>{meta?.name || sec.title}</strong> — {meta?.description || sec.description}
+                  </li>
+                );
+              })}
+              <li>Centang <strong>Persetujuan Pernyataan Akhir</strong> sebelum mengirim formulir.</li>
+            </ol>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-3">
+              <p className="text-xs font-semibold text-ptba-steel-blue">Format Dokumen</p>
+              <p className="text-[11px] text-ptba-gray mt-0.5">Seluruh dokumen dalam format <strong>PDF</strong>, maksimal <strong>20 MB</strong> per file. Pastikan dokumen dapat dibaca dengan jelas.</p>
+            </div>
+            <div className="flex-1 rounded-lg border border-ptba-gold/20 bg-ptba-gold/5 p-3">
+              <p className="text-xs font-semibold text-ptba-gold">Batas Waktu</p>
+              <p className="text-[11px] text-ptba-gray mt-0.5">
+                {project.phase1Deadline
+                  ? <>Formulir harus dikirim sebelum <strong>{new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</strong>.</>
+                  : <>Pastikan formulir dikirim sebelum periode pendaftaran ditutup.</>
+                }
+              </p>
+            </div>
+            <div className="flex-1 rounded-lg border border-green-200 bg-green-50 p-3">
+              <p className="text-xs font-semibold text-green-700">Hasil Evaluasi</p>
+              <p className="text-[11px] text-ptba-gray mt-0.5">Mitra yang lolos Fase 1 akan diundang untuk melanjutkan ke <strong>Fase 2 (Detailed Assessment)</strong>.</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Download Confidential Guarantee */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold text-ptba-charcoal mb-3">Dokumen dari PTBA</h2>
-        <div className="flex items-center justify-between rounded-lg border border-ptba-light-gray p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ptba-red/10">
-              <FileText className="h-5 w-5 text-ptba-red" />
+      {/* Progress */}
+      <div className="rounded-xl bg-ptba-navy/5 border border-ptba-navy/10 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-ptba-gray">Kelengkapan Formulir</span>
+          <span className="text-sm font-bold text-ptba-navy">{completedCount}/{totalSections} Bagian</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
+          <div className={cn("h-full rounded-full transition-all", allComplete ? "bg-green-500" : "bg-ptba-gold")} style={{ width: `${(completedCount / totalSections) * 100}%` }} />
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+
+      {/* ═══ Dynamic Sections Based on phase1Documents ═══ */}
+
+      {/* ─── Section: Informasi & Profil Perusahaan (compro) ─── */}
+      {hasDoc("compro") && (
+        <Section
+          number={getSectionNumber("compro")}
+          title="Informasi & Profil Perusahaan"
+          icon={Building2}
+          complete={sectionComplete.compro}
+          open={openSection === getSectionNumber("compro")}
+          onToggle={() => setOpenSection(openSection === getSectionNumber("compro") ? 0 : getSectionNumber("compro"))}
+        >
+          <p className="text-xs text-ptba-gray">Data perusahaan Anda. Pastikan informasi sudah sesuai.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Perusahaan <span className="text-ptba-red">*</span></label>
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <p className="text-sm font-medium text-ptba-charcoal">Confidential Guarantee Statement</p>
-              <p className="text-xs text-ptba-gray">Wajib diunduh sebelum mengirim EoI</p>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kode Perusahaan</label>
+              <input type="text" value={companyCode} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Alamat <span className="text-ptba-red">*</span></label>
+              <input type="text" value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun Berdiri</label>
+              <input type="text" value={yearEstablished} onChange={(e) => setYearEstablished(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Negara</label>
+              <input type="text" value={countryEstablished} onChange={(e) => setCountryEstablished(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Website</label>
+              <input type="text" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Status</label>
+              <input type="text" value={companyStatus} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
             </div>
           </div>
-          <button
-            onClick={() => {
-              setDownloadedCG(true);
-              alert("Dokumen Confidential Guarantee Statement berhasil diunduh");
-            }}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-              downloadedCG
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-ptba-navy text-white hover:bg-ptba-navy/90"
-            )}
-          >
-            {downloadedCG ? (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5" /> Sudah Diunduh
-              </>
-            ) : (
-              <>
-                <Download className="h-3.5 w-3.5" /> Unduh
-              </>
-            )}
-          </button>
-        </div>
-      </div>
 
-      {/* Document Upload Section */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-ptba-charcoal">Dokumen EoI yang Diperlukan</h2>
-          <span className="text-sm text-ptba-gray">{uploadedRequiredCount}/{requiredCount} wajib terpenuhi</span>
-        </div>
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Company Profile <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label="Company Profile (PDF, maks 20 MB)"
+              accept=".pdf"
+              uploaded={isDoc("compro")}
+              uploading={uploadedDocs["compro"]?.uploading ?? false}
+              fileName={uploadedDocs["compro"]?.name}
+              onSelect={(f) => uploadDoc("compro", "Company Profile", f)}
+              onDelete={() => deleteDoc("compro")}
+            />
+          </div>
+        </Section>
+      )}
 
-        {/* Progress */}
-        <div className="mb-6 h-2 overflow-hidden rounded-full bg-ptba-light-gray">
-          <div
-            className={cn("h-full rounded-full transition-all", allRequiredUploaded ? "bg-green-500" : "bg-ptba-gold")}
-            style={{ width: `${requiredCount > 0 ? (uploadedRequiredCount / requiredCount) * 100 : 0}%` }}
-          />
-        </div>
+      {/* ─── Section: Surat Pernyataan EoI (statement_eoi) ─── */}
+      {hasDoc("statement_eoi") && (
+        <Section
+          number={getSectionNumber("statement_eoi")}
+          title="Surat Pernyataan EoI"
+          icon={PenLine}
+          complete={sectionComplete.statement_eoi}
+          open={openSection === getSectionNumber("statement_eoi")}
+          onToggle={() => setOpenSection(openSection === getSectionNumber("statement_eoi") ? 0 : getSectionNumber("statement_eoi"))}
+        >
+          <p className="text-xs text-ptba-gray">Isi data penandatangan dan unggah surat pernyataan EoI yang telah ditandatangani.</p>
 
-        <div className="space-y-3">
-          {phase1DocTypes.map((doc) => {
-            if (!doc) return null;
-            const isUploaded = !!uploadedDocs[doc.id];
-            return (
-              <div
-                key={doc.id}
-                className={cn(
-                  "rounded-lg border p-4 transition-colors",
-                  isUploaded ? "border-green-200 bg-green-50/50" : "border-ptba-light-gray"
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
-                    {isUploaded ? (
-                      <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0 text-green-500" />
-                    ) : (
-                      <FileText className="h-5 w-5 mt-0.5 shrink-0 text-ptba-gray" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ptba-charcoal">
-                        {doc.name}
-                        {doc.required && <span className="ml-1 text-[10px] text-ptba-red font-medium">*Wajib</span>}
-                      </p>
-                      <p className="text-xs text-ptba-gray mt-0.5">{doc.description}</p>
-                      {isUploaded && (
-                        <p className="text-xs text-green-600 mt-1">{uploadedDocs[doc.id]}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    {!isUploaded && (
-                      <>
-                        <button
-                          onClick={() => handleUseSavedDoc(doc.id, doc.name)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2.5 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
-                        >
-                          Gunakan Tersimpan
-                        </button>
-                        <button
-                          onClick={() => handleSimulateUpload(doc.id, `${doc.name}.pdf`)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-ptba-navy px-2.5 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors"
-                        >
-                          <Upload className="h-3 w-3" />
-                          Unggah
-                        </button>
-                      </>
-                    )}
-                  </div>
+          <div className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
+            <p className="text-xs font-semibold text-ptba-navy">Data Penandatangan</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Penandatangan <span className="text-ptba-red">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Nama lengkap pejabat berwenang"
+                  value={signerName}
+                  onChange={(e) => setSignerName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jabatan <span className="text-ptba-red">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Direktur Utama"
+                  value={signerPosition}
+                  onChange={(e) => setSignerPosition(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Penandatanganan <span className="text-ptba-red">*</span></label>
+                <input
+                  type="date"
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                  value={signerDate}
+                  onChange={(e) => setSignerDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
+            Dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam Tbk untuk proyek <strong>{project.name}</strong>. Kami memahami bahwa pengajuan EoI ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={eoiAgreed}
+              onChange={(e) => setEoiAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-steel-blue"
+            />
+            <span className="text-sm text-ptba-gray">
+              Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa perusahaan kami berminat untuk berpartisipasi.
+            </span>
+          </label>
+
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen EoI <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label="Signed EoI Letter (PDF, ditandatangani oleh perwakilan berwenang)"
+              accept=".pdf"
+              uploaded={isDoc("statement_eoi")}
+              uploading={uploadedDocs["statement_eoi"]?.uploading ?? false}
+              fileName={uploadedDocs["statement_eoi"]?.name}
+              onSelect={(f) => uploadDoc("statement_eoi", "Signed EoI Letter", f)}
+              onDelete={() => deleteDoc("statement_eoi")}
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* ─── Section: Pengalaman & Portfolio Proyek (portfolio) ─── */}
+      {hasDoc("portfolio") && (
+        <Section
+          number={getSectionNumber("portfolio")}
+          title="Pengalaman & Portfolio Proyek"
+          icon={Briefcase}
+          complete={sectionComplete.portfolio}
+          open={openSection === getSectionNumber("portfolio")}
+          onToggle={() => setOpenSection(openSection === getSectionNumber("portfolio") ? 0 : getSectionNumber("portfolio"))}
+        >
+          <p className="text-xs text-ptba-gray">Tambahkan pengalaman proyek relevan perusahaan Anda dan unggah portfolio.</p>
+
+          {experiences.map((exp, i) => (
+            <div key={i} className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-ptba-charcoal">Pengalaman #{i + 1}</p>
+                <button onClick={() => removeExperience(i)} className="text-ptba-red hover:text-red-700 transition-colors">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Proyek <span className="text-ptba-red">*</span></label>
+                  <input type="text" value={exp.projectName} onChange={(e) => updateExperience(i, "projectName", e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lokasi</label>
+                  <input type="text" value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tipe</label>
+                  <select value={exp.type} onChange={(e) => updateExperience(i, "type", e.target.value)} className={inputClass}>
+                    <option value="">Pilih...</option>
+                    {PROJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Peran <span className="text-ptba-red">*</span></label>
+                  <input type="text" placeholder="Contoh: EPC Contractor" value={exp.role} onChange={(e) => updateExperience(i, "role", e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun</label>
+                  <input type="text" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Proyek</label>
+                  <input type="text" placeholder="Contoh: 50000000000" value={exp.projectCost} onChange={(e) => updateExperience(i, "projectCost", e.target.value)} className={inputClass} />
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deskripsi Singkat</label>
+                <textarea value={exp.description} onChange={(e) => updateExperience(i, "description", e.target.value)} className={cn(inputClass, "min-h-[60px] resize-y")} />
+              </div>
+            </div>
+          ))}
 
-      {/* Confirmation & Submit */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+          <button
+            onClick={addExperience}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-steel-blue/30 py-3 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Pengalaman Proyek
+          </button>
+
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Portfolio <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label="Portfolio Proyek (PDF, ringkasan proyek-proyek relevan)"
+              accept=".pdf"
+              uploaded={isDoc("portfolio")}
+              uploading={uploadedDocs["portfolio"]?.uploading ?? false}
+              fileName={uploadedDocs["portfolio"]?.name}
+              onSelect={(f) => uploadDoc("portfolio", "Portfolio Proyek", f)}
+              onDelete={() => deleteDoc("portfolio")}
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* ─── Section: Gambaran Umum Keuangan (financial_overview) ─── */}
+      {hasDoc("financial_overview") && (
+        <Section
+          number={getSectionNumber("financial_overview")}
+          title="Gambaran Umum Keuangan"
+          icon={DollarSign}
+          complete={sectionComplete.financial_overview}
+          open={openSection === getSectionNumber("financial_overview")}
+          onToggle={() => setOpenSection(openSection === getSectionNumber("financial_overview") ? 0 : getSectionNumber("financial_overview"))}
+        >
+          <p className="text-xs text-ptba-gray">Isi data keuangan 3 tahun terakhir. Semua kolom wajib diisi (isi 0 jika tidak ada).</p>
+
+          {/* Financial Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-ptba-light-gray">
+                  <th className="py-2 pr-3 text-left text-xs font-semibold text-ptba-gray w-28"></th>
+                  {financialYears.map((fy) => (
+                    <th key={fy.year} className="py-2 px-2 text-center text-xs font-semibold text-ptba-navy">{fy.year}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-ptba-light-gray/50">
+                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">Mata Uang</td>
+                  {financialYears.map((fy, i) => (
+                    <td key={fy.year} className="py-2 px-2">
+                      <select value={fy.currency} onChange={(e) => {
+                        const next = [...financialYears]; next[i].currency = e.target.value; setFinancialYears(next);
+                      }} className="w-full rounded border border-ptba-light-gray px-2 py-1 text-xs">
+                        <option value="IDR">IDR</option>
+                        <option value="USD">USD</option>
+                      </select>
+                    </td>
+                  ))}
+                </tr>
+                {[
+                  { key: "totalAsset" as const, label: "Total Aset" },
+                  { key: "ebitda" as const, label: "EBITDA" },
+                  { key: "dscr" as const, label: "DSCR" },
+                ].map((row) => (
+                  <tr key={row.key} className="border-b border-ptba-light-gray/50">
+                    <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">{row.label} <span className="text-ptba-red">*</span></td>
+                    {financialYears.map((fy, i) => (
+                      <td key={fy.year} className="py-2 px-2">
+                        <input
+                          type="text"
+                          placeholder="0"
+                          value={fy[row.key]}
+                          onChange={(e) => {
+                            const next = [...financialYears]; next[i][row.key] = e.target.value; setFinancialYears(next);
+                          }}
+                          className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Credit Rating */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lembaga Pemeringkat</label>
+              <select value={creditRatingAgency} onChange={(e) => setCreditRatingAgency(e.target.value)} className={inputClass}>
+                <option value="">Pilih...</option>
+                <option value="S&P">S&P (Pefindo)</option>
+                <option value="Moodys">Moody&apos;s</option>
+                <option value="Fitch">Fitch</option>
+                <option value="Other">Lainnya</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Rating</label>
+              <input type="text" placeholder="Contoh: AA+" value={creditRatingValue} onChange={(e) => setCreditRatingValue(e.target.value)} className={inputClass} />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Keuangan <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label="Laporan Gambaran Umum Keuangan (PDF)"
+              accept=".pdf"
+              uploaded={isDoc("financial_overview")}
+              uploading={uploadedDocs["financial_overview"]?.uploading ?? false}
+              fileName={uploadedDocs["financial_overview"]?.name}
+              onSelect={(f) => uploadDoc("financial_overview", "Gambaran Umum Keuangan", f)}
+              onDelete={() => deleteDoc("financial_overview")}
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* ─── Section: Pemenuhan Persyaratan (requirements_fulfillment) ─── */}
+      {hasDoc("requirements_fulfillment") && (
+        <Section
+          number={getSectionNumber("requirements_fulfillment")}
+          title="Pemenuhan Persyaratan"
+          icon={ClipboardCheck}
+          complete={sectionComplete.requirements_fulfillment}
+          open={openSection === getSectionNumber("requirements_fulfillment")}
+          onToggle={() => setOpenSection(openSection === getSectionNumber("requirements_fulfillment") ? 0 : getSectionNumber("requirements_fulfillment"))}
+        >
+          <p className="text-xs text-ptba-gray">Konfirmasi pemenuhan persyaratan dasar proyek dan unggah dokumen pendukung.</p>
+
+          {/* Download template button */}
+          <div className="rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-ptba-steel-blue">Template Dokumen</p>
+                <p className="text-[11px] text-ptba-gray mt-0.5">
+                  Unduh template formulir Pemenuhan Persyaratan. Isi, tandatangani, lalu unggah kembali.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    project: project.name || "Proyek",
+                    requirements: (projectRequirements.length > 0 ? projectRequirements : ["(Tidak ada persyaratan khusus)"]).join("||"),
+                  });
+                  window.location.href = `/api/templates/pemenuhan-persyaratan?${params.toString()}`;
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-steel-blue px-3 py-2 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Unduh Template
+              </button>
+            </div>
+          </div>
+
+          {/* Show project requirements as checklist */}
+          {projectRequirements.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-ptba-navy">Persyaratan Proyek</p>
+              {projectRequirements.map((req: string, i: number) => (
+                <label
+                  key={i}
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                    requirementAnswers[i] ? "border-green-200 bg-green-50/50" : "border-ptba-light-gray hover:bg-ptba-off-white"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={requirementAnswers[i] || false}
+                    onChange={(e) => setRequirementAnswers((prev) => ({ ...prev, [i]: e.target.checked }))}
+                    className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-green-600 focus:ring-green-500/20"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-ptba-charcoal">{req}</p>
+                    {requirementAnswers[i] && (
+                      <p className="text-[10px] text-green-600 mt-0.5">Terpenuhi</p>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg bg-ptba-section-bg p-4">
+              <p className="text-xs text-ptba-gray">Tidak ada persyaratan khusus untuk proyek ini. Unggah dokumen pemenuhan persyaratan umum.</p>
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Catatan Tambahan</label>
+            <textarea
+              placeholder="Tambahkan catatan atau penjelasan terkait pemenuhan persyaratan (opsional)"
+              value={requirementNotes}
+              onChange={(e) => setRequirementNotes(e.target.value)}
+              className={cn(inputClass, "min-h-[60px] resize-y")}
+            />
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Pemenuhan Persyaratan <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label="Dokumen Pemenuhan Persyaratan (PDF)"
+              accept=".pdf"
+              uploaded={isDoc("requirements_fulfillment")}
+              uploading={uploadedDocs["requirements_fulfillment"]?.uploading ?? false}
+              fileName={uploadedDocs["requirements_fulfillment"]?.name}
+              onSelect={(f) => uploadDoc("requirements_fulfillment", "Pemenuhan Persyaratan", f)}
+              onDelete={() => deleteDoc("requirements_fulfillment")}
+            />
+          </div>
+        </Section>
+      )}
+
+      {/* ═══ Section: Dokumen Tambahan (if any legacy docs assigned to phase1) ═══ */}
+      {hasAdditionalDocs && (
+        <Section
+          number={additionalDocsSectionNumber}
+          title="Dokumen Tambahan"
+          icon={FileText}
+          complete={additionalDocsComplete}
+          open={openSection === additionalDocsSectionNumber}
+          onToggle={() => setOpenSection(openSection === additionalDocsSectionNumber ? 0 : additionalDocsSectionNumber)}
+        >
+          <p className="text-xs text-ptba-gray">Unggah dokumen tambahan yang diperlukan untuk proyek ini.</p>
+          <div className="space-y-2">
+            {additionalPhase1Docs.map((doc: { id: string; name: string; description: string }) => (
+              <FileUploadButton
+                key={doc.id}
+                label={`${doc.name}${doc.description ? ` — ${doc.description}` : ""}`}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                uploaded={isDoc(doc.id)}
+                uploading={uploadedDocs[doc.id]?.uploading ?? false}
+                fileName={uploadedDocs[doc.id]?.name}
+                onSelect={(f) => uploadDoc(doc.id, doc.name, f)}
+                onDelete={() => deleteDoc(doc.id)}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ═══ Section: Pernyataan Akhir & Submit (always shown) ═══ */}
+      <Section
+        number={finalSectionNumber}
+        title="Pernyataan Akhir & Submit"
+        icon={ShieldCheck}
+        complete={sectionComplete.final}
+        open={openSection === finalSectionNumber}
+        onToggle={() => setOpenSection(openSection === finalSectionNumber ? 0 : finalSectionNumber)}
+      >
+        <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
+          Kami dengan ini menyatakan bahwa informasi yang diberikan dalam formulir ini adalah benar, akurat, dan lengkap. Dokumen yang disampaikan bersama formulir ini adalah asli dan dapat dipertanggungjawabkan. Kami bersedia untuk memberikan informasi tambahan atau klarifikasi yang diperlukan oleh PT Bukit Asam Tbk. Setiap perubahan informasi akan segera kami sampaikan secara tertulis.
+        </div>
+
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
+            checked={agreedFinal}
+            onChange={(e) => setAgreedFinal(e.target.checked)}
             className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-steel-blue"
           />
           <span className="text-sm text-ptba-gray">
-            Saya menyatakan bahwa seluruh dokumen Expression of Interest yang diunggah adalah sah, asli, dan dapat dipertanggungjawabkan. Saya memahami bahwa EoI ini merupakan Phase 1 dari proses seleksi mitra dan bersedia mengikuti proses selanjutnya.
+            Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa seluruh informasi yang diberikan adalah benar.
           </span>
         </label>
+      </Section>
 
-        <div className="mt-4 flex justify-end gap-3">
-          <button
-            onClick={() => router.push(`/mitra/projects/${projectId}`)}
-            className="rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
-          >
-            Batal
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className={cn(
-              "rounded-lg px-6 py-2 text-sm font-bold transition-colors",
-              canSubmit
-                ? "bg-ptba-gold text-ptba-charcoal hover:bg-ptba-gold-light"
-                : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+      {/* ═══ Submit Bar ═══ */}
+      <div className="rounded-xl bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-ptba-charcoal">{completedCount}/{totalSections} bagian selesai</p>
+            <p className="text-xs text-ptba-gray mt-0.5">
+              {allComplete ? "Formulir siap dikirim." : "Lengkapi semua bagian untuk mengirim EoI."}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {draftSaved && (
+              <span className="text-xs text-green-600 font-medium">Draft tersimpan!</span>
             )}
-          >
-            Kirim EoI
-          </button>
+            <button
+              onClick={() => router.push(`/mitra/projects/${projectId}`)}
+              className="rounded-lg border border-ptba-navy px-4 py-2.5 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              disabled={savingDraft}
+              className="inline-flex items-center gap-2 rounded-lg border border-ptba-steel-blue px-4 py-2.5 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+            >
+              {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {savingDraft ? "Menyimpan..." : "Simpan Draft"}
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!allComplete || submitting}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition-colors",
+                allComplete && !submitting
+                  ? "bg-ptba-gold text-ptba-charcoal hover:bg-ptba-gold-light"
+                  : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+              )}
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? "Mengirim..." : "Kirim EoI"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

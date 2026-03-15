@@ -4,7 +4,7 @@ export const mockProjects: Project[] = [
   {
     id: 'P001',
     name: 'Pengembangan PLTU Mulut Tambang 3x10 MW',
-    type: 'CAPEX',
+    type: 'power_generation',
     status: 'Evaluasi',
     capexValue: 450000000000,
     description:
@@ -55,7 +55,7 @@ export const mockProjects: Project[] = [
   {
     id: 'P002',
     name: 'Kerjasama Gasifikasi Batubara',
-    type: 'Strategis',
+    type: 'coal_processing',
     status: 'Evaluasi',
     capexValue: 1200000000000,
     description:
@@ -105,7 +105,7 @@ export const mockProjects: Project[] = [
   {
     id: 'P003',
     name: 'Solar Panel Farm Tanjung Enim',
-    type: 'CAPEX',
+    type: 'power_generation',
     status: 'Persetujuan',
     capexValue: 85000000000,
     description:
@@ -132,7 +132,7 @@ export const mockProjects: Project[] = [
   {
     id: 'P004',
     name: 'Coal-to-Methanol Plant',
-    type: 'Strategis',
+    type: 'coal_processing',
     status: 'Draft',
     capexValue: 2500000000000,
     description:
@@ -172,7 +172,7 @@ export const mockProjects: Project[] = [
   {
     id: 'P005',
     name: 'Rehabilitasi Lahan Pasca Tambang',
-    type: 'OPEX',
+    type: 'environmental',
     status: 'Selesai',
     capexValue: 15000000000,
     description:

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -18,17 +18,144 @@ import {
   AlertTriangle,
   RotateCcw,
   ClipboardCheck,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockApplications } from "@/lib/mock-data/applications";
-import { mockEvaluations } from "@/lib/mock-data/evaluations";
+import { api, projectApi } from "@/lib/api/client";
 import {
   PHASE1_CRITERIA,
   PHASE1_PASSING_SCORE,
 } from "@/lib/constants/phase1-criteria";
 import { formatDate } from "@/lib/utils/format";
+import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+
+// ── Form Data Rendering for Evaluator ─────────────────────────────────────────
+
+function EvalField({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <dt className="text-[10px] text-ptba-gray">{label}</dt>
+      <dd className="text-xs text-ptba-charcoal">{value || "-"}</dd>
+    </div>
+  );
+}
+
+const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => React.ReactNode }> = {
+  compro: {
+    title: "Informasi Perusahaan",
+    render: (fd) => (
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <EvalField label="Nama Perusahaan" value={fd.companyName} />
+        <EvalField label="Alamat" value={fd.companyAddress} />
+        <EvalField label="Website" value={fd.companyWebsite} />
+        <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
+        <EvalField label="Negara" value={fd.countryEstablished} />
+      </dl>
+    ),
+  },
+  statement_eoi: {
+    title: "Surat Pernyataan EoI",
+    render: (fd) => (
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <EvalField label="Nama Penandatangan" value={fd.signerName} />
+        <EvalField label="Jabatan" value={fd.signerPosition} />
+        <EvalField label="Tanggal" value={fd.signerDate} />
+        <EvalField label="Menyetujui EoI" value={fd.eoiAgreed ? "Ya" : "Tidak"} />
+      </dl>
+    ),
+  },
+  portfolio: {
+    title: "Pengalaman Proyek",
+    render: (fd) => {
+      const exps = fd.experiences || [];
+      if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
+      return (
+        <div className="space-y-2">
+          {exps.map((exp: any, i: number) => (
+            <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
+              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1}</p>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <EvalField label="Nama Proyek" value={exp.projectName} />
+                <EvalField label="Lokasi" value={exp.location} />
+                <EvalField label="Tipe" value={exp.type} />
+                <EvalField label="Peran" value={exp.role} />
+                <EvalField label="Tahun" value={exp.year} />
+                <EvalField label="Nilai Proyek" value={exp.projectCost} />
+              </dl>
+              {exp.description && (
+                <div className="mt-1">
+                  <span className="text-[10px] text-ptba-gray">Deskripsi:</span>
+                  <p className="text-xs text-ptba-charcoal">{exp.description}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+  financial_overview: {
+    title: "Data Keuangan",
+    render: (fd) => {
+      const years = fd.financialYears || [];
+      return (
+        <div className="space-y-2">
+          {years.length > 0 && (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-ptba-light-gray">
+                  <th className="py-1 text-left text-ptba-gray font-medium">Tahun</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium">Total Asset</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium">EBITDA</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium">DSCR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {years.map((fy: any, i: number) => (
+                  <tr key={i} className="border-b border-ptba-light-gray/30">
+                    <td className="py-1 text-ptba-charcoal">{fy.year}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.totalAsset || "-"}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.ebitda || "-"}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.dscr || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {(fd.creditRatingAgency || fd.creditRatingValue) && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <EvalField label="Lembaga Rating" value={fd.creditRatingAgency} />
+              <EvalField label="Nilai Rating" value={fd.creditRatingValue} />
+            </dl>
+          )}
+        </div>
+      );
+    },
+  },
+  requirements_fulfillment: {
+    title: "Pemenuhan Persyaratan",
+    render: (fd) => (
+      <div className="space-y-1">
+        {fd.requirementAnswers && Object.keys(fd.requirementAnswers).length > 0 ? (
+          <p className="text-xs text-green-700">Semua persyaratan telah dikonfirmasi.</p>
+        ) : (
+          <p className="text-xs text-ptba-gray">Tidak ada data persyaratan.</p>
+        )}
+        {fd.requirementNotes && (
+          <div>
+            <span className="text-[10px] text-ptba-gray">Catatan:</span>
+            <p className="text-xs text-ptba-charcoal">{fd.requirementNotes}</p>
+          </div>
+        )}
+      </div>
+    ),
+  },
+};
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface MitraScores {
@@ -45,6 +172,62 @@ interface MitraEvalState {
   returnedReason?: string;
 }
 
+interface ApiApplication {
+  id: string;
+  partner_id: string;
+  partner_name: string;
+  project_id: string;
+  project_name: string;
+  status: string;
+  phase: string;
+  applied_at: string;
+  form_data: Record<string, unknown> | null;
+  phase1_result: string | null;
+}
+
+interface ApiApplicationDetail extends ApiApplication {
+  phase1Documents: ApiDocument[];
+  phase2Documents: ApiDocument[];
+  generalDocuments: ApiDocument[];
+}
+
+interface ApiDocument {
+  id: string;
+  name: string;
+  status: string;
+  uploadDate: string;
+  upload_date?: string;
+  file_url?: string;
+  fileUrl?: string;
+}
+
+interface ApiEvaluation {
+  id: string;
+  application_id: string;
+  evaluator_id: string;
+  overall_result: string | null;
+  weighted_score: number | null;
+  notes: string | null;
+  evaluated_at: string | null;
+  is_finalized: boolean;
+  partner_id: string;
+  partner_name: string;
+  application_status: string;
+  phase1_result: string | null;
+}
+
+interface ApiEvalDetail extends ApiEvaluation {
+  scores: { criterion_id: string; score: number; notes: string | null }[];
+}
+
+interface ApiProject {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  [key: string]: unknown;
+}
+
 // ── Page Component ─────────────────────────────────────────────────────────────
 export default function Phase1EvaluationPage({
   params,
@@ -54,57 +237,33 @@ export default function Phase1EvaluationPage({
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
 
-  const project = mockProjects.find((p) => p.id === id);
-
-  const phase1Applicants = mockApplications.filter(
-    (app) =>
-      app.projectId === id &&
-      (app.phase === "phase1" || (app.phase1Documents && app.phase1Documents.length > 0))
-  );
-
-  const phase1Evals = mockEvaluations.filter(
-    (ev) => ev.projectId === id && ev.phase === "phase1"
-  );
-
-  const buildInitialState = (): Record<string, MitraEvalState> => {
-    const state: Record<string, MitraEvalState> = {};
-    phase1Applicants.forEach((app) => {
-      const existingEval = phase1Evals.find(
-        (ev) => ev.partnerId === app.partnerId && ev.phase1Eval
-      );
-      if (existingEval?.phase1Eval) {
-        const scores: MitraScores = {};
-        existingEval.phase1Eval.criteria.forEach((c) => {
-          const matchingCriteria = PHASE1_CRITERIA.find((pc) => pc.name === c.name);
-          if (matchingCriteria) scores[matchingCriteria.id] = c.score;
-        });
-        // Existing evals from mock data are considered finalized
-        state[app.partnerId] = {
-          scores,
-          saved: true,
-          status: existingEval.status === "Selesai" ? "finalized" : "draft",
-          finalizedAt: existingEval.status === "Selesai" ? existingEval.evaluatedAt : undefined,
-        };
-      } else {
-        const scores: MitraScores = {};
-        PHASE1_CRITERIA.forEach((c) => { scores[c.id] = 0; });
-        state[app.partnerId] = { scores, saved: false, status: "draft" };
-      }
-    });
-    return state;
-  };
-
-  const [evalStates, setEvalStates] = useState<Record<string, MitraEvalState>>(buildInitialState);
+  // ── Loading & data state ────────────────────────────────────────────────────
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [project, setProject] = useState<ApiProject | null>(null);
+  const [phase1Applicants, setPhase1Applicants] = useState<ApiApplication[]>([]);
+  const [evalStates, setEvalStates] = useState<Record<string, MitraEvalState>>({});
   const [submittedForApproval, setSubmittedForApproval] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState<string | null>(null);
   const [ebdPanelTab, setEbdPanelTab] = useState<"penilaian" | "dokumen">("penilaian");
+  const [selectedAppDocuments, setSelectedAppDocuments] = useState<ApiDocument[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+  const [selectedAppFormData, setSelectedAppFormData] = useState<any>(null);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
+  const [evalNotes, setEvalNotes] = useState<Record<string, string | null>>({});
 
   // ── Selected mitra ─────────────────────────────────────────────────────────
   const selectedPartnerId = searchParams.get("partnerId");
   const selectedApp = selectedPartnerId
-    ? phase1Applicants.find((app) => app.partnerId === selectedPartnerId)
+    ? phase1Applicants.find((app) => app.partner_id === selectedPartnerId)
     : null;
 
   const navigateToMitra = (partnerId: string) => {
@@ -112,13 +271,168 @@ export default function Phase1EvaluationPage({
   };
 
   const currentIndex = selectedApp
-    ? phase1Applicants.findIndex((app) => app.partnerId === selectedPartnerId)
+    ? phase1Applicants.findIndex((app) => app.partner_id === selectedPartnerId)
     : -1;
   const prevMitra = currentIndex > 0 ? phase1Applicants[currentIndex - 1] : null;
   const nextMitra = currentIndex >= 0 && currentIndex < phase1Applicants.length - 1
     ? phase1Applicants[currentIndex + 1] : null;
 
   const isAuthorized = role === "ebd" || role === "super_admin";
+
+  // ── Fetch project + applicants + evaluations ─────────────────────────────
+  const fetchData = useCallback(async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    try {
+      // Fetch project
+      const projectRes = await projectApi(accessToken).getById(id);
+      setProject(projectRes.data as ApiProject);
+
+      // Fetch applications for this project
+      const appsRes = await api<{ applications: ApiApplication[] }>("/applications", {
+        token: accessToken,
+      });
+      const projectApps = appsRes.applications.filter(
+        (app) => app.project_id === id && app.status !== "Draft"
+      );
+      setPhase1Applicants(projectApps);
+
+      // Fetch existing evaluations
+      let existingEvals: ApiEvaluation[] = [];
+      try {
+        const evalsRes = await api<{ evaluations: ApiEvaluation[] }>(
+          `/evaluations/phase1/${id}`,
+          { token: accessToken }
+        );
+        existingEvals = evalsRes.evaluations;
+      } catch {
+        // No evaluations yet — that's OK
+      }
+
+      // Build initial eval state from existing evaluations
+      const state: Record<string, MitraEvalState> = {};
+      const notes: Record<string, string | null> = {};
+
+      for (const app of projectApps) {
+        const existingEval = existingEvals.find(
+          (ev) => ev.partner_id === app.partner_id || ev.application_id === app.id
+        );
+
+        if (existingEval && existingEval.evaluated_at) {
+          // Fetch detailed scores for this evaluation
+          try {
+            const detailRes = await api<{ evaluation: ApiEvalDetail }>(
+              `/evaluations/phase1/${id}/${app.id}`,
+              { token: accessToken }
+            );
+            const scores: MitraScores = {};
+            detailRes.evaluation.scores.forEach((s) => {
+              scores[s.criterion_id] = Number(s.score);
+            });
+            notes[app.partner_id] = detailRes.evaluation.notes;
+            // Mark as finalized if is_finalized flag is set on the evaluation
+            const isFinalized = !!existingEval.is_finalized;
+            state[app.partner_id] = {
+              scores,
+              saved: true,
+              status: isFinalized ? "finalized" : "draft",
+              finalizedAt: isFinalized ? existingEval.evaluated_at ?? undefined : undefined,
+            };
+          } catch {
+            // Could not load detail — set as empty
+            const scores: MitraScores = {};
+            PHASE1_CRITERIA.forEach((c) => { scores[c.id] = 0; });
+            state[app.partner_id] = { scores, saved: false, status: "draft" };
+          }
+        } else {
+          const scores: MitraScores = {};
+          PHASE1_CRITERIA.forEach((c) => { scores[c.id] = 0; });
+          state[app.partner_id] = { scores, saved: false, status: "draft" };
+        }
+      }
+
+      setEvalStates(state);
+      setEvalNotes(notes);
+    } catch (err) {
+      console.error("Failed to load evaluation data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, accessToken]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // ── Fetch documents when a mitra is selected and dokumen tab is active ────
+  useEffect(() => {
+    if (!selectedApp || !accessToken) {
+      setSelectedAppDocuments([]);
+      setSelectedAppFormData(null);
+      setExpandedDocs({});
+      return;
+    }
+
+    const fetchDocs = async () => {
+      setLoadingDocs(true);
+      try {
+        const res = await api<{ application: ApiApplicationDetail }>(
+          `/applications/${selectedApp.id}`,
+          { token: accessToken }
+        );
+        setSelectedAppDocuments(res.application.phase1Documents || []);
+        const fd = (res.application as any).form_data;
+        setSelectedAppFormData(fd ? (typeof fd === "string" ? JSON.parse(fd) : fd) : null);
+      } catch {
+        setSelectedAppDocuments([]);
+        setSelectedAppFormData(null);
+      } finally {
+        setLoadingDocs(false);
+        setExpandedDocs({});
+      }
+    };
+
+    fetchDocs();
+  }, [selectedApp?.id, accessToken]);
+
+  // ── Fetch detailed scores when a mitra is selected ────────────────────────
+  useEffect(() => {
+    if (!selectedApp || !accessToken) return;
+
+    const partnerId = selectedApp.partner_id;
+    const state = evalStates[partnerId];
+    // Only fetch if we have a saved state but maybe haven't loaded scores yet
+    if (!state || !state.saved) return;
+
+    const fetchScores = async () => {
+      try {
+        const detailRes = await api<{ evaluation: ApiEvalDetail }>(
+          `/evaluations/phase1/${id}/${selectedApp.id}`,
+          { token: accessToken }
+        );
+        const scores: MitraScores = {};
+        detailRes.evaluation.scores.forEach((s) => {
+          scores[s.criterion_id] = Number(s.score);
+        });
+        setEvalStates((prev) => ({
+          ...prev,
+          [partnerId]: {
+            ...prev[partnerId],
+            scores: { ...prev[partnerId].scores, ...scores },
+          },
+        }));
+        setEvalNotes((prev) => ({
+          ...prev,
+          [partnerId]: detailRes.evaluation.notes,
+        }));
+      } catch {
+        // Ignore — scores already in state from initial load
+      }
+    };
+
+    fetchScores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedApp?.id]);
 
   // ── Score helpers ──────────────────────────────────────────────────────────
   const updateScore = (partnerId: string, criteriaId: string, score: number) => {
@@ -160,59 +474,119 @@ export default function Phase1EvaluationPage({
     return PHASE1_CRITERIA.every((c) => (state.scores[c.id] || 0) > 0);
   };
 
-  // Save as draft (editable)
-  const handleSaveNilai = (partnerId: string) => {
-    setEvalStates((prev) => ({
-      ...prev,
-      [partnerId]: { ...prev[partnerId], saved: true },
-    }));
-    alert("Nilai berhasil disimpan. Anda masih dapat mengubah nilai ini.");
-  };
+  // Save as draft (editable) — POST to API
+  const handleSaveNilai = async (partnerId: string) => {
+    const app = phase1Applicants.find((a) => a.partner_id === partnerId);
+    if (!app || !accessToken) return;
 
-  // Finalize (locked)
-  const handleFinalize = (partnerId: string) => {
-    setEvalStates((prev) => ({
-      ...prev,
-      [partnerId]: {
-        ...prev[partnerId],
-        saved: true,
-        status: "finalized",
-        finalizedAt: new Date().toISOString(),
-      },
+    const state = evalStates[partnerId];
+    if (!state) return;
+
+    const scores = PHASE1_CRITERIA.map((c) => ({
+      criterionId: c.id,
+      score: state.scores[c.id] || 0,
     }));
-    setConfirmFinalize(null);
-    // Auto-navigate to next unfinalized mitra
-    const nextUnfinalized = phase1Applicants.find(
-      (a) => a.partnerId !== partnerId && evalStates[a.partnerId]?.status !== "finalized"
-    );
-    if (nextUnfinalized) {
-      navigateToMitra(nextUnfinalized.partnerId);
+
+    setSaving(true);
+    try {
+      await api(`/evaluations/phase1/${id}/${app.id}`, {
+        method: "POST",
+        token: accessToken,
+        body: { scores },
+      });
+
+      setEvalStates((prev) => ({
+        ...prev,
+        [partnerId]: { ...prev[partnerId], saved: true },
+      }));
+      showToast("Nilai berhasil disimpan. Anda masih dapat mengubah nilai ini.");
+    } catch (err) {
+      console.error("Failed to save evaluation:", err);
+      showToast("Gagal menyimpan nilai. Silakan coba lagi.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Simulate "returned by atasan" — for demo purposes
-  const handleSimulateReturn = (partnerId: string) => {
-    setEvalStates((prev) => ({
-      ...prev,
-      [partnerId]: {
-        ...prev[partnerId],
-        status: "returned",
-        returnedReason: "Mohon periksa kembali penilaian kriteria Kemampuan Pembiayaan.",
-      },
+  // Finalize (locked) — save scores then mark as finalized locally
+  const handleFinalize = async (partnerId: string) => {
+    const app = phase1Applicants.find((a) => a.partner_id === partnerId);
+    if (!app || !accessToken) return;
+
+    const state = evalStates[partnerId];
+    if (!state) return;
+
+    const scores = PHASE1_CRITERIA.map((c) => ({
+      criterionId: c.id,
+      score: state.scores[c.id] || 0,
     }));
+
+    setSaving(true);
+    try {
+      // Save scores first
+      await api(`/evaluations/phase1/${id}/${app.id}`, {
+        method: "POST",
+        token: accessToken,
+        body: { scores },
+      });
+
+      // Then lock the evaluation
+      await api(`/evaluations/phase1/${id}/${app.id}/finalize`, {
+        method: "POST",
+        token: accessToken,
+      });
+
+      setEvalStates((prev) => ({
+        ...prev,
+        [partnerId]: {
+          ...prev[partnerId],
+          saved: true,
+          status: "finalized",
+          finalizedAt: new Date().toISOString(),
+        },
+      }));
+      setConfirmFinalize(null);
+      showToast("Nilai berhasil difinalisasi dan dikunci.");
+
+      // Auto-navigate to next unfinalized mitra
+      const nextUnfinalized = phase1Applicants.find(
+        (a) => a.partner_id !== partnerId && evalStates[a.partner_id]?.status !== "finalized"
+      );
+      if (nextUnfinalized) {
+        navigateToMitra(nextUnfinalized.partner_id);
+      }
+    } catch (err) {
+      console.error("Failed to finalize evaluation:", err);
+      showToast("Gagal memfinalisasi nilai. Silakan coba lagi.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSubmitForApproval = () => {
-    setSubmittedForApproval(true);
-    alert("Evaluasi Fase 1 berhasil dikirim ke Direksi untuk persetujuan (simulasi).");
+  // Submit all evaluations for approval — POST finalize endpoint
+  const handleSubmitForApproval = async () => {
+    if (!accessToken) return;
+    setSaving(true);
+    try {
+      await api(`/approvals/phase1/${id}/submit`, {
+        method: "POST",
+        token: accessToken,
+      });
+      setSubmittedForApproval(true);
+    } catch (err) {
+      console.error("Failed to submit for approval:", err);
+      showToast("Gagal mengirim evaluasi. Silakan coba lagi.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const allFinalized = phase1Applicants.every(
-    (app) => evalStates[app.partnerId]?.status === "finalized"
+  const allFinalized = phase1Applicants.length > 0 && phase1Applicants.every(
+    (app) => evalStates[app.partner_id]?.status === "finalized"
   );
 
   const finalizedCount = phase1Applicants.filter(
-    (app) => evalStates[app.partnerId]?.status === "finalized"
+    (app) => evalStates[app.partner_id]?.status === "finalized"
   ).length;
 
   // ── Status helpers for sidebar ─────────────────────────────────────────────
@@ -222,8 +596,8 @@ export default function Phase1EvaluationPage({
     if (state.status === "finalized") {
       const r = getResult(partnerId);
       return r === "Lolos"
-        ? { text: "Final · Lolos", color: "text-green-600" }
-        : { text: "Final · Tidak Lolos", color: "text-ptba-red" };
+        ? { text: "Final \u00B7 Lolos", color: "text-green-600" }
+        : { text: "Final \u00B7 Tidak Lolos", color: "text-ptba-red" };
     }
     if (state.status === "returned") return { text: "Dikembalikan", color: "text-amber-600" };
     if (state.saved) return { text: "Draft tersimpan", color: "text-ptba-steel-blue" };
@@ -232,7 +606,18 @@ export default function Phase1EvaluationPage({
     return { text: "Belum dinilai", color: "text-ptba-gray" };
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render: Loading state ─────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-ptba-navy" />
+          <p className="text-sm text-ptba-gray">Memuat data evaluasi...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!project) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -354,14 +739,14 @@ export default function Phase1EvaluationPage({
             </div>
             <div className="divide-y divide-gray-100">
               {phase1Applicants.map((app, idx) => {
-                const state = evalStates[app.partnerId];
-                const isSelected = app.partnerId === selectedPartnerId;
-                const statusLabel = getMitraStatusLabel(app.partnerId);
+                const state = evalStates[app.partner_id];
+                const isSelected = app.partner_id === selectedPartnerId;
+                const statusLabel = getMitraStatusLabel(app.partner_id);
 
                 return (
                   <button
                     key={app.id}
-                    onClick={() => navigateToMitra(app.partnerId)}
+                    onClick={() => navigateToMitra(app.partner_id)}
                     className={cn(
                       "w-full text-left px-4 py-3 transition-colors hover:bg-ptba-section-bg",
                       isSelected && "bg-ptba-section-bg border-l-3 border-l-ptba-navy"
@@ -385,7 +770,7 @@ export default function Phase1EvaluationPage({
                           "text-sm font-medium truncate",
                           isSelected ? "text-ptba-navy" : "text-ptba-charcoal"
                         )}>
-                          {app.partnerName}
+                          {app.partner_name}
                         </p>
                         <p className={cn("text-[10px]", statusLabel.color)}>
                           {statusLabel.text}
@@ -414,7 +799,7 @@ export default function Phase1EvaluationPage({
                 </p>
                 {phase1Applicants.length > 0 && (
                   <button
-                    onClick={() => navigateToMitra(phase1Applicants[0].partnerId)}
+                    onClick={() => navigateToMitra(phase1Applicants[0].partner_id)}
                     className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors"
                   >
                     Mulai Evaluasi Mitra Pertama <ChevronRight className="h-4 w-4" />
@@ -425,16 +810,14 @@ export default function Phase1EvaluationPage({
               <div className="space-y-5">
                 {(() => {
                   const app = selectedApp;
-                  const state = evalStates[app.partnerId];
-                  const weightedScore = calculateWeightedScore(app.partnerId);
-                  const result = getResult(app.partnerId);
-                  const existingEval = phase1Evals.find(
-                    (ev) => ev.partnerId === app.partnerId && ev.phase1Eval
-                  );
-                  const allScored = isAllScored(app.partnerId);
+                  const state = evalStates[app.partner_id];
+                  const weightedScore = calculateWeightedScore(app.partner_id);
+                  const result = getResult(app.partner_id);
+                  const allScored = isAllScored(app.partner_id);
                   const isFinalized = state?.status === "finalized";
                   const isReturned = state?.status === "returned";
                   const isEditable = !isFinalized;
+                  const existingNotes = evalNotes[app.partner_id];
 
                   return (
                     <>
@@ -451,12 +834,12 @@ export default function Phase1EvaluationPage({
                                 ? (result === "Lolos" ? "bg-green-500" : "bg-ptba-red")
                                 : isReturned ? "bg-amber-500" : "bg-ptba-navy"
                             )}>
-                              {isFinalized ? <Lock className="h-5 w-5" /> : app.partnerName.charAt(0)}
+                              {isFinalized ? <Lock className="h-5 w-5" /> : app.partner_name.charAt(0)}
                             </div>
                             <div>
-                              <h3 className="text-lg font-semibold text-ptba-charcoal">{app.partnerName}</h3>
+                              <h3 className="text-lg font-semibold text-ptba-charcoal">{app.partner_name}</h3>
                               <p className="text-xs text-ptba-gray">
-                                Mitra {currentIndex + 1} dari {phase1Applicants.length} · Mendaftar: {formatDate(app.appliedAt)}
+                                Mitra {currentIndex + 1} dari {phase1Applicants.length} · Mendaftar: {formatDate(app.applied_at)}
                               </p>
                             </div>
                           </div>
@@ -486,7 +869,7 @@ export default function Phase1EvaluationPage({
                         {/* Prev / Next */}
                         <div className="px-6 py-2.5 bg-gray-50 flex items-center justify-between text-sm border-b border-gray-100">
                           <button
-                            onClick={() => prevMitra && navigateToMitra(prevMitra.partnerId)}
+                            onClick={() => prevMitra && navigateToMitra(prevMitra.partner_id)}
                             disabled={!prevMitra}
                             className={cn(
                               "inline-flex items-center gap-1 transition-colors",
@@ -497,7 +880,7 @@ export default function Phase1EvaluationPage({
                           </button>
                           <span className="text-xs text-ptba-gray">{currentIndex + 1} / {phase1Applicants.length}</span>
                           <button
-                            onClick={() => nextMitra && navigateToMitra(nextMitra.partnerId)}
+                            onClick={() => nextMitra && navigateToMitra(nextMitra.partner_id)}
                             disabled={!nextMitra}
                             className={cn(
                               "inline-flex items-center gap-1 transition-colors",
@@ -531,14 +914,6 @@ export default function Phase1EvaluationPage({
                               Nilai mitra ini sudah final dan tidak dapat diubah.
                               {state.finalizedAt && ` Difinalisasi pada ${formatDate(state.finalizedAt)}.`}
                             </p>
-                            {/* Demo button to simulate return */}
-                            <button
-                              type="button"
-                              onClick={() => handleSimulateReturn(app.partnerId)}
-                              className="mt-2 text-xs text-amber-600 hover:text-amber-700 underline"
-                            >
-                              (Demo: Simulasi dikembalikan atasan)
-                            </button>
                           </div>
                         </div>
                       )}
@@ -572,9 +947,9 @@ export default function Phase1EvaluationPage({
                             >
                               <FileText className="h-4 w-4" />
                               Dokumen
-                              {app.phase1Documents && app.phase1Documents.length > 0 && (
+                              {selectedAppDocuments.length > 0 && (
                                 <span className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-ptba-section-bg px-1.5 text-[10px] font-bold text-ptba-navy">
-                                  {app.phase1Documents.length}
+                                  {selectedAppDocuments.length}
                                 </span>
                               )}
                             </button>
@@ -610,7 +985,7 @@ export default function Phase1EvaluationPage({
                                             <button
                                               key={score}
                                               type="button"
-                                              onClick={() => updateScore(app.partnerId, criteria.id, score)}
+                                              onClick={() => updateScore(app.partner_id, criteria.id, score)}
                                               className={cn(
                                                 "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
                                                 score <= currentScore
@@ -657,7 +1032,7 @@ export default function Phase1EvaluationPage({
                                     result === "Lolos" ? "text-green-600" :
                                     result === "Tidak Lolos" ? "text-ptba-red" : "text-ptba-navy"
                                   )}>
-                                    {allScored ? weightedScore.toFixed(2) : "—"}
+                                    {allScored ? weightedScore.toFixed(2) : "\u2014"}
                                   </p>
                                   <p className="text-xs text-ptba-gray">/ 5.00</p>
                                 </div>
@@ -679,10 +1054,10 @@ export default function Phase1EvaluationPage({
                               )}
                             </div>
 
-                            {existingEval?.phase1Eval?.notes && (
+                            {existingNotes && (
                               <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
                                 <p className="text-xs font-medium text-ptba-gray mb-1">Catatan Evaluasi</p>
-                                <p className="text-sm text-ptba-charcoal">{existingEval.phase1Eval.notes}</p>
+                                <p className="text-sm text-ptba-charcoal">{existingNotes}</p>
                               </div>
                             )}
                           </div>
@@ -691,25 +1066,71 @@ export default function Phase1EvaluationPage({
                         {/* Tab: Dokumen */}
                         {ebdPanelTab === "dokumen" && (
                           <div className="p-6">
-                            {app.phase1Documents && app.phase1Documents.length > 0 ? (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {app.phase1Documents.map((doc) => (
-                                  <button
-                                    key={doc.id}
-                                    type="button"
-                                    onClick={() => alert(`Mengunduh: ${doc.name}\n\n(Fitur unduh tersedia setelah integrasi backend)`)}
-                                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-left hover:bg-ptba-section-bg hover:border-ptba-steel-blue/30 transition-colors group"
-                                  >
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg shrink-0 group-hover:bg-ptba-steel-blue/10">
-                                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                            {loadingDocs ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-ptba-navy" />
+                                <span className="ml-2 text-sm text-ptba-gray">Memuat dokumen...</span>
+                              </div>
+                            ) : selectedAppDocuments.length > 0 ? (
+                              <div className="space-y-2">
+                                {selectedAppDocuments.map((doc) => {
+                                  const dtId = (doc as any).document_type_id || "";
+                                  const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
+                                  const docName = meta?.name || doc.name;
+                                  const formSection = selectedAppFormData ? EVAL_FORM_DATA_MAP[dtId] : null;
+                                  const isOpen = expandedDocs[doc.id] ?? false;
+
+                                  return (
+                                    <div key={doc.id} className="rounded-lg border border-gray-200 overflow-hidden">
+                                      <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50/50">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg shrink-0">
+                                          <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
+                                          <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate((doc as any).upload_date || "")}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          {(doc as any).file_key && (
+                                            <button
+                                              type="button"
+                                              onClick={async () => {
+                                                try {
+                                                  const key = encodeURIComponent((doc as any).file_key);
+                                                  const res = await fetch(`/api/documents/download?key=${key}`, {
+                                                    headers: { Authorization: `Bearer ${accessToken}` },
+                                                  });
+                                                  if (!res.ok) return;
+                                                  const blob = await res.blob();
+                                                  window.open(URL.createObjectURL(blob), "_blank");
+                                                } catch { /* ignore */ }
+                                              }}
+                                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                                            >
+                                              <Download className="h-3 w-3" /> Unduh
+                                            </button>
+                                          )}
+                                          {formSection && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedDocs((prev) => ({ ...prev, [doc.id]: !prev[doc.id] }))}
+                                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                                            >
+                                              {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                              Data
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {formSection && isOpen && (
+                                        <div className="border-t border-gray-100 bg-ptba-section-bg/30 px-4 py-3">
+                                          <p className="text-xs font-semibold text-ptba-charcoal mb-2">{formSection.title}</p>
+                                          {formSection.render(selectedAppFormData)}
+                                        </div>
+                                      )}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm text-ptba-charcoal truncate">{doc.name}</p>
-                                      <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.uploadDate)}</p>
-                                    </div>
-                                    <Download className="h-4 w-4 text-ptba-gray shrink-0 group-hover:text-ptba-steel-blue transition-colors" />
-                                  </button>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ) : (
                               <div className="text-center py-6">
@@ -727,7 +1148,7 @@ export default function Phase1EvaluationPage({
                       {isEditable && (
                         <div className="rounded-xl bg-white p-5 shadow-sm">
                           {/* Finalization Confirmation Dialog */}
-                          {confirmFinalize === app.partnerId ? (
+                          {confirmFinalize === app.partner_id ? (
                             <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
                               <div className="flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
@@ -743,16 +1164,17 @@ export default function Phase1EvaluationPage({
                                       "text-lg font-bold",
                                       result === "Lolos" ? "text-green-600" : "text-ptba-red"
                                     )}>
-                                      {app.partnerName}: {result} ({weightedScore.toFixed(2)}/5.00)
+                                      {app.partner_name}: {result} ({weightedScore.toFixed(2)}/5.00)
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-3 mt-4">
                                     <button
                                       type="button"
-                                      onClick={() => handleFinalize(app.partnerId)}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-red/90 transition-colors"
+                                      onClick={() => handleFinalize(app.partner_id)}
+                                      disabled={saving}
+                                      className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-red/90 transition-colors disabled:opacity-50"
                                     >
-                                      <Lock className="h-4 w-4" /> Ya, Finalisasi Nilai
+                                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Ya, Finalisasi Nilai
                                     </button>
                                     <button
                                       type="button"
@@ -770,26 +1192,26 @@ export default function Phase1EvaluationPage({
                               {/* Simpan Nilai (draft) */}
                               <button
                                 type="button"
-                                onClick={() => handleSaveNilai(app.partnerId)}
-                                disabled={!allScored}
+                                onClick={() => handleSaveNilai(app.partner_id)}
+                                disabled={!allScored || saving}
                                 className={cn(
                                   "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
-                                  allScored
+                                  allScored && !saving
                                     ? "bg-ptba-navy text-white hover:bg-ptba-navy/90"
                                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                                 )}
                               >
-                                <Save className="h-4 w-4" /> Simpan Nilai
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Nilai
                               </button>
 
                               {/* Simpan & Finalisasi */}
                               <button
                                 type="button"
-                                onClick={() => setConfirmFinalize(app.partnerId)}
-                                disabled={!allScored}
+                                onClick={() => setConfirmFinalize(app.partner_id)}
+                                disabled={!allScored || saving}
                                 className={cn(
                                   "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
-                                  allScored
+                                  allScored && !saving
                                     ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md"
                                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                                 )}
@@ -816,11 +1238,13 @@ export default function Phase1EvaluationPage({
                   <Send className={cn("h-5 w-5", allFinalized ? "text-white" : "text-gray-400")} />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi ke Direksi</h3>
+                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi untuk Persetujuan</h3>
                   <p className="text-sm text-ptba-gray mt-0.5">
-                    {allFinalized
-                      ? "Semua nilai mitra telah difinalisasi. Kirim ke Direksi untuk persetujuan."
-                      : `${finalizedCount} dari ${phase1Applicants.length} mitra difinalisasi. Finalisasi semua mitra untuk mengirim ke Direksi.`}
+                    {(project as any)?.isOpenForApplication
+                      ? "Pendaftaran Fase 1 masih dibuka. Tutup pendaftaran terlebih dahulu sebelum mengirim untuk persetujuan."
+                      : allFinalized
+                        ? "Semua nilai mitra telah difinalisasi. Kirim untuk persetujuan pimpinan."
+                        : `${finalizedCount} dari ${phase1Applicants.length} mitra difinalisasi. Finalisasi semua mitra untuk mengirim persetujuan.`}
                   </p>
                 </div>
               </div>
@@ -842,13 +1266,13 @@ export default function Phase1EvaluationPage({
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
                     <p className="text-2xl font-bold text-green-600">
-                      {phase1Applicants.filter((a) => getResult(a.partnerId) === "Lolos").length}
+                      {phase1Applicants.filter((a) => getResult(a.partner_id) === "Lolos").length}
                     </p>
                     <p className="text-xs text-green-700">Mitra Lolos</p>
                   </div>
                   <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
                     <p className="text-2xl font-bold text-ptba-red">
-                      {phase1Applicants.filter((a) => getResult(a.partnerId) === "Tidak Lolos").length}
+                      {phase1Applicants.filter((a) => getResult(a.partner_id) === "Tidak Lolos").length}
                     </p>
                     <p className="text-xs text-ptba-red">Mitra Tidak Lolos</p>
                   </div>
@@ -858,25 +1282,29 @@ export default function Phase1EvaluationPage({
               <button
                 type="button"
                 onClick={handleSubmitForApproval}
-                disabled={!allFinalized || submittedForApproval}
+                disabled={!allFinalized || submittedForApproval || saving || !!(project as any)?.isOpenForApplication}
                 className={cn(
                   "w-full inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-colors",
-                  allFinalized && !submittedForApproval
+                  allFinalized && !submittedForApproval && !saving && !(project as any)?.isOpenForApplication
                     ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 )}
               >
                 {submittedForApproval ? (
-                  <><CheckCircle2 className="h-4 w-4" /> Sudah Dikirim ke Direksi</>
+                  <><CheckCircle2 className="h-4 w-4" /> Sudah Dikirim untuk Persetujuan</>
+                ) : saving ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Mengirim...</>
+                ) : (project as any)?.isOpenForApplication ? (
+                  <><Clock className="h-4 w-4" /> Pendaftaran Masih Dibuka</>
                 ) : (
-                  <><Send className="h-4 w-4" /> Kirim ke Direksi untuk Persetujuan</>
+                  <><Send className="h-4 w-4" /> Kirim untuk Persetujuan</>
                 )}
               </button>
 
               {submittedForApproval && (
                 <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center">
                   <p className="text-sm text-green-700">
-                    Item persetujuan telah muncul di antrian Direksi.
+                    Item persetujuan telah dikirim.
                   </p>
                   <Link
                     href="/approvals"
@@ -887,6 +1315,53 @@ export default function Phase1EvaluationPage({
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 toast-enter">
+          <div className={cn(
+            "relative overflow-hidden rounded-xl shadow-2xl border min-w-[320px] max-w-[420px]",
+            toast.type === "success"
+              ? "bg-white border-green-200"
+              : "bg-white border-red-200"
+          )}>
+            <div className="flex items-start gap-3 px-5 py-4">
+              <div className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5",
+                toast.type === "success" ? "bg-green-100" : "bg-red-100"
+              )}>
+                {toast.type === "success" ? (
+                  <CheckCircle2 className="h-4.5 w-4.5 text-green-600" />
+                ) : (
+                  <AlertTriangle className="h-4.5 w-4.5 text-red-600" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={cn(
+                  "text-xs font-semibold",
+                  toast.type === "success" ? "text-green-800" : "text-red-800"
+                )}>
+                  {toast.type === "success" ? "Berhasil" : "Gagal"}
+                </p>
+                <p className="text-sm text-ptba-charcoal mt-0.5">{toast.message}</p>
+              </div>
+              <button
+                onClick={() => setToast(null)}
+                className="shrink-0 rounded-lg p-1 text-ptba-gray hover:bg-ptba-section-bg hover:text-ptba-charcoal transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* Progress bar */}
+            <div className={cn(
+              "h-1 toast-progress-bar",
+              toast.type === "success" ? "bg-green-400" : "bg-red-400"
+            )} />
           </div>
         </div>
       )}

@@ -10,10 +10,12 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   options: SelectOption[];
   error?: string;
+  hint?: string;
+  required?: boolean;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, options, error, className, id, ...props }, ref) => {
+  ({ label, options, error, hint, required, className, id, ...props }, ref) => {
     const selectId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
@@ -24,6 +26,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             className="block text-sm font-medium text-ptba-charcoal mb-1"
           >
             {label}
+            {required && <span className="text-ptba-red ml-0.5">*</span>}
           </label>
         )}
         <div className="relative">
@@ -64,6 +67,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
         {error && (
           <p className="mt-1 text-xs text-ptba-red">{error}</p>
+        )}
+        {hint && !error && (
+          <p className="mt-1 text-xs text-ptba-gray">{hint}</p>
         )}
       </div>
     );

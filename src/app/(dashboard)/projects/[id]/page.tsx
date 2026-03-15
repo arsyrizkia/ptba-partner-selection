@@ -1,10 +1,16 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import {
   ArrowLeft,
+  ArrowRight,
+  Plus,
+  Trash2,
+  Save,
+  Pencil,
   CheckCircle2,
   Clock,
   Building2,
@@ -30,11 +36,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockPartners } from "@/lib/mock-data/partners";
-import { mockEvaluations } from "@/lib/mock-data/evaluations";
-import { mockApplications } from "@/lib/mock-data/applications";
+import { api, projectApi } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS } from "@/lib/constants/project-steps";
+import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
 function formatCurrency(value: number): string {
   if (value >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toFixed(1)} T`;
@@ -49,6 +53,7 @@ function formatDate(dateStr: string): string {
 function statusBadgeClass(status: string): string {
   const map: Record<string, string> = {
     Draft: "bg-gray-100 text-gray-600",
+    Dipublikasikan: "bg-teal-100 text-teal-700",
     Evaluasi: "bg-blue-100 text-blue-700",
     Persetujuan: "bg-amber-100 text-amber-700",
     Selesai: "bg-green-100 text-green-700",
@@ -59,11 +64,31 @@ function statusBadgeClass(status: string): string {
 
 function typeBadgeClass(type: string): string {
   const map: Record<string, string> = {
+    mining: "bg-amber-100 text-amber-700",
+    power_generation: "bg-ptba-navy/10 text-ptba-navy",
+    coal_processing: "bg-ptba-gold/10 text-ptba-gold",
+    infrastructure: "bg-ptba-steel-blue/10 text-ptba-steel-blue",
+    environmental: "bg-green-100 text-green-700",
+    corporate: "bg-gray-100 text-gray-600",
+    others: "bg-purple-100 text-purple-700",
     CAPEX: "bg-ptba-navy/10 text-ptba-navy",
     OPEX: "bg-ptba-steel-blue/10 text-ptba-steel-blue",
     Strategis: "bg-ptba-gold/10 text-ptba-gold",
   };
   return map[type] ?? "bg-gray-100 text-gray-600";
+}
+
+function typeLabel(type: string): string {
+  const map: Record<string, string> = {
+    mining: "Operasi Pertambangan",
+    power_generation: "Pembangkit Listrik",
+    coal_processing: "Pengolahan Batubara",
+    infrastructure: "Infrastruktur",
+    environmental: "Lingkungan & Reklamasi",
+    corporate: "Layanan Korporat",
+    others: "Lainnya",
+  };
+  return map[type] ?? type;
 }
 
 function phaseLabel(phase?: string): string {
@@ -110,11 +135,126 @@ export default function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("mitra");
+  const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const project = mockProjects.find((p) => p.id === id);
+  // Workflow state — must be declared before any conditional returns
+  const [showPersetujuanModal, setShowPersetujuanModal] = useState(false);
+  const [selectedMitra, setSelectedMitra] = useState<string[]>([]);
+  const [persetujuanNotes, setPersetujuanNotes] = useState("");
+  const [showPhase2Modal, setShowPhase2Modal] = useState(false);
+  const [phase2Deadline, setPhase2Deadline] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split("T")[0];
+  });
+  const [phase2Fee, setPhase2Fee] = useState(50000000);
+  const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
+
+  // Payment verification state
+  type PaymentDecision = "pending" | "approved" | "rejected";
+  const [paymentDecisions, setPaymentDecisions] = useState<Record<string, PaymentDecision>>({});
+  const [payRejectNotes, setPayRejectNotes] = useState<Record<string, string>>({});
+  const [showPayRejectForm, setShowPayRejectForm] = useState<string | null>(null);
+  const [viewingPayProof, setViewingPayProof] = useState<string | null>(null);
+  const [showUnverifiedWarning, setShowUnverifiedWarning] = useState(false);
+  const [showOpenRegModal, setShowOpenRegModal] = useState(false);
+  const [showCloseRegModal, setShowCloseRegModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [applicationCount, setApplicationCount] = useState(0);
+  const [projectApplications, setProjectApplications] = useState<any[]>([]);
+  const [projectEvaluations, setProjectEvaluations] = useState<any[]>([]);
+
+  // Edit mode state
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editDraft, setEditDraft] = useState({
+    name: "", type: "", capexValue: "", description: "",
+    startDate: "", endDate: "", phase1Deadline: "", phase2Deadline: "",
+  });
+  const [reqDraft, setReqDraft] = useState<string[]>([]);
+
+  const startEditing = () => {
+    setEditDraft({
+      name: project?.name || "",
+      type: project?.type || "",
+      capexValue: project?.capexValue ? String(project.capexValue) : "",
+      description: project?.description || "",
+      startDate: project?.startDate ? new Date(project.startDate).toISOString().split("T")[0] : "",
+      endDate: project?.endDate ? new Date(project.endDate).toISOString().split("T")[0] : "",
+      phase1Deadline: project?.phase1Deadline ? new Date(project.phase1Deadline).toISOString().split("T")[0] : "",
+      phase2Deadline: project?.phase2Deadline ? new Date(project.phase2Deadline).toISOString().split("T")[0] : "",
+    });
+    const currentReqs = (project?.requirements || []).map((r: any) =>
+      typeof r === "string" ? r : r.requirement
+    );
+    setReqDraft(currentReqs.length > 0 ? currentReqs : [""]);
+    setEditMode(true);
+  };
+
+  const saveAll = async () => {
+    if (!accessToken) return;
+    setSaving(true);
+    try {
+      // Save basic info + timeline
+      const updateData: Record<string, any> = {};
+      if (editDraft.name) updateData.name = editDraft.name;
+      if (editDraft.type) updateData.type = editDraft.type;
+      if (editDraft.capexValue) updateData.capexValue = Number(editDraft.capexValue);
+      if (editDraft.description !== undefined) updateData.description = editDraft.description;
+      if (editDraft.startDate) updateData.startDate = editDraft.startDate;
+      if (editDraft.endDate) updateData.endDate = editDraft.endDate;
+      if (editDraft.phase1Deadline) updateData.phase1Deadline = editDraft.phase1Deadline;
+      if (editDraft.phase2Deadline) updateData.phase2Deadline = editDraft.phase2Deadline;
+
+      await projectApi(accessToken).update(id, updateData);
+
+      // Save requirements
+      const filteredReqs = reqDraft.filter((r) => r.trim());
+      const res = await projectApi(accessToken).updateRequirements(id, filteredReqs);
+      setProject(res.data);
+      setEditMode(false);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoading(true);
+    projectApi(accessToken).getById(id).then((res) => {
+      setProject(res.data);
+      if (res.data.registrationFee) setPhase2Fee(Number(res.data.registrationFee));
+    }).catch(() => {
+      setProject(null);
+    }).finally(() => setLoading(false));
+
+    // Fetch applications for this project
+    api<{ applications: any[] }>("/applications", { token: accessToken }).then((res) => {
+      const apps = (res.applications || []).filter((a: any) => a.project_id === id && a.status !== "Draft");
+      setProjectApplications(apps);
+      setApplicationCount(apps.length);
+    }).catch(() => {});
+
+    // Fetch evaluations for this project
+    api<{ evaluations: any[] }>(`/evaluations/phase1/${id}`, { token: accessToken })
+      .then((res) => setProjectEvaluations(res.evaluations || []))
+      .catch(() => {});
+  }, [id, accessToken]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">Memuat proyek...</span>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -130,95 +270,41 @@ export default function ProjectDetailPage({
   const isPhase1 = project.phase?.startsWith("phase1");
   const isPhase2 = project.phase?.startsWith("phase2");
 
-  // Get applications for this project
-  const projectApplications = mockApplications.filter((a) => a.projectId === project.id);
-
-  // Resolve partners for this project
-  const projectPartners = project.partners.map((pid) => {
-    const partner = mockPartners.find((p) => p.id === pid);
-    const evals = mockEvaluations.filter(
-      (e) => e.projectId === project.id && e.partnerId === pid
-    );
-    const phase2Eval = evals.find((e) => e.phase === "phase2");
-    const phase1Eval = evals.find((e) => e.phase === "phase1");
-    const application = projectApplications.find((a) => a.partnerId === pid);
-    const docTotal = partner?.documents.length ?? 0;
-    const docComplete = partner?.documents.filter((d) => d.status === "Lengkap").length ?? 0;
-    const docPct = docTotal > 0 ? Math.round((docComplete / docTotal) * 100) : 0;
-    const isShortlisted = project.shortlistedPartners?.includes(pid) ?? false;
-
+  // Derive partner list from applications + evaluations
+  const projectPartners: any[] = projectApplications.map((a: any) => {
+    const evaluation = projectEvaluations.find((e: any) => e.application_id === a.id);
     return {
-      id: pid,
-      name: partner?.name ?? pid,
-      code: partner?.code ?? pid,
-      docPct,
-      docTotal,
-      docComplete,
-      documents: partner?.documents ?? [],
-      hasFinancialEval: !!phase2Eval?.financial,
-      hasLegalEval: !!phase2Eval?.legal,
-      hasRiskEval: !!phase2Eval?.risk,
-      hasTechnicalEval: !!phase2Eval?.technical,
-      evalStatus: phase2Eval?.status,
-      phase1Result: phase1Eval?.phase1Eval?.overallResult ?? application?.phase1Result,
-      phase1Score: phase1Eval?.phase1Eval
-        ? phase1Eval.phase1Eval.criteria.reduce((sum, c) => sum + (c.score / c.maxScore) * (
-            c.name === "Kualitas Profil Perusahaan" ? 20 :
-            c.name === "Pengalaman Proyek Relevan" ? 25 :
-            c.name === "Kemampuan Pembiayaan" ? 25 :
-            c.name === "Gambaran Umum Keuangan" ? 15 : 15
-          ) / 100 * 5, 0)
-        : undefined,
-      isShortlisted,
-      applicationPhase: application?.phase,
+      id: a.partner_id,
+      name: a.partner_name,
+      code: a.partner_id.substring(0, 8),
+      status: a.status,
+      appliedAt: a.applied_at,
+      phase1Result: a.phase1_result || evaluation?.overall_result,
+      phase1Score: evaluation?.weighted_score != null ? Number(evaluation.weighted_score) : undefined,
+      hasEvaluation: !!evaluation,
+      phase: a.phase,
     };
   });
-
-  // Workflow state
-  const [showPersetujuanModal, setShowPersetujuanModal] = useState(false);
-  const [selectedMitra, setSelectedMitra] = useState<string[]>([]);
-  const [persetujuanNotes, setPersetujuanNotes] = useState("");
-  const [showPhase2Modal, setShowPhase2Modal] = useState(false);
-  const [phase2Deadline, setPhase2Deadline] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
-  });
-  const [phase2Fee, setPhase2Fee] = useState(project.registrationFee ?? 50000000);
-  const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
   const isAdmin = role === "ebd" || role === "super_admin";
-  const isPhase1Approved = project.phase === "phase1_approved";
-
-  // Payment verification state
-  type PaymentDecision = "pending" | "approved" | "rejected";
-  const [paymentDecisions, setPaymentDecisions] = useState<Record<string, PaymentDecision>>({});
-  const [payRejectNotes, setPayRejectNotes] = useState<Record<string, string>>({});
-  const [showPayRejectForm, setShowPayRejectForm] = useState<string | null>(null);
-  const [viewingPayProof, setViewingPayProof] = useState<string | null>(null);
-  const [showUnverifiedWarning, setShowUnverifiedWarning] = useState(false);
+  const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement" || project.phase === "phase2_registration";
 
   const allEvalsComplete = projectPartners.length > 0 && projectPartners.every(
     (p) => p.hasTechnicalEval && p.hasFinancialEval && p.hasLegalEval && p.hasRiskEval
   );
 
-  const partnerScores = projectPartners.map((p) => {
-    const eval0 = mockEvaluations.find(
-      (e) => e.projectId === project.id && e.partnerId === p.id && e.phase === "phase2"
-    );
-    return {
-      ...p,
-      totalScore: eval0?.totalScore ?? 0,
-      grade: eval0?.grade ?? "-",
-      technicalScore: eval0?.technical?.total ?? 0,
-      financialScore: eval0?.financial?.totalScore ?? 0,
-      financialGrade: eval0?.financial?.grade ?? "-",
-      legalStatus: eval0?.legal?.overallStatus ?? "-",
-      riskLevel: eval0?.risk?.overallLevel ?? "-",
-    };
-  }).sort((a, b) => b.totalScore - a.totalScore);
+  const partnerScores = projectPartners.map((p: any) => ({
+    ...p,
+    totalScore: 0,
+    grade: "-",
+    technicalScore: 0,
+    financialScore: 0,
+    financialGrade: "-",
+    legalStatus: "-",
+    riskLevel: "-",
+  }));
 
   const handleCloseRegistration = () => {
-    alert("Pendaftaran mitra Phase 1 berhasil ditutup.");
+    setShowCloseRegModal(true);
   };
 
   const toggleMitraSelection = (partnerId: string) => {
@@ -283,7 +369,7 @@ export default function ProjectDetailPage({
         <ArrowLeft className="h-4 w-4" /> Kembali
       </button>
 
-      {/* Phase 1 Approved Banner */}
+      {/* Fase 1 Approved Banner */}
       {isPhase1Approved && isAdmin && (
         <div className="rounded-xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-5 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -312,7 +398,7 @@ export default function ProjectDetailPage({
         </div>
       )}
 
-      {/* Phase 2 Configuration Modal */}
+      {/* Fase 2 Configuration Modal */}
       {showPhase2Modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPhase2Modal(false)}>
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
@@ -330,8 +416,8 @@ export default function ProjectDetailPage({
             <div className="rounded-lg bg-ptba-section-bg p-3 mb-5">
               <p className="text-xs font-semibold text-ptba-navy mb-1.5">Mitra yang Lolos Fase 1</p>
               <div className="flex flex-wrap gap-1.5">
-                {(project.shortlistedPartners ?? []).map((pid) => {
-                  const partner = mockPartners.find((p) => p.id === pid);
+                {(project.shortlistedPartners ?? []).map((pid: string) => {
+                  const partner = undefined as any;
                   return (
                     <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ptba-charcoal border border-ptba-light-gray">
                       <CheckCircle2 className="h-3 w-3 text-green-600" />
@@ -425,8 +511,8 @@ export default function ProjectDetailPage({
                 onClick={() => {
                   // Check if all shortlisted mitra payments are verified
                   const shortlistedIds = project.shortlistedPartners ?? [];
-                  const allPaid = shortlistedIds.every((pid) => {
-                    const app = mockApplications.find((a) => a.projectId === id && a.partnerId === pid);
+                  const allPaid = shortlistedIds.every((pid: string) => {
+                    const app = undefined as any;
                     if (!app) return false;
                     const decision = paymentDecisions[app.id];
                     if (decision === "approved") return true;
@@ -457,23 +543,23 @@ export default function ProjectDetailPage({
       {/* Unverified Payment Warning Modal */}
       {showUnverifiedWarning && (() => {
         const shortlistedIds = project.shortlistedPartners ?? [];
-        const unverifiedMitra = shortlistedIds.filter((pid) => {
-          const app = mockApplications.find((a) => a.projectId === id && a.partnerId === pid);
+        const unverifiedMitra = shortlistedIds.filter((pid: string) => {
+          const app = undefined as any;
           if (!app) return true;
           const decision = paymentDecisions[app.id];
           if (decision === "approved") return false;
           if (!decision && app.feePaymentStatus === "Sudah Bayar") return false;
           return true;
-        }).map((pid) => mockPartners.find((p) => p.id === pid)?.name ?? pid);
+        }).map((pid: string) => (undefined as any)?.name ?? pid);
 
-        const verifiedMitra = shortlistedIds.filter((pid) => {
-          const app = mockApplications.find((a) => a.projectId === id && a.partnerId === pid);
+        const verifiedMitra = shortlistedIds.filter((pid: string) => {
+          const app = undefined as any;
           if (!app) return false;
           const decision = paymentDecisions[app.id];
           if (decision === "approved") return true;
           if (!decision && app.feePaymentStatus === "Sudah Bayar") return true;
           return false;
-        }).map((pid) => mockPartners.find((p) => p.id === pid)?.name ?? pid);
+        }).map((pid: string) => (undefined as any)?.name ?? pid);
 
         return (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setShowUnverifiedWarning(false)}>
@@ -493,7 +579,7 @@ export default function ProjectDetailPage({
               {/* Unverified list */}
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 mb-3">
                 <p className="text-xs font-semibold text-red-800 mb-1.5">Tidak Dapat Melanjutkan:</p>
-                {unverifiedMitra.map((name) => (
+                {unverifiedMitra.map((name: string) => (
                   <div key={name} className="flex items-center gap-1.5 text-xs text-red-700">
                     <XCircle className="h-3 w-3 shrink-0" /> {name}
                   </div>
@@ -504,7 +590,7 @@ export default function ProjectDetailPage({
               {verifiedMitra.length > 0 && (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-3 mb-4">
                   <p className="text-xs font-semibold text-green-800 mb-1.5">Melanjutkan ke Fase 2:</p>
-                  {verifiedMitra.map((name) => (
+                  {verifiedMitra.map((name: string) => (
                     <div key={name} className="flex items-center gap-1.5 text-xs text-green-700">
                       <CheckCircle2 className="h-3 w-3 shrink-0" /> {name}
                     </div>
@@ -547,12 +633,12 @@ export default function ProjectDetailPage({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", typeBadgeClass(project.type))}>
-                {project.type}
+                {typeLabel(project.type)}
               </span>
               <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", statusBadgeClass(project.status))}>
                 {project.status}
               </span>
-              {project.phase && (
+              {project.phase && project.phase !== "published" && (
                 <span className="rounded-full bg-ptba-steel-blue/10 px-2.5 py-0.5 text-xs font-semibold text-ptba-steel-blue">
                   {phaseLabel(project.phase)}
                 </span>
@@ -564,9 +650,9 @@ export default function ProjectDetailPage({
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-xs text-ptba-gray">Nilai CAPEX</p>
+            <p className="text-xs text-ptba-gray">Nilai Proyek</p>
             <p className="text-2xl font-bold text-ptba-navy">{formatCurrency(project.capexValue)}</p>
-            <p className="text-xs text-ptba-gray mt-1">{project.partners.length} Mitra Berpartisipasi</p>
+            <p className="text-xs text-ptba-gray mt-1">{projectPartners.length} Mitra Berpartisipasi</p>
           </div>
         </div>
 
@@ -578,7 +664,7 @@ export default function ProjectDetailPage({
               <span className="text-xs font-semibold text-ptba-navy">PIC yang Ditunjuk</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {project.picAssignments.map((pic) => (
+              {project.picAssignments.map((pic: any) => (
                 <span key={pic.userId} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs text-ptba-charcoal border border-ptba-light-gray">
                   <UserCheck className="h-3 w-3 text-ptba-steel-blue" />
                   <span className="font-medium">{pic.userName}</span>
@@ -590,16 +676,183 @@ export default function ProjectDetailPage({
         )}
 
         {/* Action Buttons */}
+        {isAdmin && project.status === "Draft" && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-ptba-gold/30 bg-ptba-gold/5 p-4">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-ptba-charcoal">Proyek masih dalam Draft</p>
+              <p className="text-xs text-ptba-gray mt-0.5">Publikasikan agar mitra dapat melihat proyek ini.</p>
+            </div>
+            <button
+              disabled={actionLoading}
+              onClick={async () => {
+                if (!accessToken) return;
+                setActionLoading(true);
+                try {
+                  const res = await projectApi(accessToken).publish(id);
+                  setProject(res.data);
+                } catch (err: any) {
+                  alert(err.message || "Gagal mempublikasikan proyek");
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-charcoal shadow-sm hover:bg-ptba-gold-light transition-colors disabled:opacity-50"
+            >
+              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Publikasikan
+            </button>
+          </div>
+        )}
+
+        {isAdmin && project.status === "Dipublikasikan" && !project.isOpenForApplication && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-ptba-steel-blue/30 bg-ptba-steel-blue/5 p-4">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-ptba-charcoal">Proyek sudah dipublikasikan</p>
+              <p className="text-xs text-ptba-gray mt-0.5">Mitra dapat melihat proyek ini. Buka pendaftaran agar mitra bisa mendaftar.</p>
+            </div>
+            <button
+              onClick={() => setShowOpenRegModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors"
+            >
+              <Rocket className="h-4 w-4" />
+              Buka Pendaftaran
+            </button>
+          </div>
+        )}
+
+        {/* Confirmation Modal: Buka Pendaftaran */}
+        {showOpenRegModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowOpenRegModal(false)}>
+            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-ptba-charcoal">Buka Pendaftaran Mitra</h2>
+                <button onClick={() => setShowOpenRegModal(false)} className="rounded-lg p-1.5 hover:bg-ptba-section-bg transition-colors">
+                  <X className="h-5 w-5 text-ptba-gray" />
+                </button>
+              </div>
+              <div className="rounded-lg bg-ptba-section-bg p-4 mb-4">
+                <p className="text-sm text-ptba-charcoal leading-relaxed">
+                  Dengan membuka pendaftaran, mitra yang telah terdaftar di sistem akan dapat melihat dan <strong>mendaftar</strong> ke proyek <strong>{project.name}</strong>.
+                </p>
+              </div>
+              <div className="space-y-2 mb-5 text-xs text-ptba-gray">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                  <span>Status proyek akan berubah menjadi <strong className="text-ptba-charcoal">Evaluasi</strong></span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                  <span>Mitra dapat mengunggah dokumen EoI (Expression of Interest)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <span>Pastikan persyaratan dan dokumen proyek sudah lengkap</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowOpenRegModal(false)}
+                  className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  disabled={actionLoading}
+                  onClick={async () => {
+                    if (!accessToken) return;
+                    setActionLoading(true);
+                    try {
+                      const res = await projectApi(accessToken).openRegistration(id);
+                      setProject(res.data);
+                      setShowOpenRegModal(false);
+                    } catch (err: any) {
+                      alert(err.message || "Gagal membuka pendaftaran");
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                  Ya, Buka Pendaftaran
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Modal: Tutup Pendaftaran */}
+        {showCloseRegModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCloseRegModal(false)}>
+            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-ptba-charcoal">Tutup Pendaftaran Fase 1</h2>
+                <button onClick={() => setShowCloseRegModal(false)} className="rounded-lg p-1.5 hover:bg-ptba-section-bg transition-colors">
+                  <X className="h-5 w-5 text-ptba-gray" />
+                </button>
+              </div>
+              <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-4">
+                <p className="text-sm text-ptba-charcoal leading-relaxed">
+                  Pendaftaran untuk proyek <strong>{project.name}</strong> akan ditutup. Mitra tidak akan bisa mendaftar lagi setelah ini.
+                </p>
+              </div>
+              <div className="space-y-2 mb-5 text-xs text-ptba-gray">
+                <div className="flex items-start gap-2">
+                  <LockKeyhole className="h-3.5 w-3.5 text-ptba-red shrink-0 mt-0.5" />
+                  <span>Mitra tidak bisa mendaftar lagi ke proyek ini</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                  <span>Proyek akan masuk ke tahap evaluasi dokumen EoI</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <span>Pastikan semua mitra yang diharapkan sudah mendaftar</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCloseRegModal(false)}
+                  className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  disabled={actionLoading}
+                  onClick={async () => {
+                    if (!accessToken) return;
+                    setActionLoading(true);
+                    try {
+                      const res = await projectApi(accessToken).closeRegistration(id);
+                      setProject(res.data);
+                      setShowCloseRegModal(false);
+                    } catch (err: any) {
+                      alert(err.message || "Gagal menutup pendaftaran");
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
+                  Ya, Tutup Pendaftaran
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
         {isAdmin && project.status !== "Selesai" && project.status !== "Dibatalkan" && (
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-ptba-light-gray pt-4">
-            {/* Phase 1 actions */}
+            {/* Fase 1 actions */}
             {isPhase1 && project.phase === "phase1_registration" && project.isOpenForApplication && (
               <button
                 onClick={handleCloseRegistration}
                 className="inline-flex items-center gap-2 rounded-lg border border-ptba-red/30 bg-ptba-red/5 px-4 py-2 text-sm font-medium text-ptba-red hover:bg-ptba-red/10 transition-colors"
               >
                 <LockKeyhole className="h-4 w-4" />
-                Tutup Pendaftaran Phase 1
+                Tutup Pendaftaran Fase 1
               </button>
             )}
             {isPhase1 && (project.phase === "phase1_closed" || project.phase === "phase1_evaluation") && (
@@ -608,7 +861,7 @@ export default function ProjectDetailPage({
                 className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
               >
                 <ShieldCheck className="h-4 w-4" />
-                Mulai Evaluasi Phase 1
+                Mulai Evaluasi Fase 1
               </Link>
             )}
             {isPhase1 && project.phase === "phase1_approval" && (
@@ -617,11 +870,41 @@ export default function ProjectDetailPage({
                 className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-4 py-2 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
               >
                 <Send className="h-4 w-4" />
-                Persetujuan Shortlist
+                Menunggu Persetujuan
               </Link>
             )}
+            {project.phase === "phase1_announcement" && (
+              <>
+                <div className="inline-flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm font-medium text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Fase 1 Selesai
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!accessToken) return;
+                    setActionLoading(true);
+                    try {
+                      await api(`/projects/${id}/start-phase2`, {
+                        method: "POST",
+                        token: accessToken,
+                      });
+                      window.location.reload();
+                    } catch {
+                      alert("Gagal memulai Fase 2");
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-ptba-steel-blue px-4 py-2 text-sm font-bold text-white hover:bg-ptba-steel-blue/90 transition-colors disabled:opacity-50"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  {actionLoading ? "Memproses..." : "Lanjutkan ke Fase 2"}
+                </button>
+              </>
+            )}
 
-            {/* Phase 2 actions */}
+            {/* Fase 2 actions */}
             {isPhase2 && (
               <>
                 {allEvalsComplete ? (
@@ -649,64 +932,89 @@ export default function ProjectDetailPage({
           </div>
         )}
 
-        {/* Two-Phase Progress Bar */}
+        {/* Two-Phase Progress */}
         <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between text-xs text-ptba-gray">
-            <span>Langkah {project.currentStep} dari {project.totalSteps}</span>
-            <span className="font-medium text-ptba-navy">
-              {PROJECT_STEPS[project.currentStep - 1]?.name ?? ""}
-            </span>
+          {/* Current step highlight */}
+          <div className="mb-3 rounded-lg bg-ptba-navy/5 border border-ptba-navy/10 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-ptba-gray">Tahap Saat Ini</p>
+                <p className="text-sm font-bold text-ptba-navy">
+                  {PROJECT_STEPS[project.currentStep - 1]?.name ?? "Inisiasi"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-ptba-gray">Progres</p>
+                <p className="text-sm font-bold text-ptba-charcoal">
+                  {Math.round((project.currentStep / project.totalSteps) * 100)}%
+                </p>
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-ptba-gray">
+              {PROJECT_STEPS[project.currentStep - 1]?.description ?? ""}
+            </p>
           </div>
-          <div className="flex items-center gap-0">
-            {/* Phase 1 */}
-            <div className="flex-1">
-              <div className="flex gap-0.5 overflow-hidden rounded-l-full">
-                {PHASE1_STEPS.map((s) => {
-                  const isCompleted = s.step < project.currentStep;
-                  const isCurrent = s.step === project.currentStep;
-                  return (
+
+          {/* Fase 1 Steps */}
+          <div className="mb-1">
+            <p className="text-[10px] font-semibold text-ptba-navy mb-1">Fase 1: EoI</p>
+            <div className="flex gap-0.5">
+              {PHASE1_STEPS.map((s) => {
+                const isCompleted = s.step < project.currentStep;
+                const isCurrent = s.step === project.currentStep;
+                return (
+                  <div key={s.step} className="flex-1 group relative">
                     <div
-                      key={s.step}
-                      title={`${s.step}. ${s.name}`}
                       className={cn(
-                        "h-3 flex-1 transition-colors",
+                        "h-2.5 rounded-sm transition-colors",
                         isCompleted && "bg-ptba-navy",
                         isCurrent && "bg-ptba-gold",
                         !isCompleted && !isCurrent && "bg-ptba-light-gray"
                       )}
                     />
-                  );
-                })}
-              </div>
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
+                      <div className="whitespace-nowrap rounded bg-ptba-charcoal px-2 py-1 text-[10px] text-white shadow-lg">
+                        {s.step}. {s.name}
+                      </div>
+                    </div>
+                    {isCurrent && (
+                      <p className="mt-0.5 text-[9px] text-ptba-gold font-semibold text-center truncate">{s.name}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            {/* Separator */}
-            <div className="w-1 h-5 bg-ptba-charcoal/20 mx-0.5 rounded" />
-            {/* Phase 2 */}
-            <div className="flex-1">
-              <div className="flex gap-0.5 overflow-hidden rounded-r-full">
-                {PHASE2_STEPS.map((s) => {
-                  const isCompleted = s.step < project.currentStep;
-                  const isCurrent = s.step === project.currentStep;
-                  return (
+          </div>
+
+          {/* Fase 2 Steps */}
+          <div className="mt-2">
+            <p className="text-[10px] font-semibold text-ptba-steel-blue mb-1">Fase 2: Assessment</p>
+            <div className="flex gap-0.5">
+              {PHASE2_STEPS.map((s) => {
+                const isCompleted = s.step < project.currentStep;
+                const isCurrent = s.step === project.currentStep;
+                return (
+                  <div key={s.step} className="flex-1 group relative">
                     <div
-                      key={s.step}
-                      title={`${s.step}. ${s.name}`}
                       className={cn(
-                        "h-3 flex-1 transition-colors",
+                        "h-2.5 rounded-sm transition-colors",
                         isCompleted && "bg-ptba-steel-blue",
                         isCurrent && "bg-ptba-gold",
                         !isCompleted && !isCurrent && "bg-ptba-light-gray"
                       )}
                     />
-                  );
-                })}
-              </div>
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
+                      <div className="whitespace-nowrap rounded bg-ptba-charcoal px-2 py-1 text-[10px] text-white shadow-lg">
+                        {s.step}. {s.name}
+                      </div>
+                    </div>
+                    {isCurrent && (
+                      <p className="mt-0.5 text-[9px] text-ptba-gold font-semibold text-center truncate">{s.name}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          <div className="mt-1.5 flex justify-between text-[10px] text-ptba-gray/60">
-            <span>Phase 1: EoI</span>
-            <span className="text-ptba-charcoal/30">|</span>
-            <span>Phase 2: Assessment</span>
           </div>
         </div>
       </div>
@@ -716,7 +1024,7 @@ export default function ProjectDetailPage({
         <nav className="flex gap-6">
           {(
             [
-              { key: "mitra", label: "Mitra", icon: Building2 },
+              { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
               { key: "dokumen", label: "Dokumen", icon: FileText },
               { key: "informasi", label: "Informasi", icon: Info },
             ] as const
@@ -764,13 +1072,12 @@ export default function ProjectDetailPage({
             </div>
           )}
 
-          {/* Phase 1 Active: Card-based EBD evaluation */}
+          {/* Fase 1 Active: Card-based EBD evaluation */}
           {isPhase1 && !isPhase1Approved && (
             <div className="space-y-3">
               {projectPartners.map((partner) => {
-                const app = projectApplications.find((a) => a.partnerId === partner.id);
-                const phase1DocCount = app?.phase1Documents?.length ?? 0;
-                const hasResult = !!partner.phase1Result;
+                const app = projectApplications.find((a: any) => a.partner_id === partner.id);
+                const hasResult = !!partner.phase1Result || partner.hasEvaluation;
                 const isLolos = partner.phase1Result === "Lolos";
                 const isTidakLolos = partner.phase1Result === "Tidak Lolos";
 
@@ -799,7 +1106,7 @@ export default function ProjectDetailPage({
                           <p className="text-xs text-ptba-gray">{partner.code}</p>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1 rounded-full bg-ptba-section-bg px-2 py-0.5 text-[11px] text-ptba-gray">
-                              <FileText className="h-3 w-3" /> {phase1DocCount} dokumen EoI
+                              <FileText className="h-3 w-3" /> {partner.status}
                             </span>
                             {hasResult ? (
                               <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
@@ -854,14 +1161,15 @@ export default function ProjectDetailPage({
             </div>
           )}
 
-          {/* Phase 1 Approved: Payment Verification View */}
+          {/* Fase 1 Approved: Payment Verification View */}
           {isPhase1Approved && (() => {
-            const shortlistedIds = project.shortlistedPartners ?? [];
-            const shortlistedApps = shortlistedIds.map((pid) => {
-              const partner = mockPartners.find((p) => p.id === pid);
-              const app = mockApplications.find((a) => a.projectId === id && a.partnerId === pid);
-              return { partner, app, pid };
-            });
+            const shortlistedApps = projectApplications
+              .filter((a: any) => a.status === "Shortlisted" || a.phase1_result === "Lolos")
+              .map((a: any) => ({
+                partner: { name: a.partner_name, code: a.partner_id?.substring(0, 8) },
+                app: a,
+                pid: a.partner_id,
+              }));
 
             const getDecision = (appId?: string, status?: string): PaymentDecision => {
               if (appId && paymentDecisions[appId]) return paymentDecisions[appId];
@@ -871,10 +1179,10 @@ export default function ProjectDetailPage({
             };
 
             const pendingCount = shortlistedApps.filter(
-              ({ app }) => app?.feePaymentStatus === "Menunggu Verifikasi" && getDecision(app?.id, app?.feePaymentStatus) === "pending"
+              ({ app }: any) => app?.fee_payment_status === "Menunggu Verifikasi" && getDecision(app?.id, app?.fee_payment_status) === "pending"
             ).length;
             const verifiedCount = shortlistedApps.filter(
-              ({ app }) => getDecision(app?.id, app?.feePaymentStatus) === "approved"
+              ({ app }: any) => getDecision(app?.id, app?.fee_payment_status) === "approved"
             ).length;
 
             return (
@@ -892,9 +1200,9 @@ export default function ProjectDetailPage({
                   </div>
                 </div>
 
-                {shortlistedApps.map(({ partner, app, pid }) => {
-                  const decision = getDecision(app?.id, app?.feePaymentStatus);
-                  const hasPendingPayment = app?.feePaymentStatus === "Menunggu Verifikasi" && decision === "pending";
+                {shortlistedApps.map(({ partner, app, pid }: any) => {
+                  const decision = getDecision(app?.id, app?.fee_payment_status);
+                  const hasPendingPayment = app?.fee_payment_status === "Menunggu Verifikasi" && decision === "pending";
 
                   return (
                     <div
@@ -954,8 +1262,8 @@ export default function ProjectDetailPage({
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-ptba-gray" />
                               <div>
-                                <p className="text-sm font-medium text-ptba-charcoal">{app?.feePaymentProof}</p>
-                                <p className="text-[10px] text-ptba-gray">Diunggah: {app?.feePaymentDate ? formatDate(app.feePaymentDate) : '-'}</p>
+                                <p className="text-sm font-medium text-ptba-charcoal">{app?.fee_payment_proof}</p>
+                                <p className="text-[10px] text-ptba-gray">Diunggah: {app?.feePaymentDate ? formatDate(app.fee_payment_date) : '-'}</p>
                               </div>
                             </div>
                             <button
@@ -967,15 +1275,26 @@ export default function ProjectDetailPage({
                             </button>
                           </div>
 
-                          {viewingPayProof === pid && (
-                            <div className="mb-3 rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-6 text-center">
-                              <div className="mx-auto h-32 w-56 rounded-lg bg-white border border-ptba-light-gray flex items-center justify-center">
-                                <div className="text-center">
-                                  <FileText className="mx-auto h-6 w-6 text-ptba-gray mb-1" />
-                                  <p className="text-[10px] text-ptba-gray">{app?.feePaymentProof}</p>
-                                  <p className="text-xs font-bold text-ptba-navy mt-1">{formatCurrency(project.registrationFee ?? 0)}</p>
-                                </div>
-                              </div>
+                          {viewingPayProof === pid && app?.fee_payment_proof && (
+                            <div className="mb-3">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const key = encodeURIComponent(app.fee_payment_proof);
+                                    const res = await fetch(`/api/documents/download?key=${key}`, {
+                                      headers: { Authorization: `Bearer ${accessToken}` },
+                                    });
+                                    if (!res.ok) return;
+                                    const blob = await res.blob();
+                                    window.open(URL.createObjectURL(blob), "_blank");
+                                  } catch { /* ignore */ }
+                                }}
+                                className="w-full rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-4 text-center hover:bg-ptba-steel-blue/5 transition-colors"
+                              >
+                                <FileText className="mx-auto h-8 w-8 text-ptba-steel-blue mb-2" />
+                                <p className="text-sm font-medium text-ptba-navy">Klik untuk membuka bukti pembayaran</p>
+                                <p className="text-xs text-ptba-gray mt-0.5">{formatCurrency(project.registrationFee ?? 0)}</p>
+                              </button>
                             </div>
                           )}
 
@@ -992,7 +1311,14 @@ export default function ProjectDetailPage({
                               <div className="flex gap-2">
                                 <button onClick={() => setShowPayRejectForm(null)} className="rounded-lg border border-ptba-light-gray px-3 py-1.5 text-xs text-ptba-gray hover:bg-white transition-colors">Batal</button>
                                 <button
-                                  onClick={() => { if (app?.id) setPaymentDecisions((prev) => ({ ...prev, [app.id]: "rejected" })); setShowPayRejectForm(null); }}
+                                  onClick={async () => {
+                                    if (!app?.id || !accessToken) return;
+                                    try {
+                                      await api(`/applications/${app.id}/verify-fee`, { method: "PUT", token: accessToken, body: { decision: "reject", notes: payRejectNotes[pid] } });
+                                      setPaymentDecisions((prev) => ({ ...prev, [app.id]: "rejected" }));
+                                      setShowPayRejectForm(null);
+                                    } catch { /* ignore */ }
+                                  }}
                                   className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors"
                                 >Konfirmasi Tolak</button>
                               </div>
@@ -1000,7 +1326,13 @@ export default function ProjectDetailPage({
                           ) : (
                             <div className="flex gap-3">
                               <button
-                                onClick={() => { if (app?.id) setPaymentDecisions((prev) => ({ ...prev, [app.id]: "approved" })); }}
+                                onClick={async () => {
+                                  if (!app?.id || !accessToken) return;
+                                  try {
+                                    await api(`/applications/${app.id}/verify-fee`, { method: "PUT", token: accessToken, body: { decision: "approve" } });
+                                    setPaymentDecisions((prev) => ({ ...prev, [app.id]: "approved" }));
+                                  } catch { /* ignore */ }
+                                }}
                                 className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
                               >
                                 <ThumbsUp className="h-4 w-4" /> Verifikasi Pembayaran
@@ -1033,7 +1365,7 @@ export default function ProjectDetailPage({
                         </div>
                       )}
 
-                      {(!app?.feePaymentStatus || app.feePaymentStatus === "Belum Bayar") && decision === "pending" && (
+                      {(!app?.fee_payment_status || app.feePaymentStatus === "Belum Bayar") && decision === "pending" && (
                         <div className="mt-3 pt-3 border-t border-ptba-light-gray/50 flex items-center gap-2 text-sm text-ptba-gray">
                           <Clock className="h-4 w-4" />
                           Mitra belum melakukan pembayaran
@@ -1046,12 +1378,12 @@ export default function ProjectDetailPage({
             );
           })()}
 
-          {/* Phase 2 View: Full evaluation matrix */}
-          {(isPhase2 || (!isPhase1 && !isPhase2)) && (
+          {/* Fase 2 View: Full evaluation matrix */}
+          {isPhase2 && (
             <div className="overflow-x-auto">
               <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
                 <BarChart3 className="h-4 w-4 text-ptba-steel-blue" />
-                <span className="text-sm font-medium text-ptba-steel-blue">Phase 2: Evaluasi Multi-Divisi</span>
+                <span className="text-sm font-medium text-ptba-steel-blue">Fase 2: Evaluasi Multi-Divisi</span>
                 <span className="text-xs text-ptba-gray ml-1">— Hanya mitra shortlisted yang ditampilkan</span>
               </div>
               <table className="w-full text-sm">
@@ -1118,9 +1450,14 @@ export default function ProjectDetailPage({
           )}
 
           {projectPartners.length === 0 && (
-            <p className="py-8 text-center text-sm text-ptba-gray">
-              Belum ada mitra yang berpartisipasi dalam proyek ini.
-            </p>
+            <div className="py-12 text-center">
+              <Building2 className="mx-auto h-10 w-10 text-ptba-light-gray mb-3" />
+              <p className="text-sm text-ptba-gray">
+                {!project.phase || project.phase === "published"
+                  ? "Pendaftaran mitra belum dibuka. Buka pendaftaran terlebih dahulu agar mitra dapat mendaftar."
+                  : "Belum ada mitra yang berpartisipasi dalam proyek ini."}
+              </p>
+            </div>
           )}
         </div>
       )}
@@ -1152,7 +1489,7 @@ export default function ProjectDetailPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {partner.documents.map((doc) => (
+                    {partner.documents.map((doc: any) => (
                       <tr key={doc.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
                         <td className="py-2 pr-4 font-medium text-ptba-charcoal">{doc.name}</td>
                         <td className="py-2 pr-4 text-ptba-gray text-xs">{doc.type}</td>
@@ -1179,84 +1516,319 @@ export default function ProjectDetailPage({
       )}
 
       {/* Tab C: Informasi */}
-      {activeTab === "informasi" && (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {activeTab === "informasi" && (() => {
+        const inputCls = "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
+        const reqs = (project.requirements || []).map((r: any) => typeof r === "string" ? r : r.requirement);
+
+        return (
+        <div className="space-y-6">
+          {/* Top bar: Edit / Save / Cancel */}
+          {isAdmin && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-ptba-gray">{editMode ? "Mode edit aktif — ubah informasi proyek di bawah" : ""}</p>
+              <div className="flex gap-2">
+                {editMode ? (
+                  <>
+                    <button onClick={() => setEditMode(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                      Batal
+                    </button>
+                    <button disabled={saving} onClick={saveAll} className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
+                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                      Simpan Semua
+                    </button>
+                  </>
+                ) : applicationCount ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ptba-gray">Tidak dapat diedit — {applicationCount} mitra sudah mendaftar</span>
+                    <button disabled className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-400 cursor-not-allowed">
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit Proyek
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => router.push(`/projects/${id}/edit`)} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-4 py-2 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit Proyek
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Deskripsi Proyek */}
+            <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+              <h3 className="mb-3 font-semibold text-ptba-charcoal">Deskripsi Proyek</h3>
+              {editMode ? (
+                <textarea value={editDraft.description} onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))} className={cn(inputCls, "min-h-[80px] resize-y")} />
+              ) : (
+                <p className="text-sm leading-relaxed text-ptba-gray">{project.description || "-"}</p>
+              )}
+            </div>
+
+            {/* Informasi Umum */}
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h3 className="mb-4 font-semibold text-ptba-charcoal">Informasi Umum</h3>
+              {editMode ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Proyek</label>
+                    <input type="text" value={editDraft.name} onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tipe Proyek</label>
+                    <select value={editDraft.type} onChange={(e) => setEditDraft((d) => ({ ...d, type: e.target.value }))} className={inputCls}>
+                      <option value="mining">Operasi Pertambangan</option>
+                      <option value="power_generation">Pembangkit Listrik</option>
+                      <option value="coal_processing">Pengolahan Batubara</option>
+                      <option value="infrastructure">Infrastruktur</option>
+                      <option value="environmental">Lingkungan & Reklamasi</option>
+                      <option value="corporate">Layanan Korporat</option>
+                      <option value="others">Lainnya</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Proyek</label>
+                    <input type="number" value={editDraft.capexValue} onChange={(e) => setEditDraft((d) => ({ ...d, capexValue: e.target.value }))} className={inputCls} />
+                  </div>
+                </div>
+              ) : (
+                <dl className="space-y-3 text-sm">
+                  <div className="flex justify-between"><dt className="text-ptba-gray">ID Proyek</dt><dd className="font-medium text-ptba-charcoal text-xs">{project.id}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Sektor</dt><dd><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", typeBadgeClass(project.type))}>{typeLabel(project.type)}</span></dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Status</dt><dd><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", statusBadgeClass(project.status))}>{project.status}</span></dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Phase</dt><dd className="font-medium text-ptba-steel-blue text-xs">{phaseLabel(project.phase)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Nilai Proyek</dt><dd className="font-bold text-ptba-navy">{formatCurrency(project.capexValue)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Jumlah Mitra</dt><dd className="font-medium text-ptba-charcoal">{projectPartners.length} mitra</dd></div>
+                </dl>
+              )}
+            </div>
+
+            {/* Timeline */}
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h3 className="mb-4 font-semibold text-ptba-charcoal">Timeline</h3>
+              {editMode ? (
+                <div className="space-y-3">
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Mulai</label><input type="date" value={editDraft.startDate} onChange={(e) => setEditDraft((d) => ({ ...d, startDate: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Selesai</label><input type="date" value={editDraft.endDate} onChange={(e) => setEditDraft((d) => ({ ...d, endDate: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1</label><input type="date" value={editDraft.phase1Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase1Deadline: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2</label><input type="date" value={editDraft.phase2Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase2Deadline: e.target.value }))} className={inputCls} /></div>
+                </div>
+              ) : (
+                <dl className="space-y-3 text-sm">
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Tanggal Mulai</dt><dd className="font-medium text-ptba-charcoal">{formatDate(project.startDate)}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Tanggal Selesai</dt><dd className="font-medium text-ptba-charcoal">{formatDate(project.endDate)}</dd></div>
+                  {project.phase1Deadline && <div className="flex justify-between"><dt className="text-ptba-gray">Deadline Fase 1</dt><dd className="font-medium text-ptba-steel-blue">{formatDate(project.phase1Deadline)}</dd></div>}
+                  {project.phase2Deadline && <div className="flex justify-between"><dt className="text-ptba-gray">Deadline Fase 2</dt><dd className="font-medium text-ptba-navy">{formatDate(project.phase2Deadline)}</dd></div>}
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Progres Langkah</dt><dd className="font-medium text-ptba-charcoal">{project.currentStep}/{project.totalSteps}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ptba-gray">Langkah Saat Ini</dt><dd className="font-medium text-ptba-charcoal">{PROJECT_STEPS[project.currentStep - 1]?.name ?? "-"}</dd></div>
+                </dl>
+              )}
+            </div>
+
+            {/* Persyaratan Mitra */}
+            <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+              <h3 className="mb-4 font-semibold text-ptba-charcoal">Persyaratan Mitra</h3>
+              {editMode ? (
+                <div className="space-y-3">
+                  {reqDraft.map((req, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ptba-navy/10 text-xs font-medium text-ptba-navy">{i + 1}</span>
+                      <input type="text" value={req} onChange={(e) => { const next = [...reqDraft]; next[i] = e.target.value; setReqDraft(next); }} placeholder="Contoh: Pengalaman minimal 5 tahun di bidang pertambangan" className={cn(inputCls, "flex-1")} />
+                      <button onClick={() => setReqDraft((prev) => prev.filter((_, idx) => idx !== i))} disabled={reqDraft.length <= 1} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={() => setReqDraft((prev) => [...prev, ""])} className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-ptba-steel-blue/40 px-3 py-2 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors">
+                    <Plus className="h-3.5 w-3.5" /> Tambah Persyaratan
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  {reqs.length === 0
+                    ? <p className="text-sm text-ptba-gray italic">Belum ada persyaratan.</p>
+                    : <ol className="space-y-2">{reqs.map((req: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ptba-navy/10 text-[10px] font-bold text-ptba-navy mt-0.5">{i + 1}</span>
+                          <span className="text-ptba-charcoal">{req}</span>
+                        </li>
+                      ))}</ol>
+                  }
+                </div>
+              )}
+            </div>
+
+          {/* Dokumen yang Diperlukan */}
           <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
-            <h3 className="mb-3 font-semibold text-ptba-charcoal">Deskripsi Proyek</h3>
-            <p className="text-sm leading-relaxed text-ptba-gray">{project.description}</p>
+            <h3 className="mb-4 font-semibold text-ptba-charcoal">Dokumen yang Diperlukan</h3>
+            {(() => {
+              const requiredDocs = project.requiredDocuments || [];
+              const phase1Docs = requiredDocs.filter((d: any) => d.phase === "phase1");
+              const phase2Docs = requiredDocs.filter((d: any) => d.phase === "phase2");
+              const generalDocs = requiredDocs.filter((d: any) => d.phase !== "phase1" && d.phase !== "phase2");
+
+              const getDocName = (typeId: string) => {
+                const dt = DOCUMENT_TYPES.find((d) => d.id === typeId);
+                return dt ? dt.name : typeId;
+              };
+              const getDocDesc = (typeId: string) => {
+                const dt = DOCUMENT_TYPES.find((d) => d.id === typeId);
+                return dt?.description || "";
+              };
+
+              if (requiredDocs.length === 0) {
+                return <p className="text-sm text-ptba-gray italic">Belum ada dokumen yang dikonfigurasi.</p>;
+              }
+
+              return (
+                <div className="space-y-4">
+                  {phase1Docs.length > 0 && (
+                    <div>
+                      <div className="rounded-lg border border-ptba-steel-blue/30 overflow-hidden">
+                        <div className="bg-ptba-steel-blue/10 px-4 py-2">
+                          <p className="text-xs font-semibold text-ptba-steel-blue">Fase 1 - Dokumen EoI ({phase1Docs.length})</p>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {phase1Docs.map((d: any) => (
+                            <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
+                                <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {phase2Docs.length > 0 && (
+                    <div>
+                      <div className="rounded-lg border border-ptba-navy/30 overflow-hidden">
+                        <div className="bg-ptba-navy/10 px-4 py-2">
+                          <p className="text-xs font-semibold text-ptba-navy">Fase 2 - Dokumen Assessment ({phase2Docs.length})</p>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {phase2Docs.map((d: any) => (
+                            <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-ptba-navy shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
+                                <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {generalDocs.length > 0 && (
+                    <div>
+                      <div className="rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="bg-gray-50 px-4 py-2">
+                          <p className="text-xs font-semibold text-ptba-gray">Dokumen Umum ({generalDocs.length})</p>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {generalDocs.map((d: any) => (
+                            <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-ptba-gray shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
+                                <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 font-semibold text-ptba-charcoal">Informasi Umum</h3>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">ID Proyek</dt>
-                <dd className="font-medium text-ptba-charcoal">{project.id}</dd>
+          {/* Dokumen Pendukung Proyek (PTBA uploads) */}
+          <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+            <h3 className="mb-4 font-semibold text-ptba-charcoal">Dokumen Pendukung Proyek</h3>
+            {project.ptbaDocuments && project.ptbaDocuments.length > 0 ? (
+              <div className="space-y-2">
+                {project.ptbaDocuments.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
+                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name}</p>
+                      <p className="text-xs text-ptba-gray">{doc.type}</p>
+                    </div>
+                    {doc.fileKey && accessToken && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/projects/${id}/documents/${doc.id}`, {
+                              headers: { Authorization: `Bearer ${accessToken}` },
+                            });
+                            if (!res.ok) return;
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            window.open(url, "_blank");
+                          } catch { /* ignore */ }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Lihat
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Tipe</dt>
-                <dd><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", typeBadgeClass(project.type))}>{project.type}</span></dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Status</dt>
-                <dd><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", statusBadgeClass(project.status))}>{project.status}</span></dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Phase</dt>
-                <dd className="font-medium text-ptba-steel-blue text-xs">{phaseLabel(project.phase)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Nilai CAPEX</dt>
-                <dd className="font-bold text-ptba-navy">{formatCurrency(project.capexValue)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Jumlah Mitra</dt>
-                <dd className="font-medium text-ptba-charcoal">{project.partners.length} mitra</dd>
-              </div>
-              {project.shortlistedPartners && (
-                <div className="flex justify-between">
-                  <dt className="text-ptba-gray">Mitra Shortlisted</dt>
-                  <dd className="font-medium text-green-600">{project.shortlistedPartners.length} mitra</dd>
-                </div>
-              )}
-            </dl>
+            ) : (
+              <p className="text-sm text-ptba-gray italic">Belum ada dokumen pendukung. Upload melalui halaman edit.</p>
+            )}
           </div>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 font-semibold text-ptba-charcoal">Timeline</h3>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Tanggal Mulai</dt>
-                <dd className="font-medium text-ptba-charcoal">{formatDate(project.startDate)}</dd>
+          {/* PIC yang Ditunjuk */}
+          <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+            <h3 className="mb-4 font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
+            {project.picAssignments && project.picAssignments.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {project.picAssignments.map((pic: any) => (
+                  <div key={pic.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ptba-navy/10">
+                      <UserCheck className="h-4 w-4 text-ptba-navy" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ptba-charcoal truncate">{pic.userName || "-"}</p>
+                      <p className="text-xs text-ptba-gray uppercase">{pic.role}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Tanggal Selesai</dt>
-                <dd className="font-medium text-ptba-charcoal">{formatDate(project.endDate)}</dd>
-              </div>
-              {project.phase1Deadline && (
-                <div className="flex justify-between">
-                  <dt className="text-ptba-gray">Deadline Phase 1</dt>
-                  <dd className="font-medium text-ptba-steel-blue">{formatDate(project.phase1Deadline)}</dd>
-                </div>
-              )}
-              {project.phase2Deadline && (
-                <div className="flex justify-between">
-                  <dt className="text-ptba-gray">Deadline Phase 2</dt>
-                  <dd className="font-medium text-ptba-navy">{formatDate(project.phase2Deadline)}</dd>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Progres Langkah</dt>
-                <dd className="font-medium text-ptba-charcoal">{project.currentStep}/{project.totalSteps}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-ptba-gray">Langkah Saat Ini</dt>
-                <dd className="font-medium text-ptba-charcoal">{PROJECT_STEPS[project.currentStep - 1]?.name ?? "-"}</dd>
-              </div>
-            </dl>
+            ) : (
+              <p className="text-sm text-ptba-gray italic">Belum ada PIC yang ditunjuk.</p>
+            )}
           </div>
+          </div>
+
+          {/* Bottom save bar in edit mode */}
+          {editMode && isAdmin && (
+            <div className="rounded-xl bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-end gap-3">
+                <button onClick={() => setEditMode(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                  Batal
+                </button>
+                <button disabled={saving} onClick={saveAll} className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-6 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Simpan Semua Perubahan
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Persetujuan Modal */}
       {showPersetujuanModal && (

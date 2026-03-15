@@ -1,38 +1,47 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, Download, FileText, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockApplications } from "@/lib/mock-data/applications";
+import { api, projectApi } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
+const TYPE_LABELS: Record<string, string> = {
+  mining: "Pertambangan", power_generation: "Pembangkit Listrik", coal_processing: "Pengolahan Batubara",
+  infrastructure: "Infrastruktur", environmental: "Lingkungan", corporate: "Korporat", others: "Lainnya",
+};
+
 function typeBadge(type: string) {
-  switch (type) {
-    case "CAPEX": return "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20";
-    case "OPEX": return "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20";
-    case "Strategis": return "bg-purple-100 text-purple-700 border border-purple-200";
-    default: return "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
-  }
+  const map: Record<string, string> = {
+    mining: "bg-amber-100 text-amber-700 border border-amber-200",
+    power_generation: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
+    coal_processing: "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20",
+    infrastructure: "bg-blue-100 text-blue-700 border border-blue-200",
+    environmental: "bg-green-100 text-green-700 border border-green-200",
+    corporate: "bg-gray-100 text-gray-600 border border-gray-200",
+    others: "bg-purple-100 text-purple-700 border border-purple-200",
+  };
+  return map[type] ?? "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
 }
 
 function phaseLabel(phase?: string): string {
   if (!phase) return "";
   const map: Record<string, string> = {
-    phase1_registration: "Phase 1 - Pendaftaran EoI",
-    phase1_closed: "Phase 1 - Pendaftaran Ditutup",
-    phase1_evaluation: "Phase 1 - Evaluasi",
-    phase1_approval: "Phase 1 - Persetujuan",
-    phase1_announcement: "Phase 1 - Pengumuman",
-    phase2_registration: "Phase 2 - Pendaftaran",
-    phase2_evaluation: "Phase 2 - Evaluasi",
-    phase2_ranking: "Phase 2 - Peringkat",
-    phase2_negotiation: "Phase 2 - Negosiasi",
-    phase2_approval: "Phase 2 - Persetujuan",
-    phase2_announcement: "Phase 2 - Pengumuman",
+    published: "Dipublikasikan",
+    phase1_registration: "Fase 1 - Pendaftaran EoI",
+    phase1_closed: "Fase 1 - Pendaftaran Ditutup",
+    phase1_evaluation: "Fase 1 - Evaluasi",
+    phase1_approval: "Fase 1 - Persetujuan",
+    phase1_announcement: "Fase 1 - Pengumuman",
+    phase2_registration: "Fase 2 - Pendaftaran",
+    phase2_evaluation: "Fase 2 - Evaluasi",
+    phase2_ranking: "Fase 2 - Peringkat",
+    phase2_negotiation: "Fase 2 - Negosiasi",
+    phase2_approval: "Fase 2 - Persetujuan",
+    phase2_announcement: "Fase 2 - Pengumuman",
     completed: "Selesai",
     cancelled: "Dibatalkan",
   };
@@ -42,14 +51,36 @@ function phaseLabel(phase?: string): string {
 export default function MitraProjectDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const projectId = params.id as string;
 
-  const project = mockProjects.find((p) => p.id === projectId);
-  const application = useMemo(
-    () => mockApplications.find((a) => a.projectId === projectId && a.partnerId === user?.partnerId),
-    [projectId, user?.partnerId]
-  );
+  const [project, setProject] = useState<any>(null);
+  const [application, setApplication] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoading(true);
+    Promise.all([
+      projectApi(accessToken).getById(projectId),
+      api<{ applications: any[] }>("/applications", { token: accessToken }),
+    ]).then(([projRes, appRes]) => {
+      setProject(projRes.data);
+      const apps = appRes.applications || [];
+      setApplication(apps.find((a: any) => a.project_id === projectId) || null);
+    }).catch(() => {
+      setProject(null);
+    }).finally(() => setLoading(false));
+  }, [projectId, accessToken]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">Memuat proyek...</span>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -64,16 +95,29 @@ export default function MitraProjectDetailPage() {
     );
   }
 
-  const isDeadlinePassed = project.applicationDeadline && new Date(project.applicationDeadline) < new Date();
   const phase1DeadlinePassed = project.phase1Deadline && new Date(project.phase1Deadline) < new Date();
-  const canApply = project.isOpenForApplication && !phase1DeadlinePassed && !isDeadlinePassed && !application;
-  const isShortlisted = application?.phase1Result === "Lolos";
+  const hasPendingApplication = application && application.status !== "Draft";
+  const canApply = project.isOpenForApplication && !phase1DeadlinePassed && !hasPendingApplication;
   const isPhase2 = project.phase?.startsWith("phase2");
+  const isShortlisted = application?.status === "Shortlisted";
   const canAccessPhase2 = isShortlisted && isPhase2;
 
-  const requiredDocTypes = (project.requiredDocuments ?? [])
-    .map((id) => DOCUMENT_TYPES.find((d) => d.id === id))
-    .filter(Boolean);
+  // Required documents from project - grouped by phase
+  const requiredDocs = project.requiredDocuments || [];
+  const phase1RequiredDocs = requiredDocs
+    .filter((d: any) => d.phase === "phase1" || d.phase === "both")
+    .map((d: any) => {
+      const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+      return { id: d.documentTypeId, name: meta?.name || d.documentTypeId.replace(/_/g, " "), required: meta?.required ?? false, phase: d.phase };
+    });
+  const phase2RequiredDocs = requiredDocs
+    .filter((d: any) => d.phase === "phase2" || d.phase === "both")
+    .map((d: any) => {
+      const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+      return { id: d.documentTypeId, name: meta?.name || d.documentTypeId.replace(/_/g, " "), required: meta?.required ?? false, phase: d.phase };
+    });
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
   return (
     <div className="space-y-6">
@@ -84,9 +128,9 @@ export default function MitraProjectDetailPage() {
       {/* Project Header */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
         <div className="flex flex-wrap gap-2 mb-3">
-          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.type}</span>
+          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{TYPE_LABELS[project.type] || project.type}</span>
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status}</span>
-          {project.phase && (
+          {project.phase && project.phase !== "published" && (
             <span className="inline-flex rounded-full bg-white/30 px-2.5 py-0.5 text-xs font-semibold">
               {phaseLabel(project.phase)}
             </span>
@@ -95,17 +139,17 @@ export default function MitraProjectDetailPage() {
         <h1 className="text-2xl font-bold">{project.name}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
           <span>Nilai: {formatCurrency(project.capexValue)}</span>
-          <span>Periode: {formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
+          {project.startDate && <span>Periode: {formatDate(project.startDate)} - {formatDate(project.endDate)}</span>}
           {project.phase1Deadline && (
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              Deadline Phase 1: {formatDate(project.phase1Deadline)}
+              Deadline Fase 1: {formatDate(project.phase1Deadline)}
             </span>
           )}
         </div>
 
         {/* Phase Progress */}
-        {project.phase && (
+        {project.phase && project.phase !== "published" && (
           <div className="mt-4">
             <div className="flex items-center gap-2 text-xs text-white/70 mb-1.5">
               <span>Langkah {project.currentStep}/{project.totalSteps}</span>
@@ -145,8 +189,8 @@ export default function MitraProjectDetailPage() {
               </div>
             </div>
             <div className="mt-1 flex justify-between text-[10px] text-white/50">
-              <span>Phase 1</span>
-              <span>Phase 2</span>
+              <span>Fase 1</span>
+              <span>Fase 2</span>
             </div>
           </div>
         )}
@@ -158,34 +202,18 @@ export default function MitraProjectDetailPage() {
           <div className="flex items-start gap-3">
             <ShieldCheck className="h-6 w-6 shrink-0 text-green-600 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-green-800">Selamat! Perusahaan Anda Lolos Phase 1</p>
+              <p className="text-sm font-bold text-green-800">Selamat! Perusahaan Anda Lolos Fase 1</p>
               <p className="mt-1 text-xs text-green-700">
-                Anda telah lolos tahap evaluasi Phase 1 (Expression of Interest) dan diundang untuk melanjutkan ke Phase 2 (Detailed Assessment).
+                Anda telah lolos tahap evaluasi Fase 1 (Expression of Interest) dan diundang untuk melanjutkan ke Fase 2 (Detailed Assessment).
               </p>
               {canAccessPhase2 && (
                 <button
                   onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
                 >
-                  Lanjut ke Phase 2 <ArrowRight className="h-4 w-4" />
+                  Lanjut ke Fase 2 <ArrowRight className="h-4 w-4" />
                 </button>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {application?.phase1Result === "Tidak Lolos" && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
-              <span className="text-xs font-bold text-red-600">!</span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-red-800">Tidak Lolos Phase 1</p>
-              <p className="mt-1 text-xs text-red-700">
-                Maaf, perusahaan Anda belum memenuhi kriteria evaluasi Phase 1 untuk proyek ini. Terima kasih atas partisipasi Anda.
-              </p>
             </div>
           </div>
         </div>
@@ -196,45 +224,63 @@ export default function MitraProjectDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Deskripsi Proyek</h2>
-            <p className="text-sm text-ptba-gray leading-relaxed">{project.description}</p>
+            <p className="text-sm text-ptba-gray leading-relaxed">{project.description || "Belum ada deskripsi."}</p>
           </div>
 
-          {project.prdDocument && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Dokumen Pendukung</h2>
-              <div className="flex items-center justify-between rounded-lg border border-ptba-light-gray p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ptba-red/10">
-                    <FileText className="h-5 w-5 text-ptba-red" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-ptba-charcoal">{project.prdDocument}</p>
-                    <p className="text-xs text-ptba-gray">PDF Document</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => alert("Download simulasi: " + project.prdDocument)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-3 py-2 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5" /> Unduh
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* Requirements */}
           {project.requirements && project.requirements.length > 0 && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Persyaratan Mitra</h2>
               <ol className="space-y-2">
-                {project.requirements.map((req, idx) => (
+                {project.requirements.map((req: any, idx: number) => (
                   <li key={idx} className="flex gap-3 text-sm text-ptba-gray">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ptba-steel-blue/10 text-xs font-semibold text-ptba-steel-blue">
                       {idx + 1}
                     </span>
-                    <span className="pt-0.5">{req}</span>
+                    <span className="pt-0.5">{req.requirement || req}</span>
                   </li>
                 ))}
               </ol>
+            </div>
+          )}
+
+          {/* PTBA Documents - downloadable by mitra */}
+          {project.ptbaDocuments && project.ptbaDocuments.length > 0 && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Dokumen Pendukung Proyek</h2>
+              <p className="text-xs text-ptba-gray mb-3">Dokumen dari PTBA yang dapat diunduh untuk referensi (TOR, spesifikasi teknis, dll.)</p>
+              <div className="space-y-2">
+                {project.ptbaDocuments.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
+                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name}</p>
+                      <p className="text-xs text-ptba-gray">{doc.type}</p>
+                    </div>
+                    {doc.fileKey && accessToken && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/projects/${projectId}/documents/${doc.id}`, {
+                              headers: { Authorization: `Bearer ${accessToken}` },
+                            });
+                            if (!res.ok) return;
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            window.open(url, "_blank");
+                          } catch { /* ignore */ }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
+                      >
+                        <Download className="h-3 w-3" />
+                        Unduh
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -242,55 +288,25 @@ export default function MitraProjectDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Application Status or CTA */}
-          {application ? (
+          {application && application.status !== "Draft" ? (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Status Lamaran Anda</h3>
+              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Status Pendaftaran Anda</h3>
               <div className={cn(
                 "rounded-lg p-4 text-center",
-                application.status === "Terpilih" ? "bg-green-50 border border-green-200" :
+                application.status === "Shortlisted" ? "bg-green-50 border border-green-200" :
                 application.status === "Ditolak" ? "bg-red-50 border border-red-200" :
                 "bg-ptba-steel-blue/5 border border-ptba-steel-blue/20"
               )}>
                 <p className={cn(
                   "text-lg font-bold",
-                  application.status === "Terpilih" ? "text-green-700" :
+                  application.status === "Shortlisted" ? "text-green-700" :
                   application.status === "Ditolak" ? "text-ptba-red" : "text-ptba-steel-blue"
                 )}>
                   {application.status}
                 </p>
-                <p className="mt-1 text-xs text-ptba-gray">Diajukan: {formatDate(application.appliedAt)}</p>
-
-                {/* Phase info */}
-                {application.phase && (
-                  <p className="mt-1 text-xs font-medium text-ptba-steel-blue">
-                    {application.phase === "phase1" ? "Phase 1 (EoI)" : "Phase 2 (Assessment)"}
-                  </p>
-                )}
-
-                {/* Phase 1 Result */}
-                {application.phase1Result && (
-                  <div className="mt-2">
-                    <span className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      application.phase1Result === "Lolos" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                    )}>
-                      {application.phase1Result === "Lolos" && <CheckCircle2 className="h-3 w-3" />}
-                      Phase 1: {application.phase1Result}
-                    </span>
-                  </div>
-                )}
-
-                {application.currentEvalStep && application.totalEvalSteps && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs text-ptba-gray mb-1">
-                      <span>Progres Evaluasi</span>
-                      <span>{application.currentEvalStep}/{application.totalEvalSteps}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
-                      <div className="h-full rounded-full bg-ptba-steel-blue" style={{ width: `${Math.round((application.currentEvalStep / application.totalEvalSteps) * 100)}%` }} />
-                    </div>
-                  </div>
-                )}
+                <p className="mt-1 text-xs text-ptba-gray">
+                  Diajukan: {formatDate(application.applied_at)}
+                </p>
               </div>
 
               <div className="mt-3 space-y-2">
@@ -305,7 +321,7 @@ export default function MitraProjectDetailPage() {
                     onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
                     className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
                   >
-                    Lanjut ke Phase 2
+                    Lanjut ke Fase 2
                   </button>
                 )}
               </div>
@@ -316,7 +332,7 @@ export default function MitraProjectDetailPage() {
               {canApply ? (
                 <>
                   <p className="text-sm text-ptba-gray mb-4">
-                    Siapkan dokumen EoI yang diperlukan dan ajukan lamaran Phase 1 untuk proyek ini.
+                    Siapkan dokumen EoI yang diperlukan dan ajukan pendaftaran Fase 1 untuk proyek ini.
                   </p>
                   <button
                     onClick={() => router.push(`/mitra/projects/${project.id}/apply`)}
@@ -328,37 +344,32 @@ export default function MitraProjectDetailPage() {
               ) : (
                 <div className="rounded-lg bg-ptba-gray/5 p-4 text-center">
                   <p className="text-sm text-ptba-gray">
-                    {phase1DeadlinePassed || isDeadlinePassed ? "Deadline lamaran telah lewat." : "Proyek ini tidak menerima lamaran saat ini."}
+                    {phase1DeadlinePassed ? "Deadline pendaftaran telah lewat." :
+                     !project.isOpenForApplication ? "Pendaftaran belum dibuka untuk proyek ini." :
+                     "Proyek ini tidak menerima pendaftaran saat ini."}
                   </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Required Documents */}
-          {requiredDocTypes.length > 0 && (
+          {/* Dokumen yang Diperlukan untuk Mendaftar */}
+          {phase1RequiredDocs.length > 0 && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">
-                Dokumen Diperlukan ({requiredDocTypes.length})
+              <h3 className="text-sm font-semibold text-ptba-charcoal mb-1">
+                Dokumen yang Diperlukan untuk Mendaftar
               </h3>
+              <p className="text-xs text-ptba-gray mb-3">Siapkan dokumen berikut sebelum mengajukan EoI</p>
               <ul className="space-y-2">
-                {requiredDocTypes.map((doc) => {
-                  if (!doc) return null;
-                  const appDoc = application?.documents.find((d) => d.documentTypeId === doc.id);
-                  return (
-                    <li key={doc.id} className="flex items-start gap-2 text-sm">
-                      {appDoc ? (
-                        <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
-                      ) : (
-                        <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-light-gray" />
-                      )}
-                      <div>
-                        <p className="text-ptba-charcoal">{doc.name}</p>
-                        {doc.required && <span className="text-[10px] text-ptba-red font-medium">Wajib</span>}
-                      </div>
-                    </li>
-                  );
-                })}
+                {phase1RequiredDocs.map((doc: any) => (
+                  <li key={doc.id} className="flex items-start gap-2 text-sm">
+                    <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-steel-blue" />
+                    <div>
+                      <p className="text-ptba-charcoal">{doc.name}</p>
+                      {doc.required && <span className="text-[10px] text-ptba-red font-medium">Wajib</span>}
+                    </div>
+                  </li>
+                ))}
               </ul>
             </div>
           )}

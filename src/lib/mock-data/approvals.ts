@@ -134,7 +134,7 @@ export const mockApprovals: Approval[] = [
     requestedAt: '2025-09-15T09:00:00Z',
     approver: 'Ir. Bambang Wijaya',
     approvedAt: '2025-09-17T14:00:00Z',
-    notes: 'Shortlist Phase 1 disetujui. Kedua mitra (PGN dan Medco Energi) memenuhi syarat dan lolos ke Phase 2.',
+    notes: 'Shortlist Fase 1 disetujui. Kedua mitra (PGN dan Medco Energi) memenuhi syarat dan lolos ke Fase 2.',
     priority: 'Tinggi',
     phase: 'phase1',
     approvalCategory: 'phase1_shortlist',
