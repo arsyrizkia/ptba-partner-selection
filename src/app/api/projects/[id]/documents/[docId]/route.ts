@@ -33,8 +33,12 @@ export async function GET(
     }
 
     // Fetch the file from MinIO using the presigned URL (internal network)
-    // Replace localhost back to internal hostname for server-side fetch
+    // Security: only allow fetching from our MinIO server
     const internalUrl = data.url.replace("localhost:9000", "minio:9000");
+    const parsed = new URL(internalUrl);
+    if (!["minio:9000", "localhost:9000"].includes(parsed.host)) {
+      return NextResponse.json({ error: "Invalid document URL" }, { status: 400 });
+    }
     const fileRes = await fetch(internalUrl);
 
     if (!fileRes.ok) {
@@ -43,7 +47,7 @@ export async function GET(
 
     const fileBuffer = await fileRes.arrayBuffer();
     const contentType = fileRes.headers.get("content-type") || "application/octet-stream";
-    const docName = data.document?.name || "document";
+    const docName = (data.document?.name || "document").replace(/["\r\n\\]/g, "_");
 
     return new NextResponse(fileBuffer, {
       status: 200,

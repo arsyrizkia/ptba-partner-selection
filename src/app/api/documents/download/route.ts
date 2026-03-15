@@ -9,6 +9,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing file key" }, { status: 400 });
   }
 
+  // Security: prevent path traversal attacks
+  // Without this, a request like ?key=../../auth/users would make our server
+  // fetch http://backend/api/auth/users instead of the document endpoint,
+  // letting any logged-in user access admin-only API routes through our proxy.
+  if (/\.\./.test(fileKey) || /[\r\n]/.test(fileKey)) {
+    return NextResponse.json({ error: "Invalid file key" }, { status: 400 });
+  }
+
   const authHeader = request.headers.get("authorization");
   const cookieToken = request.cookies.get("accessToken")?.value;
   const token = authHeader || (cookieToken ? `Bearer ${cookieToken}` : "");
@@ -18,8 +26,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get presigned URL from backend
-    const res = await fetch(`${API_BASE}/documents/download/${fileKey}`, {
+    // Get presigned URL from backend — encode the key to prevent URL manipulation
+    const res = await fetch(`${API_BASE}/documents/download/${encodeURIComponent(fileKey)}`, {
       headers: { Authorization: token.startsWith("Bearer") ? token : `Bearer ${token}` },
     });
 
@@ -33,7 +41,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch file from MinIO using internal hostname
+    // Security: only allow fetching from our MinIO server, not arbitrary URLs
     const internalUrl = data.url.replace("localhost:9000", "minio:9000");
+    const parsed = new URL(internalUrl);
+    if (!["minio:9000", "localhost:9000"].includes(parsed.host)) {
+      return NextResponse.json({ error: "Invalid document URL" }, { status: 400 });
+    }
     const fileRes = await fetch(internalUrl);
 
     if (!fileRes.ok) {
