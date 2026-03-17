@@ -40,7 +40,9 @@ jobs:
             git pull origin ${{ github.ref_name }}
             cd ..
 
-            # Rebuild and restart
+            # Rebuild and restart (stop first to avoid container name conflicts)
+            docker compose --env-file .env stop app || true
+            docker compose --env-file .env rm -f app || true
             docker compose --env-file .env build app
             docker compose --env-file .env up -d app
 
