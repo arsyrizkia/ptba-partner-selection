@@ -116,19 +116,36 @@ function FileUploadButton({
               {uploading && <p className="text-[10px] text-ptba-gold">Mengunggah...</p>}
             </div>
           </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {uploaded && onDelete && (
-            <>
-              <button
-                onClick={onDelete}
-                className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 className="h-3 w-3" />
-                Hapus
-              </button>
-              <label className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors cursor-pointer">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {uploaded && onDelete && (
+              <>
+                <button
+                  onClick={onDelete}
+                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Hapus
+                </button>
+                <label className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors cursor-pointer">
+                  <Upload className="h-3 w-3" />
+                  Ganti
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept={accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onSelect(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </>
+            )}
+            {!uploaded && !uploading && (
+              <label className="inline-flex items-center gap-1 rounded-lg bg-ptba-navy px-2.5 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors cursor-pointer">
                 <Upload className="h-3 w-3" />
-                Ganti
+                Unggah
                 <input
                   type="file"
                   className="hidden"
@@ -140,24 +157,8 @@ function FileUploadButton({
                   }}
                 />
               </label>
-            </>
-          )}
-          {!uploaded && !uploading && (
-            <label className="inline-flex items-center gap-1 rounded-lg bg-ptba-navy px-2.5 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors cursor-pointer">
-              <Upload className="h-3 w-3" />
-              Unggah
-              <input
-                type="file"
-                className="hidden"
-                accept={accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onSelect(f);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
