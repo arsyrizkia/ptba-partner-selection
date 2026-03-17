@@ -37,11 +37,16 @@ function phaseLabel(phase?: string): string {
     phase1_approval: "Fase 1 - Persetujuan",
     phase1_announcement: "Fase 1 - Pengumuman",
     phase2_registration: "Fase 2 - Pendaftaran",
-    phase2_evaluation: "Fase 2 - Evaluasi",
-    phase2_ranking: "Fase 2 - Peringkat",
-    phase2_negotiation: "Fase 2 - Negosiasi",
+    phase2_evaluation: "Fase 2 - Evaluasi Detail",
     phase2_approval: "Fase 2 - Persetujuan",
     phase2_announcement: "Fase 2 - Pengumuman",
+    phase2_approved: "Fase 2 - Disetujui",
+    phase3_registration: "Fase 3 - Pendaftaran Proposal",
+    phase3_evaluation: "Fase 3 - Evaluasi & Peringkat",
+    phase3_ranking: "Fase 3 - Peringkat",
+    phase3_negotiation: "Fase 3 - Negosiasi",
+    phase3_approval: "Fase 3 - Persetujuan BoD",
+    phase3_announcement: "Fase 3 - Pengumuman Pemenang",
     completed: "Selesai",
     cancelled: "Dibatalkan",
   };
@@ -150,46 +155,20 @@ export default function MitraProjectDetailPage() {
         {/* Phase Progress */}
         {project.phase && project.phase !== "published" && (
           <div className="mt-4">
-            <div className="flex items-center gap-2 text-xs text-white/70 mb-1.5">
-              <span>Langkah {project.currentStep}/{project.totalSteps}</span>
+            <div className="flex items-center justify-between text-xs text-white/70 mb-1.5">
+              <span>Langkah {project.currentStep}/{project.totalSteps || 16}</span>
+              <span className="font-semibold text-white">{Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%</span>
             </div>
-            <div className="flex items-center gap-0">
-              <div className="flex-1">
-                <div className="flex gap-0.5 overflow-hidden rounded-l-full">
-                  {Array.from({ length: 7 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-2 flex-1",
-                        i + 1 < project.currentStep ? "bg-white/80" :
-                        i + 1 === project.currentStep ? "bg-ptba-gold" : "bg-white/20"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="w-0.5 h-3 bg-white/30 mx-0.5" />
-              <div className="flex-1">
-                <div className="flex gap-0.5 overflow-hidden rounded-r-full">
-                  {Array.from({ length: 6 }).map((_, i) => {
-                    const step = i + 8;
-                    return (
-                      <div
-                        key={i}
-                        className={cn(
-                          "h-2 flex-1",
-                          step < project.currentStep ? "bg-white/80" :
-                          step === project.currentStep ? "bg-ptba-gold" : "bg-white/20"
-                        )}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="h-2 rounded-full bg-white/20 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-white/90 via-ptba-gold to-ptba-gold transition-all duration-500"
+                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%` }}
+              />
             </div>
-            <div className="mt-1 flex justify-between text-[10px] text-white/50">
-              <span>Fase 1</span>
-              <span>Fase 2</span>
+            <div className="mt-1.5 flex text-[10px] text-white/50">
+              <span style={{ width: "37.5%" }}>Fase 1</span>
+              <span style={{ width: "31.25%" }}>Fase 2</span>
+              <span style={{ width: "31.25%" }} className="text-right">Fase 3</span>
             </div>
           </div>
         )}
