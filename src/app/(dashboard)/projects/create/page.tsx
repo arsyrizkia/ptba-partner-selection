@@ -100,6 +100,9 @@ export default function CreateProjectPage() {
   const [selectedLegacyDocs, setSelectedLegacyDocs] = useState<Record<string, "phase1" | "phase2" | "phase3" | "both">>({});
   const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "phase3" | "both" }[]>([]);
 
+  // Template files per document type ID (stored in state until project is created)
+  const [templateFiles, setTemplateFiles] = useState<Record<string, File>>({});
+
   // Step 4 - PIC Assignments
   const [picAssignments, setPicAssignments] = useState<Record<string, string>>({});
 
@@ -230,9 +233,10 @@ export default function CreateProjectPage() {
 
       const newProjectId = res.data?.id;
 
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+
       // Upload supporting files to MinIO
       if (newProjectId && supportingFiles.length > 0) {
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
         for (const sf of supportingFiles) {
           const formData = new FormData();
           formData.append("file", sf.file);
@@ -243,6 +247,23 @@ export default function CreateProjectPage() {
             headers: { Authorization: `Bearer ${accessToken}` },
             body: formData,
           });
+        }
+      }
+
+      // Upload document templates
+      if (newProjectId && Object.keys(templateFiles).length > 0) {
+        const reqDocs = res.data?.requiredDocuments || [];
+        for (const [docTypeId, file] of Object.entries(templateFiles)) {
+          const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
+          if (reqDoc?.id) {
+            const formData = new FormData();
+            formData.append("file", file);
+            await fetch(`${API_BASE}/projects/${newProjectId}/required-documents/${reqDoc.id}/template`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${accessToken}` },
+              body: formData,
+            });
+          }
         }
       }
 
@@ -510,27 +531,46 @@ export default function CreateProjectPage() {
                   {PHASE1_DOCUMENT_TYPES.map((doc) => {
                     const isSelected = selectedPhase1Docs.includes(doc.id);
                     return (
-                      <label
+                      <div
                         key={doc.id}
                         className={cn(
-                          "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors",
+                          "px-4 py-3 transition-colors",
                           isSelected ? "bg-ptba-steel-blue/5" : "hover:bg-ptba-off-white"
                         )}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleDoc(doc.id, selectedPhase1Docs, setSelectedPhase1Docs)}
-                          className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-ptba-charcoal">
-                            {doc.name}
-                            {doc.required && <span className="ml-1 text-[10px] text-ptba-red">*Wajib</span>}
-                          </p>
-                          <p className="text-xs text-ptba-gray">{doc.description}</p>
-                        </div>
-                      </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleDoc(doc.id, selectedPhase1Docs, setSelectedPhase1Docs)}
+                            className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-ptba-charcoal">
+                              {doc.name}
+                              {doc.required && <span className="ml-1 text-[10px] text-ptba-red">*Wajib</span>}
+                            </p>
+                            <p className="text-xs text-ptba-gray">{doc.description}</p>
+                          </div>
+                        </label>
+                        {isSelected && (
+                          <div className="ml-7 mt-2">
+                            {templateFiles[doc.id] ? (
+                              <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-3 py-1.5">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                <span className="text-xs text-green-700 truncate flex-1">{templateFiles[doc.id].name}</span>
+                                <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[doc.id]; return n; })} className="text-xs text-red-500 hover:text-red-700 shrink-0">Hapus</button>
+                              </div>
+                            ) : (
+                              <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-steel-blue/40 px-3 py-1.5 text-xs text-ptba-steel-blue hover:bg-ptba-steel-blue/5 cursor-pointer transition-colors">
+                                <Upload className="h-3 w-3" />
+                                Upload Template
+                                <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
+                              </label>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -548,27 +588,46 @@ export default function CreateProjectPage() {
                   {PHASE2_DOCUMENT_TYPES.map((doc) => {
                     const isSelected = selectedPhase2Docs.includes(doc.id);
                     return (
-                      <label
+                      <div
                         key={doc.id}
                         className={cn(
-                          "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors",
+                          "px-4 py-3 transition-colors",
                           isSelected ? "bg-ptba-navy/5" : "hover:bg-ptba-off-white"
                         )}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleDoc(doc.id, selectedPhase2Docs, setSelectedPhase2Docs)}
-                          className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy/20"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-ptba-charcoal">
-                            {doc.name}
-                            {doc.required && <span className="ml-1 text-[10px] text-ptba-red">*Wajib</span>}
-                          </p>
-                          <p className="text-xs text-ptba-gray">{doc.description}</p>
-                        </div>
-                      </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleDoc(doc.id, selectedPhase2Docs, setSelectedPhase2Docs)}
+                            className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy/20"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-ptba-charcoal">
+                              {doc.name}
+                              {doc.required && <span className="ml-1 text-[10px] text-ptba-red">*Wajib</span>}
+                            </p>
+                            <p className="text-xs text-ptba-gray">{doc.description}</p>
+                          </div>
+                        </label>
+                        {isSelected && (
+                          <div className="ml-7 mt-2">
+                            {templateFiles[doc.id] ? (
+                              <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-3 py-1.5">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                <span className="text-xs text-green-700 truncate flex-1">{templateFiles[doc.id].name}</span>
+                                <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[doc.id]; return n; })} className="text-xs text-red-500 hover:text-red-700 shrink-0">Hapus</button>
+                              </div>
+                            ) : (
+                              <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-navy/40 px-3 py-1.5 text-xs text-ptba-navy hover:bg-ptba-navy/5 cursor-pointer transition-colors">
+                                <Upload className="h-3 w-3" />
+                                Upload Template
+                                <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
+                              </label>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -649,7 +708,7 @@ export default function CreateProjectPage() {
                                 <select
                                   value={selectedLegacyDocs[doc.id]}
                                   onChange={(e) => {
-                                    const val = e.target.value as "phase1" | "phase2" | "both";
+                                    const val = e.target.value as "phase1" | "phase2" | "phase3" | "both";
                                     setSelectedLegacyDocs((prev) => ({ ...prev, [doc.id]: val }));
                                   }}
                                   onClick={(e) => e.stopPropagation()}
@@ -657,10 +716,28 @@ export default function CreateProjectPage() {
                                 >
                                   <option value="phase1">Fase 1</option>
                                   <option value="phase2">Fase 2</option>
-                                  <option value="both">Fase 1 & 2</option>
+                                  <option value="phase3">Fase 3</option>
+                                  <option value="both">Semua Fase</option>
                                 </select>
                               )}
                             </div>
+                            {isSelected && (
+                              <div className="ml-7 mt-2">
+                                {templateFiles[doc.id] ? (
+                                  <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-3 py-1.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                    <span className="text-xs text-green-700 truncate flex-1">{templateFiles[doc.id].name}</span>
+                                    <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[doc.id]; return n; })} className="text-xs text-red-500 hover:text-red-700 shrink-0">Hapus</button>
+                                  </div>
+                                ) : (
+                                  <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-light-gray px-3 py-1.5 text-xs text-ptba-gray hover:bg-ptba-off-white cursor-pointer transition-colors">
+                                    <Upload className="h-3 w-3" />
+                                    Upload Template
+                                    <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
+                                  </label>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
