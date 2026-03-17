@@ -23,7 +23,6 @@ export interface Project {
   name: string;
   type: 'mining' | 'power_generation' | 'coal_processing' | 'infrastructure' | 'environmental' | 'corporate';
   status: 'Draft' | 'Evaluasi' | 'Persetujuan' | 'Selesai' | 'Dibatalkan';
-  capexValue: number;
   description: string;
   startDate: string;
   endDate: string;
@@ -44,15 +43,12 @@ export interface Project {
   shortlistedPartners?: string[];
   phase1Deadline?: string;
   phase2Deadline?: string;
+  phase3Deadline?: string;
   phase1Documents?: string[];
   phase2Documents?: string[];
+  phase3Documents?: string[];
   ptbaDocuments?: PTBADocument[];
   registrationFee?: number;
-  phase2Config?: {
-    deadline: string;
-    registrationFee: number;
-    requiredDivisions: string[];
-  };
 }
 
 export interface Partner {
@@ -253,10 +249,15 @@ export type ProjectPhase =
   | 'phase1_approved'
   | 'phase2_registration'
   | 'phase2_evaluation'
-  | 'phase2_ranking'
-  | 'phase2_negotiation'
   | 'phase2_approval'
   | 'phase2_announcement'
+  | 'phase2_approved'
+  | 'phase3_registration'
+  | 'phase3_evaluation'
+  | 'phase3_ranking'
+  | 'phase3_negotiation'
+  | 'phase3_approval'
+  | 'phase3_announcement'
   | 'completed'
   | 'cancelled';
 

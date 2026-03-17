@@ -381,16 +381,17 @@ export interface UpdatePartnerInput {
 export interface CreateProjectInput {
   name: string;
   type: string;
-  capexValue?: number;
   description?: string;
   startDate?: string;
   endDate?: string;
   phase1Deadline?: string;
   phase2Deadline?: string;
+  phase3Deadline?: string;
   requirements?: string[];
   requiredDocuments?: { documentTypeId: string; phase?: string }[];
   phase1Documents?: { documentTypeId: string }[];
   phase2Documents?: { documentTypeId: string }[];
+  phase3Documents?: { documentTypeId: string }[];
   picAssignments?: { role: string; userId: string; userName?: string }[];
   ptbaDocuments?: { name: string; type: string }[];
 }

@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { formatCurrency } from "@/lib/utils/format";
-import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi, projectApi, ApiClientError } from "@/lib/api/client";
 import type { UserRole } from "@/lib/types";
@@ -76,7 +75,6 @@ export default function CreateProjectPage() {
   // Step 1
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("");
-  const [capexValue, setCapexValue] = useState("");
   const [description, setDescription] = useState("");
 
   // Step 2
@@ -84,6 +82,7 @@ export default function CreateProjectPage() {
   const [endDate, setEndDate] = useState("");
   const [phase1Deadline, setPhase1Deadline] = useState("");
   const [phase2Deadline, setPhase2Deadline] = useState("");
+  const [phase3Deadline, setPhase3Deadline] = useState("");
   const [supportingFiles, setSupportingFiles] = useState<{ file: File; name: string }[]>([]);
   const [isOpenForApplication, setIsOpenForApplication] = useState(false);
 
@@ -95,8 +94,11 @@ export default function CreateProjectPage() {
   const [selectedPhase2Docs, setSelectedPhase2Docs] = useState<string[]>(
     PHASE2_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
   );
-  const [selectedLegacyDocs, setSelectedLegacyDocs] = useState<Record<string, "phase1" | "phase2" | "both">>({});
-  const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "both" }[]>([]);
+  const [selectedPhase3Docs, setSelectedPhase3Docs] = useState<string[]>(
+    PHASE3_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
+  );
+  const [selectedLegacyDocs, setSelectedLegacyDocs] = useState<Record<string, "phase1" | "phase2" | "phase3" | "both">>({});
+  const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "phase3" | "both" }[]>([]);
 
   // Step 4 - PIC Assignments
   const [picAssignments, setPicAssignments] = useState<Record<string, string>>({});
@@ -160,7 +162,7 @@ export default function CreateProjectPage() {
   const updateCustomDocName = (index: number, value: string) => {
     setCustomDocuments((prev) => prev.map((d, i) => (i === index ? { ...d, name: value } : d)));
   };
-  const updateCustomDocPhase = (index: number, value: "phase1" | "phase2" | "both") => {
+  const updateCustomDocPhase = (index: number, value: "phase1" | "phase2" | "phase3" | "both") => {
     setCustomDocuments((prev) => prev.map((d, i) => (i === index ? { ...d, phase: value } : d)));
   };
 
@@ -207,18 +209,20 @@ export default function CreateProjectPage() {
           return { role, userId, userName: user?.name };
         });
 
+      const p3Docs = selectedPhase3Docs.map((id) => ({ documentTypeId: id }));
       const res = await projectApi(accessToken).create({
         name: projectName,
         type: projectType as any,
-        capexValue: Number(capexValue) || undefined,
         description: description || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         phase1Deadline: phase1Deadline || undefined,
         phase2Deadline: phase2Deadline || undefined,
+        phase3Deadline: phase3Deadline || undefined,
         requirements: reqs,
         phase1Documents: p1Docs,
         phase2Documents: p2Docs,
+        phase3Documents: p3Docs,
         requiredDocuments: legacyDocs,
         picAssignments: pics,
         ptbaDocuments: [],
@@ -257,8 +261,6 @@ export default function CreateProjectPage() {
       setSubmitting(false);
     }
   };
-
-  const parsedCapex = Number(capexValue) || 0;
 
   const inputClass =
     "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2.5 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
@@ -354,19 +356,6 @@ export default function CreateProjectPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Nilai Proyek</label>
-              <input
-                type="number"
-                placeholder="0"
-                value={capexValue}
-                onChange={(e) => setCapexValue(e.target.value)}
-                className={inputClass}
-              />
-              {parsedCapex > 0 && (
-                <p className="mt-1 text-xs text-ptba-gray">{formatCurrency(parsedCapex)}</p>
-              )}
-            </div>
-            <div>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Deskripsi</label>
               <textarea
                 placeholder="Jelaskan ruang lingkup dan tujuan proyek..."
@@ -396,7 +385,7 @@ export default function CreateProjectPage() {
             {/* Phase deadlines */}
             <div className="rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-4 space-y-3">
               <h3 className="text-sm font-semibold text-ptba-steel-blue">Deadline Per Fase</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1 (EoI)</label>
                   <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
@@ -404,6 +393,10 @@ export default function CreateProjectPage() {
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2 (Assessment)</label>
                   <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 3 (Proposal)</label>
+                  <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase3Deadline} onChange={(e) => setPhase3Deadline(e.target.value)} className={inputClass} />
                 </div>
               </div>
             </div>
