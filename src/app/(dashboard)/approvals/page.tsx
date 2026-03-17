@@ -54,7 +54,7 @@ function sortApprovals(approvals: Approval[]): Approval[] {
 
 export default function ApprovalsPage() {
   const { accessToken } = useAuth();
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("Menunggu");
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [loading, setLoading] = useState(true);
 
