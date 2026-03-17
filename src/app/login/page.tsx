@@ -21,6 +21,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const justRegistered = searchParams.get("registered") === "1";
   const justVerified = searchParams.get("verified") === "1";
+  const justReset = searchParams.get("reset") === "success";
   const { loginApi, user, role } = useAuth();
 
   useEffect(() => {
@@ -109,6 +110,11 @@ function LoginContent() {
             Email berhasil diverifikasi! Silakan login.
           </div>
         )}
+        {justReset && (
+          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            Password berhasil direset! Silakan login dengan password baru.
+          </div>
+        )}
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-5">
@@ -165,10 +171,13 @@ function LoginContent() {
             </div>
           </div>
 
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-ptba-red">{error}</p>
-          )}
+          {/* Forgot Password + Error */}
+          <div className="flex items-center justify-between">
+            <div>{error && <p className="text-sm text-ptba-red">{error}</p>}</div>
+            <a href="/forgot-password" className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+              Lupa Password?
+            </a>
+          </div>
 
           {/* Login Button */}
           <button
