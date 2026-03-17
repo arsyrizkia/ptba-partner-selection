@@ -27,8 +27,14 @@ jobs:
             echo "=== Deploying Frontend ($ENV) ==="
             cd /opt/ptba/$ENV
 
-            # Pull latest frontend code
+            # Pull both repos (Dockerfile builds both FE + API)
             cd ptba-partner-selection
+            git fetch origin ${{ github.ref_name }}
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            cd ..
+
+            cd ptba-partner-selection-api
             git fetch origin ${{ github.ref_name }}
             git checkout ${{ github.ref_name }}
             git pull origin ${{ github.ref_name }}
