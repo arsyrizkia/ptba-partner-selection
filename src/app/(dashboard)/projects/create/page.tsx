@@ -791,12 +791,6 @@ export default function CreateProjectPage() {
                   <span className="text-sm text-ptba-gray">Tipe Proyek</span>
                   <span className="text-sm font-medium text-ptba-charcoal">{projectType || "-"}</span>
                 </div>
-                <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Nilai Proyek</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">
-                    {parsedCapex > 0 ? formatCurrency(parsedCapex) : "-"}
-                  </span>
-                </div>
               </div>
             </div>
 
