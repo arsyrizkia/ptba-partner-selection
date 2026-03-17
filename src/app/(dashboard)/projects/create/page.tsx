@@ -702,10 +702,10 @@ export default function CreateProjectPage() {
                                   onClick={(e) => e.stopPropagation()}
                                   className="rounded border border-ptba-light-gray bg-white px-1.5 py-0.5 text-[10px] font-medium text-ptba-charcoal outline-none shrink-0"
                                 >
-                                  <option value="phase1">F1</option>
-                                  <option value="phase2">F2</option>
-                                  <option value="phase3">F3</option>
-                                  <option value="both">All</option>
+                                  <option value="phase1">Fase 1</option>
+                                  <option value="phase2">Fase 2</option>
+                                  <option value="phase3">Fase 3</option>
+                                  <option value="both">Semua Fase</option>
                                 </select>
                                 {templateFiles[doc.id] ? (
                                   <div className="flex items-center gap-1 shrink-0">
