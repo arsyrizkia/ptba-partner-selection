@@ -933,64 +933,67 @@ export default function ProjectDetailPage({
           </div>
         )}
 
-        {/* Three-Phase Progress */}
-        <div className="mt-6">
-          {/* Current step highlight */}
-          <div className="mb-3 rounded-lg bg-ptba-navy/5 border border-ptba-navy/10 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-ptba-gray">Tahap Saat Ini</p>
-                <p className="text-sm font-bold text-ptba-navy">
-                  {PROJECT_STEPS[project.currentStep - 1]?.name ?? "Inisiasi"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-ptba-gray">Progres</p>
-                <p className="text-sm font-bold text-ptba-charcoal">
-                  {Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%
-                </p>
+        {/* Progress */}
+        <div className="mt-6 space-y-4">
+          {/* Single unified progress bar */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="flex h-2 rounded-full overflow-hidden bg-ptba-light-gray">
+                {(() => {
+                  const total = project.totalSteps || 16;
+                  const current = project.currentStep;
+                  const pct = Math.round((current / total) * 100);
+                  return <div className="rounded-full bg-gradient-to-r from-ptba-navy via-ptba-steel-blue to-ptba-gold transition-all" style={{ width: `${pct}%` }} />;
+                })()}
               </div>
             </div>
-            <p className="mt-1 text-xs text-ptba-gray">
-              {PROJECT_STEPS[project.currentStep - 1]?.description ?? ""}
-            </p>
+            <span className="text-sm font-bold text-ptba-charcoal shrink-0">
+              {Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%
+            </span>
           </div>
 
-          {[
-            { label: "Fase 1: EoI", steps: PHASE1_STEPS, color: "bg-ptba-navy", textColor: "text-ptba-navy" },
-            { label: "Fase 2: Assessment", steps: PHASE2_STEPS, color: "bg-ptba-steel-blue", textColor: "text-ptba-steel-blue" },
-            { label: "Fase 3: Proposal & Ranking", steps: PHASE3_STEPS, color: "bg-ptba-gold", textColor: "text-ptba-gold" },
-          ].map((phase) => (
-            <div key={phase.label} className="mb-1">
-              <p className={cn("text-[10px] font-semibold mb-1", phase.textColor)}>{phase.label}</p>
-              <div className="flex gap-0.5">
-                {phase.steps.map((s) => {
-                  const isCompleted = s.step < project.currentStep;
-                  const isCurrent = s.step === project.currentStep;
-                  return (
-                    <div key={s.step} className="flex-1 group relative">
-                      <div
-                        className={cn(
-                          "h-2.5 rounded-sm transition-colors",
-                          isCompleted && phase.color,
-                          isCurrent && "bg-ptba-gold",
-                          !isCompleted && !isCurrent && "bg-ptba-light-gray"
-                        )}
-                      />
-                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                        <div className="whitespace-nowrap rounded bg-ptba-charcoal px-2 py-1 text-[10px] text-white shadow-lg">
-                          {s.step}. {s.name}
-                        </div>
-                      </div>
-                      {isCurrent && (
-                        <p className="mt-0.5 text-[9px] text-ptba-gold font-semibold text-center truncate">{s.name}</p>
-                      )}
+          {/* Step indicators */}
+          <div className="flex gap-1">
+            {PROJECT_STEPS.map((s) => {
+              const isCompleted = s.step < project.currentStep;
+              const isCurrent = s.step === project.currentStep;
+              const phaseColor = s.phase === "phase1" ? "bg-ptba-navy" : s.phase === "phase2" ? "bg-ptba-steel-blue" : "bg-ptba-gold";
+              return (
+                <div key={s.step} className="flex-1 group relative">
+                  <div className={cn(
+                    "h-1.5 rounded-full transition-colors",
+                    isCompleted && phaseColor,
+                    isCurrent && "bg-ptba-gold ring-2 ring-ptba-gold/30",
+                    !isCompleted && !isCurrent && "bg-ptba-light-gray/60"
+                  )} />
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
+                    <div className="whitespace-nowrap rounded-lg bg-ptba-charcoal px-3 py-1.5 text-[10px] text-white shadow-lg">
+                      <span className="font-semibold">{s.step}.</span> {s.name}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Phase labels */}
+          <div className="flex text-[10px] font-medium">
+            <div style={{ width: `${(PHASE1_STEPS.length / PROJECT_STEPS.length) * 100}%` }} className="text-ptba-navy">Fase 1</div>
+            <div style={{ width: `${(PHASE2_STEPS.length / PROJECT_STEPS.length) * 100}%` }} className="text-ptba-steel-blue">Fase 2</div>
+            <div style={{ width: `${(PHASE3_STEPS.length / PROJECT_STEPS.length) * 100}%` }} className="text-ptba-gold">Fase 3</div>
+          </div>
+
+          {/* Current step info */}
+          <div className="flex items-center gap-3 rounded-lg border border-ptba-navy/10 bg-ptba-navy/5 px-4 py-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-gold text-sm font-bold text-ptba-charcoal shrink-0">
+              {project.currentStep}
             </div>
-          ))}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-ptba-navy">{PROJECT_STEPS[project.currentStep - 1]?.name ?? "Inisiasi"}</p>
+              <p className="text-xs text-ptba-gray truncate">{PROJECT_STEPS[project.currentStep - 1]?.description ?? ""}</p>
+            </div>
+            <span className="text-xs text-ptba-gray shrink-0">Langkah {project.currentStep}/{project.totalSteps || 16}</span>
+          </div>
         </div>
       </div>
 
