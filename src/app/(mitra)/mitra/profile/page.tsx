@@ -10,28 +10,34 @@ import { authApi, partnerApi, ApiClientError, type PartnerProfile, type UpdatePa
 
 interface ProfileFormData {
   name: string;
+  businessOverview: string;
   address: string;
+  indonesiaOfficeAddress: string;
   phone: string;
   email: string;
   website: string;
   npwp: string;
-  siup: string;
+  nib: string;
   contactPerson: string;
   contactPhone: string;
+  contactEmail: string;
   industry: string;
 }
 
 function toFormData(p: PartnerProfile): ProfileFormData {
   return {
     name: p.name || "",
+    businessOverview: p.business_overview || "",
     address: p.address || "",
+    indonesiaOfficeAddress: p.indonesia_office_address || "",
     phone: p.phone || "",
     email: p.email || "",
     website: p.website || "",
     npwp: p.npwp || "",
-    siup: p.siup || "",
+    nib: p.nib || "",
     contactPerson: p.contact_person || "",
     contactPhone: p.contact_phone || "",
+    contactEmail: p.contact_email || "",
     industry: p.industry || "",
   };
 }
@@ -63,8 +69,9 @@ function CompanyProfileTab() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [editForm, setEditForm] = useState<ProfileFormData>({
-    name: "", address: "", phone: "", email: "", website: "",
-    npwp: "", siup: "", contactPerson: "", contactPhone: "", industry: "",
+    name: "", businessOverview: "", address: "", indonesiaOfficeAddress: "",
+    phone: "", email: "", website: "", npwp: "", nib: "",
+    contactPerson: "", contactPhone: "", contactEmail: "", industry: "",
   });
 
   const fetchPartner = useCallback(async () => {
@@ -93,14 +100,17 @@ function CompanyProfileTab() {
     try {
       const payload: UpdatePartnerInput = {
         name: editForm.name,
+        business_overview: editForm.businessOverview || undefined,
         address: editForm.address,
+        indonesia_office_address: editForm.indonesiaOfficeAddress || undefined,
         phone: editForm.phone,
         email: editForm.email || undefined,
         website: editForm.website || undefined,
-        npwp: editForm.npwp,
-        siup: editForm.siup,
+        npwp: editForm.npwp || undefined,
+        nib: editForm.nib || undefined,
         contact_person: editForm.contactPerson,
         contact_phone: editForm.contactPhone,
+        contact_email: editForm.contactEmail || undefined,
       };
       const updated = await partnerApi(accessToken).update(partner.id, payload);
       setPartner(updated);
@@ -145,16 +155,17 @@ function CompanyProfileTab() {
   const profile = toFormData(partner);
 
   if (isEditing) {
-    const fields: { key: keyof ProfileFormData; label: string }[] = [
+    const fields: { key: keyof ProfileFormData; label: string; multiline?: boolean }[] = [
       { key: "name", label: "Nama Perusahaan" },
-      { key: "address", label: "Alamat" },
-      { key: "phone", label: "Telepon" },
-      { key: "email", label: "Email" },
-      { key: "website", label: "Website" },
-      { key: "npwp", label: "NPWP" },
-      { key: "siup", label: "SIUP" },
-      { key: "contactPerson", label: "Kontak Person" },
-      { key: "contactPhone", label: "Telepon Kontak" },
+      { key: "businessOverview", label: "Overview Bidang Usaha", multiline: true },
+      { key: "address", label: "Alamat Kantor Pusat", multiline: true },
+      { key: "indonesiaOfficeAddress", label: "Alamat Kantor Rep. Indonesia", multiline: true },
+      { key: "phone", label: "Nomor Telp Perusahaan" },
+      { key: "email", label: "Email Perusahaan" },
+      { key: "nib", label: "NIB" },
+      { key: "contactPerson", label: "Nama CP" },
+      { key: "contactPhone", label: "Nomor Telp CP" },
+      { key: "contactEmail", label: "Email CP" },
     ];
 
     return (
@@ -166,12 +177,20 @@ function CompanyProfileTab() {
           {fields.map((field) => (
             <div key={field.key}>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">{field.label}</label>
-              <input
-                type="text"
-                value={editForm[field.key]}
-                onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
-                className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20 outline-none"
-              />
+              {field.multiline ? (
+                <textarea
+                  value={editForm[field.key]}
+                  onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                  className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20 outline-none min-h-[70px] resize-y"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={editForm[field.key]}
+                  onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                  className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20 outline-none"
+                />
+              )}
             </div>
           ))}
           <div className="flex justify-end gap-3 pt-2">
@@ -209,24 +228,24 @@ function CompanyProfileTab() {
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Data Perusahaan</h3>
           <ProfileField icon={<Building2 className="h-4 w-4" />} label="Nama Perusahaan" value={profile.name} />
-          <ProfileField icon={<MapPin className="h-4 w-4" />} label="Alamat" value={profile.address} />
-          <ProfileField icon={<Phone className="h-4 w-4" />} label="Telepon" value={profile.phone} />
-          <ProfileField icon={<Mail className="h-4 w-4" />} label="Email" value={profile.email} />
-          <ProfileField icon={<Globe className="h-4 w-4" />} label="Website" value={profile.website} />
-          <ProfileField icon={<FileText className="h-4 w-4" />} label="Industri" value={profile.industry} />
+          <ProfileField icon={<FileText className="h-4 w-4" />} label="Overview Bidang Usaha" value={profile.businessOverview} />
+          <ProfileField icon={<MapPin className="h-4 w-4" />} label="Alamat Kantor Pusat" value={profile.address} />
+          <ProfileField icon={<MapPin className="h-4 w-4" />} label="Alamat Kantor Rep. Indonesia" value={profile.indonesiaOfficeAddress} />
+          <ProfileField icon={<Phone className="h-4 w-4" />} label="Nomor Telp Perusahaan" value={profile.phone} />
+          <ProfileField icon={<Mail className="h-4 w-4" />} label="Email Perusahaan" value={profile.email} />
           <ProfileField icon={<FileText className="h-4 w-4" />} label="Tanggal Registrasi" value={partner.registration_date ? new Date(partner.registration_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"} />
         </div>
 
         <div className="space-y-6">
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Dokumen Legal</h3>
-            <ProfileField icon={<FileText className="h-4 w-4" />} label="NPWP" value={profile.npwp} />
-            <ProfileField icon={<FileText className="h-4 w-4" />} label="SIUP" value={profile.siup} />
+            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Dokumen Identitas</h3>
+            <ProfileField icon={<FileText className="h-4 w-4" />} label="NIB" value={profile.nib} />
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Kontak Person</h3>
-            <ProfileField icon={<User className="h-4 w-4" />} label="Nama" value={profile.contactPerson} />
-            <ProfileField icon={<Phone className="h-4 w-4" />} label="Telepon" value={profile.contactPhone} />
+            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Contact Person</h3>
+            <ProfileField icon={<User className="h-4 w-4" />} label="Nama CP" value={profile.contactPerson} />
+            <ProfileField icon={<Phone className="h-4 w-4" />} label="Nomor Telp CP" value={profile.contactPhone} />
+            <ProfileField icon={<Mail className="h-4 w-4" />} label="Email CP" value={profile.contactEmail} />
           </div>
         </div>
       </div>

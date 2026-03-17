@@ -208,12 +208,15 @@ export interface RegisterInput {
   companyName: string;
   companyCode: string;
   industry: string;
+  businessOverview?: string;
   address?: string;
+  indonesiaOfficeAddress?: string;
   phone?: string;
   companyEmail?: string;
   website?: string;
   npwp?: string;
   siup?: string;
+  nib?: string;
   contactPerson?: string;
   contactPosition?: string;
   contactPhone?: string;
@@ -338,30 +341,39 @@ export interface PartnerProfile {
   name: string;
   code: string;
   industry: string;
+  business_overview: string | null;
   status: string;
   registration_date: string;
   address: string | null;
+  indonesia_office_address: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
   npwp: string | null;
   siup: string | null;
+  nib: string | null;
   contact_person: string | null;
   contact_phone: string | null;
+  contact_email: string | null;
+  logo_file_key: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface UpdatePartnerInput {
   name?: string;
+  business_overview?: string;
   address?: string;
+  indonesia_office_address?: string;
   phone?: string;
   email?: string;
   website?: string;
   npwp?: string;
   siup?: string;
+  nib?: string;
   contact_person?: string;
   contact_phone?: string;
+  contact_email?: string;
 }
 
 // Project API

@@ -60,18 +60,23 @@ export interface Partner {
   name: string;
   code: string;
   industry: string;
+  businessOverview?: string;
   status: 'Aktif' | 'Dalam Review' | 'Tidak Aktif';
   registrationDate: string;
   address: string;
+  indonesiaOfficeAddress?: string;
   phone: string;
   email: string;
   website?: string;
-  npwp: string;
-  siup: string;
+  npwp?: string;
+  siup?: string;
+  nib?: string;
   documents: DocumentItem[];
   financialData: FinancialYear[];
   contactPerson: string;
   contactPhone: string;
+  contactEmail?: string;
+  logoFileKey?: string;
 }
 
 export interface DocumentItem {

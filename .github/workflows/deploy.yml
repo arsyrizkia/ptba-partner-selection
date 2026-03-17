@@ -1,0 +1,41 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [dev, main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            # Determine environment from branch
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              ENV=prod
+            else
+              ENV=dev
+            fi
+
+            echo "=== Deploying Frontend ($ENV) ==="
+            cd /opt/ptba/$ENV
+
+            # Pull latest frontend code
+            cd ptba-partner-selection
+            git fetch origin ${{ github.ref_name }}
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            cd ..
+
+            # Rebuild and restart
+            docker compose --env-file .env build app
+            docker compose --env-file .env up -d app
+
+            echo "=== Frontend deploy ($ENV) complete ==="
