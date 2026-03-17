@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
-import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS } from "@/lib/constants/project-steps";
+import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
 function formatCurrency(value: number): string {
@@ -933,7 +933,7 @@ export default function ProjectDetailPage({
           </div>
         )}
 
-        {/* Two-Phase Progress */}
+        {/* Three-Phase Progress */}
         <div className="mt-6">
           {/* Current step highlight */}
           <div className="mb-3 rounded-lg bg-ptba-navy/5 border border-ptba-navy/10 px-4 py-3">
@@ -947,7 +947,7 @@ export default function ProjectDetailPage({
               <div className="text-right">
                 <p className="text-xs text-ptba-gray">Progres</p>
                 <p className="text-sm font-bold text-ptba-charcoal">
-                  {Math.round((project.currentStep / project.totalSteps) * 100)}%
+                  {Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%
                 </p>
               </div>
             </div>
@@ -956,67 +956,41 @@ export default function ProjectDetailPage({
             </p>
           </div>
 
-          {/* Fase 1 Steps */}
-          <div className="mb-1">
-            <p className="text-[10px] font-semibold text-ptba-navy mb-1">Fase 1: EoI</p>
-            <div className="flex gap-0.5">
-              {PHASE1_STEPS.map((s) => {
-                const isCompleted = s.step < project.currentStep;
-                const isCurrent = s.step === project.currentStep;
-                return (
-                  <div key={s.step} className="flex-1 group relative">
-                    <div
-                      className={cn(
-                        "h-2.5 rounded-sm transition-colors",
-                        isCompleted && "bg-ptba-navy",
-                        isCurrent && "bg-ptba-gold",
-                        !isCompleted && !isCurrent && "bg-ptba-light-gray"
-                      )}
-                    />
-                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                      <div className="whitespace-nowrap rounded bg-ptba-charcoal px-2 py-1 text-[10px] text-white shadow-lg">
-                        {s.step}. {s.name}
+          {[
+            { label: "Fase 1: EoI", steps: PHASE1_STEPS, color: "bg-ptba-navy", textColor: "text-ptba-navy" },
+            { label: "Fase 2: Assessment", steps: PHASE2_STEPS, color: "bg-ptba-steel-blue", textColor: "text-ptba-steel-blue" },
+            { label: "Fase 3: Proposal & Ranking", steps: PHASE3_STEPS, color: "bg-ptba-gold", textColor: "text-ptba-gold" },
+          ].map((phase) => (
+            <div key={phase.label} className="mb-1">
+              <p className={cn("text-[10px] font-semibold mb-1", phase.textColor)}>{phase.label}</p>
+              <div className="flex gap-0.5">
+                {phase.steps.map((s) => {
+                  const isCompleted = s.step < project.currentStep;
+                  const isCurrent = s.step === project.currentStep;
+                  return (
+                    <div key={s.step} className="flex-1 group relative">
+                      <div
+                        className={cn(
+                          "h-2.5 rounded-sm transition-colors",
+                          isCompleted && phase.color,
+                          isCurrent && "bg-ptba-gold",
+                          !isCompleted && !isCurrent && "bg-ptba-light-gray"
+                        )}
+                      />
+                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
+                        <div className="whitespace-nowrap rounded bg-ptba-charcoal px-2 py-1 text-[10px] text-white shadow-lg">
+                          {s.step}. {s.name}
+                        </div>
                       </div>
-                    </div>
-                    {isCurrent && (
-                      <p className="mt-0.5 text-[9px] text-ptba-gold font-semibold text-center truncate">{s.name}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Fase 2 Steps */}
-          <div className="mt-2">
-            <p className="text-[10px] font-semibold text-ptba-steel-blue mb-1">Fase 2: Assessment</p>
-            <div className="flex gap-0.5">
-              {PHASE2_STEPS.map((s) => {
-                const isCompleted = s.step < project.currentStep;
-                const isCurrent = s.step === project.currentStep;
-                return (
-                  <div key={s.step} className="flex-1 group relative">
-                    <div
-                      className={cn(
-                        "h-2.5 rounded-sm transition-colors",
-                        isCompleted && "bg-ptba-steel-blue",
-                        isCurrent && "bg-ptba-gold",
-                        !isCompleted && !isCurrent && "bg-ptba-light-gray"
+                      {isCurrent && (
+                        <p className="mt-0.5 text-[9px] text-ptba-gold font-semibold text-center truncate">{s.name}</p>
                       )}
-                    />
-                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                      <div className="whitespace-nowrap rounded bg-ptba-charcoal px-2 py-1 text-[10px] text-white shadow-lg">
-                        {s.step}. {s.name}
-                      </div>
                     </div>
-                    {isCurrent && (
-                      <p className="mt-0.5 text-[9px] text-ptba-gold font-semibold text-center truncate">{s.name}</p>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
