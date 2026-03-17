@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -102,6 +102,10 @@ export default function CreateProjectPage() {
 
   // Template files per document type ID (stored in state until project is created)
   const [templateFiles, setTemplateFiles] = useState<Record<string, File>>({});
+
+  // Accordion state for legacy doc categories
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const toggleCategory = (cat: string) => setOpenCategories((p) => ({ ...p, [cat]: !p[cat] }));
 
   // Step 4 - PIC Assignments
   const [picAssignments, setPicAssignments] = useState<Record<string, string>>({});
@@ -634,24 +638,32 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            {/* Legacy/General Documents - Compact */}
+            {/* Legacy/General Documents - Accordion */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum</h3>
-                  <p className="text-xs text-ptba-gray mt-0.5">Pilih dokumen tambahan dan tentukan fase</p>
-                </div>
+              <div>
+                <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum <span className="text-xs font-normal text-ptba-gray">(opsional)</span></h3>
+                <p className="text-xs text-ptba-gray mt-0.5">Pilih dokumen tambahan dan tentukan fase</p>
               </div>
               <div className="rounded-lg border border-ptba-light-gray overflow-hidden">
-                {CATEGORIES.map((category, catIdx) => {
+                {CATEGORIES.map((category) => {
                   const docs = LEGACY_DOCUMENT_TYPES.filter((d) => d.category === category);
+                  const isOpen = openCategories[category] ?? false;
+                  const selectedCount = docs.filter((d) => d.id in selectedLegacyDocs).length;
                   return (
                     <div key={category}>
-                      <div className="flex items-center justify-between bg-ptba-section-bg px-3 py-1.5 border-b border-ptba-light-gray/50">
-                        <span className="text-xs font-semibold text-ptba-charcoal">{CATEGORY_LABELS[category]}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(category)}
+                        className="flex items-center justify-between w-full bg-ptba-section-bg px-3 py-2 border-b border-ptba-light-gray/50 hover:bg-ptba-section-bg/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-ptba-gray" /> : <ChevronRight className="h-3.5 w-3.5 text-ptba-gray" />}
+                          <span className="text-xs font-semibold text-ptba-charcoal">{CATEGORY_LABELS[category]}</span>
+                          {selectedCount > 0 && <span className="rounded-full bg-ptba-steel-blue/10 px-1.5 py-0.5 text-[10px] font-medium text-ptba-steel-blue">{selectedCount}</span>}
+                        </div>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const allSelected = docs.every((d) => d.id in selectedLegacyDocs);
                             setSelectedLegacyDocs((prev) => {
                               const next = { ...prev };
@@ -663,9 +675,9 @@ export default function CreateProjectPage() {
                           className="text-[10px] font-medium text-ptba-steel-blue hover:text-ptba-navy"
                         >
                           {docs.every((d) => d.id in selectedLegacyDocs) ? "Batal" : "Semua"}
-                        </button>
-                      </div>
-                      {docs.map((doc) => {
+                        </span>
+                      </button>
+                      {isOpen && docs.map((doc) => {
                         const isSelected = doc.id in selectedLegacyDocs;
                         return (
                           <div key={doc.id} className={cn("flex items-center gap-2 px-3 py-2 border-b border-ptba-light-gray/30", isSelected ? "bg-ptba-steel-blue/5" : "hover:bg-ptba-off-white")}>
@@ -719,24 +731,25 @@ export default function CreateProjectPage() {
 
             {/* Custom Documents */}
             <div className="rounded-lg border border-dashed border-ptba-steel-blue/40 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Lainnya</h3>
-                    <p className="text-xs text-ptba-gray">Tambahkan dokumen tambahan yang tidak ada di daftar</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addCustomDocument}
-                    className="flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Tambah
-                  </button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Lainnya</h3>
+                  <p className="text-xs text-ptba-gray">Tambahkan dokumen tambahan yang tidak ada di daftar</p>
                 </div>
-                {customDocuments.length > 0 && (
-                  <div className="space-y-2">
-                    {customDocuments.map((doc, index) => (
-                      <div key={index} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addCustomDocument}
+                  className="flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Tambah
+                </button>
+              </div>
+              {customDocuments.length > 0 && (
+                <div className="space-y-2">
+                  {customDocuments.map((doc, index) => (
+                    <div key={index} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
                         <input
                           type="text"
                           placeholder="Contoh: Sertifikat K3, Izin Lingkungan, dll."
@@ -746,12 +759,13 @@ export default function CreateProjectPage() {
                         />
                         <select
                           value={doc.phase}
-                          onChange={(e) => updateCustomDocPhase(index, e.target.value as "phase1" | "phase2" | "both")}
-                          className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none focus:border-ptba-steel-blue focus:ring-1 focus:ring-ptba-steel-blue/20"
+                          onChange={(e) => updateCustomDocPhase(index, e.target.value as "phase1" | "phase2" | "phase3" | "both")}
+                          className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none"
                         >
                           <option value="phase1">Fase 1</option>
                           <option value="phase2">Fase 2</option>
-                          <option value="both">Fase 1 & 2</option>
+                          <option value="phase3">Fase 3</option>
+                          <option value="both">Semua Fase</option>
                         </select>
                         <button
                           type="button"
@@ -761,9 +775,27 @@ export default function CreateProjectPage() {
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {doc.name.trim() && (
+                        <div className="ml-1">
+                          {templateFiles[`custom_${index}`] ? (
+                            <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-2 py-1">
+                              <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                              <span className="text-[10px] text-green-700 truncate flex-1">{templateFiles[`custom_${index}`].name}</span>
+                              <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[`custom_${index}`]; return n; })} className="text-[10px] text-red-500">Hapus</button>
+                            </div>
+                          ) : (
+                            <label className="inline-flex items-center gap-1 text-[10px] text-ptba-steel-blue hover:text-ptba-navy cursor-pointer">
+                              <Upload className="h-3 w-3" />
+                              Lampirkan Template (jika ada)
+                              <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [`custom_${index}`]: f })); e.target.value = ""; }} />
+                            </label>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
