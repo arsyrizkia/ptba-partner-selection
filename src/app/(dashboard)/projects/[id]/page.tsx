@@ -172,7 +172,7 @@ export default function ProjectDetailPage({
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editDraft, setEditDraft] = useState({
-    name: "", type: "", capexValue: "", description: "",
+    name: "", type: "", description: "",
     startDate: "", endDate: "", phase1Deadline: "", phase2Deadline: "",
   });
   const [reqDraft, setReqDraft] = useState<string[]>([]);
@@ -181,7 +181,6 @@ export default function ProjectDetailPage({
     setEditDraft({
       name: project?.name || "",
       type: project?.type || "",
-      capexValue: project?.capexValue ? String(project.capexValue) : "",
       description: project?.description || "",
       startDate: project?.startDate ? new Date(project.startDate).toISOString().split("T")[0] : "",
       endDate: project?.endDate ? new Date(project.endDate).toISOString().split("T")[0] : "",
@@ -203,7 +202,6 @@ export default function ProjectDetailPage({
       const updateData: Record<string, any> = {};
       if (editDraft.name) updateData.name = editDraft.name;
       if (editDraft.type) updateData.type = editDraft.type;
-      if (editDraft.capexValue) updateData.capexValue = Number(editDraft.capexValue);
       if (editDraft.description !== undefined) updateData.description = editDraft.description;
       if (editDraft.startDate) updateData.startDate = editDraft.startDate;
       if (editDraft.endDate) updateData.endDate = editDraft.endDate;
@@ -650,8 +648,6 @@ export default function ProjectDetailPage({
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-xs text-ptba-gray">Nilai Proyek</p>
-            <p className="text-2xl font-bold text-ptba-navy">{formatCurrency(project.capexValue)}</p>
             <p className="text-xs text-ptba-gray mt-1">{projectPartners.length} Mitra Berpartisipasi</p>
           </div>
         </div>
@@ -1587,10 +1583,6 @@ export default function ProjectDetailPage({
                       <option value="others">Lainnya</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Proyek</label>
-                    <input type="number" value={editDraft.capexValue} onChange={(e) => setEditDraft((d) => ({ ...d, capexValue: e.target.value }))} className={inputCls} />
-                  </div>
                 </div>
               ) : (
                 <dl className="space-y-3 text-sm">
@@ -1598,7 +1590,6 @@ export default function ProjectDetailPage({
                   <div className="flex justify-between"><dt className="text-ptba-gray">Sektor</dt><dd><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", typeBadgeClass(project.type))}>{typeLabel(project.type)}</span></dd></div>
                   <div className="flex justify-between"><dt className="text-ptba-gray">Status</dt><dd><span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", statusBadgeClass(project.status))}>{project.status}</span></dd></div>
                   <div className="flex justify-between"><dt className="text-ptba-gray">Phase</dt><dd className="font-medium text-ptba-steel-blue text-xs">{phaseLabel(project.phase)}</dd></div>
-                  <div className="flex justify-between"><dt className="text-ptba-gray">Nilai Proyek</dt><dd className="font-bold text-ptba-navy">{formatCurrency(project.capexValue)}</dd></div>
                   <div className="flex justify-between"><dt className="text-ptba-gray">Jumlah Mitra</dt><dd className="font-medium text-ptba-charcoal">{projectPartners.length} mitra</dd></div>
                 </dl>
               )}

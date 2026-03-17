@@ -12,7 +12,6 @@ interface ProjectItem {
   name: string;
   type: string;
   status: string;
-  capexValue: number;
   description: string;
   startDate: string;
   currentStep: number;
@@ -22,13 +21,6 @@ interface ProjectItem {
 }
 
 const EVALUATOR_ROLES = ["keuangan", "hukum", "risiko"] as const;
-
-function formatCapex(value: number): string {
-  if (!value) return "-";
-  if (value >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toFixed(1)} T`;
-  if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(0)} M`;
-  return `Rp ${value.toLocaleString("id-ID")}`;
-}
 
 function statusStyle(status: string) {
   switch (status) {
@@ -269,9 +261,6 @@ export default function ProjectsPage() {
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", typeStyle(project.type))}>
                     {TYPE_LABELS[project.type] || project.type}
-                  </span>
-                  <span className="text-sm font-semibold text-ptba-charcoal">
-                    {formatCapex(project.capexValue)}
                   </span>
                   {pi && (
                     <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold border", pi.color)}>

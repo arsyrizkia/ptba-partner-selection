@@ -265,7 +265,7 @@ export default function AdminNegotiationPage() {
   const latestRound = negotiation?.rounds
     ?.sort((a, b) => b.roundNumber - a.roundNumber)[0];
   const currentProposed = latestMitraRound?.proposedValue ?? negotiation?.initialValue ?? 0;
-  const initialValue = negotiation?.initialValue ?? project.capexValue ?? 0;
+  const initialValue = negotiation?.initialValue ?? 0;
   const variance = initialValue > 0 ? ((currentProposed - initialValue) / initialValue) * 100 : 0;
 
   return (

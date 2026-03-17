@@ -3,7 +3,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { formatCurrency } from "@/lib/utils/format";
 import type { Project } from "@/lib/types";
 
 interface ProjectCardProps {
@@ -72,10 +71,6 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
           </h3>
           <Badge variant={getTypeVariant(project.type)}>{TYPE_LABELS[project.type] || project.type}</Badge>
         </div>
-
-        <p className="text-lg font-bold text-ptba-navy mb-2">
-          {formatCurrency(project.capexValue)}
-        </p>
 
         <div className="flex items-center justify-between mb-3">
           <Badge variant={getStatusVariant(project.status)}>

@@ -6,14 +6,12 @@ import { Search, Calendar, FileText, CheckCircle2, Loader2, FolderKanban } from 
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
-import { formatCurrency } from "@/lib/utils/format";
 
 interface MitraProject {
   id: string;
   name: string;
   type: string;
   status: string;
-  capexValue: number;
   description: string;
   startDate: string;
   phase: string;
@@ -169,10 +167,6 @@ export default function MitraProjectsPage() {
                     </div>
                   </div>
                 </div>
-
-                <p className="mt-3 text-sm font-semibold text-ptba-charcoal">
-                  {formatCurrency(project.capexValue)}
-                </p>
 
                 {project.description && (
                   <p className="mt-2 text-xs text-ptba-gray line-clamp-2">{project.description}</p>

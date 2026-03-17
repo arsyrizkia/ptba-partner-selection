@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { formatCurrency } from "@/lib/utils/format";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi, projectApi, ApiClientError } from "@/lib/api/client";
@@ -87,7 +86,6 @@ export default function EditProjectPage({
   // Step 1
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("");
-  const [capexValue, setCapexValue] = useState("");
   const [description, setDescription] = useState("");
 
   // Step 2
@@ -138,7 +136,6 @@ export default function EditProjectPage({
         // Step 1: Basic info
         setProjectName(project.name || "");
         setProjectType(project.type || "");
-        setCapexValue(project.capexValue ? String(project.capexValue) : "");
         setDescription(typeof project.description === "string" ? project.description : "");
 
         // Step 2: Timeline
@@ -340,7 +337,6 @@ export default function EditProjectPage({
       await projectApi(accessToken).update(id, {
         name: projectName,
         type: projectType as any,
-        capexValue: Number(capexValue) || undefined,
         description: description || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
@@ -372,8 +368,6 @@ export default function EditProjectPage({
       setSubmitting(false);
     }
   };
-
-  const parsedCapex = Number(capexValue) || 0;
 
   const inputClass =
     "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2.5 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
@@ -494,19 +488,6 @@ export default function EditProjectPage({
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Nilai Proyek</label>
-              <input
-                type="number"
-                placeholder="0"
-                value={capexValue}
-                onChange={(e) => setCapexValue(e.target.value)}
-                className={inputClass}
-              />
-              {parsedCapex > 0 && (
-                <p className="mt-1 text-xs text-ptba-gray">{formatCurrency(parsedCapex)}</p>
-              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Deskripsi</label>
@@ -952,12 +933,6 @@ export default function EditProjectPage({
                 <div className="flex justify-between py-2.5">
                   <span className="text-sm text-ptba-gray">Sektor Proyek</span>
                   <span className="text-sm font-medium text-ptba-charcoal">{projectType || "-"}</span>
-                </div>
-                <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Nilai Proyek</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">
-                    {parsedCapex > 0 ? formatCurrency(parsedCapex) : "-"}
-                  </span>
                 </div>
               </div>
             </div>

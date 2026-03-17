@@ -6,7 +6,6 @@ export const mockProjects: Project[] = [
     name: 'Pengembangan PLTU Mulut Tambang 3x10 MW',
     type: 'power_generation',
     status: 'Evaluasi',
-    capexValue: 450000000000,
     description:
       'Proyek pembangunan Pembangkit Listrik Tenaga Uap (PLTU) mulut tambang dengan kapasitas 3x10 MW di kawasan pertambangan Tanjung Enim. Proyek ini bertujuan untuk meningkatkan efisiensi pemanfaatan batubara kualitas rendah yang tidak ekonomis untuk dijual, sekaligus mendukung kebutuhan listrik operasional tambang dan kawasan sekitar.',
     startDate: '2025-06-01',
@@ -57,7 +56,6 @@ export const mockProjects: Project[] = [
     name: 'Kerjasama Gasifikasi Batubara',
     type: 'coal_processing',
     status: 'Evaluasi',
-    capexValue: 1200000000000,
     description:
       'Proyek kerjasama strategis gasifikasi batubara untuk mengkonversi batubara menjadi syngas (gas sintesis) yang dapat digunakan sebagai bahan baku industri kimia dan bahan bakar. Proyek ini merupakan bagian dari strategi diversifikasi produk turunan batubara PTBA dan mendukung program hilirisasi batubara nasional.',
     startDate: '2025-03-01',
@@ -107,7 +105,6 @@ export const mockProjects: Project[] = [
     name: 'Solar Panel Farm Tanjung Enim',
     type: 'power_generation',
     status: 'Persetujuan',
-    capexValue: 85000000000,
     description:
       'Pembangunan pembangkit listrik tenaga surya (PLTS) di lahan pasca tambang kawasan Tanjung Enim dengan kapasitas 15 MWp. Proyek ini merupakan komitmen PTBA dalam transisi energi dan pemanfaatan lahan reklamasi pasca tambang secara produktif untuk energi terbarukan.',
     startDate: '2025-09-01',
@@ -134,7 +131,6 @@ export const mockProjects: Project[] = [
     name: 'Coal-to-Methanol Plant',
     type: 'coal_processing',
     status: 'Draft',
-    capexValue: 2500000000000,
     description:
       'Proyek pembangunan pabrik konversi batubara menjadi metanol (Coal-to-Methanol) dengan kapasitas produksi 600.000 ton per tahun. Metanol yang dihasilkan akan digunakan sebagai bahan baku industri kimia dan campuran bahan bakar. Proyek ini merupakan flagship project dalam program hilirisasi batubara PTBA.',
     startDate: '2026-01-01',
@@ -174,7 +170,6 @@ export const mockProjects: Project[] = [
     name: 'Rehabilitasi Lahan Pasca Tambang',
     type: 'environmental',
     status: 'Selesai',
-    capexValue: 15000000000,
     description:
       'Program rehabilitasi dan reklamasi lahan pasca tambang seluas 500 hektar di kawasan Muara Enim. Proyek mencakup penataan lahan, revegetasi dengan tanaman produktif, pembangunan infrastruktur pendukung, dan pengembangan potensi ekowisata di area reklamasi.',
     startDate: '2024-01-15',

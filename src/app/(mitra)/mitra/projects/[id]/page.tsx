@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { formatDate } from "@/lib/utils/format";
 
 const TYPE_LABELS: Record<string, string> = {
   mining: "Pertambangan", power_generation: "Pembangkit Listrik", coal_processing: "Pengolahan Batubara",
@@ -138,7 +138,6 @@ export default function MitraProjectDetailPage() {
         </div>
         <h1 className="text-2xl font-bold">{project.name}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
-          <span>Nilai: {formatCurrency(project.capexValue)}</span>
           {project.startDate && <span>Periode: {formatDate(project.startDate)} - {formatDate(project.endDate)}</span>}
           {project.phase1Deadline && (
             <span className="inline-flex items-center gap-1">

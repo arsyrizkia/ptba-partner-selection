@@ -60,11 +60,11 @@ const projectKpis: KpiCard[] = [
 ];
 
 const activeProjects = [
-  { nama: "Pengadaan Belt Conveyor", tipe: "Barang", capex: "Rp 15.2 M", status: "Evaluasi", langkah: "Evaluasi Teknis", progres: 65 },
-  { nama: "Jasa Konsultan Tambang", tipe: "Jasa", capex: "Rp 8.7 M", status: "Persetujuan", langkah: "Review Legal", progres: 80 },
-  { nama: "Pengadaan Alat Berat", tipe: "Barang", capex: "Rp 45.0 M", status: "Draft", langkah: "Penyusunan HPS", progres: 20 },
-  { nama: "Rehabilitasi Jalan Hauling", tipe: "Konstruksi", capex: "Rp 22.3 M", status: "Evaluasi", langkah: "Evaluasi Keuangan", progres: 55 },
-  { nama: "Sistem Monitoring Lingkungan", tipe: "Jasa", capex: "Rp 5.1 M", status: "Selesai", langkah: "Penandatanganan", progres: 100 },
+  { nama: "Pengadaan Belt Conveyor", tipe: "Barang", status: "Evaluasi", langkah: "Evaluasi Teknis", progres: 65 },
+  { nama: "Jasa Konsultan Tambang", tipe: "Jasa", status: "Persetujuan", langkah: "Review Legal", progres: 80 },
+  { nama: "Pengadaan Alat Berat", tipe: "Barang", status: "Draft", langkah: "Penyusunan HPS", progres: 20 },
+  { nama: "Rehabilitasi Jalan Hauling", tipe: "Konstruksi", status: "Evaluasi", langkah: "Evaluasi Keuangan", progres: 55 },
+  { nama: "Sistem Monitoring Lingkungan", tipe: "Jasa", status: "Selesai", langkah: "Penandatanganan", progres: 100 },
 ];
 
 const pieData = [
@@ -380,7 +380,6 @@ function ProjectDashboard() {
                 <tr className="border-b border-ptba-light-gray text-left">
                   <th className="pb-3 pr-4 font-semibold text-ptba-gray">Nama Proyek</th>
                   <th className="pb-3 pr-4 font-semibold text-ptba-gray">Tipe</th>
-                  <th className="pb-3 pr-4 font-semibold text-ptba-gray">Nilai CAPEX</th>
                   <th className="pb-3 pr-4 font-semibold text-ptba-gray">Status</th>
                   <th className="pb-3 pr-4 font-semibold text-ptba-gray">Langkah</th>
                   <th className="pb-3 font-semibold text-ptba-gray">Progres</th>
@@ -391,7 +390,6 @@ function ProjectDashboard() {
                   <tr key={idx} className="border-b border-ptba-light-gray/50 last:border-b-0">
                     <td className="py-3 pr-4 font-medium text-ptba-charcoal">{project.nama}</td>
                     <td className="py-3 pr-4 text-ptba-gray">{project.tipe}</td>
-                    <td className="py-3 pr-4 text-ptba-charcoal">{project.capex}</td>
                     <td className="py-3 pr-4">
                       <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-medium", statusBadge(project.status))}>
                         {project.status}
