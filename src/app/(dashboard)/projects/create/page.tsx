@@ -634,120 +634,91 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            {/* Legacy/General Documents */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum (Opsional)</h3>
-                <p className="text-xs text-ptba-gray mt-0.5">Pilih dokumen dan tentukan fase pengumpulan untuk setiap dokumen</p>
+            {/* Legacy/General Documents - Compact */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Kualifikasi Umum</h3>
+                  <p className="text-xs text-ptba-gray mt-0.5">Pilih dokumen tambahan dan tentukan fase</p>
+                </div>
               </div>
-              {CATEGORIES.map((category) => {
-                const docs = LEGACY_DOCUMENT_TYPES.filter((d) => d.category === category);
-                const allSelected = docs.every((d) => d.id in selectedLegacyDocs);
-                return (
-                  <div key={category} className="rounded-lg border border-ptba-light-gray overflow-hidden">
-                    <div className="flex items-center justify-between bg-ptba-section-bg px-4 py-2.5">
-                      <h3 className="text-sm font-semibold text-ptba-charcoal">{CATEGORY_LABELS[category]}</h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (allSelected) {
+              <div className="rounded-lg border border-ptba-light-gray overflow-hidden">
+                {CATEGORIES.map((category, catIdx) => {
+                  const docs = LEGACY_DOCUMENT_TYPES.filter((d) => d.category === category);
+                  return (
+                    <div key={category}>
+                      <div className="flex items-center justify-between bg-ptba-section-bg px-3 py-1.5 border-b border-ptba-light-gray/50">
+                        <span className="text-xs font-semibold text-ptba-charcoal">{CATEGORY_LABELS[category]}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allSelected = docs.every((d) => d.id in selectedLegacyDocs);
                             setSelectedLegacyDocs((prev) => {
                               const next = { ...prev };
-                              docs.forEach((d) => delete next[d.id]);
+                              if (allSelected) { docs.forEach((d) => delete next[d.id]); }
+                              else { docs.forEach((d) => { if (!(d.id in next)) next[d.id] = "both"; }); }
                               return next;
                             });
-                          } else {
-                            setSelectedLegacyDocs((prev) => {
-                              const next = { ...prev };
-                              docs.forEach((d) => { if (!(d.id in next)) next[d.id] = "both"; });
-                              return next;
-                            });
-                          }
-                        }}
-                        className={cn(
-                          "text-xs font-medium transition-colors",
-                          allSelected ? "text-ptba-red hover:text-red-700" : "text-ptba-steel-blue hover:text-ptba-navy"
-                        )}
-                      >
-                        {allSelected ? "Batal Semua" : "Pilih Semua"}
-                      </button>
-                    </div>
-                    <div className="divide-y divide-ptba-light-gray/50">
+                          }}
+                          className="text-[10px] font-medium text-ptba-steel-blue hover:text-ptba-navy"
+                        >
+                          {docs.every((d) => d.id in selectedLegacyDocs) ? "Batal" : "Semua"}
+                        </button>
+                      </div>
                       {docs.map((doc) => {
                         const isSelected = doc.id in selectedLegacyDocs;
                         return (
-                          <div
-                            key={doc.id}
-                            className={cn(
-                              "px-4 py-3 transition-colors",
-                              isSelected ? "bg-ptba-steel-blue/5" : "hover:bg-ptba-off-white"
-                            )}
-                          >
-                            <div className="flex items-start gap-3">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => {
-                                  setSelectedLegacyDocs((prev) => {
-                                    const next = { ...prev };
-                                    if (isSelected) {
-                                      delete next[doc.id];
-                                    } else {
-                                      next[doc.id] = "both";
-                                    }
-                                    return next;
-                                  });
-                                }}
-                                className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20 cursor-pointer"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-ptba-charcoal">{doc.name}</p>
-                                <p className="text-xs text-ptba-gray">{doc.description}</p>
-                              </div>
-                              {isSelected && (
+                          <div key={doc.id} className={cn("flex items-center gap-2 px-3 py-2 border-b border-ptba-light-gray/30", isSelected ? "bg-ptba-steel-blue/5" : "hover:bg-ptba-off-white")}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedLegacyDocs((prev) => {
+                                  const next = { ...prev };
+                                  if (isSelected) delete next[doc.id]; else next[doc.id] = "both";
+                                  return next;
+                                });
+                              }}
+                              className="h-3.5 w-3.5 rounded border-ptba-light-gray text-ptba-steel-blue focus:ring-ptba-steel-blue/20 cursor-pointer shrink-0"
+                            />
+                            <span className="text-xs font-medium text-ptba-charcoal flex-1 truncate">{doc.name}</span>
+                            {isSelected && (
+                              <>
                                 <select
                                   value={selectedLegacyDocs[doc.id]}
-                                  onChange={(e) => {
-                                    const val = e.target.value as "phase1" | "phase2" | "phase3" | "both";
-                                    setSelectedLegacyDocs((prev) => ({ ...prev, [doc.id]: val }));
-                                  }}
+                                  onChange={(e) => setSelectedLegacyDocs((prev) => ({ ...prev, [doc.id]: e.target.value as any }))}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none focus:border-ptba-steel-blue focus:ring-1 focus:ring-ptba-steel-blue/20"
+                                  className="rounded border border-ptba-light-gray bg-white px-1.5 py-0.5 text-[10px] font-medium text-ptba-charcoal outline-none shrink-0"
                                 >
-                                  <option value="phase1">Fase 1</option>
-                                  <option value="phase2">Fase 2</option>
-                                  <option value="phase3">Fase 3</option>
-                                  <option value="both">Semua Fase</option>
+                                  <option value="phase1">F1</option>
+                                  <option value="phase2">F2</option>
+                                  <option value="phase3">F3</option>
+                                  <option value="both">All</option>
                                 </select>
-                              )}
-                            </div>
-                            {isSelected && (
-                              <div className="ml-7 mt-2">
                                 {templateFiles[doc.id] ? (
-                                  <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-3 py-1.5">
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                                    <span className="text-xs text-green-700 truncate flex-1">{templateFiles[doc.id].name}</span>
-                                    <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[doc.id]; return n; })} className="text-xs text-red-500 hover:text-red-700 shrink-0">Hapus</button>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                    <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[doc.id]; return n; })} className="text-[10px] text-red-500">x</button>
                                   </div>
                                 ) : (
-                                  <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-light-gray px-3 py-1.5 text-xs text-ptba-gray hover:bg-ptba-off-white cursor-pointer transition-colors">
-                                    <Upload className="h-3 w-3" />
-                                    Lampirkan Template (jika ada)
+                                  <label className="text-[10px] text-ptba-steel-blue hover:text-ptba-navy cursor-pointer shrink-0">
+                                    +Template
                                     <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
                                   </label>
                                 )}
-                              </div>
+                              </>
                             )}
                           </div>
                         );
                       })}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
 
-              {/* Custom Documents */}
-              <div className="rounded-lg border border-dashed border-ptba-steel-blue/40 p-4 space-y-3">
+            {/* Custom Documents */}
+            <div className="rounded-lg border border-dashed border-ptba-steel-blue/40 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen Lainnya</h3>
@@ -793,7 +764,6 @@ export default function CreateProjectPage() {
                     ))}
                   </div>
                 )}
-              </div>
             </div>
           </div>
         )}
