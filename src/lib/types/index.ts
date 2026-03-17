@@ -23,6 +23,7 @@ export interface Project {
   name: string;
   type: 'mining' | 'power_generation' | 'coal_processing' | 'infrastructure' | 'environmental' | 'corporate';
   status: 'Draft' | 'Evaluasi' | 'Persetujuan' | 'Selesai' | 'Dibatalkan';
+  capexValue?: number;
   description: string;
   startDate: string;
   endDate: string;
