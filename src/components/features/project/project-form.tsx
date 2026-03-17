@@ -235,6 +235,8 @@ export default function ProjectForm({
       const phase1Ids = new Set(PHASE1_DOCUMENT_TYPES.map((d) => d.id));
       const phase2Ids = new Set(PHASE2_DOCUMENT_TYPES.map((d) => d.id));
       const phase3Ids = new Set(PHASE3_DOCUMENT_TYPES.map((d) => d.id));
+      const legacyIds = new Set(LEGACY_DOCUMENT_TYPES.map((d) => d.id));
+      const customDocs: { name: string; phase: "phase1" | "phase2" | "phase3" | "both" }[] = [];
 
       for (const doc of project.requiredDocuments) {
         const docId = doc.documentTypeId;
@@ -246,8 +248,12 @@ export default function ProjectForm({
           p2Docs.push(docId);
         } else if (phase3Ids.has(docId) && (phase === "phase3" || !phase)) {
           p3Docs.push(docId);
-        } else if (phase === "phase1" || phase === "phase2" || phase === "phase3" || phase === "both" || phase === "general") {
+        } else if (legacyIds.has(docId)) {
           legacyDocs[docId] = phase === "general" ? "both" : (phase as "phase1" | "phase2" | "phase3" | "both");
+        } else {
+          // Custom document — not in any predefined list
+          const docPhase = phase === "general" ? "both" : (phase as "phase1" | "phase2" | "phase3" | "both") || "both";
+          customDocs.push({ name: docId.replace(/_/g, " "), phase: docPhase });
         }
       }
 
@@ -255,6 +261,7 @@ export default function ProjectForm({
       if (p2Docs.length > 0) setSelectedPhase2Docs(p2Docs);
       if (p3Docs.length > 0) setSelectedPhase3Docs(p3Docs);
       if (Object.keys(legacyDocs).length > 0) setSelectedLegacyDocs(legacyDocs);
+      if (customDocs.length > 0) setCustomDocuments(customDocs);
     }
 
     // Step 4: PIC Assignments
