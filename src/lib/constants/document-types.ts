@@ -194,6 +194,22 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     category: 'administrasi',
     phase: 'phase1',
   },
+  {
+    id: 'confidential_guarantee_letter',
+    name: 'Confidential Guarantee Statement Letter',
+    description: 'Surat pernyataan jaminan kerahasiaan informasi proyek',
+    required: true,
+    category: 'legal',
+    phase: 'phase1',
+  },
+  {
+    id: 'adherent_letter',
+    name: 'Adherent Letter',
+    description: 'Surat pernyataan kepatuhan terhadap syarat dan ketentuan seleksi',
+    required: true,
+    category: 'legal',
+    phase: 'phase1',
+  },
 
   // === Fase 2: Detailed Assessment Document Types (sistem gugur) ===
   {
