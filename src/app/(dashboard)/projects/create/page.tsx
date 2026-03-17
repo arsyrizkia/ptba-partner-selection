@@ -564,7 +564,7 @@ export default function CreateProjectPage() {
                             ) : (
                               <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-steel-blue/40 px-3 py-1.5 text-xs text-ptba-steel-blue hover:bg-ptba-steel-blue/5 cursor-pointer transition-colors">
                                 <Upload className="h-3 w-3" />
-                                Lampirkan Template (opsional)
+                                Lampirkan Template
                                 <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
                               </label>
                             )}
@@ -621,7 +621,7 @@ export default function CreateProjectPage() {
                             ) : (
                               <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-navy/40 px-3 py-1.5 text-xs text-ptba-navy hover:bg-ptba-navy/5 cursor-pointer transition-colors">
                                 <Upload className="h-3 w-3" />
-                                Lampirkan Template (opsional)
+                                Lampirkan Template
                                 <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
                               </label>
                             )}
@@ -732,7 +732,7 @@ export default function CreateProjectPage() {
                                 ) : (
                                   <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-light-gray px-3 py-1.5 text-xs text-ptba-gray hover:bg-ptba-off-white cursor-pointer transition-colors">
                                     <Upload className="h-3 w-3" />
-                                    Lampirkan Template (opsional)
+                                    Lampirkan Template
                                     <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
                                   </label>
                                 )}
