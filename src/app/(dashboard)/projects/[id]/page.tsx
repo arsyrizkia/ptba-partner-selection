@@ -101,11 +101,16 @@ function phaseLabel(phase?: string): string {
     phase1_announcement: "Fase 1 - Pengumuman Shortlist",
     phase1_approved: "Fase 1 - Disetujui Direksi",
     phase2_registration: "Fase 2 - Pendaftaran",
-    phase2_evaluation: "Fase 2 - Evaluasi Komprehensif",
-    phase2_ranking: "Fase 2 - Peringkat",
-    phase2_negotiation: "Fase 2 - Negosiasi",
-    phase2_approval: "Fase 2 - Persetujuan BoD",
-    phase2_announcement: "Fase 2 - Pengumuman Pemenang",
+    phase2_evaluation: "Fase 2 - Evaluasi Detail",
+    phase2_approval: "Fase 2 - Persetujuan",
+    phase2_announcement: "Fase 2 - Pengumuman",
+    phase2_approved: "Fase 2 - Disetujui",
+    phase3_registration: "Fase 3 - Pendaftaran Proposal",
+    phase3_evaluation: "Fase 3 - Evaluasi & Peringkat",
+    phase3_ranking: "Fase 3 - Peringkat",
+    phase3_negotiation: "Fase 3 - Negosiasi",
+    phase3_approval: "Fase 3 - Persetujuan BoD",
+    phase3_announcement: "Fase 3 - Pengumuman Pemenang",
     completed: "Selesai",
     cancelled: "Dibatalkan",
   };
@@ -1657,7 +1662,8 @@ export default function ProjectDetailPage({
               const requiredDocs = project.requiredDocuments || [];
               const phase1Docs = requiredDocs.filter((d: any) => d.phase === "phase1");
               const phase2Docs = requiredDocs.filter((d: any) => d.phase === "phase2");
-              const generalDocs = requiredDocs.filter((d: any) => d.phase !== "phase1" && d.phase !== "phase2");
+              const phase3Docs = requiredDocs.filter((d: any) => d.phase === "phase3");
+              const generalDocs = requiredDocs.filter((d: any) => !["phase1", "phase2", "phase3"].includes(d.phase));
 
               const getDocName = (typeId: string) => {
                 const dt = DOCUMENT_TYPES.find((d) => d.id === typeId);
@@ -1672,68 +1678,41 @@ export default function ProjectDetailPage({
                 return <p className="text-sm text-ptba-gray italic">Belum ada dokumen yang dikonfigurasi.</p>;
               }
 
+              const renderDocList = (docs: any[], color: string, label: string) => {
+                if (docs.length === 0) return null;
+                const borderColor = color === "steel-blue" ? "border-ptba-steel-blue/30" : color === "navy" ? "border-ptba-navy/30" : color === "gold" ? "border-ptba-gold/30" : "border-gray-200";
+                const bgColor = color === "steel-blue" ? "bg-ptba-steel-blue/10" : color === "navy" ? "bg-ptba-navy/10" : color === "gold" ? "bg-ptba-gold/10" : "bg-gray-50";
+                const textColor = color === "steel-blue" ? "text-ptba-steel-blue" : color === "navy" ? "text-ptba-navy" : color === "gold" ? "text-ptba-gold" : "text-ptba-gray";
+                const iconColor = textColor;
+                return (
+                  <div className={cn("rounded-lg border overflow-hidden", borderColor)}>
+                    <div className={cn("px-4 py-2", bgColor)}>
+                      <p className={cn("text-xs font-semibold", textColor)}>{label} ({docs.length})</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {docs.map((d: any) => (
+                        <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
+                          <FileText className={cn("h-4 w-4 shrink-0 mt-0.5", iconColor)} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
+                            <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
+                            {d.templateFileName && (
+                              <p className="text-[10px] text-ptba-steel-blue mt-0.5">Template: {d.templateFileName}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              };
+
               return (
                 <div className="space-y-4">
-                  {phase1Docs.length > 0 && (
-                    <div>
-                      <div className="rounded-lg border border-ptba-steel-blue/30 overflow-hidden">
-                        <div className="bg-ptba-steel-blue/10 px-4 py-2">
-                          <p className="text-xs font-semibold text-ptba-steel-blue">Fase 1 - Dokumen EoI ({phase1Docs.length})</p>
-                        </div>
-                        <div className="divide-y divide-gray-100">
-                          {phase1Docs.map((d: any) => (
-                            <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
-                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
-                                <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {phase2Docs.length > 0 && (
-                    <div>
-                      <div className="rounded-lg border border-ptba-navy/30 overflow-hidden">
-                        <div className="bg-ptba-navy/10 px-4 py-2">
-                          <p className="text-xs font-semibold text-ptba-navy">Fase 2 - Dokumen Assessment ({phase2Docs.length})</p>
-                        </div>
-                        <div className="divide-y divide-gray-100">
-                          {phase2Docs.map((d: any) => (
-                            <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
-                              <FileText className="h-4 w-4 text-ptba-navy shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
-                                <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {generalDocs.length > 0 && (
-                    <div>
-                      <div className="rounded-lg border border-gray-200 overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-2">
-                          <p className="text-xs font-semibold text-ptba-gray">Dokumen Umum ({generalDocs.length})</p>
-                        </div>
-                        <div className="divide-y divide-gray-100">
-                          {generalDocs.map((d: any) => (
-                            <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
-                              <FileText className="h-4 w-4 text-ptba-gray shrink-0 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
-                                <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {renderDocList(phase1Docs, "steel-blue", "Fase 1 - Dokumen EoI")}
+                  {renderDocList(phase2Docs, "navy", "Fase 2 - Dokumen Assessment")}
+                  {renderDocList(phase3Docs, "gold", "Fase 3 - Dokumen Proposal & Ranking")}
+                  {renderDocList(generalDocs, "gray", "Dokumen Umum")}
                 </div>
               );
             })()}
