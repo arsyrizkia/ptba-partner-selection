@@ -252,7 +252,7 @@ export default function CreateProjectPage() {
 
       // Upload document templates
       if (newProjectId && Object.keys(templateFiles).length > 0) {
-        const reqDocs = res.data?.requiredDocuments || [];
+        const reqDocs = (res.data as any)?.requiredDocuments || [];
         for (const [docTypeId, file] of Object.entries(templateFiles)) {
           const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
           if (reqDoc?.id) {
