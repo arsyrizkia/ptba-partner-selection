@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  ArrowLeft, Upload, CheckCircle2, FileText, AlertTriangle, Loader2,
+  ArrowLeft, Upload, Download, CheckCircle2, FileText, AlertTriangle, Loader2,
   Building2, DollarSign, Briefcase, ShieldCheck, ChevronDown, ChevronUp, Plus, Trash2,
   PenLine, ClipboardCheck, Save,
 } from "lucide-react";
@@ -69,6 +69,8 @@ function FileUploadButton({
   fileName,
   onSelect,
   onDelete,
+  templateFileName,
+  onDownloadTemplate,
 }: {
   label: string;
   accept?: string;
@@ -77,27 +79,43 @@ function FileUploadButton({
   fileName?: string;
   onSelect: (file: File) => void;
   onDelete?: () => void;
+  templateFileName?: string;
+  onDownloadTemplate?: () => void;
 }) {
   return (
-    <div className={cn(
-      "rounded-lg border p-3 transition-colors",
-      uploaded ? "border-green-200 bg-green-50/50" : "border-ptba-light-gray"
-    )}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {uploaded ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-          ) : uploading ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-ptba-gold" />
-          ) : (
-            <FileText className="h-4 w-4 shrink-0 text-ptba-gray" />
-          )}
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-ptba-charcoal">{label}</p>
-            {fileName && <p className="text-[10px] text-green-600 truncate">{fileName}</p>}
-            {uploading && <p className="text-[10px] text-ptba-gold">Mengunggah...</p>}
-          </div>
+    <div className="space-y-2">
+      {templateFileName && onDownloadTemplate && (
+        <div className="flex items-center gap-2 rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 px-3 py-2">
+          <Download className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
+          <span className="text-[11px] text-ptba-gray flex-1 truncate">Template: {templateFileName}</span>
+          <button
+            type="button"
+            onClick={onDownloadTemplate}
+            className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors shrink-0"
+          >
+            Unduh
+          </button>
         </div>
+      )}
+      <div className={cn(
+        "rounded-lg border p-3 transition-colors",
+        uploaded ? "border-green-200 bg-green-50/50" : "border-ptba-light-gray"
+      )}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {uploaded ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+            ) : uploading ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-ptba-gold" />
+            ) : (
+              <FileText className="h-4 w-4 shrink-0 text-ptba-gray" />
+            )}
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-ptba-charcoal">{label}</p>
+              {fileName && <p className="text-[10px] text-green-600 truncate">{fileName}</p>}
+              {uploading && <p className="text-[10px] text-ptba-gold">Mengunggah...</p>}
+            </div>
+          </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {uploaded && onDelete && (
             <>
@@ -442,6 +460,34 @@ export default function MitraProjectApplyPage() {
     }
   };
 
+  // ─── Download Template ───
+
+  const getTemplateInfo = (docTypeId: string) => {
+    if (!project?.requiredDocuments) return null;
+    const doc = project.requiredDocuments.find(
+      (d: any) => d.documentTypeId === docTypeId && d.templateFileKey
+    );
+    return doc ? { id: doc.id, fileName: doc.templateFileName } : null;
+  };
+
+  const downloadTemplate = async (docTypeId: string) => {
+    if (!accessToken || !project) return;
+    const reqDoc = project.requiredDocuments?.find(
+      (d: any) => d.documentTypeId === docTypeId && d.templateFileKey
+    );
+    if (!reqDoc) return;
+    try {
+      const res = await fetch(
+        `${API_BASE}/projects/${projectId}/required-documents/${reqDoc.id}/template-url`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const data = await res.json();
+      if (data.url) window.open(data.url, "_blank");
+    } catch {
+      setError("Gagal mengunduh template");
+    }
+  };
+
   // ─── Save Form Data ───
 
   const buildFormData = () => ({
@@ -747,6 +793,8 @@ export default function MitraProjectApplyPage() {
               uploading={uploadedDocs["compro"]?.uploading ?? false}
               fileName={uploadedDocs["compro"]?.name}
               onSelect={(f) => uploadDoc("compro", "Company Profile", f)}
+              templateFileName={getTemplateInfo("compro")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("compro")}
               onDelete={() => deleteDoc("compro")}
             />
           </div>
@@ -826,6 +874,8 @@ export default function MitraProjectApplyPage() {
               uploading={uploadedDocs["statement_eoi"]?.uploading ?? false}
               fileName={uploadedDocs["statement_eoi"]?.name}
               onSelect={(f) => uploadDoc("statement_eoi", "Signed EoI Letter", f)}
+              templateFileName={getTemplateInfo("statement_eoi")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("statement_eoi")}
               onDelete={() => deleteDoc("statement_eoi")}
             />
           </div>
@@ -905,6 +955,8 @@ export default function MitraProjectApplyPage() {
               uploading={uploadedDocs["portfolio"]?.uploading ?? false}
               fileName={uploadedDocs["portfolio"]?.name}
               onSelect={(f) => uploadDoc("portfolio", "Portfolio Proyek", f)}
+              templateFileName={getTemplateInfo("portfolio")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("portfolio")}
               onDelete={() => deleteDoc("portfolio")}
             />
           </div>
@@ -1001,6 +1053,8 @@ export default function MitraProjectApplyPage() {
               uploading={uploadedDocs["financial_overview"]?.uploading ?? false}
               fileName={uploadedDocs["financial_overview"]?.name}
               onSelect={(f) => uploadDoc("financial_overview", "Gambaran Umum Keuangan", f)}
+              templateFileName={getTemplateInfo("financial_overview")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("financial_overview")}
               onDelete={() => deleteDoc("financial_overview")}
             />
           </div>
@@ -1097,6 +1151,8 @@ export default function MitraProjectApplyPage() {
               uploading={uploadedDocs["requirements_fulfillment"]?.uploading ?? false}
               fileName={uploadedDocs["requirements_fulfillment"]?.name}
               onSelect={(f) => uploadDoc("requirements_fulfillment", "Pemenuhan Persyaratan", f)}
+              templateFileName={getTemplateInfo("requirements_fulfillment")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("requirements_fulfillment")}
               onDelete={() => deleteDoc("requirements_fulfillment")}
             />
           </div>
@@ -1125,6 +1181,8 @@ export default function MitraProjectApplyPage() {
                 fileName={uploadedDocs[doc.id]?.name}
                 onSelect={(f) => uploadDoc(doc.id, doc.name, f)}
                 onDelete={() => deleteDoc(doc.id)}
+                templateFileName={getTemplateInfo(doc.id)?.fileName}
+                onDownloadTemplate={() => downloadTemplate(doc.id)}
               />
             ))}
           </div>
