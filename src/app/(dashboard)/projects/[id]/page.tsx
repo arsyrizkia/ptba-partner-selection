@@ -934,65 +934,42 @@ export default function ProjectDetailPage({
         )}
 
         {/* Progress */}
-        <div className="mt-6 space-y-4">
-          {/* Single unified progress bar */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="flex h-2 rounded-full overflow-hidden bg-ptba-light-gray">
-                {(() => {
-                  const total = project.totalSteps || 16;
-                  const current = project.currentStep;
-                  const pct = Math.round((current / total) * 100);
-                  return <div className="rounded-full bg-gradient-to-r from-ptba-navy via-ptba-steel-blue to-ptba-gold transition-all" style={{ width: `${pct}%` }} />;
-                })()}
+        <div className="mt-6">
+          {/* Current step card with integrated progress */}
+          <div className="rounded-xl border border-ptba-light-gray bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-ptba-navy text-sm font-bold text-white shrink-0">
+                {project.currentStep}
               </div>
-            </div>
-            <span className="text-sm font-bold text-ptba-charcoal shrink-0">
-              {Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%
-            </span>
-          </div>
-
-          {/* Step indicators */}
-          <div className="flex gap-1">
-            {PROJECT_STEPS.map((s) => {
-              const isCompleted = s.step < project.currentStep;
-              const isCurrent = s.step === project.currentStep;
-              const phaseColor = s.phase === "phase1" ? "bg-ptba-navy" : s.phase === "phase2" ? "bg-ptba-steel-blue" : "bg-ptba-gold";
-              return (
-                <div key={s.step} className="flex-1 group relative">
-                  <div className={cn(
-                    "h-1.5 rounded-full transition-colors",
-                    isCompleted && phaseColor,
-                    isCurrent && "bg-ptba-gold ring-2 ring-ptba-gold/30",
-                    !isCompleted && !isCurrent && "bg-ptba-light-gray/60"
-                  )} />
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                    <div className="whitespace-nowrap rounded-lg bg-ptba-charcoal px-3 py-1.5 text-[10px] text-white shadow-lg">
-                      <span className="font-semibold">{s.step}.</span> {s.name}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Phase labels */}
-          <div className="flex text-[10px] font-medium">
-            <div style={{ width: `${(PHASE1_STEPS.length / PROJECT_STEPS.length) * 100}%` }} className="text-ptba-navy">Fase 1</div>
-            <div style={{ width: `${(PHASE2_STEPS.length / PROJECT_STEPS.length) * 100}%` }} className="text-ptba-steel-blue">Fase 2</div>
-            <div style={{ width: `${(PHASE3_STEPS.length / PROJECT_STEPS.length) * 100}%` }} className="text-ptba-gold">Fase 3</div>
-          </div>
-
-          {/* Current step info */}
-          <div className="flex items-center gap-3 rounded-lg border border-ptba-navy/10 bg-ptba-navy/5 px-4 py-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-gold text-sm font-bold text-ptba-charcoal shrink-0">
-              {project.currentStep}
-            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ptba-navy">{PROJECT_STEPS[project.currentStep - 1]?.name ?? "Inisiasi"}</p>
+              <p className="text-sm font-semibold text-ptba-charcoal">{PROJECT_STEPS[project.currentStep - 1]?.name ?? "Inisiasi"}</p>
               <p className="text-xs text-ptba-gray truncate">{PROJECT_STEPS[project.currentStep - 1]?.description ?? ""}</p>
             </div>
-            <span className="text-xs text-ptba-gray shrink-0">Langkah {project.currentStep}/{project.totalSteps || 16}</span>
+            <span className="text-xs font-semibold text-ptba-navy shrink-0">
+              {Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%
+            </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="relative h-2 rounded-full bg-ptba-light-gray overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-ptba-navy via-ptba-steel-blue to-ptba-gold transition-all duration-500"
+                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%` }}
+              />
+            </div>
+
+            {/* Phase labels under bar */}
+            <div className="flex mt-1.5">
+              {[
+                { label: "Fase 1", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
+                { label: "Fase 2", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
+                { label: "Fase 3", steps: PHASE3_STEPS.length, color: "text-ptba-gold" },
+              ].map((p) => (
+                <div key={p.label} style={{ width: `${(p.steps / PROJECT_STEPS.length) * 100}%` }} className={cn("text-[10px] font-medium", p.color)}>
+                  {p.label}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
