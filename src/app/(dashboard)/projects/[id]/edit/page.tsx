@@ -137,6 +137,26 @@ export default function EditProjectPage({
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
+      // Upload template files if any
+      if (Object.keys(templateFiles).length > 0) {
+        // Fetch updated project to get new required document IDs
+        const updatedProject = await projectApi(accessToken).getById(id);
+        const reqDocs = (updatedProject.data as any)?.requiredDocuments || [];
+
+        for (const [docTypeId, file] of Object.entries(templateFiles)) {
+          const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
+          if (reqDoc?.id) {
+            const fd = new FormData();
+            fd.append("file", file);
+            await fetch(`${API_BASE}/projects/${id}/required-documents/${reqDoc.id}/template`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${accessToken}` },
+              body: fd,
+            });
+          }
+        }
+      }
+
       router.push(`/projects/${id}`);
     } catch (err) {
       if (err instanceof ApiClientError) {
