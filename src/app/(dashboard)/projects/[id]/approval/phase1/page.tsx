@@ -27,6 +27,7 @@ import { api, projectApi } from "@/lib/api/client";
 import { PHASE1_CRITERIA, PHASE1_PASSING_SCORE } from "@/lib/constants/phase1-criteria";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
+import FormDataViewer from "@/components/features/project/form-data-viewer";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -864,7 +865,7 @@ export default function Phase1ApprovalPage({
                                 const dtId = doc.document_type_id;
                                 const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
                                 const docName = meta?.name || doc.name;
-                                const formSection = formData ? EVAL_FORM_DATA_MAP[dtId] : null;
+                                const formSection = null; // Dynamic viewer used instead
                                 const isOpen = expandedDocs[doc.document_type_id] ?? false;
 
                                 return (
@@ -897,24 +898,8 @@ export default function Phase1ApprovalPage({
                                             <Download className="h-3 w-3" /> Unduh
                                           </button>
                                         )}
-                                        {formSection && (
-                                          <button
-                                            type="button"
-                                            onClick={() => setExpandedDocs((prev) => ({ ...prev, [doc.document_type_id]: !prev[doc.document_type_id] }))}
-                                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                                          >
-                                            {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                            Data
-                                          </button>
-                                        )}
                                       </div>
                                     </div>
-                                    {formSection && isOpen && (
-                                      <div className="border-t border-gray-100 bg-ptba-section-bg/30 px-4 py-3">
-                                        <p className="text-xs font-semibold text-ptba-charcoal mb-2">{formSection.title}</p>
-                                        {formSection.render(formData)}
-                                      </div>
-                                    )}
                                   </div>
                                 );
                               })}
@@ -928,6 +913,18 @@ export default function Phase1ApprovalPage({
                         </div>
                       )}
                     </div>
+
+                    {/* Data Formulir */}
+                    {formData && Object.keys(formData).length > 0 && (
+                      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                        <div className="px-5 py-3 bg-ptba-off-white border-b border-ptba-light-gray">
+                          <p className="text-sm font-semibold text-ptba-charcoal">Data Formulir Mitra</p>
+                        </div>
+                        <div className="p-5">
+                          <FormDataViewer formData={formData} />
+                        </div>
+                      </div>
+                    )}
 
                     {/* PIC decision per mitra */}
                     {isPIC && !submitted && (

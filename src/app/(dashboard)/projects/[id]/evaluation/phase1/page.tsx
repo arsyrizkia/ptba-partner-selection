@@ -31,6 +31,7 @@ import {
 } from "@/lib/constants/phase1-criteria";
 import { formatDate } from "@/lib/utils/format";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import FormDataViewer from "@/components/features/project/form-data-viewer";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -247,7 +248,7 @@ export default function Phase1EvaluationPage({
   const [evalStates, setEvalStates] = useState<Record<string, MitraEvalState>>({});
   const [submittedForApproval, setSubmittedForApproval] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState<string | null>(null);
-  const [ebdPanelTab, setEbdPanelTab] = useState<"penilaian" | "dokumen">("penilaian");
+  const [ebdPanelTab, setEbdPanelTab] = useState<"penilaian" | "dokumen" | "formulir">("penilaian");
   const [selectedAppDocuments, setSelectedAppDocuments] = useState<ApiDocument[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -953,8 +954,28 @@ export default function Phase1EvaluationPage({
                                 </span>
                               )}
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => setEbdPanelTab("formulir")}
+                              className={cn(
+                                "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
+                                ebdPanelTab === "formulir"
+                                  ? "border-b-ptba-gold text-ptba-navy"
+                                  : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
+                              )}
+                            >
+                              <ClipboardCheck className="h-4 w-4" />
+                              Data Formulir
+                            </button>
                           </nav>
                         </div>
+
+                        {/* Tab: Data Formulir */}
+                        {ebdPanelTab === "formulir" && (
+                          <div className="p-6">
+                            <FormDataViewer formData={selectedAppFormData || {}} />
+                          </div>
+                        )}
 
                         {/* Tab: Penilaian */}
                         {ebdPanelTab === "penilaian" && (
@@ -1077,7 +1098,7 @@ export default function Phase1EvaluationPage({
                                   const dtId = (doc as any).document_type_id || "";
                                   const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
                                   const docName = meta?.name || doc.name;
-                                  const formSection = selectedAppFormData ? EVAL_FORM_DATA_MAP[dtId] : null;
+                                  const formSection = null; // Dynamic viewer used instead
                                   const isOpen = expandedDocs[doc.id] ?? false;
 
                                   return (
@@ -1110,24 +1131,8 @@ export default function Phase1EvaluationPage({
                                               <Download className="h-3 w-3" /> Unduh
                                             </button>
                                           )}
-                                          {formSection && (
-                                            <button
-                                              type="button"
-                                              onClick={() => setExpandedDocs((prev) => ({ ...prev, [doc.id]: !prev[doc.id] }))}
-                                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                                            >
-                                              {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                              Data
-                                            </button>
-                                          )}
                                         </div>
                                       </div>
-                                      {formSection && isOpen && (
-                                        <div className="border-t border-gray-100 bg-ptba-section-bg/30 px-4 py-3">
-                                          <p className="text-xs font-semibold text-ptba-charcoal mb-2">{formSection.title}</p>
-                                          {formSection.render(selectedAppFormData)}
-                                        </div>
-                                      )}
                                     </div>
                                   );
                                 })}
