@@ -253,7 +253,9 @@ export default function ProjectForm({
         } else {
           // Custom document — not in any predefined list
           const docPhase = phase === "general" ? "both" : (phase as "phase1" | "phase2" | "phase3" | "both") || "both";
-          customDocs.push({ name: docId.replace(/_/g, " "), phase: docPhase });
+          // Strip "custom_" prefix and convert underscores to spaces
+          const displayName = docId.startsWith("custom_") ? docId.slice(7).replace(/_/g, " ") : docId.replace(/_/g, " ");
+          customDocs.push({ name: displayName, phase: docPhase });
         }
       }
 
