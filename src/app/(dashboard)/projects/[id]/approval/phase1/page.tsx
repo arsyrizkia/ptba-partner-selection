@@ -265,7 +265,7 @@ export default function Phase1ApprovalPage({
   const [submitting, setSubmitting] = useState(false);
 
   /* ---- Panel tab state ---- */
-  const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen">("penilaian");
+  const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen" | "formulir">("penilaian");
 
   /* ---- Accordion state for document form data ---- */
   const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
@@ -776,6 +776,18 @@ export default function Phase1ApprovalPage({
                               </span>
                             )}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setPanelTab("formulir")}
+                            className={cn(
+                              "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
+                              panelTab === "formulir"
+                                ? "border-b-ptba-gold text-ptba-navy"
+                                : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
+                            )}
+                          >
+                            <ClipboardCheck className="h-4 w-4" /> Data Formulir
+                          </button>
                         </nav>
                       </div>
 
@@ -906,19 +918,14 @@ export default function Phase1ApprovalPage({
                           )}
                         </div>
                       )}
-                    </div>
 
-                    {/* Data Formulir */}
-                    {formData && Object.keys(formData).length > 0 && (
-                      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                        <div className="px-5 py-3 bg-ptba-off-white border-b border-ptba-light-gray">
-                          <p className="text-sm font-semibold text-ptba-charcoal">Data Formulir Mitra</p>
+                      {/* Tab: Data Formulir */}
+                      {panelTab === "formulir" && (
+                        <div className="p-6">
+                          <FormDataViewer formData={formData || {}} />
                         </div>
-                        <div className="p-5">
-                          <FormDataViewer formData={formData} />
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* PIC decision per mitra */}
                     {isPIC && !submitted && (
