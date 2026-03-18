@@ -85,7 +85,17 @@ export default function CreateProjectPage() {
       // Upload document templates
       if (newProjectId && Object.keys(templateFiles).length > 0) {
         const reqDocs = (res.data as any)?.requiredDocuments || [];
-        for (const [docTypeId, file] of Object.entries(templateFiles)) {
+
+        // Build mapping from custom_N index keys to actual document type IDs
+        const customDocIdMap: Record<string, string> = {};
+        formData.customDocuments.forEach((d, i) => {
+          if (d.name.trim()) {
+            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`;
+          }
+        });
+
+        for (const [templateKey, file] of Object.entries(templateFiles)) {
+          const docTypeId = customDocIdMap[templateKey] || templateKey;
           const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
           if (reqDoc?.id) {
             const fd = new FormData();

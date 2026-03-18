@@ -289,7 +289,7 @@ export default function MitraProjectApplyPage() {
         const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
         return {
           id: d.documentTypeId,
-          name: meta?.name || d.documentTypeId.replace(/_/g, " "),
+          name: meta?.name || (d.documentTypeId.startsWith("custom_") ? d.documentTypeId.slice(7) : d.documentTypeId).replace(/_/g, " "),
           description: meta?.description || "",
         };
       });
