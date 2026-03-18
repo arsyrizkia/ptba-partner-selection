@@ -545,7 +545,7 @@ export default function Phase1ApprovalPage({
   }
 
   const isDireksi = role === "direksi" || role === "super_admin";
-  const isPIC = role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko" || role === "super_admin";
+  const isPIC = (role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko") && !isDireksi;
   const allPICDecided = mitraStates.every((m) => m.decision !== "pending");
   const approvedCount = mitraStates.filter((m) => m.decision === "approved").length;
   const rejectedCount = mitraStates.filter((m) => m.decision === "rejected").length;
