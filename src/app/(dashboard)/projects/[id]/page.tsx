@@ -343,6 +343,7 @@ export default function ProjectDetailPage({
 
   function EvalActionButton({ partnerId, evalDone }: { partnerId: string; evalDone: boolean }) {
     if (!canEvaluate) return null;
+    const registrationClosed = project.phase !== "phase1_registration";
     if (evalDone) {
       return (
         <Link
@@ -351,6 +352,17 @@ export default function ProjectDetailPage({
         >
           <ExternalLink className="h-3 w-3" /> Lihat Hasil
         </Link>
+      );
+    }
+    if (!registrationClosed) {
+      return (
+        <button
+          type="button"
+          onClick={() => alert("Pendaftaran Fase 1 harus ditutup terlebih dahulu sebelum memulai evaluasi.")}
+          className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+        >
+          Mulai Evaluasi
+        </button>
       );
     }
     return (

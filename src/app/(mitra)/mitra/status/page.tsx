@@ -22,14 +22,16 @@ const MITRA_MILESTONES = [
   { id: 11, name: "Pengumuman Pemenang", stepRange: [15, 16], phase: "phase3" as const },
 ];
 
-function deriveCurrentStep(app: any): number {
+function deriveCurrentStep(app: any, projectStep?: number): number {
+  // Use project's current step if available (most accurate)
+  if (projectStep) return projectStep;
   if (app.current_eval_step) return app.current_eval_step;
   switch (app.status) {
     case "Dikirim": return 2;
     case "Dalam Review": return 4;
-    case "Shortlisted": return 8;
-    case "Terpilih": return 13;
-    case "Ditolak": return 7;
+    case "Shortlisted": return 7;
+    case "Terpilih": return 16;
+    case "Ditolak": return 6;
     default: return 2;
   }
 }
@@ -58,11 +60,24 @@ export default function MitraStatusPage() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [projects, setProjects] = useState<Record<string, any>>({});
+
   useEffect(() => {
     if (!accessToken) return;
     api<{ applications: any[] }>("/applications", { token: accessToken })
-      .then((res) => {
-        setApplications((res.applications || []).filter((a: any) => a.status !== "Draft"));
+      .then(async (res) => {
+        const apps = (res.applications || []).filter((a: any) => a.status !== "Draft");
+        setApplications(apps);
+        // Fetch project data for each unique project
+        const projectIds = [...new Set(apps.map((a: any) => a.project_id))];
+        const projectMap: Record<string, any> = {};
+        for (const pid of projectIds) {
+          try {
+            const proj = await api<{ data: any }>(`/projects/${pid}`, { token: accessToken });
+            if (proj.data) projectMap[pid as string] = proj.data;
+          } catch { /* ignore */ }
+        }
+        setProjects(projectMap);
       })
       .catch(() => setApplications([]))
       .finally(() => setLoading(false));
@@ -94,7 +109,8 @@ export default function MitraStatusPage() {
         <div className="space-y-4">
           {applications.map((app) => {
             const badge = STATUS_BADGE[app.status] || STATUS_BADGE.Dikirim;
-            const currentStep = deriveCurrentStep(app);
+            const proj = projects[app.project_id];
+            const currentStep = deriveCurrentStep(app, proj?.currentStep);
             const isRejected = app.status === "Ditolak" || app.phase1_result === "Tidak Lolos";
             const isWinner = app.status === "Terpilih";
 
