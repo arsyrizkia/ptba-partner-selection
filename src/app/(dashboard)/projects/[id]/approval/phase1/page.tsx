@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi } from "@/lib/api/client";
+import { api, projectApi, downloadDocument } from "@/lib/api/client";
 import { PHASE1_CRITERIA, PHASE1_PASSING_SCORE } from "@/lib/constants/phase1-criteria";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
@@ -884,13 +884,7 @@ export default function Phase1ApprovalPage({
                                             type="button"
                                             onClick={async () => {
                                               try {
-                                                const key = encodeURIComponent(doc.file_key);
-                                                const res = await fetch(`/api/documents/download?key=${key}`, {
-                                                  headers: { Authorization: `Bearer ${accessToken}` },
-                                                });
-                                                if (!res.ok) return;
-                                                const blob = await res.blob();
-                                                window.open(URL.createObjectURL(blob), "_blank");
+                                                await downloadDocument(doc.file_key, accessToken!);
                                               } catch { /* ignore */ }
                                             }}
                                             className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"

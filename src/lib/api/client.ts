@@ -494,6 +494,16 @@ export function negotiationApi(token: string) {
   };
 }
 
+// Document download helper — gets presigned URL from API and opens it
+export async function downloadDocument(fileKey: string, token: string): Promise<void> {
+  try {
+    const res = await api<{ url: string }>(`/documents/download/${encodeURIComponent(fileKey)}`, { token });
+    if (res.url) window.open(res.url, "_blank");
+  } catch {
+    // ignore
+  }
+}
+
 export function partnerApi(token: string) {
   return {
     getById: (id: string) =>

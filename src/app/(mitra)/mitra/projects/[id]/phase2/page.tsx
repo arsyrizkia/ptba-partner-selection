@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi } from "@/lib/api/client";
+import { api, projectApi, downloadDocument } from "@/lib/api/client";
 import { PHASE2_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatCurrency } from "@/lib/utils/format";
 
@@ -233,33 +233,14 @@ export default function MitraPhase2Page() {
     setError("");
 
     try {
-      // Record the download via API and get presigned URL
-      const res = await api<{ url: string; document: any }>(
+      // Record the download via API
+      await api<{ url: string; document: any }>(
         `/applications/${application.id}/download-ptba-doc/${docId}`,
         { method: "POST", token: accessToken }
       );
 
-      // Download through the Next.js proxy using file key
-      const proxyRes = await fetch(
-        `/api/documents/download?key=${encodeURIComponent(fileKey)}`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-
-      if (!proxyRes.ok) {
-        throw new Error("Gagal mengunduh dokumen");
-      }
-
-      const blob = await proxyRes.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = res.document?.name || "document";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Download through the helper
+      await downloadDocument(fileKey, accessToken!);
 
       setDownloadedDocs((prev) => new Set(prev).add(docId));
     } catch (err: any) {

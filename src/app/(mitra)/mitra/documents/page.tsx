@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { FileText, FolderKanban, Loader2, CheckCircle2, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api } from "@/lib/api/client";
+import { api, downloadDocument } from "@/lib/api/client";
 import { formatDate } from "@/lib/utils/format";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
@@ -205,13 +205,7 @@ export default function MitraDocumentsPage() {
   const handleView = async (doc: any) => {
     if (!accessToken || !doc.file_key) return;
     try {
-      const key = encodeURIComponent(doc.file_key);
-      const res = await fetch(`/api/documents/download?key=${key}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      window.open(URL.createObjectURL(blob), "_blank");
+      await downloadDocument(doc.file_key, accessToken!);
     } catch {
       // ignore
     }

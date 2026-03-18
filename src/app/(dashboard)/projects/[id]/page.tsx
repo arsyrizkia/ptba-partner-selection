@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi } from "@/lib/api/client";
+import { api, projectApi, downloadDocument } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
@@ -1247,13 +1247,7 @@ export default function ProjectDetailPage({
                               <button
                                 onClick={async () => {
                                   try {
-                                    const key = encodeURIComponent(app.fee_payment_proof);
-                                    const res = await fetch(`/api/documents/download?key=${key}`, {
-                                      headers: { Authorization: `Bearer ${accessToken}` },
-                                    });
-                                    if (!res.ok) return;
-                                    const blob = await res.blob();
-                                    window.open(URL.createObjectURL(blob), "_blank");
+                                    await downloadDocument(app.fee_payment_proof, accessToken!);
                                   } catch { /* ignore */ }
                                 }}
                                 className="w-full rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-4 text-center hover:bg-ptba-steel-blue/5 transition-colors"
