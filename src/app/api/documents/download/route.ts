@@ -41,11 +41,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch file from MinIO using internal hostname
-    // Security: only allow fetching from our MinIO server, not arbitrary URLs
-    const internalUrl = data.url.replace("localhost:9000", "minio:9000");
-    const parsed = new URL(internalUrl);
-    if (!["minio:9000", "localhost:9000"].includes(parsed.host)) {
-      return NextResponse.json({ error: "Invalid document URL" }, { status: 400 });
+    // The presigned URL may use /storage/ proxy or direct MinIO host
+    let internalUrl = data.url;
+    // Convert /storage/ proxy URL back to internal MinIO
+    if (internalUrl.includes("/storage/")) {
+      const urlObj = new URL(internalUrl);
+      const storagePath = urlObj.pathname.replace("/storage/", "/");
+      internalUrl = `http://minio:9000${storagePath}${urlObj.search}`;
+    } else {
+      internalUrl = internalUrl.replace("localhost:9000", "minio:9000");
     }
     const fileRes = await fetch(internalUrl);
 
