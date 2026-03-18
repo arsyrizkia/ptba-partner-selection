@@ -7,16 +7,19 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { api } from "@/lib/api/client";
 import { formatDate } from "@/lib/utils/format";
 
-// Mitra-visible milestones (simplified from 13 internal steps)
+// Mitra-visible milestones (simplified from 16 internal steps)
 const MITRA_MILESTONES = [
   { id: 1, name: "Pendaftaran EoI", stepRange: [2, 2], phase: "phase1" as const },
   { id: 2, name: "Pendaftaran Ditutup", stepRange: [3, 3], phase: "phase1" as const },
-  { id: 3, name: "Evaluasi Fase 1", stepRange: [4, 6], phase: "phase1" as const },
-  { id: 4, name: "Pengumuman Shortlist", stepRange: [7, 7], phase: "phase1" as const },
-  { id: 5, name: "Pendaftaran Fase 2", stepRange: [8, 8], phase: "phase2" as const },
-  { id: 6, name: "Evaluasi Fase 2", stepRange: [9, 10], phase: "phase2" as const },
-  { id: 7, name: "Negosiasi", stepRange: [11, 11], phase: "phase2" as const },
-  { id: 8, name: "Pengumuman Pemenang", stepRange: [12, 13], phase: "phase2" as const },
+  { id: 3, name: "Evaluasi Fase 1", stepRange: [4, 5], phase: "phase1" as const },
+  { id: 4, name: "Pengumuman Shortlist", stepRange: [6, 6], phase: "phase1" as const },
+  { id: 5, name: "Pendaftaran Fase 2", stepRange: [7, 7], phase: "phase2" as const },
+  { id: 6, name: "Evaluasi Fase 2", stepRange: [8, 10], phase: "phase2" as const },
+  { id: 7, name: "Pengumuman Fase 2", stepRange: [11, 11], phase: "phase2" as const },
+  { id: 8, name: "Pendaftaran Fase 3", stepRange: [12, 12], phase: "phase3" as const },
+  { id: 9, name: "Evaluasi & Peringkat", stepRange: [13, 13], phase: "phase3" as const },
+  { id: 10, name: "Negosiasi", stepRange: [14, 14], phase: "phase3" as const },
+  { id: 11, name: "Pengumuman Pemenang", stepRange: [15, 16], phase: "phase3" as const },
 ];
 
 function deriveCurrentStep(app: any): number {
@@ -147,7 +150,7 @@ export default function MitraStatusPage() {
                   <div className="flex items-center gap-1">
                     {MITRA_MILESTONES.map((m, idx) => {
                       const status = getMilestoneStatus(m, currentStep, isRejected);
-                      const isPhaseBreak = idx === 4; // Between phase1 and phase2
+                      const isPhaseBreak = idx === 4 || idx === 7; // Between phases
 
                       return (
                         <div key={m.id} className="flex items-center gap-1 flex-1 min-w-0">
@@ -187,11 +190,14 @@ export default function MitraStatusPage() {
                   </div>
                   {/* Phase labels */}
                   <div className="flex mt-2">
-                    <div className="flex-1 text-center">
+                    <div style={{ width: "36%" }} className="text-center">
                       <span className="text-[9px] font-medium text-ptba-navy/40 uppercase tracking-wider">Fase 1</span>
                     </div>
-                    <div className="flex-1 text-center">
-                      <span className="text-[9px] font-medium text-ptba-navy/40 uppercase tracking-wider">Fase 2</span>
+                    <div style={{ width: "28%" }} className="text-center">
+                      <span className="text-[9px] font-medium text-ptba-steel-blue/40 uppercase tracking-wider">Fase 2</span>
+                    </div>
+                    <div style={{ width: "36%" }} className="text-center">
+                      <span className="text-[9px] font-medium text-ptba-gold/60 uppercase tracking-wider">Fase 3</span>
                     </div>
                   </div>
                 </div>
