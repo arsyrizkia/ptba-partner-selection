@@ -94,6 +94,7 @@ export default function CreateProjectPage() {
           }
         });
 
+        const freshToken = typeof window !== "undefined" ? localStorage.getItem("ptba_access_token") : accessToken;
         for (const [templateKey, file] of Object.entries(templateFiles)) {
           const docTypeId = customDocIdMap[templateKey] || templateKey;
           const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
@@ -102,7 +103,7 @@ export default function CreateProjectPage() {
             fd.append("file", file);
             await fetch(`${API_BASE}/projects/${newProjectId}/required-documents/${reqDoc.id}/template`, {
               method: "POST",
-              headers: { Authorization: `Bearer ${accessToken}` },
+              headers: { Authorization: `Bearer ${freshToken}` },
               body: fd,
             });
           }

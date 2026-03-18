@@ -151,24 +151,20 @@ export default function EditProjectPage({
           }
         });
 
-        console.log("[template-upload] templateFiles keys:", Object.keys(templateFiles));
-        console.log("[template-upload] customDocIdMap:", customDocIdMap);
-        console.log("[template-upload] reqDocs:", reqDocs.map((d: any) => d.documentTypeId));
+        // Get fresh token (accessToken may have expired during save)
+        const freshToken = typeof window !== "undefined" ? localStorage.getItem("ptba_access_token") : accessToken;
 
         for (const [templateKey, file] of Object.entries(templateFiles)) {
           const docTypeId = customDocIdMap[templateKey] || templateKey;
           const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
-          console.log("[template-upload] key:", templateKey, "→ docTypeId:", docTypeId, "→ reqDoc:", reqDoc?.id || "NOT FOUND");
           if (reqDoc?.id) {
             const fd = new FormData();
             fd.append("file", file);
-            const uploadRes = await fetch(`${API_BASE}/projects/${id}/required-documents/${reqDoc.id}/template`, {
+            await fetch(`${API_BASE}/projects/${id}/required-documents/${reqDoc.id}/template`, {
               method: "POST",
-              headers: { Authorization: `Bearer ${accessToken}` },
+              headers: { Authorization: `Bearer ${freshToken}` },
               body: fd,
             });
-            const uploadData = await uploadRes.json();
-            console.log("[template-upload] result:", uploadRes.status, uploadData);
           }
         }
       }
