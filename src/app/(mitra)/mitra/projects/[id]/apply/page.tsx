@@ -231,10 +231,20 @@ export default function MitraProjectApplyPage() {
   const [companyName, setCompanyName] = useState("");
   const [companyCode, setCompanyCode] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
+  const [companyIndonesiaAddress, setCompanyIndonesiaAddress] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyStatus, setCompanyStatus] = useState("");
   const [yearEstablished, setYearEstablished] = useState("");
   const [countryEstablished, setCountryEstablished] = useState("Indonesia");
+  const [businessOverview, setBusinessOverview] = useState("");
+  const [orgStructure, setOrgStructure] = useState("");
+  const [subsidiaries, setSubsidiaries] = useState("");
+  const [nib, setNib] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
 
   // Section: Surat Pernyataan EoI (statement_eoi)
   const [signerName, setSignerName] = useState("");
@@ -345,6 +355,12 @@ export default function MitraProjectApplyPage() {
         if (fd.requirementAnswers) setRequirementAnswers(fd.requirementAnswers);
         if (fd.requirementNotes) setRequirementNotes(fd.requirementNotes);
         if (fd.agreedFinal) setAgreedFinal(fd.agreedFinal);
+        if (fd.businessOverview) setBusinessOverview(fd.businessOverview);
+        if (fd.orgStructure) setOrgStructure(fd.orgStructure);
+        if (fd.subsidiaries) setSubsidiaries(fd.subsidiaries);
+        if (fd.contactPerson) setContactPerson(fd.contactPerson);
+        if (fd.contactPhone) setContactPhone(fd.contactPhone);
+        if (fd.contactEmail) setContactEmail(fd.contactEmail);
       }
 
       // Load partner profile
@@ -354,8 +370,16 @@ export default function MitraProjectApplyPage() {
         setCompanyName(p.name || "");
         setCompanyCode(p.code || "");
         setCompanyAddress(p.address || "");
+        setCompanyIndonesiaAddress(p.indonesia_office_address || "");
+        setCompanyPhone(p.phone || "");
+        setCompanyEmail(p.email || "");
         setCompanyWebsite(p.website || "");
         setCompanyStatus(p.status || "");
+        setBusinessOverview(p.business_overview || "");
+        setNib(p.nib || "");
+        setContactPerson(p.contact_person || "");
+        setContactPhone(p.contact_phone || "");
+        setContactEmail(p.contact_email || "");
         setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
       }
     } catch {
@@ -505,9 +529,19 @@ export default function MitraProjectApplyPage() {
     agreedFinal,
     companyName,
     companyAddress,
+    companyIndonesiaAddress,
+    companyPhone,
+    companyEmail,
     companyWebsite,
     yearEstablished,
     countryEstablished,
+    businessOverview,
+    orgStructure,
+    subsidiaries,
+    nib,
+    contactPerson,
+    contactPhone,
+    contactEmail,
   });
 
   const saveFormDataToServer = async (appId: string) => {
@@ -754,6 +788,8 @@ export default function MitraProjectApplyPage() {
           onToggle={() => setOpenSection(openSection === getSectionNumber("compro") ? 0 : getSectionNumber("compro"))}
         >
           <p className="text-xs text-ptba-gray">Data perusahaan Anda. Pastikan informasi sudah sesuai.</p>
+
+          {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Perusahaan <span className="text-ptba-red">*</span></label>
@@ -763,9 +799,44 @@ export default function MitraProjectApplyPage() {
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kode Perusahaan</label>
               <input type="text" value={companyCode} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
             </div>
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Alamat <span className="text-ptba-red">*</span></label>
-              <input type="text" value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={inputClass} />
+          </div>
+
+          {/* Business Overview */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Overview Bidang Usaha <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">Bidang usaha utama / Main line of business</p>
+            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder="Contoh: Pembangkit Listrik, Trading Batubara, dll." className={cn(inputClass, "min-h-[60px] resize-y")} />
+          </div>
+
+          {/* Addresses */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Alamat Kantor Pusat <span className="text-ptba-red">*</span></label>
+              <textarea value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={cn(inputClass, "min-h-[60px] resize-y")} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Alamat Kantor Rep. Indonesia</label>
+              <textarea value={companyIndonesiaAddress} onChange={(e) => setCompanyIndonesiaAddress(e.target.value)} placeholder="Isi jika berbeda dengan kantor pusat" className={cn(inputClass, "min-h-[60px] resize-y")} />
+            </div>
+          </div>
+
+          {/* Contact & Legal */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nomor Telp Perusahaan</label>
+              <input type="text" value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Email Perusahaan</label>
+              <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Website</label>
+              <input type="text" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">NIB</label>
+              <input type="text" value={nib} onChange={(e) => setNib(e.target.value)} className={inputClass} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun Berdiri</label>
@@ -776,12 +847,38 @@ export default function MitraProjectApplyPage() {
               <input type="text" value={countryEstablished} onChange={(e) => setCountryEstablished(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Website</label>
-              <input type="text" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className={inputClass} />
-            </div>
-            <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Status</label>
               <input type="text" value={companyStatus} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
+            </div>
+          </div>
+
+          {/* Org Structure & Subsidiaries */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Struktur Organisasi Perusahaan</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">Structure of the Company</p>
+            <textarea value={orgStructure} onChange={(e) => setOrgStructure(e.target.value)} placeholder="Jelaskan struktur organisasi perusahaan" className={cn(inputClass, "min-h-[60px] resize-y")} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Anak atau Afiliasi Perusahaan (jika ada)</label>
+            <textarea value={subsidiaries} onChange={(e) => setSubsidiaries(e.target.value)} placeholder="Sebutkan anak perusahaan atau afiliasi" className={cn(inputClass, "min-h-[60px] resize-y")} />
+          </div>
+
+          {/* Contact Person */}
+          <div className="border-t border-ptba-light-gray pt-3">
+            <p className="text-xs font-semibold text-ptba-charcoal mb-2">Contact Person</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama CP</label>
+                <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nomor Telp CP</label>
+                <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Email CP</label>
+                <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inputClass} />
+              </div>
             </div>
           </div>
 
