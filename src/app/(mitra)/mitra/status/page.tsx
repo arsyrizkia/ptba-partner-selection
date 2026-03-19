@@ -13,8 +13,8 @@ const MITRA_MILESTONES = [
   { id: 2, name: "Pendaftaran Ditutup", stepRange: [3, 3], phase: "phase1" as const },
   { id: 3, name: "Evaluasi Fase 1", stepRange: [4, 5], phase: "phase1" as const },
   { id: 4, name: "Pengumuman Shortlist", stepRange: [6, 6], phase: "phase1" as const },
-  { id: 5, name: "Pendaftaran Fase 2", stepRange: [7, 7], phase: "phase2" as const },
-  { id: 6, name: "Evaluasi Fase 2", stepRange: [8, 10], phase: "phase2" as const },
+  { id: 5, name: "Pendaftaran Fase 2", stepRange: [7, 8], phase: "phase2" as const },
+  { id: 6, name: "Evaluasi Fase 2", stepRange: [9, 10], phase: "phase2" as const },
   { id: 7, name: "Pengumuman Fase 2", stepRange: [11, 11], phase: "phase2" as const },
   { id: 8, name: "Pendaftaran Fase 3", stepRange: [12, 12], phase: "phase3" as const },
   { id: 9, name: "Evaluasi & Peringkat", stepRange: [13, 13], phase: "phase3" as const },
@@ -151,12 +151,21 @@ export default function MitraStatusPage() {
                     </div>
                   )}
 
-                  {/* Shortlisted info */}
+                  {/* Shortlisted info + Phase 2 action */}
                   {app.status === "Shortlisted" && (
                     <div className="mt-3 pt-3 border-t border-green-100">
                       <p className="text-xs text-green-700">
-                        Selamat! Perusahaan Anda lolos Fase 1. Informasi Fase 2 akan disampaikan melalui email.
+                        Selamat! Perusahaan Anda lolos Fase 1.
+                        {proj?.phase?.startsWith("phase2") ? " Silakan lengkapi dokumen Fase 2." : " Informasi Fase 2 akan disampaikan melalui email."}
                       </p>
+                      {proj?.phase?.startsWith("phase2") && (
+                        <a
+                          href={`/mitra/projects/${app.project_id}/phase2`}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors"
+                        >
+                          Upload Dokumen Fase 2 <ArrowRight className="h-3 w-3" />
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>

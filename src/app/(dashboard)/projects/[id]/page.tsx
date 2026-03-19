@@ -289,7 +289,7 @@ export default function ProjectDetailPage({
     };
   });
   const isAdmin = role === "ebd" || role === "super_admin";
-  const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement" || project.phase === "phase2_registration";
+  const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement";
 
   const allEvalsComplete = projectPartners.length > 0 && projectPartners.every(
     (p) => p.hasTechnicalEval && p.hasFinancialEval && p.hasLegalEval && p.hasRiskEval
