@@ -245,6 +245,7 @@ export default function MitraProjectApplyPage() {
   const [contactPerson, setContactPerson] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [minorityEquityPercent, setMinorityEquityPercent] = useState("");
 
   // Section: Surat Pernyataan EoI (statement_eoi)
   const [signerName, setSignerName] = useState("");
@@ -258,6 +259,7 @@ export default function MitraProjectApplyPage() {
   );
   const [creditRatingAgency, setCreditRatingAgency] = useState("");
   const [creditRatingValue, setCreditRatingValue] = useState("");
+  const [cashOnHand, setCashOnHand] = useState("");
 
   // Section: Pengalaman Proyek (portfolio)
   const [experiences, setExperiences] = useState<ProjectExperience[]>([]);
@@ -351,6 +353,7 @@ export default function MitraProjectApplyPage() {
         if (fd.financialYears) setFinancialYears(fd.financialYears);
         if (fd.creditRatingAgency) setCreditRatingAgency(fd.creditRatingAgency);
         if (fd.creditRatingValue) setCreditRatingValue(fd.creditRatingValue);
+        if (fd.cashOnHand) setCashOnHand(fd.cashOnHand);
         if (fd.experiences) setExperiences(fd.experiences);
         if (fd.requirementAnswers) setRequirementAnswers(fd.requirementAnswers);
         if (fd.requirementNotes) setRequirementNotes(fd.requirementNotes);
@@ -361,6 +364,7 @@ export default function MitraProjectApplyPage() {
         if (fd.contactPerson) setContactPerson(fd.contactPerson);
         if (fd.contactPhone) setContactPhone(fd.contactPhone);
         if (fd.contactEmail) setContactEmail(fd.contactEmail);
+        if (fd.minorityEquityPercent) setMinorityEquityPercent(fd.minorityEquityPercent);
       }
 
       // Load partner profile
@@ -523,6 +527,7 @@ export default function MitraProjectApplyPage() {
     financialYears,
     creditRatingAgency,
     creditRatingValue,
+    cashOnHand,
     experiences,
     requirementAnswers,
     requirementNotes,
@@ -542,6 +547,7 @@ export default function MitraProjectApplyPage() {
     contactPerson,
     contactPhone,
     contactEmail,
+    minorityEquityPercent,
   });
 
   const saveFormDataToServer = async (appId: string) => {
@@ -798,6 +804,16 @@ export default function MitraProjectApplyPage() {
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kode Perusahaan</label>
               <input type="text" value={companyCode} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
+            </div>
+          </div>
+
+          {/* Minority Equity */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Persentase Ekuitas (Minority Shareholder)</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">Equity percentage (minority shareholders) — 30%-49%</p>
+            <div className="flex items-center gap-2">
+              <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder="Contoh: 35" className={cn(inputClass, "w-32")} />
+              <span className="text-sm text-ptba-gray">%</span>
             </div>
           </div>
 
@@ -1124,21 +1140,13 @@ export default function MitraProjectApplyPage() {
             </table>
           </div>
 
-          {/* Credit Rating */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lembaga Pemeringkat</label>
-              <select value={creditRatingAgency} onChange={(e) => setCreditRatingAgency(e.target.value)} className={inputClass}>
-                <option value="">Pilih...</option>
-                <option value="S&P">S&P (Pefindo)</option>
-                <option value="Moodys">Moody&apos;s</option>
-                <option value="Fitch">Fitch</option>
-                <option value="Other">Lainnya</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Rating</label>
-              <input type="text" placeholder="Contoh: AA+" value={creditRatingValue} onChange={(e) => setCreditRatingValue(e.target.value)} className={inputClass} />
+          {/* Cash on Hand */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Cash on Hand</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">Min. Cash on Hand of 1.5x equity</p>
+            <div className="flex items-center gap-2">
+              <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder="Contoh: 350" className={cn(inputClass, "w-40")} />
+              <span className="text-sm text-ptba-gray">Mill USD</span>
             </div>
           </div>
 
