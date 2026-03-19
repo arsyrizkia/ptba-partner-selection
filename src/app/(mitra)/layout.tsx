@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import MitraNavbar from "@/components/layout/mitra-navbar";
+import { MitraIntlProvider } from "@/components/providers/mitra-intl-provider";
 
 export default function MitraLayout({
   children,
@@ -26,9 +27,11 @@ export default function MitraLayout({
   }
 
   return (
-    <div className="min-h-screen bg-ptba-off-white">
-      <MitraNavbar />
-      <main className="mx-auto max-w-7xl pt-16 p-6">{children}</main>
-    </div>
+    <MitraIntlProvider>
+      <div className="min-h-screen bg-ptba-off-white">
+        <MitraNavbar />
+        <main className="mx-auto max-w-7xl pt-16 p-6">{children}</main>
+      </div>
+    </MitraIntlProvider>
   );
 }

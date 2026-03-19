@@ -5,6 +5,8 @@ import { Building2, MapPin, Phone, Mail, Globe, FileText, User, Loader2, Lock, E
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi, partnerApi, ApiClientError, type PartnerProfile, type UpdatePartnerInput } from "@/lib/api/client";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 // ─── Types ───
 
@@ -62,6 +64,9 @@ function ProfileField({ icon, label, value }: { icon: React.ReactNode; label: st
 
 function CompanyProfileTab() {
   const { user, accessToken } = useAuth();
+  const t = useTranslations("profile");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
   const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,11 +88,11 @@ function CompanyProfileTab() {
       setPartner(data);
       setEditForm(toFormData(data));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal memuat data profil");
+      setError(err instanceof Error ? err.message : t("company.profileLoadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [user?.partnerId, accessToken]);
+  }, [user?.partnerId, accessToken, t]);
 
   useEffect(() => {
     fetchPartner();
@@ -116,10 +121,10 @@ function CompanyProfileTab() {
       setPartner(updated);
       setEditForm(toFormData(updated));
       setIsEditing(false);
-      setSaveMessage("Profil berhasil disimpan");
+      setSaveMessage(t("company.profileSaved"));
       setTimeout(() => setSaveMessage(""), 3000);
     } catch (err: unknown) {
-      setSaveMessage(err instanceof Error ? err.message : "Gagal menyimpan profil");
+      setSaveMessage(err instanceof Error ? err.message : t("company.profileSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -134,7 +139,7 @@ function CompanyProfileTab() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
-        <span className="ml-3 text-ptba-gray">Memuat profil...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loadingProfile")}</span>
       </div>
     );
   }
@@ -144,7 +149,7 @@ function CompanyProfileTab() {
       <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
         <p className="text-red-700">{error}</p>
         <button onClick={fetchPartner} className="mt-3 text-sm font-medium text-ptba-steel-blue hover:underline">
-          Coba lagi
+          {tc("retry")}
         </button>
       </div>
     );
@@ -156,22 +161,22 @@ function CompanyProfileTab() {
 
   if (isEditing) {
     const fields: { key: keyof ProfileFormData; label: string; multiline?: boolean }[] = [
-      { key: "name", label: "Nama Perusahaan" },
-      { key: "businessOverview", label: "Overview Bidang Usaha", multiline: true },
-      { key: "address", label: "Alamat Kantor Pusat", multiline: true },
-      { key: "indonesiaOfficeAddress", label: "Alamat Kantor Rep. Indonesia", multiline: true },
-      { key: "phone", label: "Nomor Telp Perusahaan" },
-      { key: "email", label: "Email Perusahaan" },
-      { key: "nib", label: "NIB" },
-      { key: "contactPerson", label: "Nama CP" },
-      { key: "contactPhone", label: "Nomor Telp CP" },
-      { key: "contactEmail", label: "Email CP" },
+      { key: "name", label: t("company.companyName") },
+      { key: "businessOverview", label: t("company.businessOverview"), multiline: true },
+      { key: "address", label: t("company.hqAddress"), multiline: true },
+      { key: "indonesiaOfficeAddress", label: t("company.indonesiaOffice"), multiline: true },
+      { key: "phone", label: t("company.companyPhone") },
+      { key: "email", label: t("company.companyEmail") },
+      { key: "nib", label: t("company.nib") },
+      { key: "contactPerson", label: t("company.cpName") },
+      { key: "contactPhone", label: t("company.cpPhone") },
+      { key: "contactEmail", label: t("company.cpEmail") },
     ];
 
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ptba-charcoal">Edit Profil Perusahaan</h2>
+          <h2 className="text-lg font-semibold text-ptba-charcoal">{t("company.editTitle")}</h2>
         </div>
         <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
           {fields.map((field) => (
@@ -195,10 +200,10 @@ function CompanyProfileTab() {
           ))}
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={handleCancel} disabled={saving} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
-              Batal
+              {tc("cancel")}
             </button>
             <button onClick={handleSave} disabled={saving} className="rounded-lg bg-ptba-gold px-6 py-2 text-sm font-bold text-ptba-charcoal shadow-md hover:bg-ptba-gold-light transition-colors disabled:opacity-50">
-              {saving ? "Menyimpan..." : "Simpan"}
+              {saving ? tc("saving") : tc("save")}
             </button>
           </div>
         </div>
@@ -209,12 +214,12 @@ function CompanyProfileTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ptba-charcoal">Informasi Perusahaan</h2>
+        <h2 className="text-lg font-semibold text-ptba-charcoal">{t("company.title")}</h2>
         <button
           onClick={() => { setEditForm(toFormData(partner)); setIsEditing(true); }}
           className="rounded-lg border border-ptba-steel-blue px-4 py-2 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue hover:text-white transition-colors"
         >
-          Edit Profil
+          {t("company.editProfile")}
         </button>
       </div>
 
@@ -226,26 +231,26 @@ function CompanyProfileTab() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Data Perusahaan</h3>
-          <ProfileField icon={<Building2 className="h-4 w-4" />} label="Nama Perusahaan" value={profile.name} />
-          <ProfileField icon={<FileText className="h-4 w-4" />} label="Overview Bidang Usaha" value={profile.businessOverview} />
-          <ProfileField icon={<MapPin className="h-4 w-4" />} label="Alamat Kantor Pusat" value={profile.address} />
-          <ProfileField icon={<MapPin className="h-4 w-4" />} label="Alamat Kantor Rep. Indonesia" value={profile.indonesiaOfficeAddress} />
-          <ProfileField icon={<Phone className="h-4 w-4" />} label="Nomor Telp Perusahaan" value={profile.phone} />
-          <ProfileField icon={<Mail className="h-4 w-4" />} label="Email Perusahaan" value={profile.email} />
-          <ProfileField icon={<FileText className="h-4 w-4" />} label="Tanggal Registrasi" value={partner.registration_date ? new Date(partner.registration_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"} />
+          <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.companyData")}</h3>
+          <ProfileField icon={<Building2 className="h-4 w-4" />} label={t("company.companyName")} value={profile.name} />
+          <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.businessOverview")} value={profile.businessOverview} />
+          <ProfileField icon={<MapPin className="h-4 w-4" />} label={t("company.hqAddress")} value={profile.address} />
+          <ProfileField icon={<MapPin className="h-4 w-4" />} label={t("company.indonesiaOffice")} value={profile.indonesiaOfficeAddress} />
+          <ProfileField icon={<Phone className="h-4 w-4" />} label={t("company.companyPhone")} value={profile.phone} />
+          <ProfileField icon={<Mail className="h-4 w-4" />} label={t("company.companyEmail")} value={profile.email} />
+          <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.registrationDate")} value={partner.registration_date ? new Date(partner.registration_date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"} />
         </div>
 
         <div className="space-y-6">
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Dokumen Identitas</h3>
-            <ProfileField icon={<FileText className="h-4 w-4" />} label="NIB" value={profile.nib} />
+            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.identityDocs")}</h3>
+            <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.nib")} value={profile.nib} />
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">Contact Person</h3>
-            <ProfileField icon={<User className="h-4 w-4" />} label="Nama CP" value={profile.contactPerson} />
-            <ProfileField icon={<Phone className="h-4 w-4" />} label="Nomor Telp CP" value={profile.contactPhone} />
-            <ProfileField icon={<Mail className="h-4 w-4" />} label="Email CP" value={profile.contactEmail} />
+            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.contactPerson")}</h3>
+            <ProfileField icon={<User className="h-4 w-4" />} label={t("company.cpName")} value={profile.contactPerson} />
+            <ProfileField icon={<Phone className="h-4 w-4" />} label={t("company.cpPhone")} value={profile.contactPhone} />
+            <ProfileField icon={<Mail className="h-4 w-4" />} label={t("company.cpEmail")} value={profile.contactEmail} />
           </div>
         </div>
       </div>
@@ -257,6 +262,8 @@ function CompanyProfileTab() {
 
 function AccountTab() {
   const { user, accessToken } = useAuth();
+  const t = useTranslations("profile");
+  const tc = useTranslations("common");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -270,17 +277,17 @@ function AccountTab() {
   const handleChangePassword = async () => {
     setMessage("");
     if (!currentPassword) {
-      setMessage("Password lama wajib diisi");
+      setMessage(t("account.errors.currentRequired"));
       setMessageType("error");
       return;
     }
     if (newPassword.length < 8) {
-      setMessage("Password baru minimal 8 karakter");
+      setMessage(t("account.errors.newTooShort"));
       setMessageType("error");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setMessage("Konfirmasi password tidak cocok");
+      setMessage(t("account.errors.confirmMismatch"));
       setMessageType("error");
       return;
     }
@@ -297,7 +304,7 @@ function AccountTab() {
       if (err instanceof ApiClientError) {
         setMessage(err.message);
       } else {
-        setMessage("Gagal mengubah password");
+        setMessage(t("account.errors.changeFailed"));
       }
       setMessageType("error");
     } finally {
@@ -339,16 +346,16 @@ function AccountTab() {
     <div className="space-y-6">
       {/* Account Info */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">Informasi Akun</h2>
-        <ProfileField icon={<User className="h-4 w-4" />} label="Nama" value={user?.name || "-"} />
-        <ProfileField icon={<Mail className="h-4 w-4" />} label="Email" value={user?.email || "-"} />
-        <ProfileField icon={<FileText className="h-4 w-4" />} label="Role" value="Mitra" />
+        <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">{t("account.title")}</h2>
+        <ProfileField icon={<User className="h-4 w-4" />} label={t("account.name")} value={user?.name || "-"} />
+        <ProfileField icon={<Mail className="h-4 w-4" />} label={t("account.email")} value={user?.email || "-"} />
+        <ProfileField icon={<FileText className="h-4 w-4" />} label={t("account.role")} value={tc("mitra")} />
       </div>
 
       {/* Change Password */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">Ubah Password</h2>
-        <p className="mb-4 text-sm text-ptba-gray">Pastikan password baru minimal 8 karakter.</p>
+        <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">{t("account.changePassword")}</h2>
+        <p className="mb-4 text-sm text-ptba-gray">{t("account.passwordHint")}</p>
 
         {message && (
           <div className={cn(
@@ -362,16 +369,16 @@ function AccountTab() {
         )}
 
         <div className="space-y-4 max-w-md">
-          {passwordInput("Password Lama", currentPassword, setCurrentPassword, showCurrent, () => setShowCurrent(!showCurrent), "Masukkan password lama")}
-          {passwordInput("Password Baru", newPassword, setNewPassword, showNew, () => setShowNew(!showNew), "Minimal 8 karakter")}
-          {passwordInput("Konfirmasi Password Baru", confirmPassword, setConfirmPassword, showConfirm, () => setShowConfirm(!showConfirm), "Ketik ulang password baru")}
+          {passwordInput(t("account.currentPassword"), currentPassword, setCurrentPassword, showCurrent, () => setShowCurrent(!showCurrent), t("account.currentPasswordPlaceholder"))}
+          {passwordInput(t("account.newPassword"), newPassword, setNewPassword, showNew, () => setShowNew(!showNew), t("account.newPasswordPlaceholder"))}
+          {passwordInput(t("account.confirmPassword"), confirmPassword, setConfirmPassword, showConfirm, () => setShowConfirm(!showConfirm), t("account.confirmPasswordPlaceholder"))}
 
           <button
             onClick={handleChangePassword}
             disabled={saving || !currentPassword || !newPassword || !confirmPassword}
             className="rounded-lg bg-ptba-gold px-6 py-2.5 text-sm font-bold text-ptba-charcoal shadow-md hover:bg-ptba-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? "Menyimpan..." : "Ubah Password"}
+            {saving ? tc("saving") : t("account.changePasswordBtn")}
           </button>
         </div>
       </div>
@@ -384,16 +391,17 @@ function AccountTab() {
 type TabKey = "company" | "account";
 
 export default function MitraProfilePage() {
+  const t = useTranslations("profile");
   const [activeTab, setActiveTab] = useState<TabKey>("company");
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: "company", label: "Profil Perusahaan", icon: <Building2 className="h-4 w-4" /> },
-    { key: "account", label: "Akun", icon: <User className="h-4 w-4" /> },
+    { key: "company", label: t("tabs.company"), icon: <Building2 className="h-4 w-4" /> },
+    { key: "account", label: t("tabs.account"), icon: <User className="h-4 w-4" /> },
   ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ptba-charcoal">Profil</h1>
+      <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-ptba-section-bg p-1">

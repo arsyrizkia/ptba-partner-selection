@@ -20,6 +20,8 @@ import {
   MessageSquare,
   Calendar,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { projectApi, negotiationApi, ApiClientError } from "@/lib/api/client";
@@ -27,18 +29,6 @@ import { formatCurrency, formatDate } from "@/lib/utils/format";
 import type { Negotiation, NegotiationRound, CostBreakdownItem } from "@/lib/types";
 
 // ─── Status helpers ───
-
-function negotiationStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    pending: "Belum Dimulai",
-    waiting_mitra_proposal: "Menunggu Proposal Anda",
-    waiting_ptba_review: "Menunggu Review PTBA",
-    countered: "Counter-offer dari PTBA",
-    agreed: "Disepakati",
-    failed: "Gagal",
-  };
-  return map[status] ?? status;
-}
 
 function negotiationStatusBadge(status: string): string {
   const map: Record<string, string> = {
@@ -50,16 +40,6 @@ function negotiationStatusBadge(status: string): string {
     failed: "bg-red-100 text-red-700",
   };
   return map[status] ?? "bg-gray-100 text-gray-600";
-}
-
-function roundStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    submitted: "Diajukan",
-    accepted: "Diterima",
-    countered: "Di-counter",
-    rejected: "Ditolak",
-  };
-  return map[status] ?? status;
 }
 
 function roundStatusBadge(status: string): string {
@@ -90,6 +70,9 @@ export default function MitraNegotiationPage() {
   const params = useParams();
   const { accessToken } = useAuth();
   const projectId = params.id as string;
+  const t = useTranslations("negotiation");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
 
   const [project, setProject] = useState<any>(null);
   const [negotiation, setNegotiation] = useState<Negotiation | null>(null);
@@ -120,11 +103,11 @@ export default function MitraNegotiationPage() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memuat data");
+      setError(err instanceof Error ? err.message : tc("failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, [projectId, accessToken]);
+  }, [projectId, accessToken, tc]);
 
   useEffect(() => {
     fetchData();
@@ -165,11 +148,11 @@ export default function MitraNegotiationPage() {
     if (!accessToken) return;
     const numValue = parseFloat(proposedValue.replace(/[^\d]/g, ""));
     if (!numValue || numValue <= 0) {
-      alert("Masukkan nilai yang diajukan");
+      alert(t("errors.enterValue"));
       return;
     }
     if (justification.length < 100) {
-      alert("Justifikasi bisnis minimal 100 karakter");
+      alert(t("errors.minJustification"));
       return;
     }
 
@@ -187,7 +170,7 @@ export default function MitraNegotiationPage() {
       setBoqRows([emptyBoqRow()]);
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengirim proposal");
+      alert(err instanceof Error ? err.message : t("errors.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +182,7 @@ export default function MitraNegotiationPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
-        <span className="ml-3 text-ptba-gray">Memuat data negosiasi...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loadingNegotiation")}</span>
       </div>
     );
   }
@@ -208,11 +191,11 @@ export default function MitraNegotiationPage() {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <AlertTriangle className="mx-auto h-10 w-10 text-ptba-gray/40 mb-3" />
-          <p className="text-ptba-gray">{error || "Proyek tidak ditemukan."}</p>
+          <p className="text-ptba-gray">{error || tc("projectNotFound")}</p>
         </div>
       </div>
     );
@@ -222,13 +205,13 @@ export default function MitraNegotiationPage() {
     return (
       <div className="space-y-6">
         <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Proyek
+          <ArrowLeft className="h-4 w-4" /> {tc("backToProjects")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <Handshake className="mx-auto h-12 w-12 text-ptba-gray/30 mb-4" />
-          <h2 className="text-lg font-semibold text-ptba-charcoal mb-2">Negosiasi Belum Dimulai</h2>
+          <h2 className="text-lg font-semibold text-ptba-charcoal mb-2">{t("notStarted")}</h2>
           <p className="text-sm text-ptba-gray">
-            PTBA belum memulai proses negosiasi untuk proyek ini. Anda akan menerima notifikasi ketika negosiasi dimulai.
+            {t("notStartedDesc")}
           </p>
         </div>
       </div>
@@ -253,24 +236,24 @@ export default function MitraNegotiationPage() {
         onClick={() => router.push(`/mitra/projects/${projectId}`)}
         className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
       >
-        <ArrowLeft className="h-4 w-4" /> Kembali ke Proyek
+        <ArrowLeft className="h-4 w-4" /> {tc("backToProjects")}
       </button>
 
       {/* Header */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <Handshake className="h-5 w-5" />
-          <span className="text-sm font-medium text-white/70">Negosiasi Harga</span>
+          <span className="text-sm font-medium text-white/70">{t("title")}</span>
         </div>
         <h1 className="text-2xl font-bold">{project.name}</h1>
         <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
           <span className={cn("inline-flex rounded-full px-3 py-0.5 text-xs font-semibold", negotiationStatusBadge(negotiation.status))}>
-            {negotiationStatusLabel(negotiation.status)}
+            {t("negotiationStatus." + negotiation.status)}
           </span>
           {negotiation.deadline && (
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              Deadline: {formatDate(negotiation.deadline)}
+              {t("deadline")}: {formatDate(negotiation.deadline)}
             </span>
           )}
         </div>
@@ -281,9 +264,9 @@ export default function MitraNegotiationPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Reference Value Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-ptba-charcoal mb-2">Nilai Referensi Proyek</h2>
+            <h2 className="text-sm font-semibold text-ptba-charcoal mb-2">{t("referenceValue")}</h2>
             <div className="rounded-lg bg-ptba-section-bg p-4 text-center">
-              <p className="text-xs text-ptba-gray mb-1">Harga Perkiraan Sendiri (HPS)</p>
+              <p className="text-xs text-ptba-gray mb-1">{t("hpsLabel")}</p>
               <p className="text-2xl font-bold text-ptba-navy">{formatCurrency(initialValue)}</p>
             </div>
           </div>
@@ -294,16 +277,16 @@ export default function MitraNegotiationPage() {
               <div className="flex items-start gap-3">
                 <MessageSquare className="h-6 w-6 shrink-0 text-purple-600 mt-0.5" />
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-purple-800">Counter-offer dari PTBA</h2>
+                  <h2 className="text-lg font-semibold text-purple-800">{t("counterOffer")}</h2>
                   <p className="mt-1 text-sm text-purple-700">
-                    PTBA mengajukan counter-offer. Anda dapat menerima atau mengajukan proposal baru.
+                    {t("counterOfferDesc")}
                   </p>
                   <div className="mt-3 rounded-lg bg-white p-4">
-                    <p className="text-xs text-ptba-gray mb-1">Nilai Counter-offer PTBA</p>
+                    <p className="text-xs text-ptba-gray mb-1">{t("counterValue")}</p>
                     <p className="text-xl font-bold text-purple-700">{formatCurrency(latestPtbaRound.proposedValue)}</p>
                     {latestPtbaRound.responseNotes && (
                       <div className="mt-2 text-sm text-ptba-gray">
-                        <span className="font-medium text-ptba-charcoal">Catatan: </span>
+                        <span className="font-medium text-ptba-charcoal">{t("notes")} </span>
                         {latestPtbaRound.responseNotes}
                       </div>
                     )}
@@ -317,26 +300,26 @@ export default function MitraNegotiationPage() {
           {canSubmitProposal && (
             <div className="rounded-xl bg-white p-6 shadow-sm border border-ptba-steel-blue/20">
               <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">
-                {negotiation.status === "countered" ? "Ajukan Proposal Baru" : "Ajukan Proposal Harga"}
+                {negotiation.status === "countered" ? t("newProposal") : t("submitProposal")}
               </h2>
 
               {/* Proposed Value */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-ptba-charcoal mb-1">
-                  Nilai yang Diajukan (Rp) <span className="text-red-500">*</span>
+                  {t("proposedValue")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={proposedValue}
                   onChange={(e) => setProposedValue(e.target.value.replace(/[^\d]/g, ""))}
-                  placeholder="Masukkan nilai penawaran"
+                  placeholder={t("proposedValuePlaceholder")}
                   className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-ptba-steel-blue focus:outline-none focus:ring-1 focus:ring-ptba-steel-blue"
                 />
                 {proposedValue && (
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-xs text-ptba-gray">= {formatCurrency(numProposed)}</span>
                     <span className={cn("text-xs font-medium", varianceColor(proposalVariance))}>
-                      ({proposalVariance >= 0 ? "+" : ""}{proposalVariance.toFixed(1)}% dari HPS)
+                      ({proposalVariance >= 0 ? "+" : ""}{proposalVariance.toFixed(1)}% {t("ofHps")})
                     </span>
                   </div>
                 )}
@@ -346,14 +329,14 @@ export default function MitraNegotiationPage() {
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-ptba-charcoal">
-                    Rincian Biaya (Bill of Quantity)
+                    {t("boqTitle")}
                   </label>
                   <button
                     onClick={addBoqRow}
                     type="button"
                     className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue/10 px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/20 transition-colors"
                   >
-                    <Plus className="h-3 w-3" /> Tambah Baris
+                    <Plus className="h-3 w-3" /> {t("addRow")}
                   </button>
                 </div>
 
@@ -361,13 +344,13 @@ export default function MitraNegotiationPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-ptba-section-bg">
-                        <th className="text-center p-2 text-xs font-medium text-ptba-gray w-10">No</th>
-                        <th className="text-left p-2 text-xs font-medium text-ptba-gray min-w-[120px]">Item</th>
-                        <th className="text-left p-2 text-xs font-medium text-ptba-gray min-w-[140px]">Deskripsi</th>
-                        <th className="text-center p-2 text-xs font-medium text-ptba-gray w-20">Jumlah</th>
-                        <th className="text-center p-2 text-xs font-medium text-ptba-gray w-20">Satuan</th>
-                        <th className="text-right p-2 text-xs font-medium text-ptba-gray w-32">Harga Satuan</th>
-                        <th className="text-right p-2 text-xs font-medium text-ptba-gray w-32">Subtotal</th>
+                        <th className="text-center p-2 text-xs font-medium text-ptba-gray w-10">{t("boqHeaders.no")}</th>
+                        <th className="text-left p-2 text-xs font-medium text-ptba-gray min-w-[120px]">{t("boqHeaders.item")}</th>
+                        <th className="text-left p-2 text-xs font-medium text-ptba-gray min-w-[140px]">{t("boqHeaders.description")}</th>
+                        <th className="text-center p-2 text-xs font-medium text-ptba-gray w-20">{t("boqHeaders.quantity")}</th>
+                        <th className="text-center p-2 text-xs font-medium text-ptba-gray w-20">{t("boqHeaders.unit")}</th>
+                        <th className="text-right p-2 text-xs font-medium text-ptba-gray w-32">{t("boqHeaders.unitPrice")}</th>
+                        <th className="text-right p-2 text-xs font-medium text-ptba-gray w-32">{t("boqHeaders.subtotal")}</th>
                         <th className="text-center p-2 text-xs font-medium text-ptba-gray w-10"></th>
                       </tr>
                     </thead>
@@ -380,7 +363,7 @@ export default function MitraNegotiationPage() {
                               type="text"
                               value={row.item}
                               onChange={(e) => updateBoqRow(idx, "item", e.target.value)}
-                              placeholder="Nama item"
+                              placeholder={t("boqPlaceholders.item")}
                               className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm focus:border-ptba-steel-blue focus:outline-none"
                             />
                           </td>
@@ -389,7 +372,7 @@ export default function MitraNegotiationPage() {
                               type="text"
                               value={row.description}
                               onChange={(e) => updateBoqRow(idx, "description", e.target.value)}
-                              placeholder="Deskripsi"
+                              placeholder={t("boqPlaceholders.description")}
                               className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm focus:border-ptba-steel-blue focus:outline-none"
                             />
                           </td>
@@ -408,7 +391,7 @@ export default function MitraNegotiationPage() {
                               type="text"
                               value={row.unit}
                               onChange={(e) => updateBoqRow(idx, "unit", e.target.value)}
-                              placeholder="unit"
+                              placeholder={t("boqPlaceholders.unit")}
                               className="w-full rounded border border-gray-200 px-2 py-1.5 text-sm text-center focus:border-ptba-steel-blue focus:outline-none"
                             />
                           </td>
@@ -441,7 +424,7 @@ export default function MitraNegotiationPage() {
                     <tfoot>
                       <tr className="border-t-2 border-gray-200 bg-ptba-section-bg">
                         <td colSpan={6} className="p-2 text-right text-sm font-semibold text-ptba-charcoal">
-                          Grand Total
+                          {t("grandTotal")}
                         </td>
                         <td className="p-2 text-right text-sm font-bold text-ptba-navy">
                           {boqTotal > 0 ? formatCurrency(boqTotal) : "-"}
@@ -456,12 +439,12 @@ export default function MitraNegotiationPage() {
               {/* Justification */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-ptba-charcoal mb-1">
-                  Justifikasi Bisnis <span className="text-red-500">*</span>
+                  {t("justification")} <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={justification}
                   onChange={(e) => setJustification(e.target.value)}
-                  placeholder="Jelaskan dasar penentuan harga, asumsi yang digunakan, dan nilai tambah yang ditawarkan (minimal 100 karakter)..."
+                  placeholder={t("justificationPlaceholder")}
                   rows={5}
                   className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-ptba-steel-blue focus:outline-none focus:ring-1 focus:ring-ptba-steel-blue"
                 />
@@ -469,7 +452,7 @@ export default function MitraNegotiationPage() {
                   "mt-1 text-xs",
                   justification.length < 100 ? "text-red-500" : "text-green-600"
                 )}>
-                  {justification.length}/100 karakter minimum
+                  {justification.length}/100 {t("minChars")}
                 </p>
               </div>
 
@@ -481,7 +464,7 @@ export default function MitraNegotiationPage() {
                   className="inline-flex items-center gap-2 rounded-lg bg-ptba-steel-blue px-6 py-2.5 text-sm font-semibold text-white hover:bg-ptba-steel-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Kirim Proposal
+                  {t("sendProposal")}
                 </button>
               </div>
             </div>
@@ -489,11 +472,11 @@ export default function MitraNegotiationPage() {
 
           {/* Negotiation History Timeline */}
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">Riwayat Negosiasi</h2>
+            <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">{t("history")}</h2>
             {negotiation.rounds.length === 0 ? (
               <div className="text-center py-8">
                 <Clock className="mx-auto h-8 w-8 text-ptba-gray/30 mb-2" />
-                <p className="text-sm text-ptba-gray">Belum ada putaran negosiasi.</p>
+                <p className="text-sm text-ptba-gray">{t("noRounds")}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -512,13 +495,13 @@ export default function MitraNegotiationPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-6 w-6 shrink-0 text-green-600 mt-0.5" />
                 <div>
-                  <h2 className="text-lg font-semibold text-green-800">Negosiasi Berhasil!</h2>
+                  <h2 className="text-lg font-semibold text-green-800">{t("agreed")}</h2>
                   <p className="mt-1 text-sm text-green-700">
-                    Selamat! Negosiasi telah disepakati dengan nilai akhir:{" "}
+                    {t("agreedDesc")}{" "}
                     <strong>{formatCurrency(negotiation.agreedValue ?? 0)}</strong>
                   </p>
                   {negotiation.agreedAt && (
-                    <p className="mt-1 text-xs text-green-600">Disepakati pada: {formatDate(negotiation.agreedAt)}</p>
+                    <p className="mt-1 text-xs text-green-600">{t("agreedOn")} {formatDate(negotiation.agreedAt)}</p>
                   )}
                   {negotiation.conclusionNotes && (
                     <p className="mt-2 text-sm text-green-700">{negotiation.conclusionNotes}</p>
@@ -534,9 +517,9 @@ export default function MitraNegotiationPage() {
               <div className="flex items-start gap-3">
                 <XCircle className="h-6 w-6 shrink-0 text-red-600 mt-0.5" />
                 <div>
-                  <h2 className="text-lg font-semibold text-red-800">Negosiasi Tidak Berhasil</h2>
+                  <h2 className="text-lg font-semibold text-red-800">{t("failed")}</h2>
                   <p className="mt-1 text-sm text-red-700">
-                    Negosiasi dengan PTBA tidak mencapai kesepakatan.
+                    {t("failedDesc")}
                   </p>
                   {negotiation.conclusionNotes && (
                     <p className="mt-2 text-sm text-red-600">{negotiation.conclusionNotes}</p>
@@ -551,18 +534,18 @@ export default function MitraNegotiationPage() {
         <div className="space-y-6">
           {/* Status Card */}
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Status Negosiasi</h3>
+            <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">{t("statusLabel")}</h3>
             <div className={cn("rounded-lg p-4 text-center", negotiationStatusBadge(negotiation.status))}>
-              <p className="text-sm font-bold">{negotiationStatusLabel(negotiation.status)}</p>
+              <p className="text-sm font-bold">{t("negotiationStatus." + negotiation.status)}</p>
             </div>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-ptba-gray">Putaran</span>
+                <span className="text-ptba-gray">{t("round")}</span>
                 <span className="font-medium text-ptba-charcoal">{negotiation.currentRound}</span>
               </div>
               {negotiation.deadline && (
                 <div className="flex justify-between">
-                  <span className="text-ptba-gray">Deadline</span>
+                  <span className="text-ptba-gray">{t("deadline")}</span>
                   <span className="font-medium text-ptba-charcoal">{formatDate(negotiation.deadline)}</span>
                 </div>
               )}
@@ -571,36 +554,36 @@ export default function MitraNegotiationPage() {
 
           {/* Info Card */}
           <div className="rounded-xl bg-ptba-section-bg p-6">
-            <h3 className="text-sm font-semibold text-ptba-charcoal mb-2">Panduan Negosiasi</h3>
+            <h3 className="text-sm font-semibold text-ptba-charcoal mb-2">{t("guidelines")}</h3>
             <ul className="space-y-2 text-xs text-ptba-gray">
               <li className="flex gap-2">
                 <span className="shrink-0 text-ptba-steel-blue">1.</span>
-                Ajukan penawaran harga berdasarkan analisis biaya yang realistis
+                {t("guideline1")}
               </li>
               <li className="flex gap-2">
                 <span className="shrink-0 text-ptba-steel-blue">2.</span>
-                Sertakan rincian BOQ yang lengkap dan transparan
+                {t("guideline2")}
               </li>
               <li className="flex gap-2">
                 <span className="shrink-0 text-ptba-steel-blue">3.</span>
-                Berikan justifikasi bisnis yang kuat (minimal 100 karakter)
+                {t("guideline3")}
               </li>
               <li className="flex gap-2">
                 <span className="shrink-0 text-ptba-steel-blue">4.</span>
-                Lampirkan dokumen pendukung (quotation supplier, dll.)
+                {t("guideline4")}
               </li>
               <li className="flex gap-2">
                 <span className="shrink-0 text-ptba-steel-blue">5.</span>
-                Variansi di bawah 5% dari HPS memiliki peluang lebih tinggi untuk diterima
+                {t("guideline5")}
               </li>
             </ul>
           </div>
 
           {/* Documents */}
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Dokumen</h3>
+            <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">{t("docsLabel")}</h3>
             {negotiation.documents.length === 0 ? (
-              <p className="text-sm text-ptba-gray text-center py-4">Belum ada dokumen.</p>
+              <p className="text-sm text-ptba-gray text-center py-4">{t("noDocs")}</p>
             ) : (
               <div className="space-y-2">
                 {negotiation.documents.map((doc) => (
@@ -626,6 +609,7 @@ export default function MitraNegotiationPage() {
 // ─── Round Card Component ───
 
 function RoundCard({ round, initialValue }: { round: NegotiationRound; initialValue: number }) {
+  const t = useTranslations("negotiation");
   const variance = initialValue > 0 ? ((round.proposedValue - initialValue) / initialValue) * 100 : 0;
   const isMitra = round.party === "mitra";
 
@@ -644,13 +628,13 @@ function RoundCard({ round, initialValue }: { round: NegotiationRound; initialVa
           </span>
           <div>
             <p className="text-sm font-semibold text-ptba-charcoal">
-              Putaran {round.roundNumber} - {isMitra ? "Anda (Mitra)" : "PTBA"}
+              {t("roundLabel", { number: round.roundNumber, party: isMitra ? t("partyMitra") : t("partyPtba") })}
             </p>
             <p className="text-xs text-ptba-gray">{formatDate(round.submittedAt)}</p>
           </div>
         </div>
         <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", roundStatusBadge(round.status))}>
-          {roundStatusLabel(round.status)}
+          {t("roundStatus." + round.status)}
         </span>
       </div>
 
@@ -667,7 +651,7 @@ function RoundCard({ round, initialValue }: { round: NegotiationRound; initialVa
 
       {round.responseNotes && (
         <div className="mt-2 rounded bg-white/70 p-2 text-sm text-ptba-gray">
-          <span className="text-xs font-medium text-ptba-charcoal">Catatan: </span>
+          <span className="text-xs font-medium text-ptba-charcoal">{t("notes")} </span>
           {round.responseNotes}
         </div>
       )}

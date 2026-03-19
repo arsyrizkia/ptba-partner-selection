@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, Clock, FolderKanban, XCircle, Loader2, ArrowRight, Trophy, Circle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api } from "@/lib/api/client";
@@ -9,17 +10,17 @@ import { formatDate } from "@/lib/utils/format";
 
 // Mitra-visible milestones (simplified from 16 internal steps)
 const MITRA_MILESTONES = [
-  { id: 1, name: "Pendaftaran EoI", stepRange: [2, 2], phase: "phase1" as const },
-  { id: 2, name: "Pendaftaran Ditutup", stepRange: [3, 3], phase: "phase1" as const },
-  { id: 3, name: "Evaluasi Fase 1", stepRange: [4, 5], phase: "phase1" as const },
-  { id: 4, name: "Pengumuman Shortlist", stepRange: [6, 6], phase: "phase1" as const },
-  { id: 5, name: "Pendaftaran Fase 2", stepRange: [7, 8], phase: "phase2" as const },
-  { id: 6, name: "Evaluasi Fase 2", stepRange: [9, 10], phase: "phase2" as const },
-  { id: 7, name: "Pengumuman Fase 2", stepRange: [11, 11], phase: "phase2" as const },
-  { id: 8, name: "Pendaftaran Fase 3", stepRange: [12, 12], phase: "phase3" as const },
-  { id: 9, name: "Evaluasi & Peringkat", stepRange: [13, 13], phase: "phase3" as const },
-  { id: 10, name: "Negosiasi", stepRange: [14, 14], phase: "phase3" as const },
-  { id: 11, name: "Pengumuman Pemenang", stepRange: [15, 16], phase: "phase3" as const },
+  { id: 1, nameKey: "eoiRegistration", stepRange: [2, 2], phase: "phase1" as const },
+  { id: 2, nameKey: "registrationClosed", stepRange: [3, 3], phase: "phase1" as const },
+  { id: 3, nameKey: "phase1Evaluation", stepRange: [4, 5], phase: "phase1" as const },
+  { id: 4, nameKey: "shortlistAnnouncement", stepRange: [6, 6], phase: "phase1" as const },
+  { id: 5, nameKey: "phase2Registration", stepRange: [7, 8], phase: "phase2" as const },
+  { id: 6, nameKey: "phase2Evaluation", stepRange: [9, 10], phase: "phase2" as const },
+  { id: 7, nameKey: "phase2Announcement", stepRange: [11, 11], phase: "phase2" as const },
+  { id: 8, nameKey: "phase3Registration", stepRange: [12, 12], phase: "phase3" as const },
+  { id: 9, nameKey: "evaluationRanking", stepRange: [13, 13], phase: "phase3" as const },
+  { id: 10, nameKey: "negotiation", stepRange: [14, 14], phase: "phase3" as const },
+  { id: 11, nameKey: "winnerAnnouncement", stepRange: [15, 16], phase: "phase3" as const },
 ];
 
 function deriveCurrentStep(app: any, projectStep?: number): number {
@@ -46,17 +47,19 @@ function getMilestoneStatus(milestone: typeof MITRA_MILESTONES[0], currentStep: 
   return "pending";
 }
 
-const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }> = {
-  Dikirim: { label: "Dikirim", color: "text-ptba-steel-blue", bg: "bg-ptba-steel-blue/10 border-ptba-steel-blue/20" },
-  "Dalam Review": { label: "Dalam Review", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
-  Shortlisted: { label: "Lolos Fase 1", color: "text-green-700", bg: "bg-green-50 border-green-200" },
-  Terpilih: { label: "Terpilih", color: "text-green-700", bg: "bg-green-50 border-green-200" },
-  Ditolak: { label: "Tidak Lolos", color: "text-red-600", bg: "bg-red-50 border-red-200" },
-  Diterima: { label: "Diterima", color: "text-green-700", bg: "bg-green-50 border-green-200" },
+const STATUS_BADGE_STYLES: Record<string, { color: string; bg: string }> = {
+  Dikirim: { color: "text-ptba-steel-blue", bg: "bg-ptba-steel-blue/10 border-ptba-steel-blue/20" },
+  "Dalam Review": { color: "text-amber-600", bg: "bg-amber-50 border-amber-200" },
+  Shortlisted: { color: "text-green-700", bg: "bg-green-50 border-green-200" },
+  Terpilih: { color: "text-green-700", bg: "bg-green-50 border-green-200" },
+  Ditolak: { color: "text-red-600", bg: "bg-red-50 border-red-200" },
+  Diterima: { color: "text-green-700", bg: "bg-green-50 border-green-200" },
 };
 
 export default function MitraStatusPage() {
   const { accessToken } = useAuth();
+  const t = useTranslations("statusPage");
+  const tc = useTranslations("common");
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,28 +90,28 @@ export default function MitraStatusPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
-        <span className="ml-3 text-ptba-gray">Memuat...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loading")}</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ptba-charcoal">Status Pendaftaran</h1>
+      <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
 
       {applications.length === 0 ? (
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <FolderKanban className="mx-auto h-12 w-12 text-ptba-light-gray" />
-          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">Belum ada pendaftaran</p>
-          <p className="mt-1 text-sm text-ptba-gray">Anda belum mengajukan EoI ke proyek manapun.</p>
+          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">{t("noRegistration")}</p>
+          <p className="mt-1 text-sm text-ptba-gray">{t("noRegistrationDesc")}</p>
           <a href="/mitra/projects" className="mt-4 inline-flex rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
-            Lihat Proyek Tersedia
+            {t("viewAvailableProjects")}
           </a>
         </div>
       ) : (
         <div className="space-y-4">
           {applications.map((app) => {
-            const badge = STATUS_BADGE[app.status] || STATUS_BADGE.Dikirim;
+            const badgeStyle = STATUS_BADGE_STYLES[app.status] || STATUS_BADGE_STYLES.Dikirim;
             const proj = projects[app.project_id];
             const currentStep = deriveCurrentStep(app, proj?.currentStep);
             const isRejected = app.status === "Ditolak" || app.phase1_result === "Tidak Lolos";
@@ -121,13 +124,13 @@ export default function MitraStatusPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-ptba-charcoal truncate">{app.project_name}</p>
-                      <p className="text-xs text-ptba-gray mt-0.5">Diajukan {formatDate(app.applied_at)}</p>
+                      <p className="text-xs text-ptba-gray mt-0.5">{t("appliedAt", { date: formatDate(app.applied_at) })}</p>
                     </div>
                     <span className={cn(
                       "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold shrink-0",
-                      badge.bg, badge.color
+                      badgeStyle.bg, badgeStyle.color
                     )}>
-                      {badge.label}
+                      {tc(`status.${app.status}`)}
                     </span>
                   </div>
 
@@ -136,7 +139,7 @@ export default function MitraStatusPage() {
                     <div className="mt-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 p-3 text-white">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-5 w-5 shrink-0" />
-                        <p className="text-sm font-bold">Selamat! Anda terpilih sebagai mitra</p>
+                        <p className="text-sm font-bold">{t("winnerBanner")}</p>
                       </div>
                     </div>
                   )}
@@ -145,8 +148,8 @@ export default function MitraStatusPage() {
                   {isRejected && (
                     <div className="mt-3 rounded-lg bg-red-50 border border-red-100 p-3">
                       <p className="text-xs text-red-600">
-                        Proses seleksi berhenti di tahap ini.{" "}
-                        <a href="/mitra/projects" className="font-medium underline hover:no-underline">Lihat proyek lain</a>
+                        {t("rejectedNotice")}{" "}
+                        <a href="/mitra/projects" className="font-medium underline hover:no-underline">{t("viewOtherProjects")}</a>
                       </p>
                     </div>
                   )}
@@ -155,15 +158,15 @@ export default function MitraStatusPage() {
                   {app.status === "Shortlisted" && (
                     <div className="mt-3 pt-3 border-t border-green-100">
                       <p className="text-xs text-green-700">
-                        Selamat! Perusahaan Anda lolos Fase 1.
-                        {proj?.phase?.startsWith("phase2") ? " Silakan lengkapi dokumen Fase 2." : " Informasi Fase 2 akan disampaikan melalui email."}
+                        {t("shortlistCongrats")}
+                        {proj?.phase?.startsWith("phase2") ? t("shortlistPhase2Ready") : t("shortlistPhase2Email")}
                       </p>
                       {proj?.phase?.startsWith("phase2") && (
                         <a
                           href={`/mitra/projects/${app.project_id}/phase2`}
                           className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors"
                         >
-                          Upload Dokumen Fase 2 <ArrowRight className="h-3 w-3" />
+                          {t("uploadPhase2Docs")} <ArrowRight className="h-3 w-3" />
                         </a>
                       )}
                     </div>
@@ -206,7 +209,7 @@ export default function MitraStatusPage() {
                               status === "rejected" ? "text-red-600 font-medium" :
                               "text-ptba-gray/60"
                             )}>
-                              {m.name}
+                              {t(`milestones.${m.nameKey}`)}
                             </p>
                           </div>
                         </div>

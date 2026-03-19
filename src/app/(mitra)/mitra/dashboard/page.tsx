@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
 import { formatDate } from "@/lib/utils/format";
+import { useTranslations } from "next-intl";
 
 const STATUS_STYLE: Record<string, string> = {
   Dikirim: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
@@ -31,6 +32,8 @@ export default function MitraDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState<any[]>([]);
   const [openProjectsCount, setOpenProjectsCount] = useState(0);
+  const t = useTranslations("dashboard");
+  const tc = useTranslations("common");
 
   useEffect(() => {
     if (!accessToken) return;
@@ -49,7 +52,7 @@ export default function MitraDashboardPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
-        <span className="ml-3 text-ptba-gray">Memuat...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loading")}</span>
       </div>
     );
   }
@@ -58,8 +61,8 @@ export default function MitraDashboardPage() {
     <div className="space-y-6">
       {/* Welcome Card */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
-        <h1 className="text-2xl font-bold">Selamat Datang, {user?.name}</h1>
-        <p className="mt-1 text-white/80 text-sm">Portal Mitra - Sistem Pemilihan Mitra PT Bukit Asam Tbk</p>
+        <h1 className="text-2xl font-bold">{t("welcome", { name: user?.name || "" })}</h1>
+        <p className="mt-1 text-white/80 text-sm">{t("subtitle")}</p>
       </div>
 
       {/* KPI Cards */}
@@ -67,7 +70,7 @@ export default function MitraDashboardPage() {
         <div className="rounded-xl bg-white p-5 border border-ptba-light-gray/50">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-ptba-gray">Lamaran Aktif</p>
+              <p className="text-sm text-ptba-gray">{t("activeApplications")}</p>
               <p className="mt-1 text-3xl font-bold text-ptba-charcoal">{applications.length}</p>
             </div>
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-ptba-steel-blue">
@@ -78,7 +81,7 @@ export default function MitraDashboardPage() {
         <div className="rounded-xl bg-white p-5 border border-ptba-light-gray/50">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-ptba-gray">Proyek Tersedia</p>
+              <p className="text-sm text-ptba-gray">{t("availableProjects")}</p>
               <p className="mt-1 text-3xl font-bold text-ptba-charcoal">{openProjectsCount}</p>
             </div>
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-ptba-green">
@@ -92,8 +95,8 @@ export default function MitraDashboardPage() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-ptba-charcoal">Cari Proyek</p>
-              <p className="mt-0.5 text-xs text-ptba-gray">Lihat dan lamar proyek baru</p>
+              <p className="text-sm font-semibold text-ptba-charcoal">{t("findProjects")}</p>
+              <p className="mt-0.5 text-xs text-ptba-gray">{t("findProjectsDesc")}</p>
             </div>
             <ArrowRight className="h-5 w-5 text-ptba-steel-blue" />
           </div>
@@ -103,13 +106,13 @@ export default function MitraDashboardPage() {
       {/* Lamaran Saya */}
       <div className="rounded-xl bg-white p-5 border border-ptba-light-gray/50">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-ptba-charcoal">Lamaran Saya</h2>
+          <h2 className="text-lg font-semibold text-ptba-charcoal">{t("myApplications")}</h2>
           {applications.length > 0 && (
             <button
               onClick={() => router.push("/mitra/status")}
               className="text-xs font-medium text-ptba-steel-blue hover:underline"
             >
-              Lihat Semua
+              {tc("viewAll")}
             </button>
           )}
         </div>
@@ -119,16 +122,16 @@ export default function MitraDashboardPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-ptba-section-bg">
               <Inbox className="h-8 w-8 text-ptba-light-gray" />
             </div>
-            <p className="mt-4 text-sm font-medium text-ptba-charcoal">Belum ada lamaran</p>
+            <p className="mt-4 text-sm font-medium text-ptba-charcoal">{t("noApplications")}</p>
             <p className="mt-1 text-xs text-ptba-gray max-w-xs mx-auto">
-              Anda belum mengajukan Expression of Interest ke proyek manapun. Mulai dengan menjelajahi proyek yang tersedia.
+              {t("noApplicationsDesc")}
             </p>
             <button
               onClick={() => router.push("/mitra/projects")}
               className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
             >
               <FolderKanban className="h-4 w-4" />
-              Jelajahi Proyek
+              {t("exploreProjects")}
             </button>
           </div>
         ) : (
@@ -145,7 +148,7 @@ export default function MitraDashboardPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-ptba-charcoal truncate">{app.project_name}</p>
                       <p className="text-xs text-ptba-gray mt-0.5">
-                        Diajukan {formatDate(app.applied_at)} · Fase {app.phase === "phase1" ? "1" : "2"}
+                        {t("appliedAt", { date: formatDate(app.applied_at), phase: app.phase === "phase1" ? "1" : "2" })}
                       </p>
                     </div>
                     <span className={cn(
@@ -153,7 +156,7 @@ export default function MitraDashboardPage() {
                       STATUS_STYLE[app.status] || STATUS_STYLE.Dikirim
                     )}>
                       <Icon className="h-3 w-3" />
-                      {app.status}
+                      {tc(`status.${app.status}`)}
                     </span>
                   </div>
                 </button>

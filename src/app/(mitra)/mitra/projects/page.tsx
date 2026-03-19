@@ -6,6 +6,8 @@ import { Search, Calendar, FileText, CheckCircle2, Loader2, FolderKanban } from 
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 interface MitraProject {
   id: string;
@@ -28,12 +30,7 @@ interface MitraApplication {
   applied_at: string;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  mining: "Pertambangan", power_generation: "Pembangkit Listrik", coal_processing: "Pengolahan Batubara",
-  infrastructure: "Infrastruktur", environmental: "Lingkungan", corporate: "Korporat", others: "Lainnya",
-};
-
-const TYPE_FILTERS = ["Semua", "mining", "power_generation", "coal_processing", "infrastructure", "environmental", "corporate", "others"] as const;
+const TYPE_FILTERS = ["all", "mining", "power_generation", "coal_processing", "infrastructure", "environmental", "corporate", "others"] as const;
 
 function typeBadge(type: string) {
   const map: Record<string, string> = {
@@ -52,10 +49,13 @@ export default function MitraProjectsPage() {
   const router = useRouter();
   const { accessToken } = useAuth();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("Semua");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [projects, setProjects] = useState<MitraProject[]>([]);
   const [applications, setApplications] = useState<MitraApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
 
   useEffect(() => {
     if (!accessToken) return;
@@ -76,7 +76,7 @@ export default function MitraProjectsPage() {
 
   const filtered = useMemo(() => {
     return projects
-      .filter((p) => typeFilter === "Semua" || p.type === typeFilter)
+      .filter((p) => typeFilter === "all" || p.type === typeFilter)
       .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()));
   }, [projects, typeFilter, search]);
 
@@ -84,14 +84,14 @@ export default function MitraProjectsPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
-        <span className="ml-3 text-ptba-gray">Memuat proyek...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loadingProject")}</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ptba-charcoal">Proyek Tersedia</h1>
+      <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
 
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -99,25 +99,25 @@ export default function MitraProjectsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ptba-gray" />
           <input
             type="text"
-            placeholder="Cari proyek..."
+            placeholder={t("searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-ptba-light-gray bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
           />
         </div>
         <div className="flex gap-1.5">
-          {TYPE_FILTERS.map((t) => (
+          {TYPE_FILTERS.map((filterType) => (
             <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
+              key={filterType}
+              onClick={() => setTypeFilter(filterType)}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                typeFilter === t
+                typeFilter === filterType
                   ? "bg-ptba-navy text-white"
                   : "bg-white border border-ptba-light-gray text-ptba-charcoal hover:bg-ptba-section-bg"
               )}
             >
-              {t === "Semua" ? t : (TYPE_LABELS[t] || t)}
+              {filterType === "all" ? t("all") : tc(`typeLabels.${filterType}`)}
             </button>
           ))}
         </div>
@@ -127,7 +127,7 @@ export default function MitraProjectsPage() {
       {filtered.length === 0 ? (
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <FolderKanban className="mx-auto h-12 w-12 text-ptba-light-gray" />
-          <p className="mt-3 text-ptba-gray">Tidak ada proyek yang ditemukan.</p>
+          <p className="mt-3 text-ptba-gray">{t("noResults")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -146,22 +146,22 @@ export default function MitraProjectsPage() {
                     <h3 className="font-semibold text-ptba-charcoal truncate">{project.name}</h3>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", typeBadge(project.type))}>
-                        {TYPE_LABELS[project.type] || project.type}
+                        {tc(`typeLabels.${project.type}`)}
                       </span>
                       {hasApplied && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 border border-green-200">
                           <CheckCircle2 className="h-3 w-3" />
-                          Sudah Mendaftar
+                          {t("alreadyRegistered")}
                         </span>
                       )}
                       {canApply && (
                         <span className="inline-flex rounded-full bg-ptba-navy/10 px-2.5 py-0.5 text-xs font-medium text-ptba-navy border border-ptba-navy/20">
-                          Pendaftaran Dibuka
+                          {t("registrationOpen")}
                         </span>
                       )}
                       {!project.isOpenForApplication && !hasApplied && (
                         <span className="inline-flex rounded-full bg-ptba-gray/10 px-2.5 py-0.5 text-xs font-medium text-ptba-gray border border-ptba-gray/20">
-                          Belum Dibuka
+                          {t("notOpenYet")}
                         </span>
                       )}
                     </div>
@@ -176,13 +176,13 @@ export default function MitraProjectsPage() {
                   {project.phase1Deadline && (
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      Deadline Fase 1: {new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      {t("deadlinePhase1", { date: new Date(project.phase1Deadline).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" }) })}
                     </span>
                   )}
                   {project.startDate && (
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      Mulai: {new Date(project.startDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      {t("startDate", { date: new Date(project.startDate).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" }) })}
                     </span>
                   )}
                 </div>

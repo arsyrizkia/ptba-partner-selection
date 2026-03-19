@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, ApiClientError } from "@/lib/api/client";
 import { partnerApi } from "@/lib/api/client";
 import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -74,17 +76,16 @@ const EXPERIENCE_CATEGORIES: { key: ExperienceCategory; label: string; labelEn: 
 
 interface DocSectionConfig {
   docId: string;
-  title: string;
+  sectionKey: string;
   icon: React.ComponentType<{ className?: string }>;
-  description: string;
 }
 
 const SECTION_ORDER: DocSectionConfig[] = [
-  { docId: "compro", title: "Informasi & Profil Perusahaan", icon: Building2, description: "Data perusahaan dan profil ringkas" },
-  { docId: "statement_eoi", title: "Surat Pernyataan EoI", icon: PenLine, description: "Surat pernyataan minat yang ditandatangani pejabat berwenang" },
-  { docId: "portfolio", title: "Pengalaman & Portfolio Proyek", icon: Briefcase, description: "Daftar pengalaman dan portfolio proyek relevan" },
-  { docId: "financial_overview", title: "Gambaran Umum Keuangan", icon: DollarSign, description: "Data keuangan perusahaan 3 tahun terakhir" },
-  { docId: "requirements_fulfillment", title: "Pemenuhan Persyaratan", icon: ClipboardCheck, description: "Konfirmasi pemenuhan persyaratan dasar proyek" },
+  { docId: "compro", sectionKey: "companyInfo", icon: Building2 },
+  { docId: "statement_eoi", sectionKey: "eoiStatement", icon: PenLine },
+  { docId: "portfolio", sectionKey: "portfolio", icon: Briefcase },
+  { docId: "financial_overview", sectionKey: "financialOverview", icon: DollarSign },
+  { docId: "requirements_fulfillment", sectionKey: "requirementsFulfillment", icon: ClipboardCheck },
 ];
 
 // ─── File Upload Helper ───
@@ -110,6 +111,7 @@ function FileUploadButton({
   templateFileName?: string;
   onDownloadTemplate?: () => void;
 }) {
+  const tc = useTranslations("common");
   return (
     <div className="space-y-2">
       {templateFileName && onDownloadTemplate && (
@@ -121,7 +123,7 @@ function FileUploadButton({
             onClick={onDownloadTemplate}
             className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors shrink-0"
           >
-            Unduh
+            {tc("download")}
           </button>
         </div>
       )}
@@ -141,7 +143,7 @@ function FileUploadButton({
             <div className="min-w-0">
               <p className="text-xs font-medium text-ptba-charcoal">{label}</p>
               {fileName && <p className="text-[10px] text-green-600 truncate">{fileName}</p>}
-              {uploading && <p className="text-[10px] text-ptba-gold">Mengunggah...</p>}
+              {uploading && <p className="text-[10px] text-ptba-gold">{tc("uploading")}</p>}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -152,11 +154,11 @@ function FileUploadButton({
                   className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="h-3 w-3" />
-                  Hapus
+                  {tc("delete")}
                 </button>
                 <label className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors cursor-pointer">
                   <Upload className="h-3 w-3" />
-                  Ganti
+                  {tc("replace")}
                   <input
                     type="file"
                     className="hidden"
@@ -173,7 +175,7 @@ function FileUploadButton({
             {!uploaded && !uploading && (
               <label className="inline-flex items-center gap-1 rounded-lg bg-ptba-navy px-2.5 py-1.5 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors cursor-pointer">
                 <Upload className="h-3 w-3" />
-                Unggah
+                {tc("upload")}
                 <input
                   type="file"
                   className="hidden"
@@ -243,6 +245,10 @@ export default function MitraProjectApplyPage() {
   const params = useParams();
   const { user, accessToken } = useAuth();
   const projectId = params.id as string;
+
+  const t = useTranslations("apply");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
 
   // Data
   const [project, setProject] = useState<any>(null);
@@ -480,7 +486,7 @@ export default function MitraProjectApplyPage() {
       // Auto-save form data after upload
       await saveFormDataToServer(appId);
     } catch (err: any) {
-      setError(err.message || "Gagal mengunggah dokumen");
+      setError(err.message || t("errors.uploadFailed"));
       setUploadedDocs((prev) => {
         const next = { ...prev };
         delete next[docTypeId];
@@ -504,7 +510,7 @@ export default function MitraProjectApplyPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal menghapus dokumen");
+        throw new Error(data.error || t("errors.deleteFailed"));
       }
       setUploadedDocs((prev) => {
         const next = { ...prev };
@@ -512,7 +518,7 @@ export default function MitraProjectApplyPage() {
         return next;
       });
     } catch (err: any) {
-      setError(err.message || "Gagal menghapus dokumen");
+      setError(err.message || t("errors.deleteFailed"));
       setUploadedDocs((prev) => ({ ...prev, [docTypeId]: { ...doc, uploading: false } }));
     }
   };
@@ -541,7 +547,7 @@ export default function MitraProjectApplyPage() {
       const data = await res.json();
       if (data.url) window.open(data.url, "_blank");
     } catch {
-      setError("Gagal mengunduh template");
+      setError(t("errors.templateFailed"));
     }
   };
 
@@ -607,7 +613,7 @@ export default function MitraProjectApplyPage() {
       router.push(`/mitra/projects/${projectId}/apply/success`);
     } catch (err) {
       if (err instanceof ApiClientError) setError(err.message);
-      else setError("Gagal mengirim pendaftaran");
+      else setError(t("errors.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -636,7 +642,7 @@ export default function MitraProjectApplyPage() {
       setTimeout(() => setDraftSaved(false), 3000);
     } catch (err) {
       if (err instanceof ApiClientError) setError(err.message);
-      else setError("Gagal menyimpan draft");
+      else setError(t("errors.draftFailed"));
     } finally {
       setSavingDraft(false);
     }
@@ -712,13 +718,15 @@ export default function MitraProjectApplyPage() {
 
   const inputClass = "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
 
+  const dateLocale = locale === "en" ? "en-US" : "id-ID";
+
   // ─── Loading / Guards ───
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
-        <span className="ml-3 text-ptba-gray">Memuat...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loading")}</span>
       </div>
     );
   }
@@ -727,14 +735,14 @@ export default function MitraProjectApplyPage() {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">Anda sudah mendaftar pada proyek ini</p>
-          <p className="mt-1 text-sm text-ptba-gray">Status: {application.status}</p>
+          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">{t("alreadyRegistered")}</p>
+          <p className="mt-1 text-sm text-ptba-gray">{t("statusLabel", { status: application.status })}</p>
           <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white">
-            Lihat Detail Proyek
+            {t("viewProjectDetail")}
           </button>
         </div>
       </div>
@@ -745,11 +753,11 @@ export default function MitraProjectApplyPage() {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <AlertTriangle className="mx-auto h-12 w-12 text-ptba-gold" />
-          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">{!project ? "Proyek tidak ditemukan" : "Pendaftaran belum dibuka"}</p>
+          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">{!project ? t("projectNotFound") : t("registrationNotOpen")}</p>
         </div>
       </div>
     );
@@ -766,59 +774,65 @@ export default function MitraProjectApplyPage() {
   // Get phase1 doc metadata
   const getDocMeta = (docId: string) => PHASE1_DOCUMENT_TYPES.find((d) => d.id === docId);
 
+  // Helper to get section title from translation key
+  const getSectionTitle = (sectionKey: string) => t(`sections.${sectionKey}`);
+
   return (
     <div className="space-y-6">
       <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-        <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Proyek
+        <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
       </button>
 
       <div>
-        <h1 className="text-2xl font-bold text-ptba-charcoal">Formulir Expression of Interest</h1>
+        <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
         <p className="text-sm text-ptba-gray mt-1">
-          Fase 1 — <span className="font-medium text-ptba-charcoal">{project.name}</span>
+          {t("phaseLabel")} — <span className="font-medium text-ptba-charcoal">{project.name}</span>
         </p>
       </div>
 
       {/* EoI Description */}
       <div className="rounded-xl bg-white shadow-sm overflow-hidden">
         <div className="bg-ptba-navy px-5 py-3">
-          <p className="text-sm font-bold text-white">INFORMASI PENTING — BACA SEBELUM MENGISI FORMULIR</p>
+          <p className="text-sm font-bold text-white">{t("importantInfo")}</p>
         </div>
         <div className="p-5 space-y-3">
           <p className="text-sm text-ptba-charcoal leading-relaxed">
-            Formulir Expression of Interest (EoI) ini merupakan tahap awal (<strong>Fase 1</strong>) dari proses seleksi mitra strategis PT Bukit Asam Tbk. Dengan mengisi formulir ini, perusahaan Anda menyatakan minat untuk berpartisipasi dalam proyek <strong>{project.name}</strong>.
+            {t.rich("eoiIntro", {
+              projectName: project.name,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
           <div className="rounded-lg bg-ptba-section-bg p-4">
-            <p className="text-xs font-semibold text-ptba-navy mb-2">Dokumen yang Diperlukan:</p>
+            <p className="text-xs font-semibold text-ptba-navy mb-2">{t("requiredDocs")}</p>
             <ol className="text-xs text-ptba-gray space-y-1.5 list-decimal list-inside">
               {activeSections.map((sec) => {
                 const meta = getDocMeta(sec.docId);
                 return (
                   <li key={sec.docId}>
-                    <strong>{meta?.name || sec.title}</strong> — {meta?.description || sec.description}
+                    <strong>{meta?.name || getSectionTitle(sec.sectionKey)}</strong> — {meta?.description || ""}
                   </li>
                 );
               })}
-              <li>Centang <strong>Persetujuan Pernyataan Akhir</strong> sebelum mengirim formulir.</li>
+              <li>{t("checkFinalAgreement")}</li>
             </ol>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-3">
-              <p className="text-xs font-semibold text-ptba-steel-blue">Format Dokumen</p>
-              <p className="text-[11px] text-ptba-gray mt-0.5">Seluruh dokumen dalam format <strong>PDF</strong>, maksimal <strong>20 MB</strong> per file. Pastikan dokumen dapat dibaca dengan jelas.</p>
+              <p className="text-xs font-semibold text-ptba-steel-blue">{t("docFormat")}</p>
+              <p className="text-[11px] text-ptba-gray mt-0.5">{t.rich("docFormatDesc", { strong: (chunks) => <strong>{chunks}</strong> })}</p>
             </div>
             <div className="flex-1 rounded-lg border border-ptba-gold/20 bg-ptba-gold/5 p-3">
-              <p className="text-xs font-semibold text-ptba-gold">Batas Waktu</p>
+              <p className="text-xs font-semibold text-ptba-gold">{t("deadline")}</p>
               <p className="text-[11px] text-ptba-gray mt-0.5">
                 {project.phase1Deadline
-                  ? <>Formulir harus dikirim sebelum <strong>{new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</strong>.</>
-                  : <>Pastikan formulir dikirim sebelum periode pendaftaran ditutup.</>
+                  ? <>{t.rich("deadlineDesc", { date: new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" }), strong: (chunks) => <strong>{chunks}</strong> })}</>
+                  : <>{t("deadlineDescDefault")}</>
                 }
               </p>
             </div>
             <div className="flex-1 rounded-lg border border-green-200 bg-green-50 p-3">
-              <p className="text-xs font-semibold text-green-700">Hasil Evaluasi</p>
-              <p className="text-[11px] text-ptba-gray mt-0.5">Mitra yang lolos Fase 1 akan diundang untuk melanjutkan ke <strong>Fase 2 (Detailed Assessment)</strong>.</p>
+              <p className="text-xs font-semibold text-green-700">{t("evaluationResult")}</p>
+              <p className="text-[11px] text-ptba-gray mt-0.5">{t.rich("evaluationResultDesc", { strong: (chunks) => <strong>{chunks}</strong> })}</p>
             </div>
           </div>
         </div>
@@ -827,8 +841,8 @@ export default function MitraProjectApplyPage() {
       {/* Progress */}
       <div className="rounded-xl bg-ptba-navy/5 border border-ptba-navy/10 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-ptba-gray">Kelengkapan Formulir</span>
-          <span className="text-sm font-bold text-ptba-navy">{completedCount}/{totalSections} Bagian</span>
+          <span className="text-xs text-ptba-gray">{t("formCompleteness")}</span>
+          <span className="text-sm font-bold text-ptba-navy">{t("sectionsCount", { completed: completedCount, total: totalSections })}</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
           <div className={cn("h-full rounded-full transition-all", allComplete ? "bg-green-500" : "bg-ptba-gold")} style={{ width: `${(completedCount / totalSections) * 100}%` }} />
@@ -845,121 +859,121 @@ export default function MitraProjectApplyPage() {
       {hasDoc("compro") && (
         <Section
           number={getSectionNumber("compro")}
-          title="Informasi & Profil Perusahaan"
+          title={t("sections.companyInfo")}
           icon={Building2}
           complete={sectionComplete.compro}
           open={openSection === getSectionNumber("compro")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("compro") ? 0 : getSectionNumber("compro"))}
         >
-          <p className="text-xs text-ptba-gray">Data perusahaan Anda. Pastikan informasi sudah sesuai.</p>
+          <p className="text-xs text-ptba-gray">{t("sections.companyInfoDesc")}</p>
 
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Perusahaan <span className="text-ptba-red">*</span></label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyName")} <span className="text-ptba-red">*</span></label>
               <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kode Perusahaan</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyCode")}</label>
               <input type="text" value={companyCode} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
             </div>
           </div>
 
           {/* Minority Equity */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Persentase Ekuitas (Minority Shareholder)</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">Equity percentage (minority shareholders) — 30%-49%</p>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.minorityEquity")}</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.minorityEquityHint")}</p>
             <div className="flex items-center gap-2">
-              <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder="Contoh: 35" className={cn(inputClass, "w-32")} />
+              <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
               <span className="text-sm text-ptba-gray">%</span>
             </div>
           </div>
 
           {/* Business Overview */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Overview Bidang Usaha <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">Bidang usaha utama / Main line of business</p>
-            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder="Contoh: Pembangkit Listrik, Trading Batubara, dll." className={cn(inputClass, "min-h-[60px] resize-y")} />
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.businessOverview")} <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.businessOverviewHint")}</p>
+            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={t("companyFields.businessOverviewPlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y")} />
           </div>
 
           {/* Addresses */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Alamat Kantor Pusat <span className="text-ptba-red">*</span></label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.hqAddress")} <span className="text-ptba-red">*</span></label>
               <textarea value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={cn(inputClass, "min-h-[60px] resize-y")} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Alamat Kantor Rep. Indonesia</label>
-              <textarea value={companyIndonesiaAddress} onChange={(e) => setCompanyIndonesiaAddress(e.target.value)} placeholder="Isi jika berbeda dengan kantor pusat" className={cn(inputClass, "min-h-[60px] resize-y")} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.indonesiaOffice")}</label>
+              <textarea value={companyIndonesiaAddress} onChange={(e) => setCompanyIndonesiaAddress(e.target.value)} placeholder={t("companyFields.indonesiaOfficePlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y")} />
             </div>
           </div>
 
           {/* Contact & Legal */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nomor Telp Perusahaan</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyPhone")}</label>
               <input type="text" value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Email Perusahaan</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyEmail")}</label>
               <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Website</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.website")}</label>
               <input type="text" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">NIB</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.nib")}</label>
               <input type="text" value={nib} onChange={(e) => setNib(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun Berdiri</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.yearEstablished")}</label>
               <input type="text" value={yearEstablished} onChange={(e) => setYearEstablished(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Negara</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.country")}</label>
               <input type="text" value={countryEstablished} onChange={(e) => setCountryEstablished(e.target.value)} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Status</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.status")}</label>
               <input type="text" value={companyStatus} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
             </div>
           </div>
 
           {/* Org Structure & Subsidiaries */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Struktur Organisasi Perusahaan</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">Structure of the Company</p>
-            <textarea value={orgStructure} onChange={(e) => setOrgStructure(e.target.value)} placeholder="Jelaskan struktur organisasi perusahaan" className={cn(inputClass, "min-h-[60px] resize-y")} />
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.orgStructure")}</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.orgStructureHint")}</p>
+            <textarea value={orgStructure} onChange={(e) => setOrgStructure(e.target.value)} placeholder={t("companyFields.orgStructurePlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y")} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Anak atau Afiliasi Perusahaan (jika ada)</label>
-            <textarea value={subsidiaries} onChange={(e) => setSubsidiaries(e.target.value)} placeholder="Sebutkan anak perusahaan atau afiliasi" className={cn(inputClass, "min-h-[60px] resize-y")} />
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.subsidiaries")}</label>
+            <textarea value={subsidiaries} onChange={(e) => setSubsidiaries(e.target.value)} placeholder={t("companyFields.subsidiariesPlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y")} />
           </div>
 
           {/* Contact Person */}
           <div className="border-t border-ptba-light-gray pt-3">
-            <p className="text-xs font-semibold text-ptba-charcoal mb-2">Contact Person</p>
+            <p className="text-xs font-semibold text-ptba-charcoal mb-2">{t("companyFields.contactPerson")}</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama CP</label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpName")}</label>
                 <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nomor Telp CP</label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpPhone")}</label>
                 <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Email CP</label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpEmail")}</label>
                 <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inputClass} />
               </div>
             </div>
           </div>
 
           <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Company Profile <span className="text-ptba-red">*</span></p>
+            <p className="text-xs font-semibold text-ptba-charcoal">{t("companyFields.comproDoc")} <span className="text-ptba-red">*</span></p>
             <FileUploadButton
-              label="Company Profile (PDF, maks 20 MB)"
+              label={t("companyFields.comproLabel")}
               accept=".pdf"
               uploaded={isDoc("compro")}
               uploading={uploadedDocs["compro"]?.uploading ?? false}
@@ -977,39 +991,39 @@ export default function MitraProjectApplyPage() {
       {hasDoc("statement_eoi") && (
         <Section
           number={getSectionNumber("statement_eoi")}
-          title="Surat Pernyataan EoI"
+          title={t("sections.eoiStatement")}
           icon={PenLine}
           complete={sectionComplete.statement_eoi}
           open={openSection === getSectionNumber("statement_eoi")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("statement_eoi") ? 0 : getSectionNumber("statement_eoi"))}
         >
-          <p className="text-xs text-ptba-gray">Isi data penandatangan dan unggah surat pernyataan EoI yang telah ditandatangani.</p>
+          <p className="text-xs text-ptba-gray">{t("sections.eoiStatementDesc")}</p>
 
           <div className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
-            <p className="text-xs font-semibold text-ptba-navy">Data Penandatangan</p>
+            <p className="text-xs font-semibold text-ptba-navy">{t("eoiFields.signerData")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Penandatangan <span className="text-ptba-red">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.signerName")} <span className="text-ptba-red">*</span></label>
                 <input
                   type="text"
-                  placeholder="Nama lengkap pejabat berwenang"
+                  placeholder={t("eoiFields.signerNamePlaceholder")}
                   value={signerName}
                   onChange={(e) => setSignerName(e.target.value)}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jabatan <span className="text-ptba-red">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.signerPosition")} <span className="text-ptba-red">*</span></label>
                 <input
                   type="text"
-                  placeholder="Contoh: Direktur Utama"
+                  placeholder={t("eoiFields.signerPositionPlaceholder")}
                   value={signerPosition}
                   onChange={(e) => setSignerPosition(e.target.value)}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Penandatanganan <span className="text-ptba-red">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.signerDate")} <span className="text-ptba-red">*</span></label>
                 <input
                   type="date"
                   onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
@@ -1022,7 +1036,7 @@ export default function MitraProjectApplyPage() {
           </div>
 
           <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
-            Dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam Tbk untuk proyek <strong>{project.name}</strong>. Kami memahami bahwa pengajuan EoI ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.
+            {t.rich("eoiFields.eoiDeclaration", { projectName: project.name, strong: (chunks) => <strong>{chunks}</strong> })}
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer">
@@ -1033,14 +1047,14 @@ export default function MitraProjectApplyPage() {
               className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-steel-blue"
             />
             <span className="text-sm text-ptba-gray">
-              Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa perusahaan kami berminat untuk berpartisipasi.
+              {t.rich("eoiFields.agreeStatement", { strong: (chunks) => <strong>{chunks}</strong> })}
             </span>
           </label>
 
           <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen EoI <span className="text-ptba-red">*</span></p>
+            <p className="text-xs font-semibold text-ptba-charcoal">{t("eoiFields.eoiDoc")} <span className="text-ptba-red">*</span></p>
             <FileUploadButton
-              label="Signed EoI Letter (PDF, ditandatangani oleh perwakilan berwenang)"
+              label={t("eoiFields.eoiDocLabel")}
               accept=".pdf"
               uploaded={isDoc("statement_eoi")}
               uploading={uploadedDocs["statement_eoi"]?.uploading ?? false}
@@ -1058,29 +1072,29 @@ export default function MitraProjectApplyPage() {
       {hasDoc("portfolio") && (
         <Section
           number={getSectionNumber("portfolio")}
-          title="Pengalaman & Portfolio Proyek"
+          title={t("sections.portfolio")}
           icon={Briefcase}
           complete={sectionComplete.portfolio}
           open={openSection === getSectionNumber("portfolio")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("portfolio") ? 0 : getSectionNumber("portfolio"))}
         >
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-ptba-charcoal">Proyek Relevan 10 Tahun Terakhir (min. 2)</p>
+            <p className="text-sm font-semibold text-ptba-charcoal">{t("portfolioFields.relevantProjects")}</p>
           </div>
 
           <div className="rounded-lg border border-ptba-steel-blue/30 bg-ptba-steel-blue/5 p-3 space-y-1.5">
-            <p className="text-xs text-ptba-charcoal font-medium">Catatan / Notes:</p>
+            <p className="text-xs text-ptba-charcoal font-medium">{t("portfolioFields.notes")}</p>
             <ul className="text-xs text-ptba-gray space-y-1 list-disc pl-4">
-              <li>Data Parent Company dapat digunakan apabila kepemilikan saham min. 51% dan disertai Support Letter / Data Parent Company may be used if shareholding is min. 51% and accompanied by a Support Letter</li>
-              <li>Data Afiliasi dapat digunakan apabila kepemilikan saham &gt;90% / Affiliate data may be used if shareholding is &gt;90%</li>
-              <li>Tidak diperkenankan mencampurkan data perusahaan sendiri dengan data parent/afiliasi / Mixing own company data with parent/affiliate data is not allowed</li>
+              <li>{t("portfolioFields.note1")}</li>
+              <li>{t("portfolioFields.note2")}</li>
+              <li>{t("portfolioFields.note3")}</li>
             </ul>
           </div>
 
           {experiences.map((exp, i) => (
             <div key={exp.uid} className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-ptba-charcoal">Pengalaman #{i + 1}</p>
+                <p className="text-sm font-semibold text-ptba-charcoal">{t("portfolioFields.experienceNumber", { number: i + 1 })}</p>
                 <button onClick={() => removeExperience(i)} className="text-ptba-red hover:text-red-700 transition-colors">
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -1088,45 +1102,47 @@ export default function MitraProjectApplyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Category selector */}
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori Pengalaman <span className="text-ptba-red">*</span></label>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.experienceCategory")} <span className="text-ptba-red">*</span></label>
                   <select value={exp.category} onChange={(e) => changeExperienceCategory(i, e.target.value as ExperienceCategory)} className={inputClass}>
                     {EXPERIENCE_CATEGORIES.map((cat) => (
-                      <option key={cat.key} value={cat.key}>{cat.label} / {cat.labelEn}</option>
+                      <option key={cat.key} value={cat.key}>
+                        {t(`portfolioFields.category${cat.key === 'developer' ? 'Developer' : cat.key === 'om_contractor' ? 'OmContractor' : 'Financing'}`)}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 {/* Common fields */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Pembangkit Listrik <span className="text-ptba-red">*</span></label>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.plantName")} <span className="text-ptba-red">*</span></label>
                   <input type="text" value={exp.plantName} onChange={(e) => updateExperience(i, "plantName", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lokasi <span className="text-ptba-red">*</span></label>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.location")} <span className="text-ptba-red">*</span></label>
                   <input type="text" value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kapasitas Total (MW) <span className="text-ptba-red">*</span></label>
-                  <input type="text" placeholder="Contoh: 600" value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value)} className={inputClass} />
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.totalCapacity")} <span className="text-ptba-red">*</span></label>
+                  <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value)} className={inputClass} />
                 </div>
 
                 {/* Developer-specific fields */}
                 {exp.category === 'developer' && (
                   <>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Ekuitas (%) <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 51" value={exp.equityPercent} onChange={(e) => updateExperience(i, "equityPercent", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.equity")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.equityPlaceholder")} value={exp.equityPercent} onChange={(e) => updateExperience(i, "equityPercent", e.target.value)} className={inputClass} />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">IPP / Captive <span className="text-ptba-red">*</span></label>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.ippCaptive")} <span className="text-ptba-red">*</span></label>
                       <select value={exp.ippOrCaptive} onChange={(e) => updateExperience(i, "ippOrCaptive", e.target.value)} className={inputClass}>
-                        <option value="">Pilih...</option>
+                        <option value="">{t("portfolioFields.selectPlaceholder")}</option>
                         {IPP_CAPTIVE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">COD Year <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 2020" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.codYear")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
                     </div>
                   </>
                 )}
@@ -1135,23 +1151,23 @@ export default function MitraProjectApplyPage() {
                 {exp.category === 'om_contractor' && (
                   <>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Kontrak (USD) <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 5000000" value={exp.contractValueUSD} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.contractValue")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.contractValuePlaceholder")} value={exp.contractValueUSD} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value)} className={inputClass} />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Porsi Pekerjaan (%) <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 60" value={exp.workPortionPercent} onChange={(e) => updateExperience(i, "workPortionPercent", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.workPortion")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.workPortionPlaceholder")} value={exp.workPortionPercent} onChange={(e) => updateExperience(i, "workPortionPercent", e.target.value)} className={inputClass} />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">IPP / Captive <span className="text-ptba-red">*</span></label>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.ippCaptive")} <span className="text-ptba-red">*</span></label>
                       <select value={exp.ippOrCaptive} onChange={(e) => updateExperience(i, "ippOrCaptive", e.target.value)} className={inputClass}>
-                        <option value="">Pilih...</option>
+                        <option value="">{t("portfolioFields.selectPlaceholder")}</option>
                         {IPP_CAPTIVE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">COD Year <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 2020" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.codYear")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
                     </div>
                   </>
                 )}
@@ -1160,19 +1176,19 @@ export default function MitraProjectApplyPage() {
                 {exp.category === 'financing' && (
                   <>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jenis Pembiayaan <span className="text-ptba-red">*</span></label>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.financingType")} <span className="text-ptba-red">*</span></label>
                       <select value={exp.financingType} onChange={(e) => updateExperience(i, "financingType", e.target.value)} className={inputClass}>
-                        <option value="">Pilih...</option>
+                        <option value="">{t("portfolioFields.selectPlaceholder")}</option>
                         {FINANCING_TYPE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jumlah (USD) <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 10000000" value={exp.amountUSD} onChange={(e) => updateExperience(i, "amountUSD", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.amount")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.amountPlaceholder")} value={exp.amountUSD} onChange={(e) => updateExperience(i, "amountUSD", e.target.value)} className={inputClass} />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder="Contoh: 2022" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value)} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.year")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.yearPlaceholder")} value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value)} className={inputClass} />
                     </div>
                   </>
                 )}
@@ -1181,7 +1197,7 @@ export default function MitraProjectApplyPage() {
               {/* Per-experience credential document */}
               <div className="pt-1">
                 <FileUploadButton
-                  label="Dokumen Kredensial / Credential Document (PDF)"
+                  label={t("portfolioFields.credentialDoc")}
                   accept=".pdf"
                   uploaded={isDoc(`credential_exp_${exp.uid}`)}
                   uploading={uploadedDocs[`credential_exp_${exp.uid}`]?.uploading ?? false}
@@ -1198,7 +1214,7 @@ export default function MitraProjectApplyPage() {
             className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-steel-blue/30 py-3 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Tambah Pengalaman
+            {t("portfolioFields.addExperience")}
           </button>
         </Section>
       )}
@@ -1207,13 +1223,13 @@ export default function MitraProjectApplyPage() {
       {hasDoc("financial_overview") && (
         <Section
           number={getSectionNumber("financial_overview")}
-          title="Gambaran Umum Keuangan"
+          title={t("sections.financialOverview")}
           icon={DollarSign}
           complete={sectionComplete.financial_overview}
           open={openSection === getSectionNumber("financial_overview")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("financial_overview") ? 0 : getSectionNumber("financial_overview"))}
         >
-          <p className="text-xs text-ptba-gray">Isi data keuangan 3 tahun terakhir. Semua kolom wajib diisi (isi 0 jika tidak ada).</p>
+          <p className="text-xs text-ptba-gray">{t("sections.financialOverviewDesc")}</p>
 
           {/* Financial Table */}
           <div className="overflow-x-auto">
@@ -1228,7 +1244,7 @@ export default function MitraProjectApplyPage() {
               </thead>
               <tbody>
                 <tr className="border-b border-ptba-light-gray/50">
-                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">Mata Uang</td>
+                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">{t("financialFields.currency")}</td>
                   {financialYears.map((fy, i) => (
                     <td key={fy.year} className="py-2 px-2">
                       <select value={fy.currency} onChange={(e) => {
@@ -1241,9 +1257,9 @@ export default function MitraProjectApplyPage() {
                   ))}
                 </tr>
                 {[
-                  { key: "totalAsset" as const, label: "Total Aset" },
-                  { key: "ebitda" as const, label: "EBITDA" },
-                  { key: "dscr" as const, label: "DSCR" },
+                  { key: "totalAsset" as const, label: t("financialFields.totalAsset") },
+                  { key: "ebitda" as const, label: t("financialFields.ebitda") },
+                  { key: "dscr" as const, label: t("financialFields.dscr") },
                 ].map((row) => (
                   <tr key={row.key} className="border-b border-ptba-light-gray/50">
                     <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">{row.label} <span className="text-ptba-red">*</span></td>
@@ -1268,18 +1284,18 @@ export default function MitraProjectApplyPage() {
 
           {/* Cash on Hand */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Cash on Hand</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">Min. Cash on Hand of 1.5x equity</p>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.cashOnHand")}</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("financialFields.cashOnHandHint")}</p>
             <div className="flex items-center gap-2">
-              <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder="Contoh: 350" className={cn(inputClass, "w-40")} />
+              <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder={t("companyFields.example", { value: "350" })} className={cn(inputClass, "w-40")} />
               <span className="text-sm text-ptba-gray">Mill USD</span>
             </div>
           </div>
 
           <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Keuangan <span className="text-ptba-red">*</span></p>
+            <p className="text-xs font-semibold text-ptba-charcoal">{t("financialFields.financialDoc")} <span className="text-ptba-red">*</span></p>
             <FileUploadButton
-              label="Laporan Gambaran Umum Keuangan (PDF)"
+              label={t("financialFields.financialDocLabel")}
               accept=".pdf"
               uploaded={isDoc("financial_overview")}
               uploading={uploadedDocs["financial_overview"]?.uploading ?? false}
@@ -1297,21 +1313,21 @@ export default function MitraProjectApplyPage() {
       {hasDoc("requirements_fulfillment") && (
         <Section
           number={getSectionNumber("requirements_fulfillment")}
-          title="Pemenuhan Persyaratan"
+          title={t("sections.requirementsFulfillment")}
           icon={ClipboardCheck}
           complete={sectionComplete.requirements_fulfillment}
           open={openSection === getSectionNumber("requirements_fulfillment")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("requirements_fulfillment") ? 0 : getSectionNumber("requirements_fulfillment"))}
         >
-          <p className="text-xs text-ptba-gray">Konfirmasi pemenuhan persyaratan dasar proyek dan unggah dokumen pendukung.</p>
+          <p className="text-xs text-ptba-gray">{t("sections.requirementsFulfillmentDesc")}</p>
 
           {/* Download template button */}
           <div className="rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-ptba-steel-blue">Template Dokumen</p>
+                <p className="text-xs font-semibold text-ptba-steel-blue">{t("requirementsFields.templateDoc")}</p>
                 <p className="text-[11px] text-ptba-gray mt-0.5">
-                  Unduh template formulir Pemenuhan Persyaratan. Isi, tandatangani, lalu unggah kembali.
+                  {t("requirementsFields.templateDocDesc")}
                 </p>
               </div>
               <button
@@ -1326,7 +1342,7 @@ export default function MitraProjectApplyPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-steel-blue px-3 py-2 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
               >
                 <FileText className="h-3.5 w-3.5" />
-                Unduh Template
+                {t("requirementsFields.downloadTemplate")}
               </button>
             </div>
           </div>
@@ -1334,7 +1350,7 @@ export default function MitraProjectApplyPage() {
           {/* Show project requirements as checklist */}
           {projectRequirements.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-ptba-navy">Persyaratan Proyek</p>
+              <p className="text-xs font-semibold text-ptba-navy">{t("requirementsFields.projectRequirements")}</p>
               {projectRequirements.map((req: string, i: number) => (
                 <label
                   key={i}
@@ -1352,7 +1368,7 @@ export default function MitraProjectApplyPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-ptba-charcoal">{req}</p>
                     {requirementAnswers[i] && (
-                      <p className="text-[10px] text-green-600 mt-0.5">Terpenuhi</p>
+                      <p className="text-[10px] text-green-600 mt-0.5">{t("requirementsFields.fulfilled")}</p>
                     )}
                   </div>
                 </label>
@@ -1360,14 +1376,14 @@ export default function MitraProjectApplyPage() {
             </div>
           ) : (
             <div className="rounded-lg bg-ptba-section-bg p-4">
-              <p className="text-xs text-ptba-gray">Tidak ada persyaratan khusus untuk proyek ini. Unggah dokumen pemenuhan persyaratan umum.</p>
+              <p className="text-xs text-ptba-gray">{t("requirementsFields.noSpecificRequirements")}</p>
             </div>
           )}
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Catatan Tambahan</label>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("requirementsFields.additionalNotes")}</label>
             <textarea
-              placeholder="Tambahkan catatan atau penjelasan terkait pemenuhan persyaratan (opsional)"
+              placeholder={t("requirementsFields.additionalNotesPlaceholder")}
               value={requirementNotes}
               onChange={(e) => setRequirementNotes(e.target.value)}
               className={cn(inputClass, "min-h-[60px] resize-y")}
@@ -1375,9 +1391,9 @@ export default function MitraProjectApplyPage() {
           </div>
 
           <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Pemenuhan Persyaratan <span className="text-ptba-red">*</span></p>
+            <p className="text-xs font-semibold text-ptba-charcoal">{t("requirementsFields.requirementsDoc")} <span className="text-ptba-red">*</span></p>
             <FileUploadButton
-              label="Dokumen Pemenuhan Persyaratan (PDF)"
+              label={t("requirementsFields.requirementsDocLabel")}
               accept=".pdf"
               uploaded={isDoc("requirements_fulfillment")}
               uploading={uploadedDocs["requirements_fulfillment"]?.uploading ?? false}
@@ -1395,13 +1411,13 @@ export default function MitraProjectApplyPage() {
       {hasAdditionalDocs && (
         <Section
           number={additionalDocsSectionNumber}
-          title="Dokumen Tambahan"
+          title={t("sections.additionalDocs")}
           icon={FileText}
           complete={additionalDocsComplete}
           open={openSection === additionalDocsSectionNumber}
           onToggle={() => setOpenSection(openSection === additionalDocsSectionNumber ? 0 : additionalDocsSectionNumber)}
         >
-          <p className="text-xs text-ptba-gray">Unggah dokumen tambahan yang diperlukan untuk proyek ini.</p>
+          <p className="text-xs text-ptba-gray">{t("sections.additionalDocsDesc")}</p>
           <div className="space-y-2">
             {additionalPhase1Docs.map((doc: { id: string; name: string; description: string }) => (
               <FileUploadButton
@@ -1424,14 +1440,14 @@ export default function MitraProjectApplyPage() {
       {/* ═══ Section: Pernyataan Akhir & Submit (always shown) ═══ */}
       <Section
         number={finalSectionNumber}
-        title="Pernyataan Akhir & Submit"
+        title={t("sections.finalStatement")}
         icon={ShieldCheck}
         complete={sectionComplete.final}
         open={openSection === finalSectionNumber}
         onToggle={() => setOpenSection(openSection === finalSectionNumber ? 0 : finalSectionNumber)}
       >
         <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
-          Kami dengan ini menyatakan bahwa informasi yang diberikan dalam formulir ini adalah benar, akurat, dan lengkap. Dokumen yang disampaikan bersama formulir ini adalah asli dan dapat dipertanggungjawabkan. Kami bersedia untuk memberikan informasi tambahan atau klarifikasi yang diperlukan oleh PT Bukit Asam Tbk. Setiap perubahan informasi akan segera kami sampaikan secara tertulis.
+          {t("finalStatement.declaration")}
         </div>
 
         <label className="flex items-start gap-3 cursor-pointer">
@@ -1442,7 +1458,7 @@ export default function MitraProjectApplyPage() {
             className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-steel-blue"
           />
           <span className="text-sm text-ptba-gray">
-            Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa seluruh informasi yang diberikan adalah benar.
+            {t.rich("finalStatement.agreeStatement", { strong: (chunks) => <strong>{chunks}</strong> })}
           </span>
         </label>
       </Section>
@@ -1451,20 +1467,20 @@ export default function MitraProjectApplyPage() {
       <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-ptba-charcoal">{completedCount}/{totalSections} bagian selesai</p>
+            <p className="text-sm font-semibold text-ptba-charcoal">{t("submitBar.sectionsCompleted", { completed: completedCount, total: totalSections })}</p>
             <p className="text-xs text-ptba-gray mt-0.5">
-              {allComplete ? "Formulir siap dikirim." : "Lengkapi semua bagian untuk mengirim EoI."}
+              {allComplete ? t("submitBar.readyToSubmit") : t("submitBar.completeAllSections")}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {draftSaved && (
-              <span className="text-xs text-green-600 font-medium">Draft tersimpan!</span>
+              <span className="text-xs text-green-600 font-medium">{t("submitBar.draftSaved")}</span>
             )}
             <button
               onClick={() => router.push(`/mitra/projects/${projectId}`)}
               className="rounded-lg border border-ptba-navy px-4 py-2.5 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
             >
-              Batal
+              {tc("cancel")}
             </button>
             <button
               onClick={handleSaveDraft}
@@ -1472,7 +1488,7 @@ export default function MitraProjectApplyPage() {
               className="inline-flex items-center gap-2 rounded-lg border border-ptba-steel-blue px-4 py-2.5 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
             >
               {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {savingDraft ? "Menyimpan..." : "Simpan Draft"}
+              {savingDraft ? t("submitBar.savingDraft") : t("submitBar.saveDraft")}
             </button>
             <button
               onClick={handleSubmit}
@@ -1485,7 +1501,7 @@ export default function MitraProjectApplyPage() {
               )}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? "Mengirim..." : "Kirim EoI"}
+              {submitting ? t("submitBar.submitting") : t("submitBar.submitEoi")}
             </button>
           </div>
         </div>

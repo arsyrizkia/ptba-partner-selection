@@ -17,6 +17,8 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument } from "@/lib/api/client";
@@ -45,6 +47,9 @@ export default function MitraPhase2Page() {
   const params = useParams();
   const { user, accessToken } = useAuth();
   const projectId = params.id as string;
+  const t = useTranslations("phase2");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
 
   // Data state
   const [project, setProject] = useState<any>(null);
@@ -191,7 +196,7 @@ export default function MitraPhase2Page() {
 
       const uploadData = await uploadRes.json();
       if (!uploadRes.ok) {
-        throw new Error(uploadData.error || "Gagal mengunggah bukti pembayaran");
+        throw new Error(uploadData.error || t("errors.uploadProofFailed"));
       }
 
       const fileKey = uploadData.document?.file_key;
@@ -220,7 +225,7 @@ export default function MitraPhase2Page() {
         // Non-critical
       }
     } catch (err: any) {
-      setError(err.message || "Gagal mengunggah bukti pembayaran");
+      setError(err.message || t("errors.uploadProofFailed"));
       setPaymentState("belum");
     } finally {
       setUploadingProof(false);
@@ -244,7 +249,7 @@ export default function MitraPhase2Page() {
 
       setDownloadedDocs((prev) => new Set(prev).add(docId));
     } catch (err: any) {
-      setError(err.message || "Gagal mengunduh dokumen");
+      setError(err.message || t("errors.downloadFailed"));
     } finally {
       setDownloadingDoc(null);
     }
@@ -292,7 +297,7 @@ export default function MitraPhase2Page() {
 
       const resData = await res.json();
       if (!res.ok) {
-        throw new Error(resData.error || "Gagal mengunggah dokumen");
+        throw new Error(resData.error || t("errors.uploadDocFailed"));
       }
 
       setUploadedDocs((prev) => ({
@@ -304,7 +309,7 @@ export default function MitraPhase2Page() {
         },
       }));
     } catch (err: any) {
-      setError(err.message || "Gagal mengunggah dokumen");
+      setError(err.message || t("errors.uploadDocFailed"));
       setUploadedDocs((prev) => {
         const next = { ...prev };
         delete next[docTypeId];
@@ -333,7 +338,7 @@ export default function MitraPhase2Page() {
       );
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal menghapus dokumen");
+        throw new Error(data.error || t("errors.deleteFailed"));
       }
       setUploadedDocs((prev) => {
         const next = { ...prev };
@@ -341,7 +346,7 @@ export default function MitraPhase2Page() {
         return next;
       });
     } catch (err: any) {
-      setError(err.message || "Gagal menghapus dokumen");
+      setError(err.message || t("errors.deleteFailed"));
       setUploadedDocs((prev) => ({
         ...prev,
         [docTypeId]: { ...doc, uploading: false },
@@ -361,7 +366,7 @@ export default function MitraPhase2Page() {
       });
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || "Gagal mengirim dokumen Fase 2");
+      setError(err.message || t("errors.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -387,7 +392,7 @@ export default function MitraPhase2Page() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-ptba-navy" />
-        <span className="ml-3 text-ptba-gray">Memuat data...</span>
+        <span className="ml-3 text-ptba-gray">{tc("loadingData")}</span>
       </div>
     );
   }
@@ -401,10 +406,10 @@ export default function MitraPhase2Page() {
           onClick={() => router.back()}
           className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <p className="text-ptba-gray">Proyek tidak ditemukan.</p>
+          <p className="text-ptba-gray">{tc("projectNotFound")}</p>
         </div>
       </div>
     );
@@ -419,15 +424,15 @@ export default function MitraPhase2Page() {
           onClick={() => router.back()}
           className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <AlertTriangle className="mx-auto h-12 w-12 text-ptba-gold" />
           <p className="mt-3 text-lg font-semibold text-ptba-charcoal">
-            Lamaran tidak ditemukan
+            {t("applicationNotFound")}
           </p>
           <p className="mt-1 text-sm text-ptba-gray">
-            Anda belum memiliki lamaran untuk proyek ini.
+            {t("applicationNotFoundDesc")}
           </p>
         </div>
       </div>
@@ -443,22 +448,21 @@ export default function MitraPhase2Page() {
           onClick={() => router.back()}
           className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <Lock className="mx-auto h-12 w-12 text-ptba-gray" />
           <p className="mt-3 text-lg font-semibold text-ptba-charcoal">
-            Akses Ditolak
+            {t("accessDenied")}
           </p>
           <p className="mt-1 text-sm text-ptba-gray">
-            Halaman ini hanya dapat diakses oleh mitra yang lolos Fase 1
-            (shortlisted).
+            {t("accessDeniedDesc")}
           </p>
           <button
             onClick={() => router.push(`/mitra/projects/${projectId}`)}
             className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
           >
-            Kembali ke Detail Proyek
+            {tc("backToProjectDetail")}
           </button>
         </div>
       </div>
@@ -474,25 +478,25 @@ export default function MitraPhase2Page() {
           onClick={() => router.push(`/mitra/projects/${projectId}`)}
           className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Proyek
+          <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
           <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
           <p className="mt-3 text-xl font-bold text-ptba-charcoal">
-            Dokumen Fase 2 Berhasil Dikirim
+            {t("submittedTitle")}
           </p>
           <p className="mt-2 text-sm text-ptba-gray">
-            Seluruh dokumen Fase 2 Anda telah berhasil dikirim untuk proyek{" "}
+            {t("submittedDesc")}{" "}
             <span className="font-medium text-ptba-charcoal">
               {project.name}
             </span>
-            . Tim evaluasi PTBA akan melakukan penilaian detail.
+            . {t("submittedEvaluation")}
           </p>
           <button
             onClick={() => router.push("/mitra/status")}
             className="mt-6 rounded-lg bg-ptba-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
           >
-            Lihat Status Lamaran
+            {t("viewStatus")}
           </button>
         </div>
       </div>
@@ -516,26 +520,24 @@ export default function MitraPhase2Page() {
         onClick={() => router.push(`/mitra/projects/${projectId}`)}
         className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
       >
-        <ArrowLeft className="h-4 w-4" /> Kembali ke Detail Proyek
+        <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
       </button>
 
       {/* Header */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
-        <p className="text-white/70 text-sm">Fase 2 &mdash; Penilaian Detail</p>
+        <p className="text-white/70 text-sm">{t("title")}</p>
         <h1 className="mt-1 text-2xl font-bold">{project.name}</h1>
         <p className="mt-2 text-white/80 text-sm">
-          Selamat, Anda telah lolos Fase 1 (Shortlisted). Silakan lengkapi
-          pembayaran biaya pendaftaran, unduh dokumen PTBA, dan unggah dokumen
-          Fase 2 yang diperlukan.
+          {t("description")}
         </p>
         <div className="mt-4 flex items-center gap-6 text-sm">
           <span className="flex items-center gap-1.5">
             <CreditCard className="h-4 w-4" />
-            Biaya: {formatCurrency(registrationFee)}
+            {t("fee")} {formatCurrency(registrationFee)}
           </span>
           <span className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" />
-            {uploadedRequiredCount}/{requiredPhase2Count} dokumen wajib
+            {uploadedRequiredCount}/{requiredPhase2Count} {t("requiredDocs")}
           </span>
         </div>
       </div>
@@ -544,10 +546,10 @@ export default function MitraPhase2Page() {
       <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           {[
-            { step: 1, label: paymentState === "pending" ? "Menunggu Verifikasi" : "Bayar Biaya", done: feePaid },
-            { step: 2, label: "Unduh Dokumen PTBA", done: feePaid && downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0 },
-            { step: 3, label: "Unggah Dokumen Fase 2", done: allRequiredUploaded },
-            { step: 4, label: "Menunggu Evaluasi", done: submitted },
+            { step: 1, label: paymentState === "pending" ? t("steps.waitingVerification") : t("steps.payFee"), done: feePaid },
+            { step: 2, label: t("steps.downloadDocs"), done: feePaid && downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0 },
+            { step: 3, label: t("steps.uploadDocs"), done: allRequiredUploaded },
+            { step: 4, label: t("steps.waitingEvaluation"), done: submitted },
           ].map((s, idx, arr) => (
             <div key={s.step} className="flex items-center flex-1 last:flex-initial">
               <div className="flex flex-col items-center">
@@ -601,7 +603,7 @@ export default function MitraPhase2Page() {
             {paymentState === "verified" ? <CheckCircle2 className="h-4 w-4" /> : 1}
           </div>
           <h2 className="text-lg font-semibold text-ptba-charcoal">
-            Pembayaran Biaya Pendaftaran
+            {t("payment.title")}
           </h2>
         </div>
 
@@ -622,10 +624,10 @@ export default function MitraPhase2Page() {
               "text-ptba-gray"
             )} />
             <div className="flex-1">
-              <p className="text-sm font-medium text-ptba-charcoal">Biaya Pendaftaran Fase 2</p>
+              <p className="text-sm font-medium text-ptba-charcoal">{t("payment.feeLabel")}</p>
               <p className="text-lg font-bold text-ptba-navy mt-0.5">{formatCurrency(registrationFee)}</p>
               <p className="text-xs text-ptba-gray mt-1">
-                Transfer ke rekening PT Bukit Asam Tbk — Bank Mandiri 123-456-789
+                {t("payment.transferInfo")}
               </p>
             </div>
           </div>
@@ -651,16 +653,16 @@ export default function MitraPhase2Page() {
         {paymentState === "belum" && !selectedProofFile && (
           <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
             <Upload className="mx-auto h-8 w-8 text-ptba-gray mb-2" />
-            <p className="text-sm font-medium text-ptba-charcoal mb-1">Upload Bukti Pembayaran</p>
+            <p className="text-sm font-medium text-ptba-charcoal mb-1">{t("payment.uploadProof")}</p>
             <p className="text-xs text-ptba-gray mb-4">
-              Lakukan transfer sesuai nominal di atas, lalu unggah bukti transfer (PDF/JPG/PNG)
+              {t("payment.uploadProofDesc")}
             </p>
             <button
               onClick={() => paymentProofRef.current?.click()}
               className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-5 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
             >
               <Upload className="h-4 w-4" />
-              Pilih File
+              {tc("selectFile")}
             </button>
           </div>
         )}
@@ -677,7 +679,7 @@ export default function MitraPhase2Page() {
                 onClick={() => { setSelectedProofFile(null); setPaymentProofName(""); }}
                 className="text-xs text-ptba-gray hover:text-ptba-red transition-colors"
               >
-                Hapus
+                {tc("delete")}
               </button>
             </div>
             <div className="flex items-center gap-3">
@@ -685,14 +687,14 @@ export default function MitraPhase2Page() {
                 onClick={() => paymentProofRef.current?.click()}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-white transition-colors"
               >
-                Ganti File
+                {tc("replace")}
               </button>
               <button
                 onClick={() => handleUploadProof(selectedProofFile)}
                 className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-bold text-white hover:bg-ptba-navy/90 transition-colors"
               >
                 <Upload className="h-4 w-4" />
-                Kirim Bukti Pembayaran
+                {t("payment.submitProof")}
               </button>
             </div>
           </div>
@@ -701,8 +703,8 @@ export default function MitraPhase2Page() {
         {paymentState === "uploading" && (
           <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
             <Loader2 className="mx-auto h-8 w-8 text-ptba-gold animate-spin mb-2" />
-            <p className="text-sm font-medium text-ptba-charcoal mb-1">Mengunggah Bukti Pembayaran...</p>
-            <p className="text-xs text-ptba-gray">Mohon tunggu, file sedang diunggah.</p>
+            <p className="text-sm font-medium text-ptba-charcoal mb-1">{t("payment.uploadingProof")}</p>
+            <p className="text-xs text-ptba-gray">{t("payment.uploadingProofDesc")}</p>
           </div>
         )}
 
@@ -711,15 +713,14 @@ export default function MitraPhase2Page() {
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-800">Menunggu Verifikasi</p>
+                <p className="text-sm font-semibold text-amber-800">{t("payment.waitingVerification")}</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Bukti pembayaran telah dikirim dan sedang menunggu verifikasi oleh tim EBD PTBA.
-                  Proses verifikasi biasanya memakan waktu 1-2 hari kerja.
+                  {t("payment.waitingVerificationDesc")}
                 </p>
                 <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 border border-amber-200">
                   <ImageIcon className="h-4 w-4 text-amber-600 shrink-0" />
                   <span className="text-xs text-ptba-charcoal font-medium truncate">{paymentProofName}</span>
-                  <span className="text-[10px] text-amber-600 ml-auto shrink-0">Diunggah</span>
+                  <span className="text-[10px] text-amber-600 ml-auto shrink-0">{t("payment.uploaded")}</span>
                 </div>
               </div>
             </div>
@@ -731,9 +732,9 @@ export default function MitraPhase2Page() {
             <div className="flex items-start gap-3">
               <XCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-red-800">Bukti Pembayaran Ditolak</p>
+                <p className="text-sm font-semibold text-red-800">{t("payment.proofRejected")}</p>
                 <p className="text-xs text-red-700 mt-0.5">
-                  {application?.fee_payment_notes ?? "Bukti pembayaran tidak valid. Silakan upload ulang bukti yang benar."}
+                  {application?.fee_payment_notes ?? t("payment.proofRejectedDesc")}
                 </p>
                 <button
                   onClick={() => {
@@ -742,7 +743,7 @@ export default function MitraPhase2Page() {
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-xs font-semibold text-white hover:bg-ptba-steel-blue transition-colors"
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  Upload Ulang
+                  {t("payment.reupload")}
                 </button>
               </div>
             </div>
@@ -754,9 +755,9 @@ export default function MitraPhase2Page() {
             <div className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-green-800">Pembayaran Terverifikasi</p>
+                <p className="text-sm font-semibold text-green-800">{t("payment.verified")}</p>
                 <p className="text-xs text-green-700 mt-0.5">
-                  Pembayaran telah diverifikasi oleh tim EBD. Anda dapat melanjutkan ke langkah berikutnya.
+                  {t("payment.verifiedDesc")}
                 </p>
               </div>
             </div>
@@ -778,22 +779,21 @@ export default function MitraPhase2Page() {
             2
           </div>
           <h2 className="text-lg font-semibold text-ptba-charcoal">
-            Unduh Dokumen PTBA
+            {t("ptbaDocs.title")}
           </h2>
         </div>
 
         {!feePaid && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-off-white p-3 text-sm text-ptba-gray">
             <Lock className="h-4 w-4 shrink-0" />
-            Selesaikan pembayaran biaya pendaftaran terlebih dahulu untuk
-            mengakses dokumen PTBA.
+            {t("ptbaDocs.payFirst")}
           </div>
         )}
 
         <div className="space-y-3">
           {ptbaDocuments.length === 0 ? (
             <p className="text-sm text-ptba-gray py-4 text-center">
-              Tidak ada dokumen PTBA untuk proyek ini.
+              {t("ptbaDocs.noDocs")}
             </p>
           ) : (
             ptbaDocuments.map((doc: any) => {
@@ -842,7 +842,7 @@ export default function MitraPhase2Page() {
                       ) : (
                         <Download className="h-3.5 w-3.5" />
                       )}
-                      {isDownloading ? "Mengunduh..." : isDownloaded ? "Unduh Ulang" : "Download"}
+                      {isDownloading ? tc("downloading") : isDownloaded ? tc("redownload") : tc("download")}
                     </button>
                   </div>
                 </div>
@@ -866,16 +866,16 @@ export default function MitraPhase2Page() {
             3
           </div>
           <h2 className="text-lg font-semibold text-ptba-charcoal">
-            Unggah Dokumen Fase 2
+            {t("uploadDocs.title")}
           </h2>
         </div>
 
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-ptba-gray">
-            Unggah seluruh dokumen yang diperlukan untuk penilaian detail.
+            {t("uploadDocs.description")}
           </p>
           <span className="text-sm text-ptba-gray">
-            {uploadedRequiredCount}/{requiredPhase2Count} wajib terpenuhi
+            {uploadedRequiredCount}/{requiredPhase2Count} {t("uploadDocs.fulfilled")}
           </span>
         </div>
 
@@ -899,8 +899,7 @@ export default function MitraPhase2Page() {
         {!feePaid && (
           <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-off-white p-3 text-sm text-ptba-gray">
             <Lock className="h-4 w-4 shrink-0" />
-            Selesaikan pembayaran biaya pendaftaran terlebih dahulu untuk
-            mengunggah dokumen.
+            {t("ptbaDocs.payFirst")}
           </div>
         )}
 
@@ -933,7 +932,7 @@ export default function MitraPhase2Page() {
                         {doc.name}
                         {doc.required && (
                           <span className="ml-1 text-[10px] text-ptba-red font-medium">
-                            *Wajib
+                            {tc("requiredMark")}
                           </span>
                         )}
                       </p>
@@ -946,7 +945,7 @@ export default function MitraPhase2Page() {
                         </p>
                       )}
                       {isUploading && (
-                        <p className="text-xs text-ptba-gold mt-1">Mengunggah...</p>
+                        <p className="text-xs text-ptba-gold mt-1">{tc("uploading")}</p>
                       )}
                     </div>
                   </div>
@@ -958,11 +957,11 @@ export default function MitraPhase2Page() {
                           className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                         >
                           <Trash2 className="h-3 w-3" />
-                          Hapus
+                          {tc("delete")}
                         </button>
                         <label className="inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors cursor-pointer">
                           <Upload className="h-3 w-3" />
-                          Ganti
+                          {tc("replace")}
                           <input
                             type="file"
                             className="hidden"
@@ -978,7 +977,7 @@ export default function MitraPhase2Page() {
                     ) : isUploading ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Mengunggah
+                        {tc("uploading")}
                       </span>
                     ) : (
                       <label
@@ -990,7 +989,7 @@ export default function MitraPhase2Page() {
                         )}
                       >
                         <Upload className="h-3.5 w-3.5" />
-                        Unggah
+                        {tc("upload")}
                         <input
                           type="file"
                           className="hidden"
@@ -1021,15 +1020,14 @@ export default function MitraPhase2Page() {
               <AlertTriangle className="h-5 w-5 shrink-0 text-ptba-gold mt-0.5" />
               <div className="text-sm text-ptba-charcoal">
                 <p className="font-medium">
-                  Persyaratan belum terpenuhi untuk pengiriman:
+                  {t("submit.requirementsNotMet")}
                 </p>
                 <ul className="mt-1.5 list-disc pl-4 space-y-0.5 text-ptba-gray">
-                  {!feePaid && paymentState === "pending" && <li>Bukti pembayaran masih menunggu verifikasi EBD</li>}
-                  {!feePaid && paymentState !== "pending" && <li>Biaya pendaftaran belum dibayar</li>}
+                  {!feePaid && paymentState === "pending" && <li>{t("submit.paymentPending")}</li>}
+                  {!feePaid && paymentState !== "pending" && <li>{t("submit.paymentNotPaid")}</li>}
                   {!allRequiredUploaded && (
                     <li>
-                      {requiredPhase2Count - uploadedRequiredCount} dokumen wajib
-                      belum diunggah
+                      {t("submit.docsNotUploaded", { count: requiredPhase2Count - uploadedRequiredCount })}
                     </li>
                   )}
                 </ul>
@@ -1043,7 +1041,7 @@ export default function MitraPhase2Page() {
             onClick={() => router.push(`/mitra/projects/${projectId}`)}
             className="rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
           >
-            Batal
+            {tc("cancel")}
           </button>
           <button
             onClick={handleSubmit}
@@ -1056,7 +1054,7 @@ export default function MitraPhase2Page() {
             )}
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {submitting ? "Mengirim..." : "Kirim Dokumen Fase 2"}
+            {submitting ? tc("sending") : t("submit.submitDocs")}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
+import { LocaleProvider } from "@/lib/i18n/locale-context";
 
 export const metadata: Metadata = {
   title: "PTBA - Sistem Pemilihan Mitra",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <LocaleProvider>{children}</LocaleProvider>
+        </AuthProvider>
         <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
       </body>
     </html>
