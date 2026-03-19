@@ -84,7 +84,7 @@ function LoginContent() {
         <div className="mb-6 flex flex-col items-center">
           <Image
             src="/ptba-logo.svg"
-            alt="PT Bukit Asam Tbk"
+            alt="PT Bukit Asam Persero Tbk"
             width={200}
             height={36}
             priority
@@ -207,7 +207,7 @@ function LoginContent() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-ptba-gray">
-          &copy; 2024 PT Bukit Asam Tbk. Hak Cipta Dilindungi.
+          &copy; 2024 PT Bukit Asam Persero Tbk. Hak Cipta Dilindungi.
         </p>
       </div>
     </div>

@@ -34,7 +34,7 @@ export default function MitraNavbar() {
         <div className="flex items-center gap-4">
           <Image
             src="/ptba-logo.svg"
-            alt="PT Bukit Asam Tbk"
+            alt="PT Bukit Asam Persero Tbk"
             width={140}
             height={25}
             priority

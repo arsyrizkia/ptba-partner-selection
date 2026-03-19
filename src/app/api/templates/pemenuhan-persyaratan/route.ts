@@ -55,7 +55,7 @@ function drawHeaderFooter(doc: jsPDF, pageNum: number) {
   setText(doc, GRAY);
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
-  doc.text("Dokumen Rahasia - Hanya untuk keperluan proses seleksi mitra PT Bukit Asam Tbk", 20, h - 6);
+  doc.text("Dokumen Rahasia - Hanya untuk keperluan proses seleksi mitra PT Bukit Asam Persero Tbk", 20, h - 6);
   doc.text(`Halaman ${pageNum}`, w - 20, h - 6, { align: "right" });
 }
 
@@ -148,7 +148,7 @@ function buildPDF(projectName: string, requirements: string[]): ArrayBuffer {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   const instrText =
-    "Berikut adalah persyaratan yang ditetapkan oleh PT Bukit Asam Tbk untuk proyek ini. " +
+    "Berikut adalah persyaratan yang ditetapkan oleh PT Bukit Asam Persero Tbk untuk proyek ini. " +
     "Berikan tanda centang pada kolom Ya atau Tidak untuk setiap persyaratan, " +
     "serta berikan penjelasan atau bukti pendukung pada kolom Keterangan.";
   const instrLines = doc.splitTextToSize(instrText, contentW);
@@ -345,7 +345,7 @@ function buildPDF(projectName: string, requirements: string[]): ArrayBuffer {
   const noteLines = doc.splitTextToSize(
     "Catatan: Formulir ini harus ditandatangani oleh pejabat yang berwenang (Direktur Utama / " +
     "perwakilan yang memiliki surat kuasa) dan diberi materai Rp 10.000. Dokumen ini merupakan " +
-    "bagian dari proses Expression of Interest (EoI) Fase 1 dan harus diunggah melalui Portal Mitra PT Bukit Asam Tbk.",
+    "bagian dari proses Expression of Interest (EoI) Fase 1 dan harus diunggah melalui Portal Mitra PT Bukit Asam Persero Tbk.",
     contentW,
   );
   doc.text(noteLines, margin, y);

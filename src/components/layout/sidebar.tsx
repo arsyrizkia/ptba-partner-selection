@@ -65,7 +65,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       <div className="px-6 pt-6 pb-4">
         <Image
           src="/ptba-logo.svg"
-          alt="PT Bukit Asam Tbk"
+          alt="PT Bukit Asam Persero Tbk"
           width={160}
           height={29}
           className="brightness-0 invert mb-2"

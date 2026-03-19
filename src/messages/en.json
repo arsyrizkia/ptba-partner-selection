@@ -87,7 +87,7 @@
   },
   "dashboard": {
     "welcome": "Welcome, {name}",
-    "subtitle": "Partner Portal - PT Bukit Asam Tbk Partner Selection System",
+    "subtitle": "Partner Portal - PT Bukit Asam Persero Tbk Partner Selection System",
     "activeApplications": "Active Applications",
     "availableProjects": "Available Projects",
     "findProjects": "Find Projects",
@@ -146,7 +146,7 @@
     "projectNotFound": "Project not found",
     "registrationNotOpen": "Registration is not open",
     "importantInfo": "IMPORTANT INFORMATION — READ BEFORE FILLING OUT THE FORM",
-    "eoiIntro": "This Expression of Interest (EoI) form is the first stage (<strong>Phase 1</strong>) of the PT Bukit Asam Tbk strategic partner selection process. By filling out this form, your company expresses interest in participating in the <strong>{projectName}</strong> project.",
+    "eoiIntro": "This Expression of Interest (EoI) form is the first stage (<strong>Phase 1</strong>) of the PT Bukit Asam Persero Tbk strategic partner selection process. By filling out this form, your company expresses interest in participating in the <strong>{projectName}</strong> project.",
     "requiredDocs": "Required Documents:",
     "checkFinalAgreement": "Check the Final Agreement before submitting the form.",
     "docFormat": "Document Format",
@@ -211,7 +211,7 @@
       "signerPosition": "Position",
       "signerPositionPlaceholder": "Example: President Director",
       "signerDate": "Signing Date",
-      "eoiDeclaration": "We hereby declare our interest in participating in the PT Bukit Asam Tbk strategic partner selection process for the <strong>{projectName}</strong> project, proposing a joint venture equity percentage of <strong>{equityPercent}%</strong> as minority shareholder. We understand that this EoI submission is non-binding for both parties and is only the initial stage of the selection process.",
+      "eoiDeclaration": "We hereby declare our interest in participating in the PT Bukit Asam Persero Tbk strategic partner selection process for the <strong>{projectName}</strong> project, proposing a joint venture equity percentage of <strong>{equityPercent}%</strong> as minority shareholder. We understand that this EoI submission is non-binding for both parties and is only the initial stage of the selection process.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that our company is interested in participating.",
       "minorityEquity": "Joint Venture Equity Percentage (Minority Shareholder)",
       "minorityEquityHint": "Proposed equity percentage if selected as partner (30%-49%)",
@@ -278,7 +278,7 @@
       "requirementsDocLabel": "Requirements Fulfillment Document (PDF)"
     },
     "finalStatement": {
-      "declaration": "We hereby declare that the information provided in this form is true, accurate, and complete. The documents submitted with this form are original and can be verified. We are willing to provide any additional information or clarification required by PT Bukit Asam Tbk. Any changes in information will be promptly communicated in writing.",
+      "declaration": "We hereby declare that the information provided in this form is true, accurate, and complete. The documents submitted with this form are original and can be verified. We are willing to provide any additional information or clarification required by PT Bukit Asam Persero Tbk. Any changes in information will be promptly communicated in writing.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that all information provided is true."
     },
     "submitBar": {
@@ -322,7 +322,7 @@
     "payment": {
       "title": "Registration Fee Payment",
       "feeLabel": "Phase 2 Registration Fee",
-      "transferInfo": "Transfer to PT Bukit Asam Tbk account — Bank Mandiri 123-456-789",
+      "transferInfo": "Transfer to PT Bukit Asam Persero Tbk account — Bank Mandiri 123-456-789",
       "uploadProof": "Upload Payment Proof",
       "uploadProofDesc": "Transfer the amount above, then upload proof of transfer (PDF/JPG/PNG)",
       "submitProof": "Submit Payment Proof",
