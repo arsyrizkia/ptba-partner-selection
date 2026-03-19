@@ -392,33 +392,35 @@ export default function MitraProjectApplyPage() {
         if (fd.requirementAnswers) setRequirementAnswers(fd.requirementAnswers);
         if (fd.requirementNotes) setRequirementNotes(fd.requirementNotes);
         if (fd.agreedFinal) setAgreedFinal(fd.agreedFinal);
-        if (fd.businessOverview) setBusinessOverview(fd.businessOverview);
         if (fd.orgStructure) setOrgStructure(fd.orgStructure);
         if (fd.subsidiaries) setSubsidiaries(fd.subsidiaries);
-        if (fd.contactPerson) setContactPerson(fd.contactPerson);
-        if (fd.contactPhone) setContactPhone(fd.contactPhone);
-        if (fd.contactEmail) setContactEmail(fd.contactEmail);
         if (fd.minorityEquityPercent) setMinorityEquityPercent(fd.minorityEquityPercent);
+        // Note: businessOverview, contactPerson/Phone/Email, companyAddress, etc.
+        // are merged with partner profile data below (draft takes priority)
       }
 
-      // Load partner profile
+      // Load partner profile — only use as defaults when no draft data exists
       if (user?.partnerId) {
         const p = await partnerApi(accessToken).getById(user.partnerId);
         setPartner(p);
+        const hasDraft = !!existing?.form_data;
+        const fd = hasDraft ? (typeof existing.form_data === "string" ? JSON.parse(existing.form_data) : existing.form_data) : null;
+        // Always set from partner (these are not in form_data)
         setCompanyName(p.name || "");
         setCompanyCode(p.code || "");
-        setCompanyAddress(p.address || "");
-        setCompanyIndonesiaAddress(p.indonesia_office_address || "");
-        setCompanyPhone(p.phone || "");
-        setCompanyEmail(p.email || "");
-        setCompanyWebsite(p.website || "");
         setCompanyStatus(p.status || "");
-        setBusinessOverview(p.business_overview || "");
-        setNib(p.nib || "");
-        setContactPerson(p.contact_person || "");
-        setContactPhone(p.contact_phone || "");
-        setContactEmail(p.contact_email || "");
         setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
+        // For fields that can be in both partner profile AND form_data, draft takes priority
+        setCompanyAddress(fd?.companyAddress || p.address || "");
+        setCompanyIndonesiaAddress(fd?.companyIndonesiaAddress || p.indonesia_office_address || "");
+        setCompanyPhone(fd?.companyPhone || p.phone || "");
+        setCompanyEmail(fd?.companyEmail || p.email || "");
+        setCompanyWebsite(fd?.companyWebsite || p.website || "");
+        setBusinessOverview(fd?.businessOverview || p.business_overview || "");
+        setNib(fd?.nib || p.nib || "");
+        setContactPerson(fd?.contactPerson || p.contact_person || "");
+        setContactPhone(fd?.contactPhone || p.contact_phone || "");
+        setContactEmail(fd?.contactEmail || p.contact_email || "");
       }
     } catch {
       setProject(null);
