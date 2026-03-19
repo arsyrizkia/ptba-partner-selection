@@ -111,7 +111,15 @@ export default function EditProjectPage({
     setSubmitting(true);
     setSubmitError("");
     try {
-      // Update basic fields
+      // Build PIC assignments from form data
+      const picAssignments = Object.entries(formData.picAssignments)
+        .filter(([, userId]) => userId)
+        .map(([role, userId]) => {
+          const user = formData.internalUsers.find((u) => u.id === userId);
+          return { role, userId, userName: user?.name };
+        });
+
+      // Update basic fields + PIC
       await projectApi(accessToken).update(id, {
         name: formData.projectName,
         type: formData.projectType as any,
@@ -121,6 +129,7 @@ export default function EditProjectPage({
         phase1Deadline: formData.phase1Deadline || undefined,
         phase2Deadline: formData.phase2Deadline || undefined,
         phase3Deadline: formData.phase3Deadline || undefined,
+        picAssignments: picAssignments.length > 0 ? picAssignments : undefined,
       });
 
       // Update requirements
