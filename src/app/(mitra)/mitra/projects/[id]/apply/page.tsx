@@ -325,12 +325,12 @@ export default function MitraProjectApplyPage() {
     return SECTION_ORDER.filter((s) => requiredPhase1Docs.includes(s.docId));
   }, [requiredPhase1Docs]);
 
-  // Additional phase1 documents (legacy/general docs assigned to phase1, not in standard EoI types)
-  const phase1EoiIds = new Set(PHASE1_DOCUMENT_TYPES.map((d) => d.id));
+  // Additional phase1 documents (docs assigned to phase1 that don't have a dedicated section)
+  const sectionDocIds = new Set(SECTION_ORDER.map((s) => s.docId));
   const additionalPhase1Docs = useMemo(() => {
     if (!project?.requiredDocuments) return [];
     return project.requiredDocuments
-      .filter((d: any) => (d.phase === "phase1" || d.phase === "both") && !phase1EoiIds.has(d.documentTypeId))
+      .filter((d: any) => (d.phase === "phase1" || d.phase === "both") && !sectionDocIds.has(d.documentTypeId))
       .map((d: any) => {
         const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
         return {
