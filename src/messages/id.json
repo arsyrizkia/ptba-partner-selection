@@ -246,7 +246,9 @@
       "amountPlaceholder": "Contoh: 10000000",
       "yearPlaceholder": "Contoh: 2022",
       "credentialDoc": "Dokumen Kredensial / Credential Document (PDF)",
-      "addExperience": "Tambah Pengalaman"
+      "addExperience": "Tambah Pengalaman",
+      "portfolioDoc": "Dokumen Portfolio",
+      "portfolioDocLabel": "Dokumen Portfolio Pengalaman Proyek (PDF)"
     },
     "financialFields": {
       "currency": "Mata Uang",
@@ -273,6 +275,8 @@
       "requirementsDocLabel": "Dokumen Pemenuhan Persyaratan (PDF)"
     },
     "finalStatement": {
+      "minorityEquity": "Persentase Ekuitas Joint Venture (Minority Shareholder)",
+      "minorityEquityHint": "Persentase ekuitas yang diajukan jika terpilih sebagai mitra (30%-49%)",
       "declaration": "Kami dengan ini menyatakan bahwa informasi yang diberikan dalam formulir ini adalah benar, akurat, dan lengkap. Dokumen yang disampaikan bersama formulir ini adalah asli dan dapat dipertanggungjawabkan. Kami bersedia untuk memberikan informasi tambahan atau klarifikasi yang diperlukan oleh PT Bukit Asam Tbk. Setiap perubahan informasi akan segera kami sampaikan secara tertulis.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa seluruh informasi yang diberikan adalah benar."
     },

@@ -246,7 +246,9 @@
       "amountPlaceholder": "Example: 10000000",
       "yearPlaceholder": "Example: 2022",
       "credentialDoc": "Credential Document (PDF)",
-      "addExperience": "Add Experience"
+      "addExperience": "Add Experience",
+      "portfolioDoc": "Portfolio Document",
+      "portfolioDocLabel": "Project Experience Portfolio Document (PDF)"
     },
     "financialFields": {
       "currency": "Currency",
@@ -273,6 +275,8 @@
       "requirementsDocLabel": "Requirements Fulfillment Document (PDF)"
     },
     "finalStatement": {
+      "minorityEquity": "Joint Venture Equity Percentage (Minority Shareholder)",
+      "minorityEquityHint": "Proposed equity percentage if selected as partner (30%-49%)",
       "declaration": "We hereby declare that the information provided in this form is true, accurate, and complete. The documents submitted with this form are original and can be verified. We are willing to provide any additional information or clarification required by PT Bukit Asam Tbk. Any changes in information will be promptly communicated in writing.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that all information provided is true."
     },

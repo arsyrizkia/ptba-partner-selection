@@ -879,16 +879,6 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
-          {/* Minority Equity */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.minorityEquity")}</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.minorityEquityHint")}</p>
-            <div className="flex items-center gap-2">
-              <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
-              <span className="text-sm text-ptba-gray">%</span>
-            </div>
-          </div>
-
           {/* Business Overview */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.businessOverview")} <span className="text-ptba-red">*</span></label>
@@ -1216,6 +1206,21 @@ export default function MitraProjectApplyPage() {
             <Plus className="h-4 w-4" />
             {t("portfolioFields.addExperience")}
           </button>
+
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">{t("portfolioFields.portfolioDoc")} <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label={t("portfolioFields.portfolioDocLabel")}
+              accept=".pdf"
+              uploaded={isDoc("portfolio")}
+              uploading={uploadedDocs["portfolio"]?.uploading ?? false}
+              fileName={uploadedDocs["portfolio"]?.name}
+              onSelect={(f) => uploadDoc("portfolio", "Portfolio", f)}
+              templateFileName={getTemplateInfo("portfolio")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("portfolio")}
+              onDelete={() => deleteDoc("portfolio")}
+            />
+          </div>
         </Section>
       )}
 
@@ -1464,6 +1469,16 @@ export default function MitraProjectApplyPage() {
         open={openSection === finalSectionNumber}
         onToggle={() => setOpenSection(openSection === finalSectionNumber ? 0 : finalSectionNumber)}
       >
+        {/* Minority Equity — JV equity commitment */}
+        <div>
+          <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("finalStatement.minorityEquity")}</label>
+          <p className="mb-1 text-[10px] text-ptba-gray italic">{t("finalStatement.minorityEquityHint")}</p>
+          <div className="flex items-center gap-2">
+            <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
+            <span className="text-sm text-ptba-gray">%</span>
+          </div>
+        </div>
+
         <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
           {t("finalStatement.declaration")}
         </div>
