@@ -117,6 +117,108 @@ function phaseLabel(phase?: string): string {
   return map[phase] ?? phase;
 }
 
+function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: string | null }) {
+  const [partnerDocs, setPartnerDocs] = useState<Record<string, any[]>>({});
+  const [loadingDocs, setLoadingDocs] = useState(true);
+
+  useEffect(() => {
+    if (!accessToken || partners.length === 0) {
+      setLoadingDocs(false);
+      return;
+    }
+    // Fetch full application detail for each partner to get their documents
+    Promise.all(
+      partners.map(async (p) => {
+        try {
+          const res = await api<{ application: any }>(`/applications/${p.applicationId}`, { token: accessToken });
+          const app = res.application;
+          const docs = [
+            ...(app.phase1Documents || []),
+            ...(app.phase2Documents || []),
+            ...(app.generalDocuments || []),
+          ];
+          return { partnerId: p.id, docs };
+        } catch {
+          return { partnerId: p.id, docs: [] };
+        }
+      })
+    ).then((results) => {
+      const map: Record<string, any[]> = {};
+      for (const r of results) map[r.partnerId] = r.docs;
+      setPartnerDocs(map);
+    }).finally(() => setLoadingDocs(false));
+  }, [accessToken, partners]);
+
+  if (loadingDocs) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-ptba-steel-blue" />
+        <span className="ml-2 text-sm text-ptba-gray">Memuat dokumen...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {partners.map((partner) => {
+        const docs = partnerDocs[partner.id] || [];
+        const docComplete = docs.filter((d: any) => d.file_key).length;
+        return (
+          <div key={partner.id} className="rounded-xl bg-white p-5 shadow-sm">
+            <h3 className="mb-4 font-semibold text-ptba-charcoal">
+              {partner.name}
+              <span className="ml-2 text-sm font-normal text-ptba-gray">
+                ({docComplete}/{docs.length} dokumen lengkap)
+              </span>
+              {partner.isShortlisted && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                  Shortlisted
+                </span>
+              )}
+            </h3>
+            {docs.length === 0 ? (
+              <p className="text-sm text-ptba-gray">Belum ada dokumen yang diunggah.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-ptba-light-gray text-left">
+                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Dokumen</th>
+                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Tipe</th>
+                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Status</th>
+                      <th className="pb-2 font-semibold text-ptba-gray">Tanggal Upload</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {docs.map((doc: any) => {
+                      const status = doc.file_key ? "Lengkap" : "Belum Upload";
+                      return (
+                        <tr key={doc.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
+                          <td className="py-2 pr-4 font-medium text-ptba-charcoal">{doc.name}</td>
+                          <td className="py-2 pr-4 text-ptba-gray text-xs">{doc.document_type_id}</td>
+                          <td className="py-2 pr-4">
+                            <span className={cn(
+                              "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
+                              status === "Lengkap" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                            )}>
+                              {status}
+                            </span>
+                          </td>
+                          <td className="py-2 text-ptba-gray text-xs">{doc.upload_date ? formatDate(doc.upload_date) : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function EvalStatusCell({ done }: { done: boolean }) {
   if (done) {
     return (
@@ -274,10 +376,17 @@ export default function ProjectDetailPage({
   const isPhase2 = project.phase?.startsWith("phase2");
 
   // Derive partner list from applications + evaluations
+  const shortlistedIds = new Set(project?.shortlistedPartners ?? []);
   const projectPartners: any[] = projectApplications.map((a: any) => {
     const evaluation = projectEvaluations.find((e: any) => e.application_id === a.id);
+    const allDocs = [
+      ...(a.phase1Documents || []),
+      ...(a.phase2Documents || []),
+      ...(a.generalDocuments || []),
+    ];
     return {
       id: a.partner_id,
+      applicationId: a.id,
       name: a.partner_name,
       code: a.partner_id.substring(0, 8),
       status: a.status,
@@ -286,6 +395,10 @@ export default function ProjectDetailPage({
       phase1Score: evaluation?.weighted_score != null ? Number(evaluation.weighted_score) : undefined,
       hasEvaluation: !!evaluation,
       phase: a.phase,
+      isShortlisted: shortlistedIds.has(a.partner_id),
+      documents: allDocs,
+      docComplete: allDocs.filter((d: any) => d.file_key).length,
+      docTotal: allDocs.length,
     };
   });
   const isAdmin = role === "ebd" || role === "super_admin";
@@ -1446,57 +1559,7 @@ export default function ProjectDetailPage({
       )}
 
       {/* Tab B: Dokumen */}
-      {activeTab === "dokumen" && (
-        <div className="space-y-4">
-          {projectPartners.map((partner) => (
-            <div key={partner.id} className="rounded-xl bg-white p-5 shadow-sm">
-              <h3 className="mb-4 font-semibold text-ptba-charcoal">
-                {partner.name}
-                <span className="ml-2 text-sm font-normal text-ptba-gray">
-                  ({partner.docComplete}/{partner.docTotal} dokumen lengkap)
-                </span>
-                {partner.isShortlisted && (
-                  <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                    Shortlisted
-                  </span>
-                )}
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-ptba-light-gray text-left">
-                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Dokumen</th>
-                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Tipe</th>
-                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Status</th>
-                      <th className="pb-2 font-semibold text-ptba-gray">Tanggal Upload</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {partner.documents.map((doc: any) => (
-                      <tr key={doc.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
-                        <td className="py-2 pr-4 font-medium text-ptba-charcoal">{doc.name}</td>
-                        <td className="py-2 pr-4 text-ptba-gray text-xs">{doc.type}</td>
-                        <td className="py-2 pr-4">
-                          <span className={cn(
-                            "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
-                            doc.status === "Lengkap" && "bg-green-100 text-green-700",
-                            doc.status === "Pending" && "bg-amber-100 text-amber-700",
-                            doc.status === "Ditolak" && "bg-red-100 text-red-700",
-                            doc.status === "Belum Upload" && "bg-gray-100 text-gray-500"
-                          )}>
-                            {doc.status}
-                          </span>
-                        </td>
-                        <td className="py-2 text-ptba-gray text-xs">{doc.uploadDate ? formatDate(doc.uploadDate) : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {activeTab === "dokumen" && <DokumenTab partners={projectPartners} accessToken={accessToken} />}
 
       {/* Tab C: Informasi */}
       {activeTab === "informasi" && (() => {
