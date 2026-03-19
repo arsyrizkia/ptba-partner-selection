@@ -211,7 +211,7 @@
       "signerPosition": "Jabatan",
       "signerPositionPlaceholder": "Contoh: Direktur Utama",
       "signerDate": "Tanggal Penandatanganan",
-      "eoiDeclaration": "Dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam Tbk untuk proyek {projectName}. Kami memahami bahwa pengajuan EoI ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.",
+      "eoiDeclaration": "Dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam Tbk untuk proyek <strong>{projectName}</strong> dengan mengajukan persentase ekuitas joint venture sebesar <strong>{equityPercent}%</strong> sebagai minority shareholder. Kami memahami bahwa pengajuan EoI ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa perusahaan kami berminat untuk berpartisipasi.",
       "minorityEquity": "Persentase Ekuitas Joint Venture (Minority Shareholder)",
       "minorityEquityHint": "Persentase ekuitas yang diajukan jika terpilih sebagai mitra (30%-49%)",

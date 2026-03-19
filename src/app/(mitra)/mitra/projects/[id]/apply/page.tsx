@@ -1038,7 +1038,7 @@ export default function MitraProjectApplyPage() {
           </div>
 
           <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
-            {t.rich("eoiFields.eoiDeclaration", { projectName: project.name, strong: (chunks) => <strong>{chunks}</strong> })}
+            {t.rich("eoiFields.eoiDeclaration", { projectName: project.name, equityPercent: minorityEquityPercent || "-", strong: (chunks) => <strong>{chunks}</strong> })}
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer">
