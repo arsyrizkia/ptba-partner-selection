@@ -17,15 +17,39 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 // ─── Types ───
 
-interface ProjectExperience {
-  projectName: string;
+type ExperienceCategory = 'developer' | 'om_contractor' | 'financing';
+
+interface BaseExperience {
+  uid: string;
+  category: ExperienceCategory;
+  plantName: string;
   location: string;
-  type: string;
-  year: string;
-  role: string;
-  projectCost: string;
-  description: string;
+  totalCapacityMW: string;
 }
+
+interface DeveloperExperience extends BaseExperience {
+  category: 'developer';
+  equityPercent: string;
+  ippOrCaptive: string;
+  codYear: string;
+}
+
+interface OMContractorExperience extends BaseExperience {
+  category: 'om_contractor';
+  contractValueUSD: string;
+  workPortionPercent: string;
+  ippOrCaptive: string;
+  codYear: string;
+}
+
+interface FinancingExperience extends BaseExperience {
+  category: 'financing';
+  financingType: string;
+  amountUSD: string;
+  year: string;
+}
+
+type CategorizedExperience = DeveloperExperience | OMContractorExperience | FinancingExperience;
 
 interface FinancialYear {
   year: string;
@@ -38,8 +62,12 @@ interface FinancialYear {
 const CURRENT_YEAR = new Date().getFullYear();
 const FINANCIAL_YEARS = [CURRENT_YEAR - 3, CURRENT_YEAR - 2, CURRENT_YEAR - 1];
 
-const PROJECT_TYPES = [
-  "EPC", "O&M", "Investor/Developer", "Konsultan", "Supplier", "Kontraktor", "Lainnya",
+const IPP_CAPTIVE_OPTIONS = ['IPP', 'Captive'];
+const FINANCING_TYPE_OPTIONS = ['Non-Recourse', 'Limited Recourse', 'Corporate Financing', 'Direct Loan', 'Export Credit Facility'];
+const EXPERIENCE_CATEGORIES: { key: ExperienceCategory; label: string; labelEn: string }[] = [
+  { key: 'developer', label: 'Sebagai Developer yang Berhasil', labelEn: 'As a Successful Developer' },
+  { key: 'om_contractor', label: 'Sebagai Kontraktor O&M yang Berhasil', labelEn: 'As a Successful O&M Contractor' },
+  { key: 'financing', label: 'Sebagai Kontributor Pembiayaan Proyek yang Berhasil', labelEn: 'As a Successful Project Financing Contributor' },
 ];
 
 // ─── Document-to-Section mapping ───
@@ -262,7 +290,7 @@ export default function MitraProjectApplyPage() {
   const [cashOnHand, setCashOnHand] = useState("");
 
   // Section: Pengalaman Proyek (portfolio)
-  const [experiences, setExperiences] = useState<ProjectExperience[]>([]);
+  const [experiences, setExperiences] = useState<CategorizedExperience[]>([]);
 
   // Section: Pemenuhan Persyaratan (requirements_fulfillment)
   const [requirementAnswers, setRequirementAnswers] = useState<Record<number, boolean>>({});
@@ -354,7 +382,7 @@ export default function MitraProjectApplyPage() {
         if (fd.creditRatingAgency) setCreditRatingAgency(fd.creditRatingAgency);
         if (fd.creditRatingValue) setCreditRatingValue(fd.creditRatingValue);
         if (fd.cashOnHand) setCashOnHand(fd.cashOnHand);
-        if (fd.experiences) setExperiences(fd.experiences);
+        if (fd.experiences?.length && fd.experiences[0]?.category) setExperiences(fd.experiences);
         if (fd.requirementAnswers) setRequirementAnswers(fd.requirementAnswers);
         if (fd.requirementNotes) setRequirementNotes(fd.requirementNotes);
         if (fd.agreedFinal) setAgreedFinal(fd.agreedFinal);
@@ -626,7 +654,14 @@ export default function MitraProjectApplyPage() {
   const sectionComplete: Record<string, boolean> = {
     compro: !!companyName && !!companyAddress && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && eoiAgreed && isDoc("statement_eoi"),
-    portfolio: experiences.length > 0 && experiences.every((e) => e.projectName && e.role) && isDoc("portfolio"),
+    portfolio: experiences.length >= 2 && experiences.every((exp) => {
+      const hasCred = isDoc(`credential_exp_${exp.uid}`);
+      const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
+      if (exp.category === 'developer') return base && !!exp.equityPercent && !!exp.ippOrCaptive && !!exp.codYear;
+      if (exp.category === 'om_contractor') return base && !!exp.contractValueUSD && !!exp.workPortionPercent && !!exp.ippOrCaptive && !!exp.codYear;
+      if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.year;
+      return false;
+    }),
     financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda) && isDoc("financial_overview"),
     requirements_fulfillment: (projectRequirements.length
       ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
@@ -645,12 +680,35 @@ export default function MitraProjectApplyPage() {
 
   // ─── Experience Handlers ───
 
-  const addExperience = () => setExperiences((prev) => [...prev, {
-    projectName: "", location: "", type: "", year: "", role: "", projectCost: "", description: "",
-  }]);
-  const removeExperience = (i: number) => setExperiences((prev) => prev.filter((_, idx) => idx !== i));
-  const updateExperience = (i: number, field: keyof ProjectExperience, value: string) =>
-    setExperiences((prev) => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
+  const addExperience = (category: ExperienceCategory) => {
+    const uid = crypto.randomUUID();
+    const base = { uid, plantName: "", location: "", totalCapacityMW: "" };
+    let newExp: CategorizedExperience;
+    if (category === 'developer') {
+      newExp = { ...base, category: 'developer', equityPercent: "", ippOrCaptive: "", codYear: "" };
+    } else if (category === 'om_contractor') {
+      newExp = { ...base, category: 'om_contractor', contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
+    } else {
+      newExp = { ...base, category: 'financing', financingType: "", amountUSD: "", year: "" };
+    }
+    setExperiences((prev) => [...prev, newExp]);
+  };
+  const removeExperience = (i: number) => {
+    const exp = experiences[i];
+    if (exp) deleteDoc(`credential_exp_${exp.uid}`);
+    setExperiences((prev) => prev.filter((_, idx) => idx !== i));
+  };
+  const updateExperience = (i: number, field: string, value: string) =>
+    setExperiences((prev) => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e) as CategorizedExperience[]);
+  const changeExperienceCategory = (i: number, newCategory: ExperienceCategory) => {
+    setExperiences((prev) => prev.map((e, idx) => {
+      if (idx !== i) return e;
+      const base = { uid: e.uid, plantName: e.plantName, location: e.location, totalCapacityMW: e.totalCapacityMW };
+      if (newCategory === 'developer') return { ...base, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
+      if (newCategory === 'om_contractor') return { ...base, category: 'om_contractor' as const, contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
+      return { ...base, category: 'financing' as const, financingType: "", amountUSD: "", year: "" };
+    }));
+  };
 
   const inputClass = "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
 
@@ -1006,10 +1064,21 @@ export default function MitraProjectApplyPage() {
           open={openSection === getSectionNumber("portfolio")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("portfolio") ? 0 : getSectionNumber("portfolio"))}
         >
-          <p className="text-xs text-ptba-gray">Tambahkan pengalaman proyek relevan perusahaan Anda dan unggah portfolio.</p>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-ptba-charcoal">Proyek Relevan 10 Tahun Terakhir (min. 2)</p>
+          </div>
+
+          <div className="rounded-lg border border-ptba-steel-blue/30 bg-ptba-steel-blue/5 p-3 space-y-1.5">
+            <p className="text-xs text-ptba-charcoal font-medium">Catatan / Notes:</p>
+            <ul className="text-xs text-ptba-gray space-y-1 list-disc pl-4">
+              <li>Data Parent Company dapat digunakan apabila kepemilikan saham min. 51% dan disertai Support Letter / Data Parent Company may be used if shareholding is min. 51% and accompanied by a Support Letter</li>
+              <li>Data Afiliasi dapat digunakan apabila kepemilikan saham &gt;90% / Affiliate data may be used if shareholding is &gt;90%</li>
+              <li>Tidak diperkenankan mencampurkan data perusahaan sendiri dengan data parent/afiliasi / Mixing own company data with parent/affiliate data is not allowed</li>
+            </ul>
+          </div>
 
           {experiences.map((exp, i) => (
-            <div key={i} className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
+            <div key={exp.uid} className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-ptba-charcoal">Pengalaman #{i + 1}</p>
                 <button onClick={() => removeExperience(i)} className="text-ptba-red hover:text-red-700 transition-colors">
@@ -1017,63 +1086,120 @@ export default function MitraProjectApplyPage() {
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Category selector */}
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori Pengalaman <span className="text-ptba-red">*</span></label>
+                  <select value={exp.category} onChange={(e) => changeExperienceCategory(i, e.target.value as ExperienceCategory)} className={inputClass}>
+                    {EXPERIENCE_CATEGORIES.map((cat) => (
+                      <option key={cat.key} value={cat.key}>{cat.label} / {cat.labelEn}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Common fields */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Proyek <span className="text-ptba-red">*</span></label>
-                  <input type="text" value={exp.projectName} onChange={(e) => updateExperience(i, "projectName", e.target.value)} className={inputClass} />
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nama Pembangkit Listrik <span className="text-ptba-red">*</span></label>
+                  <input type="text" value={exp.plantName} onChange={(e) => updateExperience(i, "plantName", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lokasi</label>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lokasi <span className="text-ptba-red">*</span></label>
                   <input type="text" value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tipe</label>
-                  <select value={exp.type} onChange={(e) => updateExperience(i, "type", e.target.value)} className={inputClass}>
-                    <option value="">Pilih...</option>
-                    {PROJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kapasitas Total (MW) <span className="text-ptba-red">*</span></label>
+                  <input type="text" placeholder="Contoh: 600" value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value)} className={inputClass} />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Peran <span className="text-ptba-red">*</span></label>
-                  <input type="text" placeholder="Contoh: EPC Contractor" value={exp.role} onChange={(e) => updateExperience(i, "role", e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun</label>
-                  <input type="text" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Proyek</label>
-                  <input type="text" placeholder="Contoh: 50000000000" value={exp.projectCost} onChange={(e) => updateExperience(i, "projectCost", e.target.value)} className={inputClass} />
-                </div>
+
+                {/* Developer-specific fields */}
+                {exp.category === 'developer' && (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Ekuitas (%) <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 51" value={exp.equityPercent} onChange={(e) => updateExperience(i, "equityPercent", e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">IPP / Captive <span className="text-ptba-red">*</span></label>
+                      <select value={exp.ippOrCaptive} onChange={(e) => updateExperience(i, "ippOrCaptive", e.target.value)} className={inputClass}>
+                        <option value="">Pilih...</option>
+                        {IPP_CAPTIVE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">COD Year <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 2020" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
+                    </div>
+                  </>
+                )}
+
+                {/* O&M Contractor-specific fields */}
+                {exp.category === 'om_contractor' && (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Nilai Kontrak (USD) <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 5000000" value={exp.contractValueUSD} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Porsi Pekerjaan (%) <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 60" value={exp.workPortionPercent} onChange={(e) => updateExperience(i, "workPortionPercent", e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">IPP / Captive <span className="text-ptba-red">*</span></label>
+                      <select value={exp.ippOrCaptive} onChange={(e) => updateExperience(i, "ippOrCaptive", e.target.value)} className={inputClass}>
+                        <option value="">Pilih...</option>
+                        {IPP_CAPTIVE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">COD Year <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 2020" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
+                    </div>
+                  </>
+                )}
+
+                {/* Financing-specific fields */}
+                {exp.category === 'financing' && (
+                  <>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jenis Pembiayaan <span className="text-ptba-red">*</span></label>
+                      <select value={exp.financingType} onChange={(e) => updateExperience(i, "financingType", e.target.value)} className={inputClass}>
+                        <option value="">Pilih...</option>
+                        {FINANCING_TYPE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jumlah (USD) <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 10000000" value={exp.amountUSD} onChange={(e) => updateExperience(i, "amountUSD", e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tahun <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder="Contoh: 2022" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value)} className={inputClass} />
+                    </div>
+                  </>
+                )}
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deskripsi Singkat</label>
-                <textarea value={exp.description} onChange={(e) => updateExperience(i, "description", e.target.value)} className={cn(inputClass, "min-h-[60px] resize-y")} />
+
+              {/* Per-experience credential document */}
+              <div className="pt-1">
+                <FileUploadButton
+                  label="Dokumen Kredensial / Credential Document (PDF)"
+                  accept=".pdf"
+                  uploaded={isDoc(`credential_exp_${exp.uid}`)}
+                  uploading={uploadedDocs[`credential_exp_${exp.uid}`]?.uploading ?? false}
+                  fileName={uploadedDocs[`credential_exp_${exp.uid}`]?.name}
+                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Credential - ${exp.plantName || 'Experience'}`, f)}
+                  onDelete={() => deleteDoc(`credential_exp_${exp.uid}`)}
+                />
               </div>
             </div>
           ))}
 
           <button
-            onClick={addExperience}
+            onClick={() => addExperience('developer')}
             className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-steel-blue/30 py-3 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Tambah Pengalaman Proyek
+            Tambah Pengalaman
           </button>
-
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Dokumen Portfolio <span className="text-ptba-red">*</span></p>
-            <FileUploadButton
-              label="Portfolio Proyek (PDF, ringkasan proyek-proyek relevan)"
-              accept=".pdf"
-              uploaded={isDoc("portfolio")}
-              uploading={uploadedDocs["portfolio"]?.uploading ?? false}
-              fileName={uploadedDocs["portfolio"]?.name}
-              onSelect={(f) => uploadDoc("portfolio", "Portfolio Proyek", f)}
-              templateFileName={getTemplateInfo("portfolio")?.fileName}
-              onDownloadTemplate={() => downloadTemplate("portfolio")}
-              onDelete={() => deleteDoc("portfolio")}
-            />
-          </div>
         </Section>
       )}
 

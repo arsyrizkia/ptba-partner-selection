@@ -31,7 +31,30 @@ const FIELD_LABELS: Record<string, string> = {
   cashOnHand: "Cash on Hand (Mill USD)",
   requirementNotes: "Catatan Persyaratan",
   agreedFinal: "Persetujuan Akhir",
+  // Categorized experience fields
+  plantName: "Nama Pembangkit Listrik",
+  totalCapacityMW: "Kapasitas Total (MW)",
+  equityPercent: "Ekuitas (%)",
+  ippOrCaptive: "IPP / Captive",
+  codYear: "COD Year",
+  contractValueUSD: "Nilai Kontrak (USD)",
+  workPortionPercent: "Porsi Pekerjaan (%)",
+  financingType: "Jenis Pembiayaan",
+  amountUSD: "Jumlah (USD)",
+  projectName: "Nama Proyek",
+  projectCost: "Nilai Proyek",
+  location: "Lokasi",
+  role: "Peran",
+  description: "Deskripsi",
 };
+
+const EXPERIENCE_CATEGORY_LABELS: Record<string, { label: string; labelEn: string }> = {
+  developer: { label: "Sebagai Developer yang Berhasil", labelEn: "As a Successful Developer" },
+  om_contractor: { label: "Sebagai Kontraktor O&M yang Berhasil", labelEn: "As a Successful O&M Contractor" },
+  financing: { label: "Sebagai Kontributor Pembiayaan Proyek yang Berhasil", labelEn: "As a Successful Project Financing Contributor" },
+};
+
+const EXPERIENCE_SKIP_KEYS = new Set(["uid", "category"]);
 
 const SECTIONS: { key: string; title: string; fields: string[] }[] = [
   {
@@ -172,27 +195,72 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
       })}
 
       {/* Pengalaman Proyek */}
-      {formData.experiences?.length > 0 && (
-        <div className="rounded-lg border border-ptba-light-gray/50 overflow-hidden">
-          <div className="bg-ptba-section-bg px-3 py-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Pengalaman Proyek</p>
-          </div>
-          <div className="px-3 py-2.5 space-y-2">
-            {formData.experiences.map((exp: any, i: number) => (
-              <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
-                <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1}</p>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                  {Object.entries(exp)
-                    .filter(([, v]) => v !== undefined && v !== "" && v !== null)
-                    .map(([k, v]) => (
-                      <Field key={k} label={getLabel(k)} value={formatValue(v)} />
-                    ))}
-                </dl>
+      {formData.experiences?.length > 0 && (() => {
+        const isNewFormat = formData.experiences[0]?.category;
+        if (isNewFormat) {
+          // New categorized format — group by category
+          const grouped: Record<string, any[]> = {};
+          for (const exp of formData.experiences) {
+            const cat = exp.category || 'unknown';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(exp);
+          }
+          return (
+            <div className="rounded-lg border border-ptba-light-gray/50 overflow-hidden">
+              <div className="bg-ptba-section-bg px-3 py-2">
+                <p className="text-xs font-semibold text-ptba-charcoal">Pengalaman Proyek Relevan</p>
               </div>
-            ))}
+              <div className="px-3 py-2.5 space-y-3">
+                {Object.entries(grouped).map(([cat, exps]) => {
+                  const catLabel = EXPERIENCE_CATEGORY_LABELS[cat];
+                  return (
+                    <div key={cat} className="space-y-2">
+                      <div>
+                        <p className="text-[11px] font-semibold text-ptba-charcoal">{catLabel?.label || cat}</p>
+                        {catLabel?.labelEn && <p className="text-[10px] text-ptba-gray italic">{catLabel.labelEn}</p>}
+                      </div>
+                      {exps.map((exp: any, i: number) => (
+                        <div key={exp.uid || i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
+                          <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">#{i + 1}</p>
+                          <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            {Object.entries(exp)
+                              .filter(([k, v]) => !EXPERIENCE_SKIP_KEYS.has(k) && v !== undefined && v !== "" && v !== null)
+                              .map(([k, v]) => (
+                                <Field key={k} label={getLabel(k)} value={formatValue(v)} />
+                              ))}
+                          </dl>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+        // Old flat format — backward compatibility
+        return (
+          <div className="rounded-lg border border-ptba-light-gray/50 overflow-hidden">
+            <div className="bg-ptba-section-bg px-3 py-2">
+              <p className="text-xs font-semibold text-ptba-charcoal">Pengalaman Proyek</p>
+            </div>
+            <div className="px-3 py-2.5 space-y-2">
+              {formData.experiences.map((exp: any, i: number) => (
+                <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
+                  <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1}</p>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    {Object.entries(exp)
+                      .filter(([, v]) => v !== undefined && v !== "" && v !== null)
+                      .map(([k, v]) => (
+                        <Field key={k} label={getLabel(k)} value={formatValue(v)} />
+                      ))}
+                  </dl>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Remaining unknown fields */}
       {(() => {
