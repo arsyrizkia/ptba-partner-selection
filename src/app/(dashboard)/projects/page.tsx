@@ -232,10 +232,11 @@ export default function ProjectsPage() {
             const pi = phaseInfo(project.phase);
             const isP1 = project.phase?.startsWith("phase1");
             const isP2 = project.phase?.startsWith("phase2");
-            const isP3 = project.phase?.startsWith("phase3") || project.phase === "completed";
-            const p1Steps = 6;
-            const p2Steps = 5;
-            const p3Steps = 5;
+            const isP3 = project.phase?.startsWith("phase3");
+            const isCompleted = project.phase === "completed";
+            const p1Steps = 7;
+            const p2Steps = 3;
+            const p3Steps = Math.max(project.totalSteps - p1Steps - p2Steps, 3);
             const p1Filled = Math.min(project.currentStep, p1Steps);
             const p2Filled = Math.min(Math.max(0, project.currentStep - p1Steps), p2Steps);
             const p3Filled = Math.max(0, project.currentStep - p1Steps - p2Steps);
@@ -246,6 +247,7 @@ export default function ProjectsPage() {
                 href={`/projects/${project.id}`}
                 className={cn(
                   "group block rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md border-l-4",
+                  isCompleted ? "border-l-ptba-green" :
                   isP1 ? "border-l-ptba-navy" :
                   isP2 ? "border-l-ptba-steel-blue" :
                   isP3 ? "border-l-ptba-gold" :
