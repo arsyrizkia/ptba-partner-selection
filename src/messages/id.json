@@ -164,6 +164,7 @@
       "eoiStatement": "Surat Pernyataan EoI",
       "eoiStatementDesc": "Isi data penandatangan dan unggah surat pernyataan EoI yang telah ditandatangani.",
       "portfolio": "Pengalaman & Portfolio Proyek",
+      "portfolioDesc": "Daftar dan ringkasan proyek-proyek relevan yang telah dikerjakan",
       "financialOverview": "Gambaran Umum Keuangan",
       "financialOverviewDesc": "Isi data keuangan 3 tahun terakhir. Semua kolom wajib diisi (isi 0 jika tidak ada).",
       "requirementsFulfillment": "Pemenuhan Persyaratan",

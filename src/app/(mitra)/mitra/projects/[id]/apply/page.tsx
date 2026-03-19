@@ -774,8 +774,9 @@ export default function MitraProjectApplyPage() {
   // Get phase1 doc metadata
   const getDocMeta = (docId: string) => PHASE1_DOCUMENT_TYPES.find((d) => d.id === docId);
 
-  // Helper to get section title from translation key
+  // Helper to get section title/description from translation key
   const getSectionTitle = (sectionKey: string) => t(`sections.${sectionKey}`);
+  const getSectionDesc = (sectionKey: string) => t(`sections.${sectionKey}Desc`);
 
   return (
     <div className="space-y-6">
@@ -806,10 +807,9 @@ export default function MitraProjectApplyPage() {
             <p className="text-xs font-semibold text-ptba-navy mb-2">{t("requiredDocs")}</p>
             <ol className="text-xs text-ptba-gray space-y-1.5 list-decimal list-inside">
               {activeSections.map((sec) => {
-                const meta = getDocMeta(sec.docId);
                 return (
                   <li key={sec.docId}>
-                    <strong>{meta?.name || getSectionTitle(sec.sectionKey)}</strong> — {meta?.description || ""}
+                    <strong>{getSectionTitle(sec.sectionKey)}</strong> — {getSectionDesc(sec.sectionKey)}
                   </li>
                 );
               })}

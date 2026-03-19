@@ -164,6 +164,7 @@
       "eoiStatement": "EoI Declaration Letter",
       "eoiStatementDesc": "Fill in the signatory details and upload the signed EoI declaration letter.",
       "portfolio": "Project Experience & Portfolio",
+      "portfolioDesc": "List and summary of relevant projects completed",
       "financialOverview": "Financial Overview",
       "financialOverviewDesc": "Fill in financial data for the last 3 years. All fields are required (enter 0 if not applicable).",
       "requirementsFulfillment": "Requirements Fulfillment",
