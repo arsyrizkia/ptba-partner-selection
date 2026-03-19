@@ -115,6 +115,16 @@ const PHASE_LABELS: Record<string, string> = {
   completed: "Selesai",
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  mining: "Pertambangan",
+  power_generation: "Pembangkit Listrik",
+  coal_processing: "Pengolahan Batubara",
+  infrastructure: "Infrastruktur",
+  environmental: "Lingkungan",
+  corporate: "Korporat",
+  others: "Lainnya",
+};
+
 const PIE_COLORS = ["#2E75B6", "#F2A900", "#666666", "#28A745", "#C8102E", "#1B3A5C"];
 
 const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -137,6 +147,10 @@ function phaseLabel(phase: string) {
   return PHASE_LABELS[phase] ?? phase;
 }
 
+function typeLabel(type: string) {
+  return TYPE_LABELS[type] ?? type;
+}
+
 function progress(project: DashboardProject) {
   if (!project.totalSteps) return 0;
   return Math.round((project.currentStep / project.totalSteps) * 100);
@@ -146,6 +160,7 @@ function statusBadge(status: string) {
   const styles: Record<string, string> = {
     Evaluasi: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
     Persetujuan: "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20",
+    Dipublikasikan: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
     Draft: "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20",
     Selesai: "bg-ptba-green/10 text-ptba-green border border-ptba-green/20",
     Menunggu: "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20",
@@ -457,7 +472,6 @@ function ProjectDashboard({ stats }: { stats: DashboardStats }) {
                   <tr className="border-b border-ptba-light-gray text-left">
                     <th className="pb-3 pr-4 font-semibold text-ptba-gray">Nama Proyek</th>
                     <th className="pb-3 pr-4 font-semibold text-ptba-gray">Tipe</th>
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray">Status</th>
                     <th className="pb-3 pr-4 font-semibold text-ptba-gray">Fase</th>
                     <th className="pb-3 font-semibold text-ptba-gray">Progres</th>
                   </tr>
@@ -472,13 +486,12 @@ function ProjectDashboard({ stats }: { stats: DashboardStats }) {
                             {project.name}
                           </Link>
                         </td>
-                        <td className="py-3 pr-4 text-ptba-gray">{project.type}</td>
+                        <td className="py-3 pr-4 text-ptba-gray">{typeLabel(project.type)}</td>
                         <td className="py-3 pr-4">
                           <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-medium", statusBadge(project.status))}>
-                            {project.status}
+                            {phaseLabel(project.phase)}
                           </span>
                         </td>
-                        <td className="py-3 pr-4 text-ptba-gray text-xs">{phaseLabel(project.phase)}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-20 overflow-hidden rounded-full bg-ptba-light-gray">
@@ -634,10 +647,10 @@ function ViewerDashboard({ stats }: { stats: DashboardStats }) {
                   return (
                     <tr key={project.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
                       <td className="py-3 pr-4 font-medium text-ptba-charcoal">{project.name}</td>
-                      <td className="py-3 pr-4 text-ptba-gray">{project.type}</td>
+                      <td className="py-3 pr-4 text-ptba-gray">{typeLabel(project.type)}</td>
                       <td className="py-3 pr-4">
                         <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-xs font-medium", statusBadge(project.status))}>
-                          {project.status}
+                          {phaseLabel(project.phase)}
                         </span>
                       </td>
                       <td className="py-3">
