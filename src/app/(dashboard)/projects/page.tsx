@@ -232,10 +232,13 @@ export default function ProjectsPage() {
             const pi = phaseInfo(project.phase);
             const isP1 = project.phase?.startsWith("phase1");
             const isP2 = project.phase?.startsWith("phase2");
-            const p1Steps = 7;
-            const p2Steps = 6;
+            const isP3 = project.phase?.startsWith("phase3") || project.phase === "completed";
+            const p1Steps = 6;
+            const p2Steps = 5;
+            const p3Steps = 5;
             const p1Filled = Math.min(project.currentStep, p1Steps);
-            const p2Filled = Math.max(0, project.currentStep - p1Steps);
+            const p2Filled = Math.min(Math.max(0, project.currentStep - p1Steps), p2Steps);
+            const p3Filled = Math.max(0, project.currentStep - p1Steps - p2Steps);
 
             return (
               <Link
@@ -245,7 +248,7 @@ export default function ProjectsPage() {
                   "group block rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md border-l-4",
                   isP1 ? "border-l-ptba-navy" :
                   isP2 ? "border-l-ptba-steel-blue" :
-                  project.phase === "completed" ? "border-l-ptba-green" :
+                  isP3 ? "border-l-ptba-gold" :
                   "border-l-ptba-light-gray"
                 )}
               >
@@ -291,19 +294,27 @@ export default function ProjectsPage() {
                       />
                     </div>
                     <div className="w-px h-2.5 bg-ptba-charcoal/20 mx-px" />
+                    <div className="flex-1 h-1.5 overflow-hidden bg-ptba-light-gray">
+                      <div
+                        className="h-full bg-ptba-steel-blue transition-all"
+                        style={{ width: `${(p2Filled / p2Steps) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-px h-2.5 bg-ptba-charcoal/20 mx-px" />
                     <div className="flex-1 h-1.5 overflow-hidden rounded-r-full bg-ptba-light-gray">
                       <div
                         className={cn(
                           "h-full rounded-r-full transition-all",
-                          project.phase === "completed" ? "bg-ptba-green" : "bg-ptba-steel-blue"
+                          project.phase === "completed" ? "bg-ptba-green" : "bg-ptba-gold"
                         )}
-                        style={{ width: `${(p2Filled / p2Steps) * 100}%` }}
+                        style={{ width: `${(p3Filled / p3Steps) * 100}%` }}
                       />
                     </div>
                   </div>
                   <div className="mt-0.5 flex justify-between text-[9px] text-ptba-gray/50">
                     <span>P1</span>
                     <span>P2</span>
+                    <span>P3</span>
                   </div>
                 </div>
 
