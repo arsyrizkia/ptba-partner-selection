@@ -213,6 +213,8 @@
       "signerDate": "Tanggal Penandatanganan",
       "eoiDeclaration": "Dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam Tbk untuk proyek {projectName}. Kami memahami bahwa pengajuan EoI ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa perusahaan kami berminat untuk berpartisipasi.",
+      "minorityEquity": "Persentase Ekuitas Joint Venture (Minority Shareholder)",
+      "minorityEquityHint": "Persentase ekuitas yang diajukan jika terpilih sebagai mitra (30%-49%)",
       "eoiDoc": "Dokumen EoI",
       "eoiDocLabel": "Signed EoI Letter (PDF, ditandatangani oleh perwakilan berwenang)"
     },
@@ -276,8 +278,6 @@
       "requirementsDocLabel": "Dokumen Pemenuhan Persyaratan (PDF)"
     },
     "finalStatement": {
-      "minorityEquity": "Persentase Ekuitas Joint Venture (Minority Shareholder)",
-      "minorityEquityHint": "Persentase ekuitas yang diajukan jika terpilih sebagai mitra (30%-49%)",
       "declaration": "Kami dengan ini menyatakan bahwa informasi yang diberikan dalam formulir ini adalah benar, akurat, dan lengkap. Dokumen yang disampaikan bersama formulir ini adalah asli dan dapat dipertanggungjawabkan. Kami bersedia untuk memberikan informasi tambahan atau klarifikasi yang diperlukan oleh PT Bukit Asam Tbk. Setiap perubahan informasi akan segera kami sampaikan secara tertulis.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa seluruh informasi yang diberikan adalah benar."
     },

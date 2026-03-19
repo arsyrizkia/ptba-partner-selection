@@ -213,6 +213,8 @@
       "signerDate": "Signing Date",
       "eoiDeclaration": "We hereby declare our interest in participating in the PT Bukit Asam Tbk strategic partner selection process for the {projectName} project. We understand that this EoI submission is non-binding for both parties and is only the initial stage of the selection process.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that our company is interested in participating.",
+      "minorityEquity": "Joint Venture Equity Percentage (Minority Shareholder)",
+      "minorityEquityHint": "Proposed equity percentage if selected as partner (30%-49%)",
       "eoiDoc": "EoI Document",
       "eoiDocLabel": "Signed EoI Letter (PDF, signed by authorized representative)"
     },
@@ -276,8 +278,6 @@
       "requirementsDocLabel": "Requirements Fulfillment Document (PDF)"
     },
     "finalStatement": {
-      "minorityEquity": "Joint Venture Equity Percentage (Minority Shareholder)",
-      "minorityEquityHint": "Proposed equity percentage if selected as partner (30%-49%)",
       "declaration": "We hereby declare that the information provided in this form is true, accurate, and complete. The documents submitted with this form are original and can be verified. We are willing to provide any additional information or clarification required by PT Bukit Asam Tbk. Any changes in information will be promptly communicated in writing.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that all information provided is true."
     },

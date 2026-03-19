@@ -1025,6 +1025,16 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
+          {/* Minority Equity — JV equity commitment */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.minorityEquity")}</label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("eoiFields.minorityEquityHint")}</p>
+            <div className="flex items-center gap-2">
+              <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
+              <span className="text-sm text-ptba-gray">%</span>
+            </div>
+          </div>
+
           <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
             {t.rich("eoiFields.eoiDeclaration", { projectName: project.name, strong: (chunks) => <strong>{chunks}</strong> })}
           </div>
@@ -1469,16 +1479,6 @@ export default function MitraProjectApplyPage() {
         open={openSection === finalSectionNumber}
         onToggle={() => setOpenSection(openSection === finalSectionNumber ? 0 : finalSectionNumber)}
       >
-        {/* Minority Equity — JV equity commitment */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("finalStatement.minorityEquity")}</label>
-          <p className="mb-1 text-[10px] text-ptba-gray italic">{t("finalStatement.minorityEquityHint")}</p>
-          <div className="flex items-center gap-2">
-            <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
-            <span className="text-sm text-ptba-gray">%</span>
-          </div>
-        </div>
-
         <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
           {t("finalStatement.declaration")}
         </div>
