@@ -102,7 +102,7 @@ export function ApprovalCard({ approval }: ApprovalCardProps) {
                     approval.phase === "phase1" ? "bg-ptba-navy" : "bg-ptba-steel-blue"
                   )}
                 >
-                  {approval.phase === "phase1" ? "Fase 1" : "Fase 2"}
+                  {approval.phase === "phase1" ? "Evaluasi" : approval.phase === "phase2" ? "PQ" : "Proposal & FRP"}
                 </span>
               )}
               <Badge variant={getPriorityVariant(approval.priority)}>

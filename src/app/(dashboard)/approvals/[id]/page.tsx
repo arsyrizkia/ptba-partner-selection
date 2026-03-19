@@ -137,7 +137,7 @@ export default function ApprovalDetailPage() {
                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white",
                 phase === "phase1" ? "bg-ptba-navy" : "bg-ptba-steel-blue"
               )}>
-                {phase === "phase1" ? "Fase 1" : "Fase 2"}
+                {phase === "phase1" ? "Evaluasi" : phase === "phase2" ? "PQ" : "Proposal & FRP"}
               </span>
             )}
             <Badge variant={getPriorityVariant(approval.priority)}>{approval.priority}</Badge>

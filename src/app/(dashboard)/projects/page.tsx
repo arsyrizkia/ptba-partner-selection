@@ -55,24 +55,34 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
   if (phase === "cancelled") return { label: "Dibatalkan", color: "bg-ptba-red/10 text-ptba-red border-ptba-red/20" };
   if (phase.startsWith("phase1")) {
     const sub: Record<string, string> = {
-      phase1_registration: "Fase 1 · Pendaftaran",
-      phase1_closed: "Fase 1 · Ditutup",
-      phase1_evaluation: "Fase 1 · Evaluasi",
-      phase1_approval: "Fase 1 · Persetujuan",
-      phase1_approved: "Fase 1",
-      phase1_announcement: "Fase 1 · Pengumuman",
+      phase1_registration: "Evaluasi · Pendaftaran",
+      phase1_closed: "Evaluasi · Ditutup",
+      phase1_evaluation: "Evaluasi · Penilaian",
+      phase1_approval: "Evaluasi · Persetujuan",
+      phase1_approved: "Evaluasi",
+      phase1_announcement: "Evaluasi · Pengumuman",
     };
-    return { label: sub[phase] ?? "Fase 1", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
+    return { label: sub[phase] ?? "Evaluasi", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
   }
-  const sub2: Record<string, string> = {
-    phase2_registration: "Fase 2 · Pendaftaran",
-    phase2_evaluation: "Fase 2 · Evaluasi",
-    phase2_ranking: "Fase 2 · Peringkat",
-    phase2_negotiation: "Fase 2 · Negosiasi",
-    phase2_approval: "Fase 2 · Persetujuan",
-    phase2_announcement: "Fase 2 · Pengumuman",
+  if (phase.startsWith("phase2")) {
+    const sub2: Record<string, string> = {
+      phase2_registration: "PQ · Pendaftaran",
+      phase2_evaluation: "PQ · Evaluasi",
+      phase2_approval: "PQ · Persetujuan",
+      phase2_announcement: "PQ · Pengumuman",
+      phase2_approved: "PQ",
+    };
+    return { label: sub2[phase] ?? "PQ", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
+  }
+  const sub3: Record<string, string> = {
+    phase3_registration: "Proposal & FRP · Pendaftaran",
+    phase3_evaluation: "Proposal & FRP · Evaluasi",
+    phase3_ranking: "Proposal & FRP · Peringkat",
+    phase3_negotiation: "Proposal & FRP · Negosiasi",
+    phase3_approval: "Proposal & FRP · Persetujuan",
+    phase3_announcement: "Proposal & FRP · Pengumuman",
   };
-  return { label: sub2[phase] ?? "Fase 2", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
+  return { label: sub3[phase] ?? "Proposal & FRP", color: "bg-ptba-gold/10 text-ptba-gold border-ptba-gold/20" };
 }
 
 const STATUS_TABS = ["Semua", "Draft", "Dipublikasikan", "Evaluasi", "Persetujuan", "Selesai"];

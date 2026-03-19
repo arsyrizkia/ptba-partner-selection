@@ -1179,9 +1179,9 @@ export default function ProjectDetailPage({
             {/* Phase labels under bar */}
             <div className="flex mt-1.5">
               {[
-                { label: "Fase 1", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
-                { label: "Fase 2", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
-                { label: "Fase 3", steps: PHASE3_STEPS.length, color: "text-ptba-gold" },
+                { label: "Fase 1 (Evaluasi)", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
+                { label: "Fase 2 (PQ)", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
+                { label: "Fase 3 (Proposal & FRP)", steps: PHASE3_STEPS.length, color: "text-ptba-gold" },
               ].map((p) => (
                 <div key={p.label} style={{ width: `${(p.steps / PROJECT_STEPS.length) * 100}%` }} className={cn("text-[10px] font-medium", p.color)}>
                   {p.label}
