@@ -253,6 +253,8 @@
       "totalAsset": "Total Assets",
       "ebitda": "EBITDA",
       "dscr": "DSCR",
+      "ratingAgency": "Rating Agency",
+      "ratingValue": "Rating Value",
       "cashOnHand": "Cash on Hand",
       "cashOnHandHint": "Min. Cash on Hand of 1.5x equity",
       "financialDoc": "Financial Document",

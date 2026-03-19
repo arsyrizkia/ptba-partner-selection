@@ -253,6 +253,8 @@
       "totalAsset": "Total Aset",
       "ebitda": "EBITDA",
       "dscr": "DSCR",
+      "ratingAgency": "Lembaga Pemeringkat",
+      "ratingValue": "Nilai Rating",
       "cashOnHand": "Cash on Hand",
       "cashOnHandHint": "Min. Cash on Hand of 1.5x equity",
       "financialDoc": "Dokumen Keuangan",

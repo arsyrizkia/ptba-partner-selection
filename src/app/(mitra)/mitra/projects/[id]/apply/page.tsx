@@ -1282,6 +1282,24 @@ export default function MitraProjectApplyPage() {
             </table>
           </div>
 
+          {/* Credit Rating */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")}</label>
+              <select value={creditRatingAgency} onChange={(e) => setCreditRatingAgency(e.target.value)} className={inputClass}>
+                <option value="">{t("portfolioFields.selectPlaceholder")}</option>
+                <option value="S&P">S&P (Pefindo)</option>
+                <option value="Moodys">Moody&apos;s</option>
+                <option value="Fitch">Fitch</option>
+                <option value="Other">{tc("typeLabels.others")}</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")}</label>
+              <input type="text" placeholder={t("companyFields.example", { value: "AA+" })} value={creditRatingValue} onChange={(e) => setCreditRatingValue(e.target.value)} className={inputClass} />
+            </div>
+          </div>
+
           {/* Cash on Hand */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.cashOnHand")}</label>
