@@ -1,12 +1,37 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { NotificationItem } from "@/components/features/notification/notification-item";
-import { mockNotifications } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth/auth-context";
+import { api } from "@/lib/api/client";
 import type { Notification } from "@/lib/types";
-import { BellRing, CheckCheck } from "lucide-react";
+import { BellRing, CheckCheck, Loader2 } from "lucide-react";
+
+interface NotificationRow {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: "info" | "warning" | "success" | "error";
+  read: boolean;
+  link: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function toNotification(row: NotificationRow): Notification {
+  return {
+    id: row.id,
+    title: row.title,
+    message: row.message,
+    type: row.type,
+    read: row.read,
+    createdAt: row.created_at,
+    link: row.link ?? undefined,
+  };
+}
 
 const filterTabs = [
   { key: "all", label: "Semua" },
@@ -17,9 +42,30 @@ const filterTabs = [
 ];
 
 export default function NotificationsPage() {
+  const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [markingAll, setMarkingAll] = useState(false);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const res = await api<{ notifications: NotificationRow[] }>(
+        "/dashboard/notifications",
+        { token: accessToken }
+      );
+      setNotifications(res.notifications.map(toNotification));
+    } catch {
+      // silently fail — empty state will show
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const filteredNotifications = useMemo(() => {
     if (activeTab === "all") return notifications;
@@ -31,15 +77,49 @@ export default function NotificationsPage() {
     [notifications]
   );
 
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleMarkAllRead = async () => {
+    if (!accessToken) return;
+    setMarkingAll(true);
+    try {
+      const unread = notifications.filter((n) => !n.read);
+      await Promise.all(
+        unread.map((n) =>
+          api(`/dashboard/notifications/${n.id}/read`, {
+            method: "PUT",
+            token: accessToken,
+          })
+        )
+      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch {
+      // ignore
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
-  const handleMarkRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const handleMarkRead = async (id: string) => {
+    if (!accessToken) return;
+    try {
+      await api(`/dashboard/notifications/${id}/read`, {
+        method: "PUT",
+        token: accessToken,
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch {
+      // ignore
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-navy" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -58,9 +138,13 @@ export default function NotificationsPage() {
           variant="outline"
           size="sm"
           onClick={handleMarkAllRead}
-          disabled={unreadCount === 0}
+          disabled={unreadCount === 0 || markingAll}
         >
-          <CheckCheck className="h-4 w-4 mr-1.5" />
+          {markingAll ? (
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+          ) : (
+            <CheckCheck className="h-4 w-4 mr-1.5" />
+          )}
           Tandai Semua Dibaca
         </Button>
       </div>

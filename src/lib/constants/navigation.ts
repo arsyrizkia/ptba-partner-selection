@@ -38,22 +38,10 @@ export const NAVIGATION: NavigationItem[] = [
     allowedRoles: ['direksi', 'super_admin'],
   },
   {
-    icon: 'FileText',
-    label: 'Dokumen',
-    href: '/documents',
-    allowedRoles: ['super_admin', 'ebd', 'direksi', 'viewer'],
-  },
-  {
     icon: 'Bell',
     label: 'Notifikasi',
     href: '/notifications',
     allowedRoles: ALL_INTERNAL,
-  },
-  {
-    icon: 'Clock',
-    label: 'SLA Monitoring',
-    href: '/notifications/sla',
-    allowedRoles: ['super_admin', 'ebd', 'direksi'],
   },
   {
     icon: 'Settings',

@@ -13,7 +13,6 @@ import {
   FileWarning,
   ClipboardCheck,
   BarChart3,
-  Target,
   ListChecks,
   ArrowRight,
   CheckCircle2,
@@ -55,7 +54,6 @@ interface KpiCard {
 const projectKpis: KpiCard[] = [
   { title: "Total Proyek", value: "5", trend: "+12%", trendUp: true, icon: FolderKanban, color: "bg-ptba-steel-blue" },
   { title: "Mitra Dalam Evaluasi", value: "8", trend: "-5%", trendUp: false, icon: Users, color: "bg-ptba-gold" },
-  { title: "Kepatuhan SLA", value: "87,5%", trend: "+3.2%", trendUp: true, icon: Clock, color: "bg-ptba-green" },
   { title: "Persetujuan Tertunda", value: "4", trend: "-15%", trendUp: false, icon: CheckSquare, color: "bg-ptba-orange" },
 ];
 
@@ -85,7 +83,6 @@ const barData = [
 ];
 
 const notifications = [
-  { icon: AlertCircle, title: "SLA Evaluasi Teknis hampir habis - Belt Conveyor", time: "10 menit lalu", color: "text-ptba-red" },
   { icon: FileCheck, title: "Dokumen HPS disetujui - Alat Berat", time: "1 jam lalu", color: "text-ptba-green" },
   { icon: UserPlus, title: "Mitra baru terdaftar: PT Sinar Jaya", time: "2 jam lalu", color: "text-ptba-steel-blue" },
   { icon: FileWarning, title: "Dokumen kualifikasi belum lengkap - Jalan Hauling", time: "3 jam lalu", color: "text-ptba-orange" },
@@ -96,18 +93,8 @@ const notifications = [
 
 const executiveKpis: KpiCard[] = [
   { title: "Total Proyek Aktif", value: "4", trend: "+8%", trendUp: true, icon: FolderKanban, color: "bg-ptba-steel-blue" },
-  { title: "SLA Compliance Rate", value: "87,5%", trend: "+3.2%", trendUp: true, icon: Target, color: "bg-ptba-green" },
   { title: "Evaluasi Berjalan", value: "3", trend: "+20%", trendUp: true, icon: BarChart3, color: "bg-ptba-gold" },
   { title: "Proyek Selesai Bulan Ini", value: "1", trend: "0%", trendUp: true, icon: CheckSquare, color: "bg-ptba-orange" },
-];
-
-const slaBarData = [
-  { bulan: "Okt", tepat: 3, terlambat: 1 },
-  { bulan: "Nov", tepat: 5, terlambat: 1 },
-  { bulan: "Des", tepat: 2, terlambat: 1 },
-  { bulan: "Jan", tepat: 6, terlambat: 1 },
-  { bulan: "Feb", tepat: 4, terlambat: 1 },
-  { bulan: "Mar", tepat: 7, terlambat: 1 },
 ];
 
 const recentApprovals = [
@@ -266,24 +253,6 @@ function ExecutiveDashboard() {
                 <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #E8E8E8", fontSize: "13px" }} />
                 <Legend verticalAlign="bottom" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
               </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* SLA Compliance Trend */}
-        <div className="col-span-1 rounded-xl bg-white p-5 shadow-sm xl:col-span-2">
-          <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">Tren Kepatuhan SLA</h2>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={slaBarData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8E8E8" />
-                <XAxis dataKey="bulan" tick={{ fill: "#666666", fontSize: 12 }} axisLine={{ stroke: "#E8E8E8" }} />
-                <YAxis tick={{ fill: "#666666", fontSize: 12 }} axisLine={{ stroke: "#E8E8E8" }} />
-                <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #E8E8E8", fontSize: "13px" }} />
-                <Legend wrapperStyle={{ fontSize: "12px" }} iconType="square" iconSize={10} />
-                <Bar dataKey="tepat" name="Tepat Waktu" fill="#28A745" radius={[4, 4, 0, 0]} barSize={28} />
-                <Bar dataKey="terlambat" name="Terlambat" fill="#C8102E" radius={[4, 4, 0, 0]} barSize={28} />
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
