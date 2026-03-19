@@ -33,6 +33,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   XCircle,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -117,6 +118,58 @@ function phaseLabel(phase?: string): string {
   return map[phase] ?? phase;
 }
 
+const DOC_TYPE_LABELS: Record<string, string> = {
+  compro: "Company Profile",
+  statement_eoi: "Surat Pernyataan EoI",
+  portfolio: "Portfolio Proyek",
+  financial_overview: "Gambaran Umum Keuangan",
+  requirements_fulfillment: "Pemenuhan Persyaratan",
+  confidential_guarantee_letter: "Confidential Guarantee Letter",
+  adherent_letter: "Adherent Letter",
+  confidential_guarantee_signed: "Confidential Guarantee (Signed)",
+  loi_signed: "Letter of Intent (Signed)",
+  financial_detail: "Laporan Keuangan Detail",
+  info_detail: "Informasi Detail Perusahaan",
+  proposal_detail: "Proposal Teknis & Komersial",
+  rencana_kerja: "Rencana Kerja & Jadwal",
+  rab: "Rencana Anggaran Biaya (RAB)",
+  akta_pendirian: "Akta Pendirian",
+  siup: "SIUP",
+  tdp_nib: "TDP/NIB",
+  npwp: "NPWP",
+  laporan_keuangan: "Laporan Keuangan (3 tahun)",
+  referensi_bank: "Surat Referensi Bank",
+  pengalaman_kerja: "Daftar Pengalaman Kerja",
+  sertifikat_iso: "Sertifikat ISO",
+  profil_perusahaan: "Profil Perusahaan",
+  struktur_organisasi: "Struktur Organisasi",
+  surat_pernyataan: "Surat Pernyataan",
+  jaminan_penawaran: "Jaminan Penawaran",
+  jaminan_pelaksanaan: "Jaminan Pelaksanaan",
+  surat_kuasa: "Surat Kuasa",
+  amdal_ukl_upl: "AMDAL/UKL-UPL",
+  daftar_peralatan: "Daftar Peralatan",
+  daftar_tenaga_ahli: "Daftar Tenaga Ahli",
+};
+
+function formatDocTypeLabel(typeId: string): string {
+  if (DOC_TYPE_LABELS[typeId]) return DOC_TYPE_LABELS[typeId];
+  if (typeId.startsWith("credential_exp_")) return "Dokumen Kredensial";
+  if (typeId.startsWith("custom_")) return typeId.slice(7).replace(/_/g, " ");
+  return typeId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatDocName(name: string): string {
+  // Clean up credential names like "credential_exp_8d4ba320-... - PT Test Mitra"
+  // to "Dokumen Kredensial - PT Test Mitra"
+  if (name.startsWith("credential_exp_")) {
+    const dashIdx = name.indexOf(" - ");
+    if (dashIdx !== -1) return `Dokumen Kredensial${name.slice(dashIdx)}`;
+    return "Dokumen Kredensial";
+  }
+  return name;
+}
+
 function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: string | null }) {
   const [partnerDocs, setPartnerDocs] = useState<Record<string, any[]>>({});
   const [loadingDocs, setLoadingDocs] = useState(true);
@@ -126,7 +179,6 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
       setLoadingDocs(false);
       return;
     }
-    // Fetch full application detail for each partner to get their documents
     Promise.all(
       partners.map(async (p) => {
         try {
@@ -148,6 +200,13 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
       setPartnerDocs(map);
     }).finally(() => setLoadingDocs(false));
   }, [accessToken, partners]);
+
+  const handleDownload = async (fileKey: string) => {
+    if (!accessToken) return;
+    try {
+      await downloadDocument(fileKey, accessToken);
+    } catch { /* ignore */ }
+  };
 
   if (loadingDocs) {
     return (
@@ -186,7 +245,8 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
                       <th className="pb-2 pr-4 font-semibold text-ptba-gray">Dokumen</th>
                       <th className="pb-2 pr-4 font-semibold text-ptba-gray">Tipe</th>
                       <th className="pb-2 pr-4 font-semibold text-ptba-gray">Status</th>
-                      <th className="pb-2 font-semibold text-ptba-gray">Tanggal Upload</th>
+                      <th className="pb-2 pr-4 font-semibold text-ptba-gray">Tanggal Upload</th>
+                      <th className="pb-2 font-semibold text-ptba-gray"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -194,8 +254,8 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
                       const status = doc.file_key ? "Lengkap" : "Belum Upload";
                       return (
                         <tr key={doc.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
-                          <td className="py-2 pr-4 font-medium text-ptba-charcoal">{doc.name}</td>
-                          <td className="py-2 pr-4 text-ptba-gray text-xs">{doc.document_type_id}</td>
+                          <td className="py-2 pr-4 font-medium text-ptba-charcoal">{formatDocName(doc.name)}</td>
+                          <td className="py-2 pr-4 text-ptba-gray text-xs">{formatDocTypeLabel(doc.document_type_id)}</td>
                           <td className="py-2 pr-4">
                             <span className={cn(
                               "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
@@ -204,7 +264,18 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
                               {status}
                             </span>
                           </td>
-                          <td className="py-2 text-ptba-gray text-xs">{doc.upload_date ? formatDate(doc.upload_date) : "—"}</td>
+                          <td className="py-2 pr-4 text-ptba-gray text-xs">{doc.upload_date ? formatDate(doc.upload_date) : "—"}</td>
+                          <td className="py-2">
+                            {doc.file_key && (
+                              <button
+                                onClick={() => handleDownload(doc.file_key)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                              >
+                                <Download className="h-3 w-3" />
+                                Unduh
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -1123,29 +1194,49 @@ export default function ProjectDetailPage({
 
       {/* Tabs */}
       <div className="border-b border-ptba-light-gray">
-        <nav className="flex gap-6">
-          {(
-            [
-              { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
-              { key: "dokumen", label: "Dokumen", icon: FileText },
-              { key: "informasi", label: "Informasi", icon: Info },
-            ] as const
-          ).map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={cn(
-                "flex items-center gap-2 pb-3 pt-1 text-sm font-medium border-b-2 transition-colors",
-                activeTab === key
-                  ? "border-ptba-navy text-ptba-navy"
-                  : "border-transparent text-ptba-gray hover:text-ptba-charcoal"
+        <div className="flex items-center justify-between">
+          <nav className="flex gap-6">
+            {(
+              [
+                { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
+                { key: "dokumen", label: "Dokumen", icon: FileText },
+                { key: "informasi", label: "Informasi", icon: Info },
+              ] as const
+            ).map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={cn(
+                  "flex items-center gap-2 pb-3 pt-1 text-sm font-medium border-b-2 transition-colors",
+                  activeTab === key
+                    ? "border-ptba-navy text-ptba-navy"
+                    : "border-transparent text-ptba-gray hover:text-ptba-charcoal"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
+          {isAdmin && !editMode && (
+            <div className="flex items-center gap-2 pb-2">
+              {applicationCount ? (
+                <>
+                  <span className="text-xs text-ptba-gray">Tidak dapat diedit — {applicationCount} mitra sudah mendaftar</span>
+                  <button disabled className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-400 cursor-not-allowed">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit Proyek
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => router.push(`/projects/${id}/edit`)} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-4 py-2 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Proyek
+                </button>
               )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </nav>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab A: Mitra */}
@@ -1568,35 +1659,18 @@ export default function ProjectDetailPage({
 
         return (
         <div className="space-y-6">
-          {/* Top bar: Edit / Save / Cancel */}
-          {isAdmin && (
+          {/* Save / Cancel bar (only visible in edit mode) */}
+          {isAdmin && editMode && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-ptba-gray">{editMode ? "Mode edit aktif — ubah informasi proyek di bawah" : ""}</p>
+              <p className="text-sm text-ptba-gray">Mode edit aktif — ubah informasi proyek di bawah</p>
               <div className="flex gap-2">
-                {editMode ? (
-                  <>
-                    <button onClick={() => setEditMode(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                      Batal
-                    </button>
-                    <button disabled={saving} onClick={saveAll} className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
-                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                      Simpan Semua
-                    </button>
-                  </>
-                ) : applicationCount ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-ptba-gray">Tidak dapat diedit — {applicationCount} mitra sudah mendaftar</span>
-                    <button disabled className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-400 cursor-not-allowed">
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit Proyek
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => router.push(`/projects/${id}/edit`)} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-4 py-2 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit Proyek
-                  </button>
-                )}
+                <button onClick={() => setEditMode(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                  Batal
+                </button>
+                <button disabled={saving} onClick={saveAll} className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Simpan Semua
+                </button>
               </div>
             </div>
           )}
