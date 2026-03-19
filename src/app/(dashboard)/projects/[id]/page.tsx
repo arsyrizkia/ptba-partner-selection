@@ -918,7 +918,29 @@ export default function ProjectDetailPage({
             )}
 
             {/* Fase 2 actions */}
-            {isPhase2 && (
+            {isPhase2 && project.phase === "phase2_registration" && (
+              <button
+                onClick={async () => {
+                  if (!accessToken) return;
+                  if (!confirm("Apakah Anda yakin ingin menutup pendaftaran Fase 2? Mitra tidak akan bisa mengunggah dokumen lagi.")) return;
+                  setActionLoading(true);
+                  try {
+                    await api(`/projects/${id}/close-phase2-registration`, { method: "POST", token: accessToken });
+                    window.location.reload();
+                  } catch {
+                    alert("Gagal menutup pendaftaran Fase 2");
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-ptba-red/30 bg-ptba-red/5 px-4 py-2 text-sm font-medium text-ptba-red hover:bg-ptba-red/10 transition-colors disabled:opacity-50"
+              >
+                <LockKeyhole className="h-4 w-4" />
+                {actionLoading ? "Memproses..." : "Tutup Pendaftaran Fase 2"}
+              </button>
+            )}
+            {isPhase2 && project.phase !== "phase2_registration" && (
               <>
                 {allEvalsComplete ? (
                   <div className="inline-flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm font-medium text-green-700">
@@ -1128,8 +1150,8 @@ export default function ProjectDetailPage({
             </div>
           )}
 
-          {/* Fase 1 Approved: Payment Verification View */}
-          {isPhase1Approved && (() => {
+          {/* Fase 1 Approved / Phase 2 Registration: Payment Verification View */}
+          {(isPhase1Approved || project.phase === "phase2_registration") && (() => {
             const shortlistedApps = projectApplications
               .filter((a: any) => a.status === "Shortlisted" || a.phase1_result === "Lolos")
               .map((a: any) => ({
