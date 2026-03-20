@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, downloadDocument } from "@/lib/api/client";
+import { api, projectApi, authApi, downloadDocument } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
@@ -313,11 +313,17 @@ export default function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { role, accessToken } = useAuth();
+  const { role, accessToken, user: authUser } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("mitra");
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // PIC edit state
+  const [showPicEdit, setShowPicEdit] = useState(false);
+  const [picDraft, setPicDraft] = useState<Record<string, string>>({});
+  const [picUsers, setPicUsers] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [picSaving, setPicSaving] = useState(false);
 
   // Workflow state — must be declared before any conditional returns
   const [showPersetujuanModal, setShowPersetujuanModal] = useState(false);
@@ -473,6 +479,8 @@ export default function ProjectDetailPage({
     };
   });
   const isAdmin = role === "ebd" || role === "super_admin";
+  const isCreator = !!authUser && !!project?.createdBy && authUser.id === project.createdBy;
+  const canEditPic = role === "super_admin" || isCreator;
   const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement";
 
   const allEvalsComplete = projectPartners.length > 0 && projectPartners.every(
@@ -1227,6 +1235,29 @@ export default function ProjectDetailPage({
                     <Pencil className="h-3.5 w-3.5" />
                     Edit Proyek
                   </button>
+                  {canEditPic && (
+                    <button
+                      onClick={async () => {
+                        if (!accessToken) return;
+                        // Load internal users for PIC dropdowns
+                        try {
+                          const res = await authApi().listUsers(accessToken);
+                          setPicUsers(res.users.filter((u: any) => u.status === "active").map((u: any) => ({ id: u.id, name: u.name, role: u.role })));
+                        } catch { /* ignore */ }
+                        // Pre-fill current assignments
+                        const draft: Record<string, string> = {};
+                        for (const pic of project.picAssignments || []) {
+                          draft[pic.role] = pic.userId;
+                        }
+                        setPicDraft(draft);
+                        setShowPicEdit(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-4 py-2 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      Edit PIC
+                    </button>
+                  )}
                 </>
               ) : (
                 <button onClick={() => router.push(`/projects/${id}/edit`)} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-4 py-2 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
@@ -1918,6 +1949,74 @@ export default function ProjectDetailPage({
         </div>
         );
       })()}
+
+      {/* PIC Edit Modal */}
+      {showPicEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-ptba-light-gray px-6 py-4">
+              <h3 className="text-lg font-semibold text-ptba-charcoal">Edit PIC</h3>
+              <button onClick={() => setShowPicEdit(false)} className="rounded-lg p-1 text-ptba-gray hover:bg-ptba-section-bg">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4 px-6 py-5">
+              {[
+                { role: "ebd", label: "Energy Business Development" },
+                { role: "keuangan", label: "Corporate Finance" },
+                { role: "hukum", label: "Legal & Regulatory Affairs" },
+                { role: "risiko", label: "Risk Management" },
+                { role: "direksi", label: "Direksi" },
+              ].map(({ role: picRole, label }) => {
+                const usersForRole = picUsers.filter((u) => u.role === picRole);
+                return (
+                  <div key={picRole}>
+                    <label className="text-sm font-medium text-ptba-charcoal mb-1 block">{label}</label>
+                    <select
+                      value={picDraft[picRole] || ""}
+                      onChange={(e) => setPicDraft((prev) => ({ ...prev, [picRole]: e.target.value }))}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
+                    >
+                      <option value="">Pilih PIC...</option>
+                      {usersForRole.map((u) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-ptba-light-gray px-6 py-4">
+              <button onClick={() => setShowPicEdit(false)} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                Batal
+              </button>
+              <button
+                disabled={picSaving}
+                onClick={async () => {
+                  if (!accessToken) return;
+                  setPicSaving(true);
+                  try {
+                    const picAssignments = Object.entries(picDraft)
+                      .filter(([, userId]) => userId)
+                      .map(([r, userId]) => {
+                        const u = picUsers.find((p) => p.id === userId);
+                        return { role: r, userId, userName: u?.name };
+                      });
+                    const res = await projectApi(accessToken).update(id, { picAssignments });
+                    setProject(res.data);
+                    setShowPicEdit(false);
+                  } catch { /* ignore */ }
+                  finally { setPicSaving(false); }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-semibold text-white hover:bg-ptba-steel-blue transition-colors disabled:opacity-50"
+              >
+                {picSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Simpan PIC
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Persetujuan Modal */}
       {showPersetujuanModal && (
