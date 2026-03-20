@@ -393,6 +393,7 @@ export interface CreateProjectInput {
   phase2Documents?: { documentTypeId: string }[];
   phase3Documents?: { documentTypeId: string }[];
   picAssignments?: { role: string; userId: string; userName?: string }[];
+  phasePics?: { phase: string; role: string; subcategory?: string; userId: string; userName?: string }[];
   ptbaDocuments?: { name: string; type: string }[];
 }
 

@@ -58,6 +58,7 @@ export default function CreateProjectPage() {
         phase3Documents: p3Docs,
         requiredDocuments: legacyDocs,
         picAssignments: pics,
+        phasePics: formData.phasePics,
         ptbaDocuments: [],
       });
 

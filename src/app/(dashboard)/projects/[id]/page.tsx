@@ -862,21 +862,31 @@ export default function ProjectDetailPage({
         </div>
 
         {/* PIC Display */}
-        {project.picAssignments && project.picAssignments.length > 0 && (
+        {project.phasePics && project.phasePics.length > 0 && (
           <div className="mt-4 rounded-lg bg-ptba-section-bg p-3">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-4 w-4 text-ptba-navy" />
               <span className="text-xs font-semibold text-ptba-navy">PIC yang Ditunjuk</span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {project.picAssignments.map((pic: any) => (
-                <span key={pic.userId} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs text-ptba-charcoal border border-ptba-light-gray">
-                  <UserCheck className="h-3 w-3 text-ptba-steel-blue" />
-                  <span className="font-medium">{pic.userName}</span>
-                  <span className="text-ptba-gray">({pic.role.toUpperCase()})</span>
-                </span>
-              ))}
-            </div>
+            {["phase1", "phase2", "phase3"].map((phase) => {
+              const pics = project.phasePics.filter((p: any) => p.phase === phase);
+              if (pics.length === 0) return null;
+              const phaseLabels: Record<string, string> = { phase1: "Fase 1", phase2: "Fase 2", phase3: "Fase 3" };
+              return (
+                <div key={phase} className="mb-2 last:mb-0">
+                  <p className="text-[10px] font-medium text-ptba-gray uppercase mb-1">{phaseLabels[phase]}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {pics.map((pic: any) => (
+                      <span key={`${pic.userId}-${pic.subcategory ?? ""}`} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs text-ptba-charcoal border border-ptba-light-gray">
+                        <UserCheck className="h-3 w-3 text-ptba-steel-blue" />
+                        <span className="font-medium">{pic.userName}</span>
+                        <span className="text-ptba-gray">({pic.role.toUpperCase()}{pic.subcategory ? ` ${pic.subcategory}` : ""})</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -1912,19 +1922,31 @@ export default function ProjectDetailPage({
           {/* PIC yang Ditunjuk */}
           <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
             <h3 className="mb-4 font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
-            {project.picAssignments && project.picAssignments.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {project.picAssignments.map((pic: any) => (
-                  <div key={pic.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ptba-navy/10">
-                      <UserCheck className="h-4 w-4 text-ptba-navy" />
+            {project.phasePics && project.phasePics.length > 0 ? (
+              <div className="space-y-4">
+                {["phase1", "phase2", "phase3"].map((phase) => {
+                  const pics = project.phasePics.filter((p: any) => p.phase === phase);
+                  if (pics.length === 0) return null;
+                  const phaseLabels: Record<string, string> = { phase1: "Fase 1", phase2: "Fase 2", phase3: "Fase 3" };
+                  return (
+                    <div key={phase}>
+                      <p className="text-xs font-medium text-ptba-gray uppercase mb-2">{phaseLabels[phase]}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {pics.map((pic: any) => (
+                          <div key={`${pic.userId}-${pic.subcategory ?? ""}`} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ptba-navy/10">
+                              <UserCheck className="h-4 w-4 text-ptba-navy" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-ptba-charcoal truncate">{pic.userName || "-"}</p>
+                              <p className="text-xs text-ptba-gray uppercase">{pic.role}{pic.subcategory ? ` (${pic.subcategory})` : ""}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ptba-charcoal truncate">{pic.userName || "-"}</p>
-                      <p className="text-xs text-ptba-gray uppercase">{pic.role}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-ptba-gray italic">Belum ada PIC yang ditunjuk.</p>
@@ -1950,68 +1972,26 @@ export default function ProjectDetailPage({
         );
       })()}
 
-      {/* PIC Edit Modal */}
+      {/* PIC Edit Modal — redirects to edit page for full phase-tabbed PIC editing */}
       {showPicEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-ptba-light-gray px-6 py-4">
               <h3 className="text-lg font-semibold text-ptba-charcoal">Edit PIC</h3>
               <button onClick={() => setShowPicEdit(false)} className="rounded-lg p-1 text-ptba-gray hover:bg-ptba-section-bg">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-4 px-6 py-5">
-              {[
-                { role: "ebd", label: "Energy Business Development" },
-                { role: "keuangan", label: "Corporate Finance" },
-                { role: "hukum", label: "Legal & Regulatory Affairs" },
-                { role: "risiko", label: "Risk Management" },
-                { role: "direksi", label: "Direksi" },
-              ].map(({ role: picRole, label }) => {
-                const usersForRole = picUsers.filter((u) => u.role === picRole);
-                return (
-                  <div key={picRole}>
-                    <label className="text-sm font-medium text-ptba-charcoal mb-1 block">{label}</label>
-                    <select
-                      value={picDraft[picRole] || ""}
-                      onChange={(e) => setPicDraft((prev) => ({ ...prev, [picRole]: e.target.value }))}
-                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
-                    >
-                      <option value="">Pilih PIC...</option>
-                      {usersForRole.map((u) => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-end gap-3 border-t border-ptba-light-gray px-6 py-4">
-              <button onClick={() => setShowPicEdit(false)} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
-                Batal
-              </button>
+            <div className="px-6 py-5">
+              <p className="text-sm text-ptba-gray mb-4">
+                PIC sekarang dikelola per fase (Fase 1, 2, 3) dengan dukungan multi-PIC untuk EBD.
+                Gunakan halaman edit proyek untuk mengelola PIC secara lengkap.
+              </p>
               <button
-                disabled={picSaving}
-                onClick={async () => {
-                  if (!accessToken) return;
-                  setPicSaving(true);
-                  try {
-                    const picAssignments = Object.entries(picDraft)
-                      .filter(([, userId]) => userId)
-                      .map(([r, userId]) => {
-                        const u = picUsers.find((p) => p.id === userId);
-                        return { role: r, userId, userName: u?.name };
-                      });
-                    const res = await projectApi(accessToken).update(id, { picAssignments });
-                    setProject(res.data);
-                    setShowPicEdit(false);
-                  } catch { /* ignore */ }
-                  finally { setPicSaving(false); }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-semibold text-white hover:bg-ptba-steel-blue transition-colors disabled:opacity-50"
+                onClick={() => { setShowPicEdit(false); router.push(`/projects/${id}/edit`); }}
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-steel-blue transition-colors"
               >
-                {picSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Simpan PIC
+                Buka Halaman Edit PIC
               </button>
             </div>
           </div>

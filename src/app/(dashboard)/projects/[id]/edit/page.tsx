@@ -130,6 +130,7 @@ export default function EditProjectPage({
         phase2Deadline: formData.phase2Deadline || undefined,
         phase3Deadline: formData.phase3Deadline || undefined,
         picAssignments: picAssignments.length > 0 ? picAssignments : undefined,
+        phasePics: formData.phasePics.length > 0 ? formData.phasePics : undefined,
       });
 
       // Update requirements
