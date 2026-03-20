@@ -10,6 +10,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 interface Banner {
   id: string;
   title: string;
+  linkUrl: string | null;
   imageFileKey: string;
   imageUrl: string | null;
   isActive: boolean;
@@ -22,6 +23,7 @@ export default function BannersPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +55,7 @@ export default function BannersPage() {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("title", title);
+      if (linkUrl.trim()) fd.append("linkUrl", linkUrl.trim());
 
       const res = await fetch(`${API_BASE}/banners`, {
         method: "POST",
@@ -62,6 +65,7 @@ export default function BannersPage() {
 
       if (res.ok) {
         setTitle("");
+        setLinkUrl("");
         if (fileRef.current) fileRef.current.value = "";
         await fetchBanners();
       }
@@ -130,7 +134,7 @@ export default function BannersPage() {
       {/* Upload form */}
       <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
         <h2 className="text-lg font-semibold text-ptba-charcoal">Upload Banner Baru</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Judul (opsional)</label>
             <input
@@ -138,6 +142,16 @@ export default function BannersPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Contoh: Pengumuman Hari Libur"
+              className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2.5 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Link URL (opsional)</label>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://contoh.com/pengumuman"
               className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2.5 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
             />
           </div>
@@ -199,6 +213,11 @@ export default function BannersPage() {
                       </span>
                     )}
                   </div>
+                  {b.linkUrl && (
+                    <p className="text-xs text-ptba-steel-blue truncate">
+                      <a href={b.linkUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{b.linkUrl}</a>
+                    </p>
+                  )}
                   <p className="text-xs text-ptba-gray">
                     {new Date(b.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                   </p>

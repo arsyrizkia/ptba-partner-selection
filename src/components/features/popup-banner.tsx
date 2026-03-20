@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 
 export default function PopupBanner() {
   const { accessToken } = useAuth();
-  const [banner, setBanner] = useState<{ id: string; title: string; imageUrl: string } | null>(null);
+  const [banner, setBanner] = useState<{ id: string; title: string; imageUrl: string; linkUrl?: string | null } | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -49,8 +49,13 @@ export default function PopupBanner() {
         <img
           src={banner.imageUrl}
           alt={banner.title || "Pengumuman"}
-          className="w-full rounded-xl shadow-2xl"
-          onClick={handleClose}
+          className={`w-full rounded-xl shadow-2xl${banner.linkUrl ? " cursor-pointer" : ""}`}
+          onClick={() => {
+            if (banner.linkUrl) {
+              window.open(banner.linkUrl, "_blank", "noopener,noreferrer");
+            }
+            handleClose();
+          }}
         />
       </div>
     </div>
