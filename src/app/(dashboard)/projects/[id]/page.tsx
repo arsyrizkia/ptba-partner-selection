@@ -321,9 +321,65 @@ export default function ProjectDetailPage({
 
   // PIC edit state
   const [showPicEdit, setShowPicEdit] = useState(false);
-  const [picDraft, setPicDraft] = useState<Record<string, string>>({});
+  type PicEntry = { phase: string; role: string; subcategory?: string; userId: string; userName?: string };
+  const [picDraft, setPicDraft] = useState<PicEntry[]>([]);
   const [picUsers, setPicUsers] = useState<{ id: string; name: string; role: string }[]>([]);
   const [picSaving, setPicSaving] = useState(false);
+  const [picEditTab, setPicEditTab] = useState<"phase1" | "phase2" | "phase3">("phase1");
+
+  const PHASE_PIC_CONFIG = {
+    phase1: {
+      label: "Fase 1",
+      roles: [
+        { role: "ebd", label: "Energy Business Development", multi: true },
+        { role: "direksi", label: "Direksi", multi: false },
+      ],
+    },
+    phase2: {
+      label: "Fase 2",
+      roles: [
+        { role: "ebd", label: "EBD — Pasar", multi: true, subcategory: "pasar" },
+        { role: "ebd", label: "EBD — Teknis", multi: true, subcategory: "teknis" },
+        { role: "ebd", label: "EBD — Komersial", multi: true, subcategory: "komersial" },
+        { role: "keuangan", label: "Corporate Finance", multi: false },
+        { role: "hukum", label: "Legal & Regulatory Affairs", multi: false },
+        { role: "risiko", label: "Risk Management", multi: false },
+        { role: "direksi", label: "Direksi", multi: false },
+      ],
+    },
+    phase3: {
+      label: "Fase 3",
+      roles: [
+        { role: "ebd", label: "Energy Business Development", multi: true },
+        { role: "direksi", label: "Direksi", multi: false },
+      ],
+    },
+  } as const;
+
+  const picDraftFor = (phase: string, role: string, sub?: string) =>
+    picDraft.filter((p) => p.phase === phase && p.role === role && (p.subcategory ?? undefined) === sub);
+
+  const setPicDraftSingle = (phase: string, role: string, userId: string, sub?: string) => {
+    const u = picUsers.find((p) => p.id === userId);
+    setPicDraft((prev) => [
+      ...prev.filter((p) => !(p.phase === phase && p.role === role && (p.subcategory ?? undefined) === sub)),
+      ...(userId ? [{ phase, role, subcategory: sub, userId, userName: u?.name }] : []),
+    ]);
+  };
+
+  const addPicDraft = (phase: string, role: string, userId: string, sub?: string) => {
+    const u = picUsers.find((p) => p.id === userId);
+    setPicDraft((prev) => [
+      ...prev.filter((p) => !(p.phase === phase && p.role === role && (p.subcategory ?? undefined) === sub && p.userId === userId)),
+      { phase, role, subcategory: sub, userId, userName: u?.name },
+    ]);
+  };
+
+  const removePicDraft = (phase: string, role: string, userId: string, sub?: string) => {
+    setPicDraft((prev) =>
+      prev.filter((p) => !(p.phase === phase && p.role === role && (p.subcategory ?? undefined) === sub && p.userId === userId))
+    );
+  };
 
   // Workflow state — must be declared before any conditional returns
   const [showPersetujuanModal, setShowPersetujuanModal] = useState(false);
@@ -1254,12 +1310,16 @@ export default function ProjectDetailPage({
                           const res = await authApi().listUsers(accessToken);
                           setPicUsers(res.users.filter((u: any) => u.status === "active").map((u: any) => ({ id: u.id, name: u.name, role: u.role })));
                         } catch { /* ignore */ }
-                        // Pre-fill current assignments
-                        const draft: Record<string, string> = {};
-                        for (const pic of project.picAssignments || []) {
-                          draft[pic.role] = pic.userId;
-                        }
-                        setPicDraft(draft);
+                        // Pre-fill from phasePics
+                        const entries = (project.phasePics || []).map((p: any) => ({
+                          phase: p.phase,
+                          role: p.role,
+                          subcategory: p.subcategory || undefined,
+                          userId: p.userId,
+                          userName: p.userName || undefined,
+                        }));
+                        setPicDraft(entries);
+                        setPicEditTab("phase1");
                         setShowPicEdit(true);
                       }}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-4 py-2 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
@@ -1972,26 +2032,96 @@ export default function ProjectDetailPage({
         );
       })()}
 
-      {/* PIC Edit Modal — redirects to edit page for full phase-tabbed PIC editing */}
+      {/* PIC Edit Modal */}
       {showPicEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-ptba-light-gray px-6 py-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-ptba-light-gray px-6 py-4 shrink-0">
               <h3 className="text-lg font-semibold text-ptba-charcoal">Edit PIC</h3>
               <button onClick={() => setShowPicEdit(false)} className="rounded-lg p-1 text-ptba-gray hover:bg-ptba-section-bg">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="px-6 py-5">
-              <p className="text-sm text-ptba-gray mb-4">
-                PIC sekarang dikelola per fase (Fase 1, 2, 3) dengan dukungan multi-PIC untuk EBD.
-                Gunakan halaman edit proyek untuk mengelola PIC secara lengkap.
-              </p>
-              <button
-                onClick={() => { setShowPicEdit(false); router.push(`/projects/${id}/edit`); }}
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-steel-blue transition-colors"
-              >
-                Buka Halaman Edit PIC
+
+            {/* Phase Tabs */}
+            <div className="px-6 pt-4 shrink-0">
+              <div className="flex gap-1 rounded-lg bg-ptba-section-bg p-1">
+                {(["phase1", "phase2", "phase3"] as const).map((key) => (
+                  <button key={key} type="button" onClick={() => setPicEditTab(key)}
+                    className={cn("flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all",
+                      picEditTab === key ? "bg-white text-ptba-navy shadow-sm" : "text-ptba-gray hover:text-ptba-charcoal"
+                    )}
+                  >
+                    {PHASE_PIC_CONFIG[key].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Roles for active tab */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {PHASE_PIC_CONFIG[picEditTab].roles.map((slot) => {
+                const sub = "subcategory" in slot ? slot.subcategory : undefined;
+                const slotKey = `${picEditTab}-${slot.role}-${sub ?? ""}`;
+                const assigned = picDraftFor(picEditTab, slot.role, sub);
+                const usersForRole = picUsers.filter((u) => u.role === slot.role);
+
+                return (
+                  <div key={slotKey}>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-ptba-charcoal">{slot.label}</label>
+                      {slot.multi && <span className="text-[10px] text-ptba-steel-blue font-medium">Multi</span>}
+                    </div>
+
+                    {!slot.multi ? (
+                      <select value={assigned[0]?.userId ?? ""} onChange={(e) => setPicDraftSingle(picEditTab, slot.role, e.target.value, sub)}
+                        className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy">
+                        <option value="">Pilih PIC...</option>
+                        {usersForRole.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    ) : (
+                      <div className="space-y-2">
+                        {assigned.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {assigned.map((pic) => (
+                              <span key={pic.userId} className="inline-flex items-center gap-1 rounded-full bg-ptba-navy/10 px-2.5 py-1 text-xs text-ptba-navy">
+                                {pic.userName}
+                                <button type="button" onClick={() => removePicDraft(picEditTab, slot.role, pic.userId, sub)} className="ml-0.5 text-ptba-navy/50 hover:text-ptba-red">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <select value="" onChange={(e) => { if (e.target.value) addPicDraft(picEditTab, slot.role, e.target.value, sub); }}
+                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy">
+                          <option value="">Tambah PIC...</option>
+                          {usersForRole.filter((u) => !assigned.some((a) => a.userId === u.id)).map((u) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-ptba-light-gray px-6 py-4 shrink-0">
+              <button onClick={() => setShowPicEdit(false)} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                Batal
+              </button>
+              <button disabled={picSaving} onClick={async () => {
+                if (!accessToken) return;
+                setPicSaving(true);
+                try {
+                  const res = await projectApi(accessToken).update(id, { phasePics: picDraft });
+                  setProject(res.data);
+                  setShowPicEdit(false);
+                } catch { /* ignore */ }
+                finally { setPicSaving(false); }
+              }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-semibold text-white hover:bg-ptba-steel-blue transition-colors disabled:opacity-50">
+                {picSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Simpan PIC
               </button>
             </div>
           </div>
