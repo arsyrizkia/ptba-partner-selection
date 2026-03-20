@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, UserPlus, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -39,13 +39,36 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORIES = ["legal", "keuangan", "teknis", "administrasi"] as const;
 
-const PIC_ROLES: { role: UserRole; label: string; description: string }[] = [
-  { role: "ebd", label: "Energy Business Development", description: "Bertanggung jawab atas evaluasi pasar, teknis, dan ESG" },
-  { role: "keuangan", label: "Corporate Finance", description: "Bertanggung jawab atas evaluasi keuangan" },
-  { role: "hukum", label: "Legal & Regulatory Affairs", description: "Bertanggung jawab atas evaluasi aspek legal" },
-  { role: "risiko", label: "Risk Management", description: "Bertanggung jawab atas evaluasi dan mitigasi risiko" },
-  { role: "direksi", label: "Direksi", description: "Approver akhir untuk persetujuan proyek" },
-];
+const PHASE_PIC_CONFIG = {
+  phase1: {
+    label: "Fase 1 — Pra-Kualifikasi",
+    roles: [
+      { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 1 (boleh lebih dari 1)" },
+      { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
+    ],
+  },
+  phase2: {
+    label: "Fase 2 — Penilaian Terperinci",
+    roles: [
+      { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
+      { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
+      { role: "ebd" as UserRole, label: "EBD — Komersial", multi: true, subcategory: "komersial", description: "Evaluasi ESG/komersial" },
+      { role: "keuangan" as UserRole, label: "Corporate Finance", multi: false, description: "Evaluasi keuangan" },
+      { role: "hukum" as UserRole, label: "Legal & Regulatory Affairs", multi: false, description: "Evaluasi hukum" },
+      { role: "risiko" as UserRole, label: "Risk Management", multi: false, description: "Evaluasi risiko" },
+      { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
+    ],
+  },
+  phase3: {
+    label: "Fase 3 — Proposal Akhir",
+    roles: [
+      { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 3 (boleh lebih dari 1)" },
+      { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
+    ],
+  },
+} as const;
+
+type PhaseKey = keyof typeof PHASE_PIC_CONFIG;
 
 // ── Types ──────────────────────────────────────────────────────────
 interface InternalUser {
@@ -78,6 +101,8 @@ function isNewFile(f: SupportingFile): f is SupportingFileNew {
   return "file" in f;
 }
 
+type PhasePicEntry = { phase: string; role: string; subcategory?: string; userId: string; userName?: string };
+
 export interface ProjectFormData {
   projectName: string;
   projectType: string;
@@ -95,6 +120,7 @@ export interface ProjectFormData {
   selectedLegacyDocs: Record<string, "phase1" | "phase2" | "phase3" | "both">;
   customDocuments: { name: string; phase: "phase1" | "phase2" | "phase3" | "both" }[];
   picAssignments: Record<string, string>;
+  phasePics: PhasePicEntry[];
   supportingFiles: SupportingFile[];
   internalUsers: InternalUser[];
 }
@@ -189,7 +215,8 @@ export default function ProjectForm({
   const toggleCategory = (cat: string) => setOpenCategories((p) => ({ ...p, [cat]: !p[cat] }));
 
   // Step 4 - PIC Assignments
-  const [picAssignments, setPicAssignments] = useState<Record<string, string>>({});
+  const [phasePics, setPhasePics] = useState<PhasePicEntry[]>([]);
+  const [picPhaseTab, setPicPhaseTab] = useState<PhaseKey>("phase1");
 
   const [stepError, setStepError] = useState("");
 
@@ -267,12 +294,21 @@ export default function ProjectForm({
     }
 
     // Step 4: PIC Assignments
-    if (project.picAssignments && Array.isArray(project.picAssignments)) {
-      const pics: Record<string, string> = {};
-      for (const pic of project.picAssignments) {
-        pics[pic.role] = pic.userId;
-      }
-      setPicAssignments(pics);
+    if (project.phasePics && Array.isArray(project.phasePics)) {
+      setPhasePics(project.phasePics.map((p: any) => ({
+        phase: p.phase,
+        role: p.role,
+        subcategory: p.subcategory || undefined,
+        userId: p.userId,
+        userName: p.userName || undefined,
+      })));
+    } else if (project.picAssignments && Array.isArray(project.picAssignments)) {
+      setPhasePics(project.picAssignments.map((p: any) => ({
+        phase: 'phase1',
+        role: p.role,
+        userId: p.userId,
+        userName: p.userName || undefined,
+      })));
     }
   }, [mode, initialData]);
 
@@ -377,12 +413,30 @@ export default function ProjectForm({
   };
 
   // ── PIC handlers ───────────────────────────────────────────────
-  const handlePICChange = (role: string, userId: string) => {
-    setPicAssignments((prev) => ({ ...prev, [role]: userId }));
+  const addPhasePic = (phase: string, role: string, userId: string, subcategory?: string) => {
+    const user = internalUsers.find((u) => u.id === userId);
+    setPhasePics((prev) => [
+      ...prev.filter((p) => !(p.phase === phase && p.role === role && p.subcategory === subcategory && p.userId === userId)),
+      { phase, role, subcategory, userId, userName: user?.name },
+    ]);
   };
 
-  const getUsersForRole = (role: UserRole) => {
-    return internalUsers.filter((u) => u.role === role);
+  const removePhasePic = (phase: string, role: string, userId: string, subcategory?: string) => {
+    setPhasePics((prev) =>
+      prev.filter((p) => !(p.phase === phase && p.role === role && (p.subcategory ?? undefined) === subcategory && p.userId === userId))
+    );
+  };
+
+  const setSinglePhasePic = (phase: string, role: string, userId: string, subcategory?: string) => {
+    const user = internalUsers.find((u) => u.id === userId);
+    setPhasePics((prev) => [
+      ...prev.filter((p) => !(p.phase === phase && p.role === role && (p.subcategory ?? undefined) === subcategory)),
+      ...(userId ? [{ phase, role, subcategory, userId, userName: user?.name }] : []),
+    ]);
+  };
+
+  const getPhasePicsFor = (phase: string, role: string, subcategory?: string) => {
+    return phasePics.filter((p) => p.phase === phase && p.role === role && (p.subcategory ?? undefined) === subcategory);
   };
 
   // ── Submit ─────────────────────────────────────────────────────
@@ -404,7 +458,8 @@ export default function ProjectForm({
         selectedPhase3Docs,
         selectedLegacyDocs,
         customDocuments,
-        picAssignments,
+        picAssignments: {},
+        phasePics,
         supportingFiles,
         internalUsers,
       },
@@ -997,51 +1052,93 @@ export default function ProjectForm({
 
         {/* Step 4: Penunjukan PIC */}
         {currentStep === 4 && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-ptba-charcoal">Penunjukan PIC</h2>
-              <p className="text-sm text-ptba-gray mt-1">Tentukan penanggung jawab evaluasi untuk setiap divisi</p>
-            </div>
+          <div className="space-y-6">
+            <div className="rounded-xl bg-white p-6 shadow-sm border border-ptba-light-gray">
+              <h2 className="text-lg font-semibold text-ptba-charcoal">Penunjukan PIC per Fase</h2>
+              <p className="text-xs text-ptba-gray mt-1">Tentukan PIC untuk setiap fase proyek</p>
 
-            <div className="space-y-3">
-              {PIC_ROLES.map(({ role, label, description: desc }) => {
-                const usersForRole = getUsersForRole(role);
-                const selectedUserId = picAssignments[role] || "";
-                return (
-                  <div key={role} className="rounded-lg border border-ptba-light-gray p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ptba-navy/10">
-                        <UserPlus className="h-5 w-5 text-ptba-navy" />
+              <div className="mt-4 flex gap-1 rounded-lg bg-ptba-section-bg p-1">
+                {(Object.keys(PHASE_PIC_CONFIG) as PhaseKey[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPicPhaseTab(key)}
+                    className={cn(
+                      "flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all",
+                      picPhaseTab === key ? "bg-white text-ptba-navy shadow-sm" : "text-ptba-gray hover:text-ptba-charcoal"
+                    )}
+                  >
+                    {PHASE_PIC_CONFIG[key].label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {PHASE_PIC_CONFIG[picPhaseTab].roles.map((slot) => {
+                  const slotKey = `${picPhaseTab}-${slot.role}-${"subcategory" in slot ? slot.subcategory : ""}`;
+                  const subcategory = "subcategory" in slot ? slot.subcategory : undefined;
+                  const assigned = getPhasePicsFor(picPhaseTab, slot.role, subcategory);
+                  const usersForRole = internalUsers.filter((u) => u.role === slot.role);
+
+                  return (
+                    <div key={slotKey} className="rounded-lg border border-ptba-light-gray p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-ptba-charcoal">{slot.label}</p>
+                          <p className="text-xs text-ptba-gray">{slot.description}</p>
+                        </div>
+                        {slot.multi && (
+                          <span className="rounded-full bg-ptba-steel-blue/10 px-2 py-0.5 text-[10px] font-medium text-ptba-steel-blue">Multi</span>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-ptba-charcoal">{label}</p>
-                        <p className="text-xs text-ptba-gray">{desc}</p>
+
+                      {!slot.multi && (
                         <select
-                          value={selectedUserId}
-                          onChange={(e) => handlePICChange(role, e.target.value)}
-                          className={cn(inputClass, "mt-2")}
+                          value={assigned[0]?.userId ?? ""}
+                          onChange={(e) => setSinglePhasePic(picPhaseTab, slot.role, e.target.value, subcategory)}
+                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
                         >
                           <option value="">Pilih PIC...</option>
                           {usersForRole.map((u) => (
-                            <option key={u.id} value={u.id}>
-                              {u.name} ({u.department})
-                            </option>
+                            <option key={u.id} value={u.id}>{u.name}</option>
                           ))}
                         </select>
-                      </div>
-                      {selectedUserId && (
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500 mt-1" />
+                      )}
+
+                      {slot.multi && (
+                        <div className="space-y-2">
+                          {assigned.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {assigned.map((pic) => (
+                                <span key={pic.userId} className="inline-flex items-center gap-1 rounded-full bg-ptba-navy/10 px-2.5 py-1 text-xs text-ptba-navy">
+                                  {pic.userName}
+                                  <button type="button" onClick={() => removePhasePic(picPhaseTab, slot.role, pic.userId, subcategory)} className="ml-0.5 text-ptba-navy/50 hover:text-ptba-red">×</button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <select
+                            value=""
+                            onChange={(e) => { if (e.target.value) addPhasePic(picPhaseTab, slot.role, e.target.value, subcategory); }}
+                            className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
+                          >
+                            <option value="">Tambah PIC...</option>
+                            {usersForRole.filter((u) => !assigned.some((a) => a.userId === u.id)).map((u) => (
+                              <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            <div className="rounded-lg bg-ptba-gold/10 border border-ptba-gold/20 p-3">
-              <p className="text-xs text-ptba-gray">
-                <span className="font-medium text-ptba-charcoal">Info:</span> Hanya PIC yang ditunjuk yang dapat mengakses dan melakukan evaluasi pada proyek ini. Super Admin dan Direksi tetap memiliki akses penuh.
-              </p>
+              <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-3">
+                <p className="text-xs text-blue-700">
+                  <span className="font-medium">Info:</span> PIC Fase 1 & 3 hanya memerlukan EBD dan Direksi. Fase 2 memerlukan minimal 7 PIC dari 6 kategori evaluasi + Direksi.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -1117,24 +1214,26 @@ export default function ProjectForm({
             </div>
 
             {/* PIC Summary */}
-            <div className="rounded-lg border border-ptba-light-gray overflow-hidden">
-              <div className="bg-ptba-section-bg px-4 py-2.5">
-                <h3 className="text-sm font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
-              </div>
-              <div className="divide-y divide-ptba-light-gray/50 px-4">
-                {PIC_ROLES.map(({ role, label }) => {
-                  const userId = picAssignments[role];
-                  const user = userId ? internalUsers.find((u) => u.id === userId) : null;
-                  return (
-                    <div key={role} className="flex justify-between py-2.5">
-                      <span className="text-sm text-ptba-gray">{label}</span>
-                      <span className="text-sm font-medium text-ptba-charcoal">
-                        {user ? user.name : <span className="text-ptba-red text-xs">Belum ditunjuk</span>}
-                      </span>
+            <div className="rounded-lg border border-ptba-light-gray p-4">
+              <h3 className="text-sm font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
+              {(Object.keys(PHASE_PIC_CONFIG) as PhaseKey[]).map((phaseKey) => {
+                const pics = phasePics.filter((p) => p.phase === phaseKey);
+                if (pics.length === 0) return null;
+                return (
+                  <div key={phaseKey} className="mt-3">
+                    <p className="text-xs font-medium text-ptba-gray mb-1">{PHASE_PIC_CONFIG[phaseKey].label}</p>
+                    <div className="space-y-1">
+                      {pics.map((pic, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="text-ptba-gray">{pic.role.toUpperCase()}{pic.subcategory ? ` (${pic.subcategory})` : ""}</span>
+                          <span className="font-medium text-ptba-charcoal">{pic.userName || pic.userId}</span>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
+              {phasePics.length === 0 && <p className="mt-2 text-xs text-ptba-red">Belum ada PIC yang ditunjuk.</p>}
             </div>
           </div>
         )}
