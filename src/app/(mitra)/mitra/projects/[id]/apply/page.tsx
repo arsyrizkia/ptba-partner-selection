@@ -919,7 +919,16 @@ export default function MitraProjectApplyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.nib")}</label>
-              <input type="text" value={nib} onChange={(e) => setNib(e.target.value)} className={inputClass} />
+              <p className="mb-1 text-[10px] text-ptba-gray italic">Upload NIB document (PDF)</p>
+              <FileUploadButton
+                label="NIB Document"
+                accept=".pdf"
+                uploaded={isDoc("nib_document")}
+                uploading={uploadedDocs["nib_document"]?.uploading ?? false}
+                fileName={uploadedDocs["nib_document"]?.name}
+                onSelect={(f) => uploadDoc("nib_document", "NIB Document", f)}
+                onDelete={() => deleteDoc("nib_document")}
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.yearEstablished")}</label>
@@ -938,8 +947,16 @@ export default function MitraProjectApplyPage() {
           {/* Org Structure & Subsidiaries */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.orgStructure")}</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.orgStructureHint")}</p>
-            <textarea value={orgStructure} onChange={(e) => setOrgStructure(e.target.value)} placeholder={t("companyFields.orgStructurePlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y")} />
+            <p className="mb-1 text-[10px] text-ptba-gray italic">Upload company organizational structure (PDF or image)</p>
+            <FileUploadButton
+              label="Company Organizational Structure"
+              accept=".pdf,.png,.jpg,.jpeg"
+              uploaded={isDoc("org_structure")}
+              uploading={uploadedDocs["org_structure"]?.uploading ?? false}
+              fileName={uploadedDocs["org_structure"]?.name}
+              onSelect={(f) => uploadDoc("org_structure", "Organizational Structure", f)}
+              onDelete={() => deleteDoc("org_structure")}
+            />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.subsidiaries")}</label>
