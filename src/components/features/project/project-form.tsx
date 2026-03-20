@@ -41,14 +41,14 @@ const CATEGORIES = ["legal", "keuangan", "teknis", "administrasi"] as const;
 
 const PHASE_PIC_CONFIG = {
   phase1: {
-    label: "Fase 1 — Pra-Kualifikasi",
+    label: "Fase 1 — Filter Evaluasi",
     roles: [
       { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 1 (boleh lebih dari 1)" },
       { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
     ],
   },
   phase2: {
-    label: "Fase 2 — Penilaian Terperinci",
+    label: "Fase 2 — Pra-Kualifikasi (PQ)",
     roles: [
       { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
       { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
@@ -60,7 +60,7 @@ const PHASE_PIC_CONFIG = {
     ],
   },
   phase3: {
-    label: "Fase 3 — Proposal Akhir",
+    label: "Fase 3 — RFP & Proposal",
     roles: [
       { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 3 (boleh lebih dari 1)" },
       { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
@@ -1136,7 +1136,7 @@ export default function ProjectForm({
 
               <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-3">
                 <p className="text-xs text-blue-700">
-                  <span className="font-medium">Info:</span> PIC Fase 1 & 3 hanya memerlukan EBD dan Direksi. Fase 2 memerlukan minimal 7 PIC dari 6 kategori evaluasi + Direksi.
+                  <span className="font-medium">Info:</span> Fase 1 (Filter Evaluasi) & Fase 3 (RFP & Proposal) hanya memerlukan EBD dan Direksi. Fase 2 (PQ) memerlukan minimal 7 PIC dari 6 kategori evaluasi + Direksi.
                 </p>
               </div>
             </div>
