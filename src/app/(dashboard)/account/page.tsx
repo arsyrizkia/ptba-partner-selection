@@ -6,30 +6,30 @@ import {
   Mail,
   Building2,
   Shield,
-  Phone,
   Lock,
   Eye,
   EyeOff,
-  Camera,
   Bell,
   CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { api } from "@/lib/api/client";
 import { ROLES } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils/cn";
 
 type Tab = "profil" | "keamanan" | "notifikasi";
 
 export default function AccountPage() {
-  const { user, role } = useAuth();
+  const { user, role, accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("profil");
 
   // Profile edit state
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [phone, setPhone] = useState("0812-3456-7890");
-  const [showSaved, setShowSaved] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
 
   // Security state
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -37,19 +37,19 @@ export default function AccountPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
-  // Notification preferences
+  // Notification preferences (local only — no backend persistence for preferences)
   const [notifPrefs, setNotifPrefs] = useState({
     emailProyek: true,
     emailEvaluasi: true,
     emailPersetujuan: true,
-    emailSLA: false,
     systemProyek: true,
     systemEvaluasi: true,
     systemPersetujuan: true,
-    systemSLA: true,
   });
+  const [notifMsg, setNotifMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const roleLabel = ROLES.find((r) => r.value === role)?.label ?? "";
   const roleDescription = ROLES.find((r) => r.value === role)?.description ?? "";
@@ -63,18 +63,51 @@ export default function AccountPage() {
         .toUpperCase()
     : "??";
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    setShowSaved(true);
-    setTimeout(() => setShowSaved(false), 2000);
+  const handleSaveProfile = async () => {
+    if (!accessToken) return;
+    setProfileSaving(true);
+    setProfileMsg(null);
+    try {
+      await api("/auth/profile", {
+        method: "PUT",
+        body: { name },
+        token: accessToken,
+      });
+      setIsEditing(false);
+      setProfileMsg({ type: "success", text: "Profil berhasil disimpan" });
+      setTimeout(() => setProfileMsg(null), 3000);
+    } catch (err: any) {
+      setProfileMsg({ type: "error", text: err.message || "Gagal menyimpan profil" });
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
-  const handleSavePassword = () => {
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setPasswordSaved(true);
-    setTimeout(() => setPasswordSaved(false), 2000);
+  const handleSavePassword = async () => {
+    if (!accessToken) return;
+    setPasswordSaving(true);
+    setPasswordMsg(null);
+    try {
+      await api("/auth/change-password", {
+        method: "POST",
+        body: { currentPassword: oldPassword, newPassword },
+        token: accessToken,
+      });
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordMsg({ type: "success", text: "Kata sandi berhasil diubah" });
+      setTimeout(() => setPasswordMsg(null), 3000);
+    } catch (err: any) {
+      setPasswordMsg({ type: "error", text: err.message || "Gagal mengubah kata sandi" });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleSaveNotifPrefs = () => {
+    setNotifMsg({ type: "success", text: "Preferensi notifikasi disimpan" });
+    setTimeout(() => setNotifMsg(null), 3000);
   };
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -92,9 +125,6 @@ export default function AccountPage() {
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-ptba-navy text-2xl font-bold text-white">
               {initials}
             </div>
-            <button className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-ptba-steel-blue text-white shadow-md hover:bg-ptba-navy transition-colors">
-              <Camera className="h-3.5 w-3.5" />
-            </button>
           </div>
           <div>
             <h1 className="text-xl font-bold text-ptba-charcoal">{user?.name ?? "—"}</h1>
@@ -150,12 +180,7 @@ export default function AccountPage() {
             )}
           </div>
 
-          {showSaved && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-              <CheckCircle2 className="h-4 w-4" />
-              Profil berhasil disimpan
-            </div>
-          )}
+          <StatusMessage msg={profileMsg} />
 
           <div className="space-y-5">
             {/* Name */}
@@ -176,40 +201,14 @@ export default function AccountPage() {
               )}
             </div>
 
-            {/* Email */}
+            {/* Email (always read-only) */}
             <div>
               <label className="flex items-center gap-1.5 text-sm font-medium text-ptba-charcoal mb-1.5">
                 <Mail className="h-4 w-4 text-ptba-gray" />
                 Email
               </label>
-              {isEditing ? (
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
-                />
-              ) : (
-                <p className="rounded-lg bg-ptba-section-bg px-4 py-2.5 text-sm text-ptba-charcoal">{email}</p>
-              )}
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="flex items-center gap-1.5 text-sm font-medium text-ptba-charcoal mb-1.5">
-                <Phone className="h-4 w-4 text-ptba-gray" />
-                Nomor Telepon
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
-                />
-              ) : (
-                <p className="rounded-lg bg-ptba-section-bg px-4 py-2.5 text-sm text-ptba-charcoal">{phone}</p>
-              )}
+              <p className="rounded-lg bg-ptba-section-bg px-4 py-2.5 text-sm text-ptba-charcoal">{user?.email ?? "—"}</p>
+              {isEditing && <p className="text-[10px] text-ptba-gray mt-1">Email tidak dapat diubah</p>}
             </div>
 
             {/* Department (read-only) */}
@@ -245,15 +244,17 @@ export default function AccountPage() {
             {isEditing && (
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => { setIsEditing(false); setName(user?.name ?? ""); setEmail(user?.email ?? ""); setPhone("0812-3456-7890"); }}
+                  onClick={() => { setIsEditing(false); setName(user?.name ?? ""); }}
                   className="rounded-lg border border-ptba-light-gray px-5 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleSaveProfile}
-                  className="rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors"
+                  disabled={profileSaving || !name.trim()}
+                  className="flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  {profileSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Simpan Perubahan
                 </button>
               </div>
@@ -269,12 +270,7 @@ export default function AccountPage() {
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-1">Ubah Kata Sandi</h2>
             <p className="text-xs text-ptba-gray mb-6">Pastikan kata sandi baru memiliki minimal 8 karakter</p>
 
-            {passwordSaved && (
-              <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-                <CheckCircle2 className="h-4 w-4" />
-                Kata sandi berhasil diubah
-              </div>
-            )}
+            <StatusMessage msg={passwordMsg} />
 
             <div className="space-y-4 max-w-md">
               {/* Old password */}
@@ -339,9 +335,10 @@ export default function AccountPage() {
 
               <button
                 onClick={handleSavePassword}
-                disabled={!oldPassword || newPassword.length < 8 || newPassword !== confirmPassword}
-                className="rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={passwordSaving || !oldPassword || newPassword.length < 8 || newPassword !== confirmPassword}
+                className="flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                {passwordSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Ubah Kata Sandi
               </button>
             </div>
@@ -359,7 +356,7 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-ptba-charcoal">Browser ini</p>
-                  <p className="text-xs text-ptba-gray">Aktif sekarang · Jakarta, Indonesia</p>
+                  <p className="text-xs text-ptba-gray">Aktif sekarang</p>
                 </div>
               </div>
               <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Aktif</span>
@@ -373,6 +370,8 @@ export default function AccountPage() {
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-ptba-charcoal mb-1">Preferensi Notifikasi</h2>
           <p className="text-xs text-ptba-gray mb-6">Atur notifikasi yang ingin Anda terima</p>
+
+          <StatusMessage msg={notifMsg} />
 
           <div className="overflow-hidden rounded-lg border border-ptba-light-gray">
             <table className="w-full">
@@ -388,7 +387,6 @@ export default function AccountPage() {
                   { label: "Proyek Baru & Update", emailKey: "emailProyek" as const, systemKey: "systemProyek" as const, desc: "Pembuatan proyek, perubahan fase, undangan" },
                   { label: "Evaluasi", emailKey: "emailEvaluasi" as const, systemKey: "systemEvaluasi" as const, desc: "Tugas evaluasi, deadline, hasil" },
                   { label: "Persetujuan", emailKey: "emailPersetujuan" as const, systemKey: "systemPersetujuan" as const, desc: "Permintaan persetujuan, keputusan direksi" },
-                  { label: "SLA & Peringatan", emailKey: "emailSLA" as const, systemKey: "systemSLA" as const, desc: "Pelanggaran SLA, mendekati deadline" },
                 ].map((item) => (
                   <tr key={item.emailKey}>
                     <td className="px-4 py-3">
@@ -419,10 +417,7 @@ export default function AccountPage() {
 
           <div className="mt-4 flex justify-end">
             <button
-              onClick={() => {
-                setShowSaved(true);
-                setTimeout(() => setShowSaved(false), 2000);
-              }}
+              onClick={handleSaveNotifPrefs}
               className="rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-ptba-steel-blue transition-colors"
             >
               Simpan Preferensi
@@ -430,6 +425,22 @@ export default function AccountPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Status Message Component ────────────────────────────────────────
+
+function StatusMessage({ msg }: { msg: { type: "success" | "error"; text: string } | null }) {
+  if (!msg) return null;
+  const isError = msg.type === "error";
+  return (
+    <div className={cn(
+      "mb-4 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm",
+      isError ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"
+    )}>
+      {isError ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+      {msg.text}
     </div>
   );
 }

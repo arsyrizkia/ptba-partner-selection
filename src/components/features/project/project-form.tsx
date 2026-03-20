@@ -40,10 +40,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 const CATEGORIES = ["legal", "keuangan", "teknis", "administrasi"] as const;
 
 const PIC_ROLES: { role: UserRole; label: string; description: string }[] = [
-  { role: "ebd", label: "EBD (Evaluasi Bisnis & Development)", description: "Bertanggung jawab atas evaluasi pasar, teknis, dan ESG" },
-  { role: "keuangan", label: "Keuangan", description: "Bertanggung jawab atas evaluasi keuangan (KEP-100)" },
-  { role: "hukum", label: "Hukum", description: "Bertanggung jawab atas evaluasi aspek legal" },
-  { role: "risiko", label: "Risiko", description: "Bertanggung jawab atas evaluasi dan mitigasi risiko" },
+  { role: "ebd", label: "Energy Business Development", description: "Bertanggung jawab atas evaluasi pasar, teknis, dan ESG" },
+  { role: "keuangan", label: "Corporate Finance", description: "Bertanggung jawab atas evaluasi keuangan" },
+  { role: "hukum", label: "Legal & Regulatory Affairs", description: "Bertanggung jawab atas evaluasi aspek legal" },
+  { role: "risiko", label: "Risk Management", description: "Bertanggung jawab atas evaluasi dan mitigasi risiko" },
   { role: "direksi", label: "Direksi", description: "Approver akhir untuk persetujuan proyek" },
 ];
 

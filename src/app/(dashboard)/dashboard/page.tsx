@@ -175,9 +175,9 @@ function statusBadge(status: string) {
 
 function getDivisionLabel(role: string) {
   switch (role) {
-    case "keuangan": return "Keuangan (KEP-100)";
-    case "hukum": return "Hukum & Regulasi";
-    case "risiko": return "Manajemen Risiko";
+    case "keuangan": return "Corporate Finance";
+    case "hukum": return "Legal & Regulatory Affairs";
+    case "risiko": return "Risk Management";
     default: return "Evaluasi";
   }
 }
