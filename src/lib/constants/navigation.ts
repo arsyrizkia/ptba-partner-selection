@@ -44,6 +44,12 @@ export const NAVIGATION: NavigationItem[] = [
     allowedRoles: ALL_INTERNAL,
   },
   {
+    icon: 'ImageIcon',
+    label: 'Popup Banner',
+    href: '/banners',
+    allowedRoles: ['super_admin', 'ebd'],
+  },
+  {
     icon: 'Settings',
     label: 'Manajemen Pengguna',
     href: '/users',

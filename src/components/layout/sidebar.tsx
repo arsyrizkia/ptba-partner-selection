@@ -12,6 +12,7 @@ import {
   Bell,
   Clock,
   Settings,
+  ImageIcon,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Bell,
   Clock,
   Settings,
+  ImageIcon,
 };
 
 interface SidebarProps {
