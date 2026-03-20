@@ -670,7 +670,10 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.year;
       return false;
     }),
-    financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda) && isDoc("financial_overview"),
+    financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda) && isDoc("financial_overview")
+      && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
+      && isDoc("credit_rating_evidence")
+      && isDoc("ebitda_dscr_calculation"),
     requirements_fulfillment: (projectRequirements.length
       ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
       : true) && isDoc("requirements_fulfillment"),
@@ -1300,20 +1303,50 @@ export default function MitraProjectApplyPage() {
           </div>
 
           {/* Credit Rating */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")}</label>
-              <select value={creditRatingAgency} onChange={(e) => setCreditRatingAgency(e.target.value)} className={inputClass}>
-                <option value="">{t("portfolioFields.selectPlaceholder")}</option>
-                <option value="S&P">S&P (Pefindo)</option>
-                <option value="Moodys">Moody&apos;s</option>
-                <option value="Fitch">Fitch</option>
-                <option value="Other">{tc("typeLabels.others")}</option>
-              </select>
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")}</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {[
+                { value: "DNDB", label: "DNDB" },
+                { value: "S&P", label: "S&P (Pefindo)" },
+                { value: "Moodys", label: "Moody's" },
+                { value: "Fitch", label: "Fitch" },
+                { value: "Other", label: "Other" },
+              ].map((agency) => (
+                <label key={agency.value} className="flex items-center gap-2 text-xs text-ptba-charcoal cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={creditRatingAgency === agency.value}
+                    onChange={() => setCreditRatingAgency(creditRatingAgency === agency.value ? "" : agency.value)}
+                    className="h-3.5 w-3.5 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy"
+                  />
+                  {agency.label}
+                </label>
+              ))}
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")}</label>
-              <input type="text" placeholder={t("companyFields.example", { value: "AA+" })} value={creditRatingValue} onChange={(e) => setCreditRatingValue(e.target.value)} className={inputClass} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{creditRatingAgency || "Agency"}</label>
+                <input type="text" placeholder="e.g. SA2" value={creditRatingValue} onChange={(e) => setCreditRatingValue(e.target.value)} className={inputClass} />
+              </div>
+              {creditRatingAgency === "S&P" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">S&P (Pefindo)</label>
+                  <input type="text" placeholder="e.g. AA+" className={inputClass} />
+                </div>
+              )}
+              {creditRatingAgency === "Moodys" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Moody&apos;s</label>
+                  <input type="text" placeholder="e.g. Aaa" className={inputClass} />
+                </div>
+              )}
+              {creditRatingAgency === "Fitch" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Fitch</label>
+                  <input type="text" placeholder="e.g. AAA" className={inputClass} />
+                </div>
+              )}
             </div>
           </div>
 
@@ -1327,6 +1360,24 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
+          {/* EBITDA & DSCR Calculation */}
+          <div className="space-y-2 pt-2 border-t border-ptba-light-gray mt-4">
+            <p className="text-xs font-semibold text-ptba-charcoal pt-3">EBITDA & DSCR Calculation <span className="text-ptba-red">*</span></p>
+            <p className="text-[10px] text-ptba-gray">Download the calculation form, fill it in, then upload the completed file (xlsx format, max 20 MB).</p>
+            <FileUploadButton
+              label="Upload EBITDA and DSCR calculation"
+              accept=".xlsx,.xls"
+              uploaded={isDoc("ebitda_dscr_calculation")}
+              uploading={uploadedDocs["ebitda_dscr_calculation"]?.uploading ?? false}
+              fileName={uploadedDocs["ebitda_dscr_calculation"]?.name}
+              onSelect={(f) => uploadDoc("ebitda_dscr_calculation", "EBITDA & DSCR Calculation", f)}
+              templateFileName={getTemplateInfo("ebitda_dscr_calculation")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("ebitda_dscr_calculation")}
+              onDelete={() => deleteDoc("ebitda_dscr_calculation")}
+            />
+          </div>
+
+          {/* Financial Overview Document */}
           <div className="space-y-2 pt-2">
             <p className="text-xs font-semibold text-ptba-charcoal">{t("financialFields.financialDoc")} <span className="text-ptba-red">*</span></p>
             <FileUploadButton
@@ -1340,6 +1391,42 @@ export default function MitraProjectApplyPage() {
               onDownloadTemplate={() => downloadTemplate("financial_overview")}
               onDelete={() => deleteDoc("financial_overview")}
             />
+          </div>
+
+          {/* Credit Rating Evidence */}
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">Upload Credit Rating Evidence <span className="text-ptba-red">*</span></p>
+            <p className="text-[10px] text-ptba-gray">Pdf format, Max size 20 MB</p>
+            <FileUploadButton
+              label="Credit Rating Evidence"
+              accept=".pdf"
+              uploaded={isDoc("credit_rating_evidence")}
+              uploading={uploadedDocs["credit_rating_evidence"]?.uploading ?? false}
+              fileName={uploadedDocs["credit_rating_evidence"]?.name}
+              onSelect={(f) => uploadDoc("credit_rating_evidence", "Credit Rating Evidence", f)}
+              onDelete={() => deleteDoc("credit_rating_evidence")}
+            />
+          </div>
+
+          {/* Audited Financial Statements per year */}
+          <div className="space-y-3 pt-2 border-t border-ptba-light-gray mt-4">
+            <p className="text-xs font-semibold text-ptba-charcoal pt-3">Audited Financial Statements <span className="text-ptba-red">*</span></p>
+            <p className="text-[10px] text-ptba-gray">Upload audited financial statement for each year. Pdf format, Max size 20 MB.</p>
+            {financialYears.map((fy) => {
+              const docId = `audited_financial_${fy.year}`;
+              return (
+                <FileUploadButton
+                  key={docId}
+                  label={`Upload Audited Financial Statement for years ${fy.year}`}
+                  accept=".pdf"
+                  uploaded={isDoc(docId)}
+                  uploading={uploadedDocs[docId]?.uploading ?? false}
+                  fileName={uploadedDocs[docId]?.name}
+                  onSelect={(f) => uploadDoc(docId, `Audited Financial Statement ${fy.year}`, f)}
+                  onDelete={() => deleteDoc(docId)}
+                />
+              );
+            })}
           </div>
         </Section>
       )}
