@@ -74,6 +74,7 @@ export default function CreateProjectPage() {
             fd.append("file", newFile.file);
             fd.append("name", newFile.name);
             fd.append("type", "supporting");
+            fd.append("phase", newFile.phase || "phase1");
             await fetch(`${API_BASE}/projects/${newProjectId}/documents`, {
               method: "POST",
               headers: { Authorization: `Bearer ${accessToken}` },

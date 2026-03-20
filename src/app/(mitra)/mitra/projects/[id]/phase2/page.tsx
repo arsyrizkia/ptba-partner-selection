@@ -375,7 +375,8 @@ export default function MitraPhase2Page() {
   // ─── Derived state ───
 
   const registrationFee = project?.registrationFee ?? project?.registration_fee ?? 0;
-  const ptbaDocuments: any[] = project?.ptbaDocuments ?? project?.ptba_documents ?? [];
+  const allPtbaDocuments: any[] = project?.ptbaDocuments ?? project?.ptba_documents ?? [];
+  const ptbaDocuments = allPtbaDocuments.filter((d: any) => d.phase === "phase2");
 
   const requiredPhase2Count = PHASE2_DOCUMENT_TYPES.filter(
     (d) => d.required

@@ -83,12 +83,14 @@ interface InternalUser {
 export interface SupportingFileNew {
   file: File;
   name: string;
+  phase?: string;
 }
 
 export interface SupportingFileExisting {
   id: string;
   name: string;
   fileKey?: string;
+  phase?: string;
 }
 
 export type SupportingFile = SupportingFileNew | SupportingFileExisting;
@@ -244,6 +246,7 @@ export default function ProjectForm({
         id: d.id,
         name: d.name || d.fileName || "",
         fileKey: d.fileKey,
+        phase: d.phase || "phase1",
       })));
     }
 
@@ -398,7 +401,7 @@ export default function ProjectForm({
       input.accept = ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png";
       input.onchange = (e) => {
         const f = (e.target as HTMLInputElement).files?.[0];
-        if (f) setSupportingFiles((prev) => [...prev, { file: f, name: f.name }]);
+        if (f) setSupportingFiles((prev) => [...prev, { file: f, name: f.name, phase: "phase1" }]);
       };
       input.click();
     }
@@ -631,12 +634,25 @@ export default function ProjectForm({
               {supportingFiles.length > 0 && (
                 <div className="mt-2 space-y-1.5">
                   {supportingFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-lg bg-ptba-off-white px-3 py-2">
-                      <span className="flex items-center gap-1.5 text-sm text-ptba-charcoal">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        {file.name}
+                    <div key={index} className="flex items-center gap-2 rounded-lg bg-ptba-off-white px-3 py-2">
+                      <span className="flex items-center gap-1.5 text-sm text-ptba-charcoal flex-1 min-w-0">
+                        <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                        <span className="truncate">{file.name}</span>
                       </span>
-                      <button type="button" onClick={() => removeFile(index)} className="text-ptba-red hover:text-red-700 transition-colors">
+                      <select
+                        value={file.phase || "phase1"}
+                        onChange={(e) => {
+                          setSupportingFiles((prev) =>
+                            prev.map((f, i) => (i === index ? { ...f, phase: e.target.value } : f))
+                          );
+                        }}
+                        className="rounded border border-ptba-light-gray bg-white px-2 py-1 text-xs text-ptba-charcoal shrink-0"
+                      >
+                        <option value="phase1">Fase 1</option>
+                        <option value="phase2">Fase 2</option>
+                        <option value="phase3">Fase 3</option>
+                      </select>
+                      <button type="button" onClick={() => removeFile(index)} className="text-ptba-red hover:text-red-700 transition-colors shrink-0">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>

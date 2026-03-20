@@ -1938,41 +1938,58 @@ export default function ProjectDetailPage({
             })()}
           </div>
 
-          {/* Dokumen Pendukung Proyek (PTBA uploads) */}
+          {/* Dokumen Pendukung Proyek (PTBA uploads) — grouped by phase */}
           <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
             <h3 className="mb-4 font-semibold text-ptba-charcoal">Dokumen Pendukung Proyek</h3>
             {project.ptbaDocuments && project.ptbaDocuments.length > 0 ? (
-              <div className="space-y-2">
-                {project.ptbaDocuments.map((doc: any) => (
-                  <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
-                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+              <div className="space-y-4">
+                {(["phase1", "phase2", "phase3"] as const).map((phase) => {
+                  const phaseDocs = project.ptbaDocuments.filter((d: any) => (d.phase || "phase1") === phase);
+                  if (phaseDocs.length === 0) return null;
+                  const phaseLabels: Record<string, { label: string; color: string }> = {
+                    phase1: { label: "Fase 1", color: "steel-blue" },
+                    phase2: { label: "Fase 2", color: "navy" },
+                    phase3: { label: "Fase 3", color: "gold" },
+                  };
+                  const { label, color } = phaseLabels[phase];
+                  return (
+                    <div key={phase}>
+                      <p className={`text-xs font-semibold uppercase mb-2 text-ptba-${color}`}>{label}</p>
+                      <div className="space-y-2">
+                        {phaseDocs.map((doc: any) => (
+                          <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ptba-${color}/10`}>
+                              <FileText className={`h-4 w-4 text-ptba-${color}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name}</p>
+                              <p className="text-xs text-ptba-gray">{doc.type}</p>
+                            </div>
+                            {doc.fileKey && accessToken && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/projects/${id}/documents/${doc.id}`, {
+                                      headers: { Authorization: `Bearer ${accessToken}` },
+                                    });
+                                    if (!res.ok) return;
+                                    const blob = await res.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    window.open(url, "_blank");
+                                  } catch { /* ignore */ }
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Lihat
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name}</p>
-                      <p className="text-xs text-ptba-gray">{doc.type}</p>
-                    </div>
-                    {doc.fileKey && accessToken && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/projects/${id}/documents/${doc.id}`, {
-                              headers: { Authorization: `Bearer ${accessToken}` },
-                            });
-                            if (!res.ok) return;
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            window.open(url, "_blank");
-                          } catch { /* ignore */ }
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Lihat
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-ptba-gray italic">Belum ada dokumen pendukung. Upload melalui halaman edit.</p>

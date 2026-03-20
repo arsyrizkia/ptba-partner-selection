@@ -64,6 +64,7 @@ export default function EditProjectPage({
       formData.append("file", file);
       formData.append("name", file.name);
       formData.append("type", "supporting");
+      formData.append("phase", "phase1");
 
       const res = await fetch(`${API_BASE}/projects/${id}/documents`, {
         method: "POST",
@@ -81,6 +82,7 @@ export default function EditProjectPage({
         id: data.document.id,
         name: data.document.name,
         fileKey: data.document.fileKey,
+        phase: data.document.phase || "phase1",
       };
     } catch (err: any) {
       setSubmitError(err.message || "Gagal mengunggah dokumen");
@@ -146,6 +148,20 @@ export default function EditProjectPage({
         ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`, phase: d.phase })),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
+
+      // Sync phase changes on existing PTBA documents
+      for (const sf of formData.supportingFiles) {
+        if ("id" in sf && sf.id && sf.phase) {
+          await fetch(`${API_BASE}/projects/${id}/documents/${sf.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ phase: sf.phase }),
+          });
+        }
+      }
 
       // Upload template files if any
       if (Object.keys(templateFiles).length > 0) {

@@ -207,13 +207,15 @@ export default function MitraProjectDetailPage() {
             </div>
           )}
 
-          {/* PTBA Documents - downloadable by mitra */}
-          {project.ptbaDocuments && project.ptbaDocuments.length > 0 && (
+          {/* PTBA Documents - downloadable by mitra (phase 1 only) */}
+          {(() => {
+            const phase1Docs = (project.ptbaDocuments || []).filter((d: any) => !d.phase || d.phase === "phase1");
+            return phase1Docs.length > 0 ? (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("supportDocuments")}</h2>
               <p className="text-xs text-ptba-gray mb-3">{t("supportDocumentsDesc")}</p>
               <div className="space-y-2">
-                {project.ptbaDocuments.map((doc: any) => (
+                {phase1Docs.map((doc: any) => (
                   <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
                       <FileText className="h-4 w-4 text-ptba-steel-blue" />
@@ -245,7 +247,8 @@ export default function MitraProjectDetailPage() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null;
+          })()}
         </div>
 
         {/* Sidebar */}
