@@ -1947,7 +1947,7 @@ export default function ProjectDetailPage({
                   const phaseDocs = project.ptbaDocuments.filter((d: any) => (d.phase || "phase1") === phase);
                   if (phaseDocs.length === 0) return null;
                   const phaseLabels: Record<string, { label: string; color: string }> = {
-                    phase1: { label: "Fase 1", color: "steel-blue" },
+                    phase1: { label: "Fase 1 (Publik)", color: "steel-blue" },
                     phase2: { label: "Fase 2", color: "navy" },
                     phase3: { label: "Fase 3", color: "gold" },
                   };

@@ -409,9 +409,8 @@ export default function ProjectForm({
   };
 
   // ── Supporting files handlers ──────────────────────────────────
-  const handleAddFile = () => {
+  const handleAddFileWithPhase = (phase: string) => {
     if (mode === "edit" && onFileUpload) {
-      // Edit mode: upload immediately
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png";
@@ -420,23 +419,24 @@ export default function ProjectForm({
         if (f) {
           const result = await onFileUpload(f);
           if (result) {
-            setSupportingFiles((prev) => [...prev, result]);
+            setSupportingFiles((prev) => [...prev, { ...result, phase }]);
           }
         }
       };
       input.click();
     } else {
-      // Create mode: store file locally
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png";
       input.onchange = (e) => {
         const f = (e.target as HTMLInputElement).files?.[0];
-        if (f) setSupportingFiles((prev) => [...prev, { file: f, name: f.name, phase: "phase1" }]);
+        if (f) setSupportingFiles((prev) => [...prev, { file: f, name: f.name, phase }]);
       };
       input.click();
     }
   };
+
+  const handleAddFile = () => handleAddFileWithPhase("phase1");
 
   const removeFile = async (index: number) => {
     const file = supportingFiles[index];
@@ -741,49 +741,58 @@ export default function ProjectForm({
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Dokumen Pendukung Proyek</label>
-              <p className="mb-2 text-xs text-ptba-gray">Upload dokumen yang dapat dilihat oleh mitra (TOR, spesifikasi teknis, gambar, dll.)</p>
-              <button
-                type="button"
-                disabled={uploadingFile}
-                onClick={handleAddFile}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm text-ptba-gray hover:bg-ptba-off-white transition-colors",
-                  uploadingFile && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploadingFile ? "Mengunggah..." : "Tambah File"}
-              </button>
-              {supportingFiles.length > 0 && (
-                <div className="mt-2 space-y-1.5">
-                  {supportingFiles.map((file, index) => (
-                    <div key={index} className="flex items-center gap-2 rounded-lg bg-ptba-off-white px-3 py-2">
-                      <span className="flex items-center gap-1.5 text-sm text-ptba-charcoal flex-1 min-w-0">
-                        <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-                        <span className="truncate">{file.name}</span>
-                      </span>
-                      <select
-                        value={file.phase || "phase1"}
-                        onChange={(e) => {
-                          setSupportingFiles((prev) =>
-                            prev.map((f, i) => (i === index ? { ...f, phase: e.target.value } : f))
-                          );
-                        }}
-                        className="rounded border border-ptba-light-gray bg-white px-2 py-1 text-xs text-ptba-charcoal shrink-0"
+            {/* Dokumen Pendukung Proyek — per fase */}
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Dokumen Pendukung Proyek</label>
+                <p className="text-xs text-ptba-gray">Upload dokumen yang dapat dilihat oleh mitra. Dokumen Fase 1 bersifat publik.</p>
+              </div>
+
+              {(["phase1", "phase2", "phase3"] as const).map((phase) => {
+                const cfg: Record<string, { label: string; desc: string; border: string; bg: string; text: string }> = {
+                  phase1: { label: "Fase 1 — Publik", desc: "Dapat dilihat semua mitra yang melihat proyek ini.", border: "border-green-200", bg: "bg-green-50/50", text: "text-green-800" },
+                  phase2: { label: "Fase 2 — Assessment", desc: "Hanya mitra yang lolos Fase 1 dan sudah bayar.", border: "border-ptba-steel-blue/20", bg: "bg-ptba-steel-blue/5", text: "text-ptba-steel-blue" },
+                  phase3: { label: "Fase 3 — Proposal", desc: "Hanya mitra yang lolos Fase 2.", border: "border-ptba-gold/30", bg: "bg-ptba-gold/5", text: "text-ptba-gold" },
+                };
+                const { label, desc, border, bg, text } = cfg[phase];
+                const phaseFiles = supportingFiles
+                  .map((f, i) => ({ ...f, originalIndex: i }))
+                  .filter((f) => (f.phase || "phase1") === phase);
+                return (
+                  <div key={phase} className={cn("rounded-lg border p-4 space-y-3", border, bg)}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className={cn("text-sm font-semibold", text)}>{label}</h3>
+                        <p className="text-xs text-ptba-gray">{desc}</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={uploadingFile}
+                        onClick={() => handleAddFileWithPhase(phase)}
+                        className="flex items-center gap-1 rounded-lg border border-ptba-light-gray bg-white px-3 py-1.5 text-xs text-ptba-gray hover:bg-ptba-off-white transition-colors shrink-0"
                       >
-                        <option value="phase1">Fase 1</option>
-                        <option value="phase2">Fase 2</option>
-                        <option value="phase3">Fase 3</option>
-                      </select>
-                      <button type="button" onClick={() => removeFile(index)} className="text-ptba-red hover:text-red-700 transition-colors shrink-0">
-                        <Trash2 className="h-3.5 w-3.5" />
+                        {uploadingFile ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                        Tambah
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                    {phaseFiles.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {phaseFiles.map((file) => (
+                          <div key={file.originalIndex} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 border border-ptba-light-gray">
+                            <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                            <span className="text-sm text-ptba-charcoal flex-1 min-w-0 truncate">{file.name}</span>
+                            <button type="button" onClick={() => removeFile(file.originalIndex)} className="text-ptba-red hover:text-red-700 transition-colors shrink-0">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-ptba-gray italic">Belum ada dokumen.</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-4">
