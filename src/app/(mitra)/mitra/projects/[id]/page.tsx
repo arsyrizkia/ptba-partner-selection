@@ -112,7 +112,11 @@ export default function MitraProjectDetailPage() {
       </button>
 
       {/* Project Header */}
-      <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
+      <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue text-white overflow-hidden">
+        {project.coverImageUrl && (
+          <img src={project.coverImageUrl} alt="" className="w-full h-48 object-cover" />
+        )}
+        <div className="p-6">
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{tc(`typeLabels.${project.type}`)}</span>
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status}</span>
@@ -157,6 +161,7 @@ export default function MitraProjectDetailPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Shortlist Announcement */}
@@ -188,6 +193,19 @@ export default function MitraProjectDetailPage() {
           <div className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("projectDescription")}</h2>
             <p className="text-sm text-ptba-gray leading-relaxed">{project.description || t("noDescription")}</p>
+            {project.projectImages && project.projectImages.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {project.projectImages.map((img: any) => (
+                  <img
+                    key={img.id}
+                    src={img.url}
+                    alt={img.caption || ""}
+                    className="w-full rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(img.url, "_blank")}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Requirements */}

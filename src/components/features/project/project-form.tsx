@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, Loader2, ChevronDown, ChevronRight, ImageIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -125,6 +125,8 @@ export interface ProjectFormData {
   phasePics: PhasePicEntry[];
   supportingFiles: SupportingFile[];
   internalUsers: InternalUser[];
+  coverImageFile?: File | null;
+  descriptionImageFiles?: File[];
 }
 
 export interface ProjectFormProps {
@@ -185,6 +187,11 @@ export default function ProjectForm({
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("");
   const [description, setDescription] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [descriptionImageFiles, setDescriptionImageFiles] = useState<File[]>([]);
+  const [descriptionImagePreviews, setDescriptionImagePreviews] = useState<string[]>([]);
+  const [existingDescriptionImages, setExistingDescriptionImages] = useState<{ id: string; url: string }[]>([]);
 
   // Step 2
   const [startDate, setStartDate] = useState("");
@@ -239,6 +246,30 @@ export default function ProjectForm({
     setPhase2Deadline(formatDateForInput(project.phase2Deadline as string));
     setPhase3Deadline(formatDateForInput(project.phase3Deadline as string));
     setIsOpenForApplication(!!project.isOpenForApplication);
+
+    // Cover image preview
+    if (project.coverImageKey && accessToken) {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+      fetch(`${API_BASE}/documents/download/${project.coverImageKey}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }).then(r => r.json()).then(d => { if (d.url) setCoverImagePreview(d.url); }).catch(() => {});
+    }
+
+    // Description images
+    if (project.projectImages && Array.isArray(project.projectImages) && accessToken) {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+      Promise.all(
+        project.projectImages.map(async (img: any) => {
+          try {
+            const r = await fetch(`${API_BASE}/documents/download/${img.fileKey}`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            const d = await r.json();
+            return { id: img.id, url: d.url || "" };
+          } catch { return { id: img.id, url: "" }; }
+        })
+      ).then(setExistingDescriptionImages);
+    }
 
     // Supporting files from ptbaDocuments
     if (project.ptbaDocuments && Array.isArray(project.ptbaDocuments)) {
@@ -465,6 +496,8 @@ export default function ProjectForm({
         phasePics,
         supportingFiles,
         internalUsers,
+        coverImageFile,
+        descriptionImageFiles,
       },
       templateFiles,
       andPublish
@@ -578,6 +611,98 @@ export default function ProjectForm({
                 onChange={(e) => setDescription(e.target.value)}
                 className={cn(inputClass, "min-h-[100px] resize-y")}
               />
+            </div>
+
+            {/* Cover Image */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Cover Image</label>
+              <p className="mb-2 text-xs text-ptba-gray">Gambar utama yang ditampilkan di kartu proyek.</p>
+              {coverImagePreview ? (
+                <div className="relative inline-block">
+                  <img src={coverImagePreview} alt="Cover" className="h-32 rounded-lg object-cover border border-ptba-light-gray" />
+                  <button
+                    type="button"
+                    onClick={() => { setCoverImageFile(null); setCoverImagePreview(null); }}
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/jpeg,image/png,image/webp";
+                    input.onchange = (e) => {
+                      const f = (e.target as HTMLInputElement).files?.[0];
+                      if (f) {
+                        setCoverImageFile(f);
+                        setCoverImagePreview(URL.createObjectURL(f));
+                      }
+                    };
+                    input.click();
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-ptba-light-gray px-4 py-3 text-sm text-ptba-gray hover:bg-ptba-off-white transition-colors"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  Pilih Cover Image
+                </button>
+              )}
+            </div>
+
+            {/* Description Images */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Gambar Deskripsi</label>
+              <p className="mb-2 text-xs text-ptba-gray">Gambar pendukung yang ditampilkan di halaman detail proyek (bisa lebih dari satu).</p>
+              <div className="flex flex-wrap gap-3">
+                {existingDescriptionImages.map((img) => (
+                  <div key={img.id} className="relative">
+                    <img src={img.url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray" />
+                    <button
+                      type="button"
+                      onClick={() => setExistingDescriptionImages((prev) => prev.filter((i) => i.id !== img.id))}
+                      className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {descriptionImagePreviews.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDescriptionImageFiles((prev) => prev.filter((_, idx) => idx !== i));
+                        setDescriptionImagePreviews((prev) => prev.filter((_, idx) => idx !== i));
+                      }}
+                      className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/jpeg,image/png,image/webp";
+                    input.multiple = true;
+                    input.onchange = (e) => {
+                      const files = Array.from((e.target as HTMLInputElement).files || []);
+                      setDescriptionImageFiles((prev) => [...prev, ...files]);
+                      setDescriptionImagePreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+                    };
+                    input.click();
+                  }}
+                  className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-ptba-light-gray text-ptba-gray hover:bg-ptba-off-white transition-colors"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         )}

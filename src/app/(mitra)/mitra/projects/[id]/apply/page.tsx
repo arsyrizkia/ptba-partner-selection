@@ -198,6 +198,7 @@ function FileUploadButton({
 // ─── Section Wrapper ───
 
 function Section({
+  id,
   number,
   title,
   icon: Icon,
@@ -206,6 +207,7 @@ function Section({
   onToggle,
   children,
 }: {
+  id?: string;
   number: number;
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -215,7 +217,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+    <div id={id} className="rounded-xl bg-white shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -662,7 +664,7 @@ export default function MitraProjectApplyPage() {
   const sectionComplete: Record<string, boolean> = {
     compro: !!companyName && !!companyAddress && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && eoiAgreed && isDoc("statement_eoi"),
-    portfolio: experiences.length >= 2 && experiences.every((exp) => {
+    portfolio: experiences.length >= 2 && isDoc("portfolio") && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
       if (exp.category === 'developer') return base && !!exp.equityPercent && !!exp.ippOrCaptive && !!exp.codYear;
@@ -688,6 +690,37 @@ export default function MitraProjectApplyPage() {
     + (sectionComplete.final ? 1 : 0);
   const totalSections = activeSections.length + (hasAdditionalDocs ? 1 : 0) + 1;
   const allComplete = activeSectionIds.every((id) => sectionComplete[id]) && additionalDocsComplete && sectionComplete.final;
+
+  const scrollToFirstIncomplete = () => {
+    // Check main sections
+    for (const id of activeSectionIds) {
+      if (!sectionComplete[id]) {
+        const el = document.getElementById(`section-${id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          setOpenSection(getSectionNumber(id));
+        }
+        return;
+      }
+    }
+    // Check additional docs section
+    if (hasAdditionalDocs && !additionalDocsComplete) {
+      const el = document.getElementById("section-additional");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setOpenSection(additionalDocsSectionNumber);
+      }
+      return;
+    }
+    // Check final section
+    if (!sectionComplete.final) {
+      const el = document.getElementById("section-final");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setOpenSection(finalSectionNumber);
+      }
+    }
+  };
 
   // ─── Experience Handlers ───
 
@@ -863,6 +896,7 @@ export default function MitraProjectApplyPage() {
       {/* ─── Section: Informasi & Profil Perusahaan (compro) ─── */}
       {hasDoc("compro") && (
         <Section
+          id="section-compro"
           number={getSectionNumber("compro")}
           title={t("sections.companyInfo")}
           icon={Building2}
@@ -1002,6 +1036,7 @@ export default function MitraProjectApplyPage() {
       {/* ─── Section: Surat Pernyataan EoI (statement_eoi) ─── */}
       {hasDoc("statement_eoi") && (
         <Section
+          id="section-statement_eoi"
           number={getSectionNumber("statement_eoi")}
           title={t("sections.eoiStatement")}
           icon={PenLine}
@@ -1093,6 +1128,7 @@ export default function MitraProjectApplyPage() {
       {/* ─── Section: Pengalaman & Portfolio Proyek (portfolio) ─── */}
       {hasDoc("portfolio") && (
         <Section
+          id="section-portfolio"
           number={getSectionNumber("portfolio")}
           title={t("sections.portfolio")}
           icon={Briefcase}
@@ -1259,6 +1295,7 @@ export default function MitraProjectApplyPage() {
       {/* ─── Section: Gambaran Umum Keuangan (financial_overview) ─── */}
       {hasDoc("financial_overview") && (
         <Section
+          id="section-financial_overview"
           number={getSectionNumber("financial_overview")}
           title={t("sections.financialOverview")}
           icon={DollarSign}
@@ -1461,6 +1498,7 @@ export default function MitraProjectApplyPage() {
       {/* ─── Section: Pemenuhan Persyaratan (requirements_fulfillment) ─── */}
       {hasDoc("requirements_fulfillment") && (
         <Section
+          id="section-requirements_fulfillment"
           number={getSectionNumber("requirements_fulfillment")}
           title={t("sections.requirementsFulfillment")}
           icon={ClipboardCheck}
@@ -1559,6 +1597,7 @@ export default function MitraProjectApplyPage() {
       {/* ═══ Section: Dokumen Tambahan (if any legacy docs assigned to phase1) ═══ */}
       {hasAdditionalDocs && (
         <Section
+          id="section-additional"
           number={additionalDocsSectionNumber}
           title={t("sections.additionalDocs")}
           icon={FileText}
@@ -1588,6 +1627,7 @@ export default function MitraProjectApplyPage() {
 
       {/* ═══ Section: Pernyataan Akhir & Submit (always shown) ═══ */}
       <Section
+        id="section-final"
         number={finalSectionNumber}
         title={t("sections.finalStatement")}
         icon={ShieldCheck}
@@ -1640,13 +1680,13 @@ export default function MitraProjectApplyPage() {
               {savingDraft ? t("submitBar.savingDraft") : t("submitBar.saveDraft")}
             </button>
             <button
-              onClick={handleSubmit}
-              disabled={!allComplete || submitting}
+              onClick={allComplete ? handleSubmit : scrollToFirstIncomplete}
+              disabled={submitting}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition-colors",
                 allComplete && !submitting
                   ? "bg-ptba-gold text-ptba-charcoal hover:bg-ptba-gold-light"
-                  : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+                  : "bg-ptba-light-gray text-ptba-gray hover:bg-ptba-light-gray/80"
               )}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}

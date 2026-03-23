@@ -65,6 +65,30 @@ export default function CreateProjectPage() {
       const newProjectId = res.data?.id;
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
+      // Upload cover image
+      if (newProjectId && formData.coverImageFile) {
+        const fd = new FormData();
+        fd.append("file", formData.coverImageFile);
+        await fetch(`${API_BASE}/projects/${newProjectId}/cover-image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: fd,
+        });
+      }
+
+      // Upload description images
+      if (newProjectId && formData.descriptionImageFiles && formData.descriptionImageFiles.length > 0) {
+        for (const file of formData.descriptionImageFiles) {
+          const fd = new FormData();
+          fd.append("file", file);
+          await fetch(`${API_BASE}/projects/${newProjectId}/images`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: fd,
+          });
+        }
+      }
+
       // Upload supporting files to MinIO
       if (newProjectId && formData.supportingFiles.length > 0) {
         for (const sf of formData.supportingFiles) {

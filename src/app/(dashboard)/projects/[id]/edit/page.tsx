@@ -149,6 +149,30 @@ export default function EditProjectPage({
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
+      // Upload cover image if new
+      if (formData.coverImageFile) {
+        const fd = new FormData();
+        fd.append("file", formData.coverImageFile);
+        await fetch(`${API_BASE}/projects/${id}/cover-image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: fd,
+        });
+      }
+
+      // Upload new description images
+      if (formData.descriptionImageFiles && formData.descriptionImageFiles.length > 0) {
+        for (const file of formData.descriptionImageFiles) {
+          const fd = new FormData();
+          fd.append("file", file);
+          await fetch(`${API_BASE}/projects/${id}/images`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: fd,
+          });
+        }
+      }
+
       // Sync phase changes on existing PTBA documents
       for (const sf of formData.supportingFiles) {
         if ("id" in sf && sf.id && sf.phase) {
