@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument } from "@/lib/api/client";
-import { PHASE1_CRITERIA, PHASE1_PASSING_SCORE } from "@/lib/constants/phase1-criteria";
+import { ALL_FILTRATION_ITEMS } from "@/lib/constants/phase1-criteria";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
 import FormDataViewer from "@/components/features/project/form-data-viewer";
@@ -38,7 +38,7 @@ interface Phase1EvalSummary {
   application_id: string;
   evaluator_id: string;
   overall_result: string;
-  weighted_score: number;
+  weighted_score: number | null;
   notes: string | null;
   evaluated_at: string;
   partner_id: string;
@@ -47,13 +47,15 @@ interface Phase1EvalSummary {
 
 interface Phase1ScoreDetail {
   criterion_id: string;
-  score: number;
+  score: number | null;
+  passed: boolean | null;
+  item_type: string;
   notes: string | null;
 }
 
 interface Phase1EvalDetail {
   id: string;
-  weighted_score: number;
+  weighted_score: number | null;
   overall_result: string;
   notes: string | null;
   evaluated_at: string;
@@ -507,7 +509,7 @@ export default function Phase1ApprovalPage({
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 className="h-10 w-10 text-ptba-navy mx-auto mb-3 animate-spin" />
-          <p className="text-sm text-ptba-gray">Memuat data evaluasi...</p>
+          <p className="text-sm text-ptba-gray">Memuat data filtrasi...</p>
         </div>
       </div>
     );
@@ -537,8 +539,8 @@ export default function Phase1ApprovalPage({
         <BackHeader projectId={id} projectName={project.name} />
         <div className="rounded-xl bg-white p-6 shadow-sm text-center">
           <AlertTriangle className="h-10 w-10 text-ptba-gold mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Evaluasi Fase 1</h2>
-          <p className="text-sm text-ptba-gray">Evaluasi Fase 1 belum selesai untuk proyek ini.</p>
+          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Filtrasi Fase 1</h2>
+          <p className="text-sm text-ptba-gray">Filtrasi Fase 1 belum selesai untuk proyek ini.</p>
         </div>
       </div>
     );
@@ -595,7 +597,7 @@ export default function Phase1ApprovalPage({
         <div className="flex items-start gap-3">
           <ShieldCheck className="h-6 w-6 text-ptba-navy mt-0.5 shrink-0" />
           <div>
-            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi Fase 1</h1>
+            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Filtrasi Fase 1</h1>
             <p className="text-sm text-ptba-gray mt-1">
               Review dan setujui hasil shortlist Fase 1 untuk seluruh mitra sebelum melanjutkan ke Fase 2.
             </p>
@@ -605,7 +607,7 @@ export default function Phase1ApprovalPage({
           <SummaryBox label="Total Mitra" value={phase1Evals.length} />
           <SummaryBox label="Lolos" value={phase1Evals.filter((e) => e.overall_result === "Lolos").length} color="green" />
           <SummaryBox label="Tidak Lolos" value={phase1Evals.filter((e) => e.overall_result === "Tidak Lolos").length} color="red" />
-          <SummaryBox label="Passing Score" value={PHASE1_PASSING_SCORE.toFixed(1)} />
+          <SummaryBox label="Sistem" value="Lulus / Tidak Lulus" />
         </div>
       </div>
 
@@ -664,7 +666,7 @@ export default function Phase1ApprovalPage({
               </div>
               <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Direview</h3>
               <p className="text-sm text-ptba-gray max-w-md mx-auto">
-                Klik salah satu mitra di panel kiri untuk melihat detail evaluasi dan memberikan keputusan.
+                Klik salah satu mitra di panel kiri untuk melihat detail filtrasi dan memberikan keputusan.
               </p>
               {phase1Evals.length > 0 && (
                 <button
@@ -801,48 +803,37 @@ export default function Phase1ApprovalPage({
                             </div>
                           ) : selectedDetail ? (
                             <>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b border-ptba-light-gray">
-                                      <th className="text-left py-2 pr-3 font-medium text-ptba-navy">Kriteria</th>
-                                      <th className="text-center py-2 px-3 font-medium text-ptba-navy w-20">Bobot</th>
-                                      <th className="text-center py-2 px-3 font-medium text-ptba-navy w-20">Skor</th>
-                                      <th className="text-center py-2 px-3 font-medium text-ptba-navy w-28">Skor Tertimbang</th>
-                                      <th className="text-left py-2 pl-3 font-medium text-ptba-navy">Catatan</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {PHASE1_CRITERIA.map((criteriaDef) => {
-                                      const scoreItem = selectedDetail.scores.find(
-                                        (s) => s.criterion_id === criteriaDef.id
-                                      );
-                                      const score = Number(scoreItem?.score ?? 0);
-                                      const weight = criteriaDef.weight;
-                                      const weightedScore = (score * weight) / 100;
-                                      return (
-                                        <tr key={criteriaDef.id} className="border-b border-gray-50 last:border-0">
-                                          <td className="py-2.5 pr-3 text-ptba-charcoal">{criteriaDef.name}</td>
-                                          <td className="py-2.5 px-3 text-center text-ptba-gray">{weight}%</td>
-                                          <td className="py-2.5 px-3 text-center font-semibold text-ptba-charcoal">{score}/{criteriaDef.maxScore}</td>
-                                          <td className="py-2.5 px-3 text-center font-semibold text-ptba-navy">{weightedScore.toFixed(2)}</td>
-                                          <td className="py-2.5 pl-3 text-xs text-ptba-gray">{scoreItem?.notes ?? "-"}</td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                  <tfoot>
-                                    <tr className="border-t-2 border-ptba-light-gray">
-                                      <td className="py-3 pr-3 font-semibold text-ptba-navy">Rata-rata Tertimbang</td>
-                                      <td className="py-3 px-3 text-center font-semibold text-ptba-navy">100%</td>
-                                      <td />
-                                      <td className={cn("py-3 px-3 text-center font-bold text-base", Number(selectedDetail.weighted_score) >= PHASE1_PASSING_SCORE ? "text-green-700" : "text-red-700")}>
-                                        {Number(selectedDetail.weighted_score).toFixed(2)}
-                                      </td>
-                                      <td className="py-3 pl-3 text-xs text-ptba-gray">Min. {PHASE1_PASSING_SCORE.toFixed(1)} untuk Lolos</td>
-                                    </tr>
-                                  </tfoot>
-                                </table>
+                              <div className="space-y-2">
+                                {selectedDetail.scores.map((item) => {
+                                  const itemDef = ALL_FILTRATION_ITEMS.find((f) => f.id === item.criterion_id);
+                                  const label = itemDef?.id || item.criterion_id;
+                                  const typeLabel = item.item_type === "document" ? "Dokumen" : "Data Formulir";
+                                  return (
+                                    <div key={item.criterion_id} className={cn("rounded-lg border p-3", item.passed ? "border-green-200 bg-green-50/30" : "border-red-200 bg-red-50/30")}>
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-sm font-medium text-ptba-charcoal">{label}</p>
+                                          <p className="text-[10px] text-ptba-gray">{typeLabel}</p>
+                                        </div>
+                                        <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", item.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-ptba-red")}>
+                                          {item.passed ? "Lulus" : "Tidak Lulus"}
+                                        </span>
+                                      </div>
+                                      {item.notes && <p className="mt-1.5 text-xs text-ptba-gray">{item.notes}</p>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-ptba-gray">Hasil Filtrasi</p>
+                                  <p className={cn("text-lg font-bold", selectedDetail.overall_result === "Lolos" ? "text-green-600" : "text-ptba-red")}>
+                                    {selectedDetail.overall_result}
+                                  </p>
+                                </div>
+                                <p className="text-xs text-ptba-gray mt-1">
+                                  {selectedDetail.scores.filter((s) => s.passed).length} / {selectedDetail.scores.length} item Lulus
+                                </p>
                               </div>
                               {selectedDetail.notes && (
                                 <div className="mt-3 rounded-lg bg-ptba-section-bg px-4 py-3">
@@ -1114,7 +1105,7 @@ export default function Phase1ApprovalPage({
                 <p className={cn("text-xs mt-1", hasReEvalRequests ? "text-amber-700" : "text-green-700")}>
                   {hasReEvalRequests
                     ? `${direksiReEvalCount} mitra dikembalikan ke EBD. ${direksiSetujuiCount} mitra disetujui.`
-                    : "Semua hasil evaluasi Fase 1 telah disetujui. Mitra yang lolos akan diundang ke Fase 2."}
+                    : "Semua hasil filtrasi Fase 1 telah disetujui. Mitra yang lolos akan diundang ke Fase 2."}
                 </p>
                 <Link href="/approvals" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors">
                   Kembali ke Antrian Persetujuan <ChevronRight className="h-4 w-4" />
@@ -1144,7 +1135,7 @@ export default function Phase1ApprovalPage({
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-green-800">{direksiSetujuiCount} mitra disetujui</p>
-                    <p className="text-xs text-green-700">Hasil evaluasi diterima, lanjut ke Fase 2</p>
+                    <p className="text-xs text-green-700">Hasil filtrasi diterima, lanjut ke Fase 2</p>
                   </div>
                 </div>
               )}

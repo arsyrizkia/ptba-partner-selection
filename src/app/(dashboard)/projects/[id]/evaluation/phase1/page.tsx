@@ -33,6 +33,7 @@ import {
 import { formatDate } from "@/lib/utils/format";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import FormDataViewer from "@/components/features/project/form-data-viewer";
+import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -881,7 +882,18 @@ export default function Phase1EvaluationPage({
                           </div>
                         </div>
 
-                        {/* Prev / Next */}
+                        {/* PDF Download + Prev / Next */}
+                        {selectedAppFormData && (
+                          <div className="px-6 py-2 bg-ptba-section-bg border-b border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => generateApplicationPdf(app.partner_name || "Mitra", selectedAppFormData)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Unduh PDF Formulir
+                            </button>
+                          </div>
+                        )}
                         <div className="px-6 py-2.5 bg-gray-50 flex items-center justify-between text-sm border-b border-gray-100">
                           <button
                             onClick={() => prevMitra && navigateToMitra(prevMitra.partner_id)}
