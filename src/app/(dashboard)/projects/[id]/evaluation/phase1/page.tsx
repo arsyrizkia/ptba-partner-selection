@@ -26,8 +26,9 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument } from "@/lib/api/client";
 import {
-  PHASE1_CRITERIA,
-  PHASE1_PASSING_SCORE,
+  PHASE1_DOCUMENT_ITEMS,
+  PHASE1_FORM_SECTION_ITEMS,
+  ALL_FILTRATION_ITEMS,
 } from "@/lib/constants/phase1-criteria";
 import { formatDate } from "@/lib/utils/format";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
@@ -159,14 +160,19 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
 };
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-interface MitraScores {
-  [criteriaId: string]: number;
+interface MitraChecks {
+  [itemId: string]: boolean | null; // null = not yet assessed
+}
+
+interface MitraComments {
+  [itemId: string]: string;
 }
 
 type MitraStatus = "draft" | "finalized" | "returned";
 
 interface MitraEvalState {
-  scores: MitraScores;
+  checks: MitraChecks;
+  comments: MitraComments;
   saved: boolean;
   status: MitraStatus;
   finalizedAt?: string;
@@ -218,7 +224,7 @@ interface ApiEvaluation {
 }
 
 interface ApiEvalDetail extends ApiEvaluation {
-  scores: { criterion_id: string; score: number; notes: string | null }[];
+  scores: { criterion_id: string; score: number | null; passed: boolean | null; item_type: string; notes: string | null }[];
 }
 
 interface ApiProject {
@@ -326,29 +332,30 @@ export default function Phase1EvaluationPage({
               `/evaluations/phase1/${id}/${app.id}`,
               { token: accessToken }
             );
-            const scores: MitraScores = {};
+            const checks: MitraChecks = {};
+            const itemComments: MitraComments = {};
             detailRes.evaluation.scores.forEach((s) => {
-              scores[s.criterion_id] = Number(s.score);
+              checks[s.criterion_id] = s.passed ?? null;
+              if (s.notes) itemComments[s.criterion_id] = s.notes;
             });
             notes[app.partner_id] = detailRes.evaluation.notes;
-            // Mark as finalized if is_finalized flag is set on the evaluation
             const isFinalized = !!existingEval.is_finalized;
             state[app.partner_id] = {
-              scores,
+              checks,
+              comments: itemComments,
               saved: true,
               status: isFinalized ? "finalized" : "draft",
               finalizedAt: isFinalized ? existingEval.evaluated_at ?? undefined : undefined,
             };
           } catch {
-            // Could not load detail — set as empty
-            const scores: MitraScores = {};
-            PHASE1_CRITERIA.forEach((c) => { scores[c.id] = 0; });
-            state[app.partner_id] = { scores, saved: false, status: "draft" };
+            const checks: MitraChecks = {};
+            ALL_FILTRATION_ITEMS.forEach((c) => { checks[c.id] = null; });
+            state[app.partner_id] = { checks, comments: {}, saved: false, status: "draft" };
           }
         } else {
-          const scores: MitraScores = {};
-          PHASE1_CRITERIA.forEach((c) => { scores[c.id] = 0; });
-          state[app.partner_id] = { scores, saved: false, status: "draft" };
+          const checks: MitraChecks = {};
+          ALL_FILTRATION_ITEMS.forEach((c) => { checks[c.id] = null; });
+          state[app.partner_id] = { checks, comments: {}, saved: false, status: "draft" };
         }
       }
 
@@ -411,15 +418,18 @@ export default function Phase1EvaluationPage({
           `/evaluations/phase1/${id}/${selectedApp.id}`,
           { token: accessToken }
         );
-        const scores: MitraScores = {};
+        const checks: MitraChecks = {};
+        const itemComments: MitraComments = {};
         detailRes.evaluation.scores.forEach((s) => {
-          scores[s.criterion_id] = Number(s.score);
+          checks[s.criterion_id] = s.passed ?? null;
+          if (s.notes) itemComments[s.criterion_id] = s.notes;
         });
         setEvalStates((prev) => ({
           ...prev,
           [partnerId]: {
             ...prev[partnerId],
-            scores: { ...prev[partnerId].scores, ...scores },
+            checks: { ...prev[partnerId].checks, ...checks },
+            comments: { ...prev[partnerId].comments, ...itemComments },
           },
         }));
         setEvalNotes((prev) => ({
@@ -427,7 +437,7 @@ export default function Phase1EvaluationPage({
           [partnerId]: detailRes.evaluation.notes,
         }));
       } catch {
-        // Ignore — scores already in state from initial load
+        // Ignore — checks already in state from initial load
       }
     };
 
@@ -435,44 +445,64 @@ export default function Phase1EvaluationPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedApp?.id]);
 
-  // ── Score helpers ──────────────────────────────────────────────────────────
-  const updateScore = (partnerId: string, criteriaId: string, score: number) => {
+  // ── Check helpers ──────────────────────────────────────────────────────────
+  const updateCheck = (partnerId: string, itemId: string, passed: boolean) => {
     const state = evalStates[partnerId];
-    if (state?.status === "finalized") return; // locked
+    if (state?.status === "finalized") return;
     setEvalStates((prev) => ({
       ...prev,
       [partnerId]: {
         ...prev[partnerId],
-        scores: { ...prev[partnerId].scores, [criteriaId]: score },
+        checks: { ...prev[partnerId].checks, [itemId]: passed },
         saved: false,
       },
     }));
   };
 
-  const calculateWeightedScore = (partnerId: string): number => {
+  const updateComment = (partnerId: string, itemId: string, comment: string) => {
     const state = evalStates[partnerId];
-    if (!state) return 0;
-    let weightedSum = 0;
-    let totalWeight = 0;
-    PHASE1_CRITERIA.forEach((c) => {
-      weightedSum += (state.scores[c.id] || 0) * c.weight;
-      totalWeight += c.weight;
-    });
-    return totalWeight > 0 ? weightedSum / totalWeight : 0;
+    if (state?.status === "finalized") return;
+    setEvalStates((prev) => ({
+      ...prev,
+      [partnerId]: {
+        ...prev[partnerId],
+        comments: { ...prev[partnerId].comments, [itemId]: comment },
+        saved: false,
+      },
+    }));
+  };
+
+  const getPassedCount = (partnerId: string): { passed: number; total: number } => {
+    const state = evalStates[partnerId];
+    if (!state) return { passed: 0, total: ALL_FILTRATION_ITEMS.length };
+    const passed = ALL_FILTRATION_ITEMS.filter((c) => state.checks[c.id] === true).length;
+    return { passed, total: ALL_FILTRATION_ITEMS.length };
   };
 
   const getResult = (partnerId: string): "Lolos" | "Tidak Lolos" | "Belum Dinilai" => {
     const state = evalStates[partnerId];
     if (!state) return "Belum Dinilai";
-    const allScored = PHASE1_CRITERIA.every((c) => (state.scores[c.id] || 0) > 0);
-    if (!allScored) return "Belum Dinilai";
-    return calculateWeightedScore(partnerId) >= PHASE1_PASSING_SCORE ? "Lolos" : "Tidak Lolos";
+    const allAssessed = ALL_FILTRATION_ITEMS.every((c) => state.checks[c.id] !== null && state.checks[c.id] !== undefined);
+    if (!allAssessed) return "Belum Dinilai";
+    return ALL_FILTRATION_ITEMS.every((c) => state.checks[c.id] === true) ? "Lolos" : "Tidak Lolos";
   };
 
   const isAllScored = (partnerId: string): boolean => {
     const state = evalStates[partnerId];
     if (!state) return false;
-    return PHASE1_CRITERIA.every((c) => (state.scores[c.id] || 0) > 0);
+    return ALL_FILTRATION_ITEMS.every((c) => state.checks[c.id] !== null && state.checks[c.id] !== undefined);
+  };
+
+  // Build items payload from current state
+  const buildItemsPayload = (partnerId: string) => {
+    const state = evalStates[partnerId];
+    if (!state) return [];
+    return ALL_FILTRATION_ITEMS.map((item) => ({
+      itemId: item.id,
+      itemType: item.type,
+      passed: state.checks[item.id] === true,
+      notes: state.comments[item.id] || undefined,
+    }));
   };
 
   // Save as draft (editable) — POST to API
@@ -480,55 +510,39 @@ export default function Phase1EvaluationPage({
     const app = phase1Applicants.find((a) => a.partner_id === partnerId);
     if (!app || !accessToken) return;
 
-    const state = evalStates[partnerId];
-    if (!state) return;
-
-    const scores = PHASE1_CRITERIA.map((c) => ({
-      criterionId: c.id,
-      score: state.scores[c.id] || 0,
-    }));
-
     setSaving(true);
     try {
       await api(`/evaluations/phase1/${id}/${app.id}`, {
         method: "POST",
         token: accessToken,
-        body: { scores },
+        body: { items: buildItemsPayload(partnerId) },
       });
 
       setEvalStates((prev) => ({
         ...prev,
         [partnerId]: { ...prev[partnerId], saved: true },
       }));
-      showToast("Nilai berhasil disimpan. Anda masih dapat mengubah nilai ini.");
+      showToast("Filtrasi berhasil disimpan. Anda masih dapat mengubah penilaian ini.");
     } catch (err) {
-      console.error("Failed to save evaluation:", err);
-      showToast("Gagal menyimpan nilai. Silakan coba lagi.", "error");
+      console.error("Failed to save filtration:", err);
+      showToast("Gagal menyimpan filtrasi. Silakan coba lagi.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  // Finalize (locked) — save scores then mark as finalized locally
+  // Finalize (locked) — save then mark as finalized
   const handleFinalize = async (partnerId: string) => {
     const app = phase1Applicants.find((a) => a.partner_id === partnerId);
     if (!app || !accessToken) return;
 
-    const state = evalStates[partnerId];
-    if (!state) return;
-
-    const scores = PHASE1_CRITERIA.map((c) => ({
-      criterionId: c.id,
-      score: state.scores[c.id] || 0,
-    }));
-
     setSaving(true);
     try {
-      // Save scores first
+      // Save items first
       await api(`/evaluations/phase1/${id}/${app.id}`, {
         method: "POST",
         token: accessToken,
-        body: { scores },
+        body: { items: buildItemsPayload(partnerId) },
       });
 
       // Then lock the evaluation
@@ -576,7 +590,7 @@ export default function Phase1EvaluationPage({
       setSubmittedForApproval(true);
     } catch (err) {
       console.error("Failed to submit for approval:", err);
-      showToast("Gagal mengirim evaluasi. Silakan coba lagi.", "error");
+      showToast("Gagal mengirim filtrasi. Silakan coba lagi.", "error");
     } finally {
       setSaving(false);
     }
@@ -613,7 +627,7 @@ export default function Phase1EvaluationPage({
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-ptba-navy" />
-          <p className="text-sm text-ptba-gray">Memuat data evaluasi...</p>
+          <p className="text-sm text-ptba-gray">Memuat data filtrasi...</p>
         </div>
       </div>
     );
@@ -635,7 +649,7 @@ export default function Phase1EvaluationPage({
           <ChevronRight className="h-3.5 w-3.5" />
           <Link href={`/projects/${id}`} className="hover:text-ptba-navy">{project.name}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-ptba-charcoal font-medium">Evaluasi Fase 1</span>
+          <span className="text-ptba-charcoal font-medium">Filtrasi Fase 1</span>
         </nav>
         <div className="rounded-xl bg-white p-6 shadow-sm border border-red-200">
           <div className="flex items-center gap-3">
@@ -663,7 +677,7 @@ export default function Phase1EvaluationPage({
         <ChevronRight className="h-3.5 w-3.5" />
         <Link href={`/projects/${id}`} className="hover:text-ptba-navy">{project.name}</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-ptba-charcoal font-medium">Evaluasi Fase 1</span>
+        <span className="text-ptba-charcoal font-medium">Filtrasi Fase 1</span>
       </nav>
 
       <button
@@ -675,9 +689,9 @@ export default function Phase1EvaluationPage({
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Fase 1 (EBD)</h1>
+        <h1 className="text-2xl font-bold text-ptba-navy">Filtrasi Fase 1 (EBD)</h1>
         <p className="text-sm text-ptba-gray mt-1">
-          Penilaian awal kelayakan mitra berdasarkan dokumen Expression of Interest (EoI).
+          Filtrasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).
         </p>
       </div>
 
@@ -705,8 +719,8 @@ export default function Phase1EvaluationPage({
           </div>
           <div className="h-8 w-px bg-gray-200" />
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Skor Min. Lolos</p>
-            <p className="text-lg font-bold text-ptba-gold">{PHASE1_PASSING_SCORE.toFixed(1)}</p>
+            <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Sistem</p>
+            <p className="text-sm font-bold text-ptba-navy">Lulus / Tidak Lulus</p>
           </div>
           <div className="ml-auto">
             <div className="h-2 w-32 rounded-full bg-gray-200 overflow-hidden">
@@ -736,7 +750,7 @@ export default function Phase1EvaluationPage({
           <div className="rounded-xl bg-white shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-ptba-navy">
               <h3 className="text-sm font-semibold text-white">Daftar Mitra</h3>
-              <p className="text-[10px] text-white/60 mt-0.5">Pilih mitra untuk dievaluasi</p>
+              <p className="text-[10px] text-white/60 mt-0.5">Pilih mitra untuk difiltrasi</p>
             </div>
             <div className="divide-y divide-gray-100">
               {phase1Applicants.map((app, idx) => {
@@ -794,16 +808,16 @@ export default function Phase1EvaluationPage({
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ptba-section-bg mx-auto mb-4">
                   <User className="h-8 w-8 text-ptba-gray" />
                 </div>
-                <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Dievaluasi</h3>
+                <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Difiltrasi</h3>
                 <p className="text-sm text-ptba-gray max-w-md mx-auto">
-                  Klik salah satu mitra di panel kiri untuk memulai atau melanjutkan evaluasi.
+                  Klik salah satu mitra di panel kiri untuk memulai atau melanjutkan filtrasi.
                 </p>
                 {phase1Applicants.length > 0 && (
                   <button
                     onClick={() => navigateToMitra(phase1Applicants[0].partner_id)}
                     className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors"
                   >
-                    Mulai Evaluasi Mitra Pertama <ChevronRight className="h-4 w-4" />
+                    Mulai Filtrasi Mitra Pertama <ChevronRight className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -812,7 +826,7 @@ export default function Phase1EvaluationPage({
                 {(() => {
                   const app = selectedApp;
                   const state = evalStates[app.partner_id];
-                  const weightedScore = calculateWeightedScore(app.partner_id);
+                  const passedCount = getPassedCount(app.partner_id);
                   const result = getResult(app.partner_id);
                   const allScored = isAllScored(app.partner_id);
                   const isFinalized = state?.status === "finalized";
@@ -980,104 +994,98 @@ export default function Phase1EvaluationPage({
                         {/* Tab: Penilaian */}
                         {ebdPanelTab === "penilaian" && (
                           <div className={cn("p-6", isFinalized && "opacity-75")}>
-                            <div className="space-y-4">
-                              {PHASE1_CRITERIA.map((criteria) => {
-                                const currentScore = state?.scores[criteria.id] || 0;
-                                return (
-                                  <div key={criteria.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                                      <div>
-                                        <p className="text-sm font-semibold text-ptba-charcoal">{criteria.name}</p>
-                                        <p className="text-xs text-ptba-gray">{criteria.description}</p>
-                                        <p className="text-xs text-ptba-gray mt-0.5">Bobot: {criteria.weight}% | Skor Maks: {criteria.maxScore}</p>
-                                      </div>
-                                      <div className="text-right">
-                                        <span className={cn("text-lg font-bold", currentScore > 0 ? "text-ptba-navy" : "text-gray-300")}>
-                                          {currentScore > 0 ? currentScore : "-"}
-                                        </span>
-                                        <span className="text-sm text-ptba-gray"> / {criteria.maxScore}</span>
-                                      </div>
-                                    </div>
-
-                                    {isEditable ? (
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex gap-1.5">
-                                          {[1, 2, 3, 4, 5].map((score) => (
-                                            <button
-                                              key={score}
-                                              type="button"
-                                              onClick={() => updateScore(app.partner_id, criteria.id, score)}
-                                              className={cn(
-                                                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
-                                                score <= currentScore
-                                                  ? "bg-ptba-gold text-white shadow-sm"
-                                                  : "bg-gray-200 text-gray-500 hover:bg-ptba-gold/30 hover:text-ptba-charcoal"
-                                              )}
-                                            >
-                                              {score}
-                                            </button>
-                                          ))}
-                                        </div>
-                                        <span className="text-xs text-ptba-gray ml-2">Klik untuk memberi skor</span>
-                                      </div>
-                                    ) : (
-                                      <div className="flex gap-1.5">
-                                        {[1, 2, 3, 4, 5].map((score) => (
-                                          <div
-                                            key={score}
-                                            className={cn(
-                                              "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
-                                              score <= currentScore ? "bg-ptba-gold text-white" : "bg-gray-200 text-gray-400"
-                                            )}
-                                          >
-                                            {score}
+                            {/* Dokumen Section */}
+                            <div className="mb-6">
+                              <h4 className="text-sm font-semibold text-ptba-charcoal mb-3 flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-ptba-steel-blue" /> Dokumen
+                              </h4>
+                              <div className="space-y-3">
+                                {PHASE1_DOCUMENT_ITEMS.map((item) => {
+                                  const checked = state?.checks[item.id];
+                                  const comment = state?.comments[item.id] || "";
+                                  return (
+                                    <div key={item.id} className={cn("rounded-lg border p-3", checked === true ? "border-green-200 bg-green-50/30" : checked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-ptba-charcoal">{item.nameKey.split(".").pop()?.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) || item.id}</p>
+                                        {isEditable ? (
+                                          <div className="flex gap-1.5">
+                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
                                           </div>
-                                        ))}
+                                        ) : (
+                                          <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", checked === true ? "bg-green-100 text-green-700" : checked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{checked === true ? "Lulus" : checked === false ? "Tidak Lulus" : "Belum Dinilai"}</span>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                      {isEditable ? (
+                                        <textarea placeholder="Komentar..." value={comment} onChange={(e) => updateComment(app.partner_id, item.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
+                                      ) : comment ? (
+                                        <p className="text-xs text-ptba-gray">{comment}</p>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
 
-                            {/* Score Summary */}
-                            <div className="mt-5 rounded-lg bg-ptba-section-bg p-4">
+                            {/* Data Formulir Section */}
+                            <div className="mb-6">
+                              <h4 className="text-sm font-semibold text-ptba-charcoal mb-3 flex items-center gap-2">
+                                <ClipboardCheck className="h-4 w-4 text-ptba-navy" /> Data Formulir
+                              </h4>
+                              <div className="space-y-3">
+                                {PHASE1_FORM_SECTION_ITEMS.map((item) => {
+                                  const checked = state?.checks[item.id];
+                                  const comment = state?.comments[item.id] || "";
+                                  const sectionKey = item.id.replace("section_", "");
+                                  const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
+                                  return (
+                                    <div key={item.id} className={cn("rounded-lg border p-3", checked === true ? "border-green-200 bg-green-50/30" : checked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-ptba-charcoal">{formRenderer?.title || item.id}</p>
+                                        {isEditable ? (
+                                          <div className="flex gap-1.5">
+                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                          </div>
+                                        ) : (
+                                          <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", checked === true ? "bg-green-100 text-green-700" : checked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{checked === true ? "Lulus" : checked === false ? "Tidak Lulus" : "Belum Dinilai"}</span>
+                                        )}
+                                      </div>
+                                      {formRenderer && selectedAppFormData && (
+                                        <div className="mb-2 rounded border border-gray-200 bg-white p-2.5">
+                                          {formRenderer.render(selectedAppFormData)}
+                                        </div>
+                                      )}
+                                      {isEditable ? (
+                                        <textarea placeholder="Komentar..." value={comment} onChange={(e) => updateComment(app.partner_id, item.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
+                                      ) : comment ? (
+                                        <p className="text-xs text-ptba-gray">{comment}</p>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Summary */}
+                            <div className="rounded-lg bg-ptba-section-bg p-4">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-sm font-medium text-ptba-gray">Skor Tertimbang</p>
-                                  <p className="text-xs text-ptba-gray mt-0.5">Skor minimum lolos: {PHASE1_PASSING_SCORE.toFixed(1)}</p>
+                                  <p className="text-sm font-medium text-ptba-gray">Hasil Filtrasi</p>
+                                  <p className="text-xs text-ptba-gray mt-0.5">Semua item harus Lulus untuk lolos</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className={cn(
-                                    "text-2xl font-extrabold",
-                                    result === "Lolos" ? "text-green-600" :
-                                    result === "Tidak Lolos" ? "text-ptba-red" : "text-ptba-navy"
-                                  )}>
-                                    {allScored ? weightedScore.toFixed(2) : "\u2014"}
+                                  <p className="text-sm font-bold text-ptba-charcoal">{passedCount.passed} / {passedCount.total} Lulus</p>
+                                  <p className={cn("text-lg font-extrabold", result === "Lolos" ? "text-green-600" : result === "Tidak Lolos" ? "text-ptba-red" : "text-ptba-navy")}>
+                                    {result}
                                   </p>
-                                  <p className="text-xs text-ptba-gray">/ 5.00</p>
                                 </div>
                               </div>
-                              {allScored && (
-                                <div className="mt-3">
-                                  <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-                                    <div
-                                      className={cn("h-full rounded-full transition-all", result === "Lolos" ? "bg-green-500" : "bg-ptba-red")}
-                                      style={{ width: `${Math.min((weightedScore / 5) * 100, 100)}%` }}
-                                    />
-                                  </div>
-                                  <div className="flex justify-between mt-1">
-                                    <span className="text-[10px] text-ptba-gray">0</span>
-                                    <span className="text-[10px] text-ptba-gray font-medium">Batas Lolos: {PHASE1_PASSING_SCORE.toFixed(1)}</span>
-                                    <span className="text-[10px] text-ptba-gray">5.0</span>
-                                  </div>
-                                </div>
-                              )}
                             </div>
 
                             {existingNotes && (
                               <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-                                <p className="text-xs font-medium text-ptba-gray mb-1">Catatan Evaluasi</p>
+                                <p className="text-xs font-medium text-ptba-gray mb-1">Catatan</p>
                                 <p className="text-sm text-ptba-charcoal">{existingNotes}</p>
                               </div>
                             )}
@@ -1152,18 +1160,18 @@ export default function Phase1EvaluationPage({
                               <div className="flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div className="flex-1">
-                                  <p className="text-sm font-semibold text-amber-800">Konfirmasi Finalisasi Nilai</p>
+                                  <p className="text-sm font-semibold text-amber-800">Konfirmasi Finalisasi Filtrasi</p>
                                   <p className="text-sm text-amber-700 mt-1">
-                                    Setelah difinalisasi, nilai <strong>tidak dapat diubah</strong> kecuali dikembalikan oleh atasan.
+                                    Setelah difinalisasi, hasil <strong>tidak dapat diubah</strong> kecuali dikembalikan oleh atasan.
                                     Pastikan semua penilaian sudah benar.
                                   </p>
                                   <div className="mt-3 rounded-lg bg-white/80 p-3">
-                                    <p className="text-xs text-ptba-gray mb-1">Hasil evaluasi:</p>
+                                    <p className="text-xs text-ptba-gray mb-1">Hasil filtrasi:</p>
                                     <p className={cn(
                                       "text-lg font-bold",
                                       result === "Lolos" ? "text-green-600" : "text-ptba-red"
                                     )}>
-                                      {app.partner_name}: {result} ({weightedScore.toFixed(2)}/5.00)
+                                      {app.partner_name}: {result} ({passedCount.passed}/{passedCount.total} Lulus)
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-3 mt-4">
@@ -1237,7 +1245,7 @@ export default function Phase1EvaluationPage({
                   <Send className={cn("h-5 w-5", allFinalized ? "text-white" : "text-gray-400")} />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi untuk Persetujuan</h3>
+                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Filtrasi untuk Persetujuan</h3>
                   <p className="text-sm text-ptba-gray mt-0.5">
                     {(project as any)?.isOpenForApplication
                       ? "Pendaftaran Fase 1 masih dibuka. Tutup pendaftaran terlebih dahulu sebelum mengirim untuk persetujuan."

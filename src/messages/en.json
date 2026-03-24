@@ -27,7 +27,7 @@
     "select": "Select...",
     "required": "Required",
     "requiredMark": "*Required",
-    "phase1": "Phase 1 (Evaluation)",
+    "phase1": "Phase 1 (Filtration)",
     "phase2": "Phase 2 (PQ)",
     "phase3": "Phase 3 (Proposal & FRP)",
     "general": "General",
@@ -56,11 +56,11 @@
     },
     "phaseLabels": {
       "published": "Published",
-      "phase1_registration": "Evaluation - EoI Registration",
-      "phase1_closed": "Evaluation - Registration Closed",
-      "phase1_evaluation": "Evaluation - Assessment",
-      "phase1_approval": "Evaluation - Approval",
-      "phase1_announcement": "Evaluation - Announcement",
+      "phase1_registration": "Filtration - EoI Registration",
+      "phase1_closed": "Filtration - Registration Closed",
+      "phase1_evaluation": "Filtration - Assessment",
+      "phase1_approval": "Filtration - Approval",
+      "phase1_announcement": "Filtration - Announcement",
       "phase2_registration": "PQ - Registration",
       "phase2_evaluation": "PQ - Detailed Evaluation",
       "phase2_approval": "PQ - Approval",
@@ -496,7 +496,7 @@
     "milestones": {
       "eoiRegistration": "EoI Registration",
       "registrationClosed": "Registration Closed",
-      "phase1Evaluation": "Phase 1 Evaluation",
+      "phase1Evaluation": "Phase 1 Filtration",
       "shortlistAnnouncement": "Shortlist Announcement",
       "phase2Registration": "Phase 2 Registration",
       "phase2Evaluation": "Phase 2 Evaluation",
@@ -555,6 +555,50 @@
         "mismatch": "Password confirmation does not match",
         "changeFailed": "Failed to change password"
       }
+    }
+  },
+  "filtration": {
+    "title": "Phase 1 Filtration (EBD)",
+    "description": "Filtration of partner eligibility based on Expression of Interest (EoI) documents and form data.",
+    "lulus": "Pass",
+    "tidakLulus": "Fail",
+    "belumDinilai": "Not Assessed",
+    "dokumen": "Documents",
+    "dataFormulir": "Form Data",
+    "komentar": "Comment",
+    "komentarPlaceholder": "Write a comment...",
+    "downloadPdf": "Download Form PDF",
+    "simpan": "Save Filtration",
+    "finalisasi": "Finalize",
+    "summary": "{passed} of {total} items Pass",
+    "overallLulus": "Overall: Pass",
+    "overallTidakLulus": "Overall: Fail",
+    "confirmFinalize": "Are you sure you want to finalize this filtration? Once finalized, results cannot be changed.",
+    "saved": "Filtration saved successfully.",
+    "finalized": "Filtration finalized successfully.",
+    "items": {
+      "compro": "Company Profile",
+      "statementEoi": "Statement of EoI",
+      "portfolio": "Project Portfolio",
+      "financialOverview": "Financial Overview",
+      "requirementsFulfillment": "Requirements Fulfillment",
+      "sectionCompro": "Company Information",
+      "sectionStatementEoi": "EoI Statement",
+      "sectionPortfolio": "Project Experience",
+      "sectionFinancial": "Financial Data",
+      "sectionRequirements": "Requirements Fulfillment"
+    },
+    "itemDesc": {
+      "compro": "Uploaded company profile document",
+      "statementEoi": "Expression of Interest statement document",
+      "portfolio": "Project portfolio document",
+      "financialOverview": "Financial overview document",
+      "requirementsFulfillment": "Requirements fulfillment document",
+      "sectionCompro": "Company information form data",
+      "sectionStatementEoi": "EoI statement form data",
+      "sectionPortfolio": "Project experience form data",
+      "sectionFinancial": "Financial form data",
+      "sectionRequirements": "Requirements fulfillment form data"
     }
   }
 }

@@ -27,7 +27,7 @@
     "select": "Pilih...",
     "required": "Wajib",
     "requiredMark": "*Wajib",
-    "phase1": "Fase 1 (Evaluasi)",
+    "phase1": "Fase 1 (Filtrasi)",
     "phase2": "Fase 2 (PQ)",
     "phase3": "Fase 3 (Proposal & FRP)",
     "general": "Umum",
@@ -56,11 +56,11 @@
     },
     "phaseLabels": {
       "published": "Dipublikasikan",
-      "phase1_registration": "Evaluasi - Pendaftaran EoI",
-      "phase1_closed": "Evaluasi - Pendaftaran Ditutup",
-      "phase1_evaluation": "Evaluasi - Penilaian",
-      "phase1_approval": "Evaluasi - Persetujuan",
-      "phase1_announcement": "Evaluasi - Pengumuman",
+      "phase1_registration": "Filtrasi - Pendaftaran EoI",
+      "phase1_closed": "Filtrasi - Pendaftaran Ditutup",
+      "phase1_evaluation": "Filtrasi - Penilaian",
+      "phase1_approval": "Filtrasi - Persetujuan",
+      "phase1_announcement": "Filtrasi - Pengumuman",
       "phase2_registration": "PQ - Pendaftaran",
       "phase2_evaluation": "PQ - Evaluasi Detail",
       "phase2_approval": "PQ - Persetujuan",
@@ -496,7 +496,7 @@
     "milestones": {
       "eoiRegistration": "Pendaftaran EoI",
       "registrationClosed": "Pendaftaran Ditutup",
-      "phase1Evaluation": "Evaluasi Fase 1",
+      "phase1Evaluation": "Filtrasi Fase 1",
       "shortlistAnnouncement": "Pengumuman Shortlist",
       "phase2Registration": "Pendaftaran Fase 2",
       "phase2Evaluation": "Evaluasi Fase 2",
@@ -555,6 +555,50 @@
         "mismatch": "Konfirmasi password tidak cocok",
         "changeFailed": "Gagal mengubah password"
       }
+    }
+  },
+  "filtration": {
+    "title": "Filtrasi Fase 1 (EBD)",
+    "description": "Filtrasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).",
+    "lulus": "Lulus",
+    "tidakLulus": "Tidak Lulus",
+    "belumDinilai": "Belum Dinilai",
+    "dokumen": "Dokumen",
+    "dataFormulir": "Data Formulir",
+    "komentar": "Komentar",
+    "komentarPlaceholder": "Tulis komentar...",
+    "downloadPdf": "Unduh PDF Formulir",
+    "simpan": "Simpan Filtrasi",
+    "finalisasi": "Finalisasi",
+    "summary": "{passed} dari {total} item Lulus",
+    "overallLulus": "Keseluruhan: Lulus",
+    "overallTidakLulus": "Keseluruhan: Tidak Lulus",
+    "confirmFinalize": "Apakah Anda yakin ingin memfinalisasi filtrasi ini? Setelah difinalisasi, nilai tidak dapat diubah.",
+    "saved": "Filtrasi berhasil disimpan.",
+    "finalized": "Filtrasi berhasil difinalisasi.",
+    "items": {
+      "compro": "Company Profile",
+      "statementEoi": "Surat Pernyataan EoI",
+      "portfolio": "Portfolio Proyek",
+      "financialOverview": "Gambaran Umum Keuangan",
+      "requirementsFulfillment": "Pemenuhan Persyaratan",
+      "sectionCompro": "Informasi Perusahaan",
+      "sectionStatementEoi": "Surat Pernyataan EoI",
+      "sectionPortfolio": "Pengalaman Proyek",
+      "sectionFinancial": "Data Keuangan",
+      "sectionRequirements": "Pemenuhan Persyaratan"
+    },
+    "itemDesc": {
+      "compro": "Dokumen profil perusahaan yang diunggah",
+      "statementEoi": "Surat pernyataan Expression of Interest",
+      "portfolio": "Dokumen portfolio proyek",
+      "financialOverview": "Dokumen gambaran umum keuangan",
+      "requirementsFulfillment": "Dokumen pemenuhan persyaratan",
+      "sectionCompro": "Data formulir informasi perusahaan",
+      "sectionStatementEoi": "Data formulir surat pernyataan EoI",
+      "sectionPortfolio": "Data formulir pengalaman proyek",
+      "sectionFinancial": "Data formulir keuangan",
+      "sectionRequirements": "Data formulir pemenuhan persyaratan"
     }
   }
 }

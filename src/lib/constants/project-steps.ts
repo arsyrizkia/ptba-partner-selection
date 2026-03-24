@@ -10,7 +10,7 @@ export const PROJECT_STEPS: ProjectStep[] = [
   { step: 1, name: 'Inisiasi', description: 'Pembentukan tim dan penetapan ruang lingkup proyek', phase: 'phase1' },
   { step: 2, name: 'Pendaftaran Mitra', description: 'Pembukaan pendaftaran Expression of Interest (EoI)', phase: 'phase1' },
   { step: 3, name: 'Penutupan Pendaftaran', description: 'Penutupan periode pendaftaran EoI', phase: 'phase1' },
-  { step: 4, name: 'Evaluasi Fase 1', description: 'Evaluasi EBD terhadap dokumen EoI mitra (sistem gugur)', phase: 'phase1' },
+  { step: 4, name: 'Filtrasi Fase 1', description: 'Filtrasi EBD terhadap dokumen dan data EoI mitra (sistem gugur)', phase: 'phase1' },
   { step: 5, name: 'Persetujuan Direksi', description: 'Persetujuan shortlist oleh Direksi', phase: 'phase1' },
   { step: 6, name: 'Pengumuman Shortlist', description: 'Pengumuman mitra yang lolos ke Fase 2', phase: 'phase1' },
   // Fase 2: Detailed Assessment (Sistem Gugur - 6 evaluators: 3 EBD + Legal, Finance, Risk)
