@@ -755,44 +755,11 @@ export default function Phase1ApprovalPage({
                       </div>
                     </div>
 
-                    {/* Tabs: Penilaian / Dokumen & Data */}
+                    {/* Penilaian Panel — documents and form data inline */}
                     <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                      <div className="px-5 border-b border-ptba-light-gray">
-                        <nav className="flex gap-0 -mb-px">
-                          <button
-                            type="button"
-                            onClick={() => setPanelTab("penilaian")}
-                            className={cn(
-                              "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                              panelTab === "penilaian"
-                                ? "border-b-ptba-gold text-ptba-navy"
-                                : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                            )}
-                          >
-                            <ClipboardCheck className="h-4 w-4" /> Penilaian
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPanelTab("dokumen_formulir")}
-                            className={cn(
-                              "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                              panelTab === "dokumen_formulir"
-                                ? "border-b-ptba-gold text-ptba-navy"
-                                : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                            )}
-                          >
-                            <FileText className="h-4 w-4" /> Dokumen & Data
-                            {phase1Docs.length > 0 && (
-                              <span className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-ptba-section-bg px-1.5 text-[10px] font-bold text-ptba-navy">
-                                {phase1Docs.length}
-                              </span>
-                            )}
-                          </button>
-                        </nav>
-                      </div>
 
                       {/* Tab: Penilaian */}
-                      {panelTab === "penilaian" && (
+                      {(
                         <div className="px-5 py-4">
                           {detailLoading ? (
                             <div className="flex items-center justify-center py-8">
@@ -817,6 +784,45 @@ export default function Phase1ApprovalPage({
                                           {item.passed ? "Lulus" : "Tidak Lulus"}
                                         </span>
                                       </div>
+                                      {/* Inline document download for document items */}
+                                      {item.item_type === "document" && (() => {
+                                        const matchedDoc = phase1Docs.find((d: any) => d.document_type_id === item.criterion_id);
+                                        const isOpen = expandedDocs[`approval_${item.criterion_id}`] ?? false;
+                                        return matchedDoc ? (
+                                          <div className="mt-1.5">
+                                            <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`approval_${item.criterion_id}`]: !isOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+                                              <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
+                                              {isOpen ? "Sembunyikan dokumen" : "Lihat dokumen"}
+                                            </button>
+                                            {isOpen && (
+                                              <div className="mt-1.5 flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-xs text-ptba-charcoal truncate">{matchedDoc.name}</p>
+                                                  <p className="text-[10px] text-ptba-gray">{matchedDoc.status} · {formatDate(matchedDoc.upload_date)}</p>
+                                                </div>
+                                                {matchedDoc.file_key && (
+                                                  <button type="button" onClick={async () => { try { await downloadDocument(matchedDoc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                    <Download className="h-3 w-3" /> Unduh
+                                                  </button>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : null;
+                                      })()}
+                                      {/* Inline form data for form_section items */}
+                                      {item.item_type === "form_section" && formData && (() => {
+                                        const isOpen = expandedDocs[`approval_${item.criterion_id}`] ?? false;
+                                        return (
+                                          <div className="mt-1.5">
+                                            <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`approval_${item.criterion_id}`]: !isOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+                                              <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
+                                              {isOpen ? "Sembunyikan data" : "Lihat data formulir"}
+                                            </button>
+                                          </div>
+                                        );
+                                      })()}
                                       {item.notes && <p className="mt-1.5 text-xs text-ptba-gray">{item.notes}</p>}
                                     </div>
                                   );
@@ -852,80 +858,6 @@ export default function Phase1ApprovalPage({
                         </div>
                       )}
 
-                      {/* Tab: Dokumen & Data Formulir (merged) */}
-                      {panelTab === "dokumen_formulir" && (
-                        <div className="px-5 py-4 space-y-3">
-                          {/* Dokumen Section - collapsible */}
-                          <div className="rounded-lg border border-gray-200 overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => setDocSectionOpen(!docSectionOpen)}
-                              className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
-                            >
-                              <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Dokumen ({phase1Docs.length})
-                              </span>
-                              <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", docSectionOpen && "rotate-180")} />
-                            </button>
-                            {docSectionOpen && (
-                              <div className="p-3 space-y-2">
-                                {appDetailLoading ? (
-                                  <div className="flex items-center justify-center py-4">
-                                    <Loader2 className="h-5 w-5 text-ptba-navy animate-spin" />
-                                    <span className="ml-2 text-xs text-ptba-gray">Memuat...</span>
-                                  </div>
-                                ) : phase1Docs.length > 0 ? (
-                                  phase1Docs.map((doc) => {
-                                    const meta = DOCUMENT_TYPES.find((dt) => dt.id === doc.document_type_id);
-                                    const docName = meta?.name || doc.name;
-                                    return (
-                                      <div key={doc.document_type_id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50/50 border border-gray-100">
-                                        <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
-                                          <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
-                                        </div>
-                                        {doc.file_key && (
-                                          <button
-                                            type="button"
-                                            onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }}
-                                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
-                                          >
-                                            <Download className="h-3 w-3" /> Unduh
-                                          </button>
-                                        )}
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <p className="text-xs text-ptba-gray text-center py-3">Tidak ada dokumen.</p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Data Formulir Section - collapsible */}
-                          <div className="rounded-lg border border-gray-200 overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => setFormSectionOpen(!formSectionOpen)}
-                              className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
-                            >
-                              <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
-                                <ClipboardCheck className="h-4 w-4" />
-                                Data Formulir
-                              </span>
-                              <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", formSectionOpen && "rotate-180")} />
-                            </button>
-                            {formSectionOpen && (
-                              <div className="p-4">
-                                <FormDataViewer formData={formData || {}} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {/* PIC decision per mitra */}

@@ -54,20 +54,34 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
     render: (fd) => (
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
         <EvalField label="Nama Perusahaan" value={fd.companyName} />
-        <EvalField label="Alamat" value={fd.companyAddress} />
+        <EvalField label="Kode Perusahaan" value={fd.companyCode} />
+        <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
+        <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
+        <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
+        <EvalField label="Telepon" value={fd.companyPhone} />
+        <EvalField label="Email" value={fd.companyEmail} />
         <EvalField label="Website" value={fd.companyWebsite} />
+        <EvalField label="NIB" value={fd.nib} />
         <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
         <EvalField label="Negara" value={fd.countryEstablished} />
+        <EvalField label="Status" value={fd.companyStatus} />
+        <EvalField label="Struktur Organisasi" value={fd.orgStructure} />
+        <EvalField label="Anak Perusahaan / Afiliasi" value={fd.subsidiaries} />
+        <EvalField label="Contact Person" value={fd.contactPerson} />
+        <EvalField label="Telepon CP" value={fd.contactPhone} />
+        <EvalField label="Email CP" value={fd.contactEmail} />
       </dl>
     ),
   },
   statement_eoi: {
-    title: "Surat Pernyataan EoI",
+    title: "Surat Pernyataan Expression of Interest",
     render: (fd) => (
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
         <EvalField label="Nama Penandatangan" value={fd.signerName} />
         <EvalField label="Jabatan" value={fd.signerPosition} />
         <EvalField label="Tanggal" value={fd.signerDate} />
+        <EvalField label="Ekuitas Joint Venture (%)" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
+        <EvalField label="Cash on Hand (USD)" value={fd.cashOnHand} />
         <EvalField label="Menyetujui EoI" value={fd.eoiAgreed ? "Ya" : "Tidak"} />
       </dl>
     ),
@@ -947,122 +961,11 @@ export default function Phase1EvaluationPage({
                         </div>
                       )}
 
-                      {/* Tab navigation */}
+                      {/* Evaluation Panel */}
                       <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                        <div className="px-5 border-b border-ptba-light-gray">
-                          <nav className="flex gap-0 -mb-px">
-                            <button
-                              type="button"
-                              onClick={() => setEbdPanelTab("penilaian")}
-                              className={cn(
-                                "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                                ebdPanelTab === "penilaian"
-                                  ? "border-b-ptba-gold text-ptba-navy"
-                                  : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                              )}
-                            >
-                              <ClipboardCheck className="h-4 w-4" />
-                              Penilaian
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEbdPanelTab("dokumen_formulir")}
-                              className={cn(
-                                "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                                ebdPanelTab === "dokumen_formulir"
-                                  ? "border-b-ptba-gold text-ptba-navy"
-                                  : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                              )}
-                            >
-                              <FileText className="h-4 w-4" />
-                              Dokumen & Data
-                              {selectedAppDocuments.length > 0 && (
-                                <span className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-ptba-section-bg px-1.5 text-[10px] font-bold text-ptba-navy">
-                                  {selectedAppDocuments.length}
-                                </span>
-                              )}
-                            </button>
-                          </nav>
-                        </div>
 
-                        {/* Tab: Dokumen & Data Formulir (merged) */}
-                        {ebdPanelTab === "dokumen_formulir" && (
-                          <div className="px-5 py-4 space-y-3">
-                            {/* Dokumen Section - collapsible */}
-                            <div className="rounded-lg border border-gray-200 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => setEvalDocSectionOpen(!evalDocSectionOpen)}
-                                className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
-                              >
-                                <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  Dokumen ({selectedAppDocuments.length})
-                                </span>
-                                <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", evalDocSectionOpen && "rotate-180")} />
-                              </button>
-                              {evalDocSectionOpen && (
-                                <div className="p-3 space-y-2">
-                                  {loadingDocs ? (
-                                    <div className="flex items-center justify-center py-4">
-                                      <Loader2 className="h-5 w-5 text-ptba-navy animate-spin" />
-                                      <span className="ml-2 text-xs text-ptba-gray">Memuat...</span>
-                                    </div>
-                                  ) : selectedAppDocuments.length > 0 ? (
-                                    selectedAppDocuments.map((doc) => {
-                                      const dtId = (doc as any).document_type_id || "";
-                                      const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
-                                      const docName = meta?.name || doc.name;
-                                      return (
-                                        <div key={doc.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50/50 border border-gray-100">
-                                          <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
-                                            <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate((doc as any).upload_date || "")}</p>
-                                          </div>
-                                          {(doc as any).file_key && (
-                                            <button
-                                              type="button"
-                                              onClick={async () => { try { await downloadDocument((doc as any).file_key, accessToken!); } catch {} }}
-                                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
-                                            >
-                                              <Download className="h-3 w-3" /> Unduh
-                                            </button>
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    <p className="text-xs text-ptba-gray text-center py-3">Tidak ada dokumen.</p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Data Formulir Section - collapsible */}
-                            <div className="rounded-lg border border-gray-200 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => setEvalFormSectionOpen(!evalFormSectionOpen)}
-                                className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
-                              >
-                                <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
-                                  <ClipboardCheck className="h-4 w-4" />
-                                  Data Formulir
-                                </span>
-                                <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", evalFormSectionOpen && "rotate-180")} />
-                              </button>
-                              {evalFormSectionOpen && (
-                                <div className="p-4">
-                                  <FormDataViewer formData={selectedAppFormData || {}} />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Tab: Penilaian */}
-                        {ebdPanelTab === "penilaian" && (
+                        {/* Penilaian Content — documents inline, form data inline */}
+                        {(
                           <div className={cn("p-6", isFinalized && "opacity-75")}>
                             {/* Dokumen Section */}
                             <div className="mb-6">
@@ -1073,10 +976,14 @@ export default function Phase1EvaluationPage({
                                 {PHASE1_DOCUMENT_ITEMS.map((item) => {
                                   const checked = state?.checks[item.id];
                                   const comment = state?.comments[item.id] || "";
+                                  const matchedDoc = selectedAppDocuments.find((d: any) => d.document_type_id === item.id);
+                                  const isDocOpen = expandedDocs[`eval_${item.id}`] ?? false;
+                                  const docMeta = DOCUMENT_TYPES.find((dt) => dt.id === item.id);
+                                  const docLabel = docMeta?.name || item.nameKey.split(".").pop()?.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) || item.id;
                                   return (
                                     <div key={item.id} className={cn("rounded-lg border p-3", checked === true ? "border-green-200 bg-green-50/30" : checked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
                                       <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-medium text-ptba-charcoal">{item.nameKey.split(".").pop()?.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) || item.id}</p>
+                                        <p className="text-sm font-medium text-ptba-charcoal">{docLabel}</p>
                                         {isEditable ? (
                                           <div className="flex gap-1.5">
                                             <button type="button" onClick={() => updateCheck(app.partner_id, item.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
@@ -1086,6 +993,29 @@ export default function Phase1EvaluationPage({
                                           <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", checked === true ? "bg-green-100 text-green-700" : checked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{checked === true ? "Lulus" : checked === false ? "Tidak Lulus" : "Belum Dinilai"}</span>
                                         )}
                                       </div>
+                                      {/* Inline document viewer */}
+                                      {matchedDoc && (
+                                        <div className="mb-2">
+                                          <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`eval_${item.id}`]: !isDocOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+                                            <ChevronDown className={cn("h-3 w-3 transition-transform", isDocOpen && "rotate-180")} />
+                                            {isDocOpen ? "Sembunyikan dokumen" : "Lihat dokumen"}
+                                          </button>
+                                          {isDocOpen && (
+                                            <div className="mt-1.5 flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-xs text-ptba-charcoal truncate">{matchedDoc.name}</p>
+                                                <p className="text-[10px] text-ptba-gray">{matchedDoc.status} · {formatDate((matchedDoc as any).upload_date || "")}</p>
+                                              </div>
+                                              {(matchedDoc as any).file_key && (
+                                                <button type="button" onClick={async () => { try { await downloadDocument((matchedDoc as any).file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                  <Download className="h-3 w-3" /> Unduh
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                       {isEditable ? (
                                         <textarea placeholder="Komentar..." value={comment} onChange={(e) => updateComment(app.partner_id, item.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
                                       ) : comment ? (
@@ -1162,7 +1092,6 @@ export default function Phase1EvaluationPage({
                           </div>
                         )}
 
-                        {/* Old separate Dokumen tab removed — merged into dokumen_formulir */}
                       </div>
 
                       {/* Action Buttons */}
