@@ -526,6 +526,7 @@
       "indonesiaOffice": "Alamat Kantor Rep. Indonesia",
       "companyPhone": "Nomor Telp Perusahaan",
       "companyEmail": "Email Perusahaan",
+      "companyDomain": "Domain Email Perusahaan",
       "registrationDate": "Tanggal Registrasi",
       "nib": "NIB",
       "cpName": "Nama CP",

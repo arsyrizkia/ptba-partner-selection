@@ -526,6 +526,7 @@
       "indonesiaOffice": "Indonesia Representative Office Address",
       "companyPhone": "Company Phone Number",
       "companyEmail": "Company Email",
+      "companyDomain": "Company Email Domain",
       "registrationDate": "Registration Date",
       "nib": "NIB (Business Identification Number)",
       "cpName": "Contact Person Name",

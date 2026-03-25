@@ -212,7 +212,7 @@ export interface RegisterInput {
   address?: string;
   indonesiaOfficeAddress?: string;
   phone?: string;
-  companyEmail?: string;
+  companyDomain?: string;
   website?: string;
   npwp?: string;
   siup?: string;
@@ -347,7 +347,7 @@ export interface PartnerProfile {
   address: string | null;
   indonesia_office_address: string | null;
   phone: string | null;
-  email: string | null;
+  company_domain: string | null;
   website: string | null;
   npwp: string | null;
   siup: string | null;
@@ -366,7 +366,7 @@ export interface UpdatePartnerInput {
   address?: string;
   indonesia_office_address?: string;
   phone?: string;
-  email?: string;
+  company_domain?: string;
   website?: string;
   npwp?: string;
   siup?: string;

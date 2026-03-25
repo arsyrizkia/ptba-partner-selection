@@ -416,7 +416,7 @@ export default function MitraProjectApplyPage() {
         setCompanyAddress(fd?.companyAddress || p.address || "");
         setCompanyIndonesiaAddress(fd?.companyIndonesiaAddress || p.indonesia_office_address || "");
         setCompanyPhone(fd?.companyPhone || p.phone || "");
-        setCompanyEmail(fd?.companyEmail || p.email || "");
+        setCompanyEmail(fd?.companyEmail || (p.company_domain ? `info@${p.company_domain}` : "") || "");
         setCompanyWebsite(fd?.companyWebsite || p.website || "");
         setBusinessOverview(fd?.businessOverview || p.business_overview || "");
         setNib(fd?.nib || p.nib || "");

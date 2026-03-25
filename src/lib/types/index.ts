@@ -62,7 +62,7 @@ export interface Partner {
   address: string;
   indonesiaOfficeAddress?: string;
   phone: string;
-  email: string;
+  company_domain?: string;
   website?: string;
   npwp?: string;
   siup?: string;

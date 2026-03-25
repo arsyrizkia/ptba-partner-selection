@@ -25,6 +25,7 @@ const getEmailDomain = (email: string) => {
 };
 
 type FieldErrors = Record<string, string>;
+type FieldWarnings = Record<string, string>;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [fieldWarnings, setFieldWarnings] = useState<FieldWarnings>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const STEPS = [
@@ -112,6 +114,7 @@ export default function RegisterPage() {
 
   const validateField = (field: string): string => {
     let err = "";
+    let warn = "";
     switch (field) {
       case "companyName":
         if (!companyName.trim()) err = t("errors.companyNameRequired");
@@ -151,7 +154,7 @@ export default function RegisterPage() {
         else if (!isValidEmail(contactEmail.trim()))
           err = t("errors.contactEmailFormat");
         else if (companyDomain.trim() && getEmailDomain(contactEmail.trim()) !== companyDomain.trim().toLowerCase())
-          err = t("errors.contactEmailDomain", { domain: companyDomain.trim() });
+          warn = t("errors.contactEmailDomain", { domain: companyDomain.trim() });
         break;
       case "nib":
         if (!nib.trim()) err = t("errors.nibRequired");
@@ -161,7 +164,7 @@ export default function RegisterPage() {
         else if (!isValidEmail(email.trim()))
           err = t("errors.emailFormat");
         else if (companyDomain.trim() && getEmailDomain(email.trim()) !== companyDomain.trim().toLowerCase())
-          err = t("errors.emailDomain", { domain: companyDomain.trim() });
+          warn = t("errors.emailDomain", { domain: companyDomain.trim() });
         break;
       case "password":
         if (!password) err = t("errors.passwordRequired");
@@ -175,6 +178,12 @@ export default function RegisterPage() {
     }
     setFieldErrors((prev) => {
       if (err) return { ...prev, [field]: err };
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    setFieldWarnings((prev) => {
+      if (warn) return { ...prev, [field]: warn };
       const next = { ...prev };
       delete next[field];
       return next;
@@ -232,7 +241,7 @@ export default function RegisterPage() {
         address,
         indonesiaOfficeAddress: indonesiaOfficeAddress || undefined,
         phone,
-        companyEmail: `info@${companyDomain.trim()}`,
+        companyDomain: companyDomain.trim(),
         nib,
         contactPerson: contactName,
         contactPhone,
@@ -254,6 +263,9 @@ export default function RegisterPage() {
   const getError = (field: string) =>
     touched[field] ? fieldErrors[field] : undefined;
 
+  const getWarning = (field: string) =>
+    touched[field] && !fieldErrors[field] ? fieldWarnings[field] : undefined;
+
   const inputClass =
     "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2.5 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
 
@@ -274,6 +286,8 @@ export default function RegisterPage() {
       {children}
       {getError(field) ? (
         <p className="mt-1 text-xs text-red-500">{getError(field)}</p>
+      ) : getWarning(field) ? (
+        <p className="mt-1 text-xs text-amber-600">{getWarning(field)}</p>
       ) : (
         <p className="mt-1 text-xs text-ptba-gray">{hint}</p>
       )}

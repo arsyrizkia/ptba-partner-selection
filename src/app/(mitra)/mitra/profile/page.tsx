@@ -16,7 +16,7 @@ interface ProfileFormData {
   address: string;
   indonesiaOfficeAddress: string;
   phone: string;
-  email: string;
+  companyDomain: string;
   website: string;
   npwp: string;
   nib: string;
@@ -33,7 +33,7 @@ function toFormData(p: PartnerProfile): ProfileFormData {
     address: p.address || "",
     indonesiaOfficeAddress: p.indonesia_office_address || "",
     phone: p.phone || "",
-    email: p.email || "",
+    companyDomain: p.company_domain || "",
     website: p.website || "",
     npwp: p.npwp || "",
     nib: p.nib || "",
@@ -75,7 +75,7 @@ function CompanyProfileTab() {
   const [saveMessage, setSaveMessage] = useState("");
   const [editForm, setEditForm] = useState<ProfileFormData>({
     name: "", businessOverview: "", address: "", indonesiaOfficeAddress: "",
-    phone: "", email: "", website: "", npwp: "", nib: "",
+    phone: "", companyDomain: "", website: "", npwp: "", nib: "",
     contactPerson: "", contactPhone: "", contactEmail: "", industry: "",
   });
 
@@ -109,7 +109,7 @@ function CompanyProfileTab() {
         address: editForm.address,
         indonesia_office_address: editForm.indonesiaOfficeAddress || undefined,
         phone: editForm.phone,
-        email: editForm.email || undefined,
+        company_domain: editForm.companyDomain || undefined,
         website: editForm.website || undefined,
         npwp: editForm.npwp || undefined,
         nib: editForm.nib || undefined,
@@ -166,7 +166,7 @@ function CompanyProfileTab() {
       { key: "address", label: t("company.hqAddress"), multiline: true },
       { key: "indonesiaOfficeAddress", label: t("company.indonesiaOffice"), multiline: true },
       { key: "phone", label: t("company.companyPhone") },
-      { key: "email", label: t("company.companyEmail") },
+      { key: "companyDomain", label: t("company.companyDomain") },
       { key: "nib", label: t("company.nib") },
       { key: "contactPerson", label: t("company.cpName") },
       { key: "contactPhone", label: t("company.cpPhone") },
@@ -237,7 +237,7 @@ function CompanyProfileTab() {
           <ProfileField icon={<MapPin className="h-4 w-4" />} label={t("company.hqAddress")} value={profile.address} />
           <ProfileField icon={<MapPin className="h-4 w-4" />} label={t("company.indonesiaOffice")} value={profile.indonesiaOfficeAddress} />
           <ProfileField icon={<Phone className="h-4 w-4" />} label={t("company.companyPhone")} value={profile.phone} />
-          <ProfileField icon={<Mail className="h-4 w-4" />} label={t("company.companyEmail")} value={profile.email} />
+          <ProfileField icon={<Mail className="h-4 w-4" />} label={t("company.companyDomain")} value={profile.companyDomain ? `@${profile.companyDomain}` : "-"} />
           <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.registrationDate")} value={partner.registration_date ? new Date(partner.registration_date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"} />
         </div>
 
