@@ -356,6 +356,7 @@ export interface PartnerProfile {
   contact_phone: string | null;
   contact_email: string | null;
   logo_file_key: string | null;
+  logo_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -514,6 +515,27 @@ export function partnerApi(token: string) {
       api<PartnerProfile>(`/partners/${id}`, {
         method: "PUT",
         body: data,
+        token,
+      }),
+
+    uploadLogo: async (id: string, file: File): Promise<PartnerProfile> => {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await fetch(`${API_BASE}/partners/${id}/logo`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new ApiClientError(err.error || "Upload failed", res.status);
+      }
+      return res.json();
+    },
+
+    deleteLogo: (id: string) =>
+      api<PartnerProfile>(`/partners/${id}/logo`, {
+        method: "DELETE",
         token,
       }),
   };

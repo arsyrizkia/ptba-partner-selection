@@ -90,17 +90,20 @@ export default function MitraProjectDetailPage() {
 
   // Required documents from project - grouped by phase
   const requiredDocs = project.requiredDocuments || [];
+  const getDocName = (docTypeId: string) => {
+    try { return tc(`docTypes.${docTypeId}`); } catch { return docTypeId.replace(/_/g, " "); }
+  };
   const phase1RequiredDocs = requiredDocs
     .filter((d: any) => d.phase === "phase1" || d.phase === "both")
     .map((d: any) => {
       const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
-      return { id: d.documentTypeId, name: meta?.name || d.documentTypeId.replace(/_/g, " "), required: meta?.required ?? false, phase: d.phase };
+      return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
     });
   const phase2RequiredDocs = requiredDocs
     .filter((d: any) => d.phase === "phase2" || d.phase === "both")
     .map((d: any) => {
       const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
-      return { id: d.documentTypeId, name: meta?.name || d.documentTypeId.replace(/_/g, " "), required: meta?.required ?? false, phase: d.phase };
+      return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
     });
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
@@ -337,26 +340,30 @@ export default function MitraProjectDetailPage() {
             </div>
           )}
 
-          {/* Required Documents */}
-          {phase1RequiredDocs.length > 0 && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-ptba-charcoal mb-1">
-                {t("requiredDocuments")}
-              </h3>
-              <p className="text-xs text-ptba-gray mb-3">{t("requiredDocumentsDesc")}</p>
-              <ul className="space-y-2">
-                {phase1RequiredDocs.map((doc: any) => (
-                  <li key={doc.id} className="flex items-start gap-2 text-sm">
-                    <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-steel-blue" />
-                    <div>
-                      <p className="text-ptba-charcoal">{doc.name}</p>
-                      {doc.required && <span className="text-[10px] text-ptba-red font-medium">{tc("required")}</span>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* Required Documents - show docs for current phase */}
+          {(() => {
+            const currentDocs = isShortlisted ? phase2RequiredDocs : phase1RequiredDocs;
+            const phaseLabel = isShortlisted ? tc("phase2") : tc("phase1");
+            return currentDocs.length > 0 ? (
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <h3 className="text-sm font-semibold text-ptba-charcoal mb-1">
+                  {t("requiredDocuments")} — {phaseLabel}
+                </h3>
+                <p className="text-xs text-ptba-gray mb-3">{t("requiredDocumentsDesc")}</p>
+                <ul className="space-y-2">
+                  {currentDocs.map((doc: any) => (
+                    <li key={doc.id} className="flex items-start gap-2 text-sm">
+                      <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-steel-blue" />
+                      <div>
+                        <p className="text-ptba-charcoal">{doc.name}</p>
+                        {doc.required && <span className="text-[10px] text-ptba-red font-medium">{tc("required")}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null;
+          })()}
         </div>
       </div>
     </div>

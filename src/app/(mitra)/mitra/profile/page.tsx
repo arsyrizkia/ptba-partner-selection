@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Building2, MapPin, Phone, Mail, Globe, FileText, User, Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Building2, MapPin, Phone, Mail, Globe, FileText, User, Loader2, Lock, Eye, EyeOff, Upload, X, Camera } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi, partnerApi, ApiClientError, type PartnerProfile, type UpdatePartnerInput } from "@/lib/api/client";
@@ -73,6 +73,8 @@ function CompanyProfileTab() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [editForm, setEditForm] = useState<ProfileFormData>({
     name: "", businessOverview: "", address: "", indonesiaOfficeAddress: "",
     phone: "", companyDomain: "", website: "", npwp: "", nib: "",
@@ -133,6 +135,45 @@ function CompanyProfileTab() {
   const handleCancel = () => {
     if (partner) setEditForm(toFormData(partner));
     setIsEditing(false);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !partner || !accessToken) return;
+    if (!file.type.startsWith("image/")) {
+      setSaveMessage(t("company.logoImageOnly"));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSaveMessage(t("company.logoMaxSize"));
+      return;
+    }
+    setUploadingLogo(true);
+    setSaveMessage("");
+    try {
+      const updated = await partnerApi(accessToken).uploadLogo(partner.id, file);
+      setPartner(updated);
+      setSaveMessage(t("company.logoSaved"));
+      setTimeout(() => setSaveMessage(""), 3000);
+    } catch {
+      setSaveMessage(t("company.logoFailed"));
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    if (!partner || !accessToken) return;
+    setUploadingLogo(true);
+    try {
+      const updated = await partnerApi(accessToken).deleteLogo(partner.id);
+      setPartner(updated);
+    } catch {
+      setSaveMessage(t("company.logoFailed"));
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   if (loading) {
@@ -228,6 +269,42 @@ function CompanyProfileTab() {
           {saveMessage}
         </div>
       )}
+
+      {/* Logo */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.companyLogo")}</h3>
+        <div className="flex items-center gap-4">
+          {partner.logo_url ? (
+            <img src={partner.logo_url} alt="Logo" className="h-20 w-20 rounded-xl object-contain border border-ptba-light-gray bg-ptba-off-white p-1" />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-ptba-light-gray bg-ptba-off-white">
+              <Building2 className="h-8 w-8 text-ptba-light-gray" />
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => logoInputRef.current?.click()}
+              disabled={uploadingLogo}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue hover:text-white transition-colors disabled:opacity-50"
+            >
+              {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              {partner.logo_url ? t("company.changeLogo") : t("company.uploadLogo")}
+            </button>
+            {partner.logo_url && (
+              <button
+                onClick={handleLogoDelete}
+                disabled={uploadingLogo}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("company.removeLogo")}
+              </button>
+            )}
+            <p className="text-[10px] text-ptba-gray">{t("company.logoHint")}</p>
+          </div>
+          <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
