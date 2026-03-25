@@ -56,7 +56,7 @@
     },
     "phaseLabels": {
       "published": "Published",
-      "phase1_registration": "Filtration - EoI Registration",
+      "phase1_registration": "Filtration - Expression of Interest (EoI) Registration",
       "phase1_closed": "Filtration - Registration Closed",
       "phase1_evaluation": "Filtration - Assessment",
       "phase1_approval": "Filtration - Approval",
@@ -157,16 +157,16 @@
     "yourApplicationStatus": "Your Application Status",
     "viewStatusDetail": "View Status Detail",
     "submitEoi": "Submit Expression of Interest",
-    "submitEoiDesc": "Prepare the required EoI documents and submit your Phase 1 application for this project.",
-    "applyEoi": "Submit EoI",
+    "submitEoiDesc": "Prepare the required Expression of Interest (EoI) documents and submit your Phase 1 application for this project.",
+    "applyEoi": "Submit Expression of Interest",
     "deadlinePassed": "Registration deadline has passed.",
     "notOpenForRegistration": "Registration is not yet open for this project.",
     "notAcceptingRegistration": "This project is not accepting applications at this time.",
     "requiredDocuments": "Required Documents to Apply",
-    "requiredDocumentsDesc": "Prepare the following documents before submitting your EoI"
+    "requiredDocumentsDesc": "Prepare the following documents before submitting your Expression of Interest (EoI)"
   },
   "applySuccess": {
-    "title": "EoI Successfully Submitted!",
+    "title": "Expression of Interest (EoI) Successfully Submitted!",
     "description": "Your Expression of Interest has been successfully submitted. The evaluation team will review your documents. We will notify you of the evaluation results through the portal and email.",
     "viewProjectDetail": "View Project Detail",
     "viewRegistrationStatus": "View Registration Status"
@@ -195,8 +195,8 @@
     "sections": {
       "companyInfo": "Company Information & Profile",
       "companyInfoDesc": "Your company data. Please ensure the information is accurate.",
-      "eoiStatement": "EoI Declaration Letter",
-      "eoiStatementDesc": "Fill in the signatory details and upload the signed EoI declaration letter.",
+      "eoiStatement": "Expression of Interest (EoI) Declaration Letter",
+      "eoiStatementDesc": "Fill in the signatory details and upload the signed Expression of Interest declaration letter.",
       "portfolio": "Project Experience & Portfolio",
       "portfolioDesc": "List and summary of relevant projects completed",
       "financialOverview": "Financial Overview",
@@ -245,12 +245,12 @@
       "signerPosition": "Position",
       "signerPositionPlaceholder": "Example: President Director",
       "signerDate": "Signing Date",
-      "eoiDeclaration": "We hereby declare our interest in participating in the PT Bukit Asam Persero Tbk strategic partner selection process for the <strong>{projectName}</strong> project, proposing a joint venture equity percentage of <strong>{equityPercent}%</strong> as minority shareholder. We understand that this EoI submission is non-binding for both parties and is only the initial stage of the selection process.",
+      "eoiDeclaration": "We hereby declare our interest in participating in the PT Bukit Asam Persero Tbk strategic partner selection process for the <strong>{projectName}</strong> project, proposing a joint venture equity percentage of <strong>{equityPercent}%</strong> as minority shareholder. We understand that this Expression of Interest submission is non-binding for both parties and is only the initial stage of the selection process.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that our company is interested in participating.",
       "minorityEquity": "Joint Venture Equity Percentage (Minority Shareholder)",
       "minorityEquityHint": "Proposed equity percentage if selected as partner (30%-49%)",
-      "eoiDoc": "EoI Document",
-      "eoiDocLabel": "Signed EoI Letter (PDF, signed by authorized representative)"
+      "eoiDoc": "Expression of Interest (EoI) Document",
+      "eoiDocLabel": "Signed Expression of Interest Letter (PDF, signed by authorized representative)"
     },
     "portfolioFields": {
       "relevantProjects": "Relevant Projects in the Last 10 Years (min. 2)",
@@ -318,11 +318,11 @@
     "submitBar": {
       "sectionsCompleted": "{completed}/{total} sections completed",
       "readyToSubmit": "Form is ready to submit.",
-      "completeAllSections": "Complete all sections to submit the EoI.",
+      "completeAllSections": "Complete all sections to submit the Expression of Interest.",
       "draftSaved": "Draft saved!",
       "saveDraft": "Save Draft",
       "savingDraft": "Saving...",
-      "submitEoi": "Submit EoI",
+      "submitEoi": "Submit Expression of Interest",
       "submitting": "Submitting..."
     },
     "errors": {
@@ -481,7 +481,7 @@
     "uploadedAt": "Uploaded: {date}",
     "formData": {
       "companyInfo": "Company Information",
-      "eoiStatement": "EoI Declaration Letter",
+      "eoiStatement": "Expression of Interest Declaration Letter",
       "projectExperience": "Project Experience",
       "financialData": "Financial Data",
       "requirementsFulfillment": "Requirements Fulfillment",
@@ -493,7 +493,7 @@
       "signerName": "Signatory Name",
       "signerPosition": "Position",
       "date": "Date",
-      "agreedEoi": "Agreed to EoI",
+      "agreedEoi": "Agreed to Expression of Interest",
       "yes": "Yes",
       "no": "No",
       "experienceNumber": "Experience #{number}",
@@ -517,7 +517,7 @@
   "statusPage": {
     "title": "Registration Status",
     "noRegistration": "No registrations yet",
-    "noRegistrationDesc": "You have not submitted an EoI for any project.",
+    "noRegistrationDesc": "You have not submitted an Expression of Interest for any project.",
     "viewAvailableProjects": "View Available Projects",
     "appliedAt": "Submitted {date}",
     "winnerBanner": "Congratulations! You have been selected as a partner",
@@ -528,7 +528,7 @@
     "shortlistPhase2Email": " Phase 2 information will be communicated via email.",
     "uploadPhase2Docs": "Upload Phase 2 Documents",
     "milestones": {
-      "eoiRegistration": "EoI Registration",
+      "eoiRegistration": "Expression of Interest (EoI) Registration",
       "registrationClosed": "Registration Closed",
       "phase1Evaluation": "Phase 1 Filtration",
       "shortlistAnnouncement": "Shortlist Announcement",
@@ -622,12 +622,12 @@
     "finalized": "Filtration finalized successfully.",
     "items": {
       "compro": "Company Profile",
-      "statementEoi": "Statement of EoI",
+      "statementEoi": "Statement of Expression of Interest",
       "portfolio": "Project Portfolio",
       "financialOverview": "Financial Overview",
       "requirementsFulfillment": "Requirements Fulfillment",
       "sectionCompro": "Company Information",
-      "sectionStatementEoi": "EoI Statement",
+      "sectionStatementEoi": "Expression of Interest Statement",
       "sectionPortfolio": "Project Experience",
       "sectionFinancial": "Financial Data",
       "sectionRequirements": "Requirements Fulfillment"
@@ -639,7 +639,7 @@
       "financialOverview": "Financial overview document",
       "requirementsFulfillment": "Requirements fulfillment document",
       "sectionCompro": "Company information form data",
-      "sectionStatementEoi": "EoI statement form data",
+      "sectionStatementEoi": "Expression of Interest statement form data",
       "sectionPortfolio": "Project experience form data",
       "sectionFinancial": "Financial form data",
       "sectionRequirements": "Requirements fulfillment form data"
