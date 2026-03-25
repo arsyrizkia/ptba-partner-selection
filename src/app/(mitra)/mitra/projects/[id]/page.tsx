@@ -85,7 +85,9 @@ export default function MitraProjectDetailPage() {
   const hasPendingApplication = application && application.status !== "Draft";
   const canApply = project.isOpenForApplication && !phase1DeadlinePassed && !hasPendingApplication;
   const isPhase2 = project.phase?.startsWith("phase2");
+  const isPhase3 = project.phase?.startsWith("phase3");
   const isShortlisted = application?.status === "Shortlisted";
+  const isPassedPhase2 = application?.status === "Diterima" || application?.status === "Terpilih";
   const canAccessPhase2 = isShortlisted && isPhase2;
 
   // Required documents from project - grouped by phase
@@ -101,6 +103,12 @@ export default function MitraProjectDetailPage() {
     });
   const phase2RequiredDocs = requiredDocs
     .filter((d: any) => d.phase === "phase2" || d.phase === "both")
+    .map((d: any) => {
+      const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+      return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
+    });
+  const phase3RequiredDocs = requiredDocs
+    .filter((d: any) => d.phase === "phase3")
     .map((d: any) => {
       const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
       return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
@@ -342,8 +350,18 @@ export default function MitraProjectDetailPage() {
 
           {/* Required Documents - show docs for current phase */}
           {(() => {
-            const currentDocs = isShortlisted ? phase2RequiredDocs : phase1RequiredDocs;
-            const phaseLabel = isShortlisted ? tc("phase2") : tc("phase1");
+            let currentDocs: typeof phase1RequiredDocs;
+            let phaseLabel: string;
+            if (isPassedPhase2) {
+              currentDocs = phase3RequiredDocs;
+              phaseLabel = tc("phase3");
+            } else if (isShortlisted) {
+              currentDocs = phase2RequiredDocs;
+              phaseLabel = tc("phase2");
+            } else {
+              currentDocs = phase1RequiredDocs;
+              phaseLabel = tc("phase1");
+            }
             return currentDocs.length > 0 ? (
               <div className="rounded-xl bg-white p-6 shadow-sm">
                 <h3 className="text-sm font-semibold text-ptba-charcoal mb-1">
