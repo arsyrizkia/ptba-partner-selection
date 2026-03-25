@@ -22,7 +22,7 @@ export interface Project {
   id: string;
   name: string;
   type: 'mining' | 'power_generation' | 'coal_processing' | 'infrastructure' | 'environmental' | 'corporate';
-  status: 'Draft' | 'Evaluasi' | 'Persetujuan' | 'Selesai' | 'Dibatalkan';
+  status: 'Draft' | 'Berjalan' | 'Menunggu Persetujuan' | 'Selesai' | 'Dibatalkan';
   description: string;
   startDate: string;
   endDate: string;

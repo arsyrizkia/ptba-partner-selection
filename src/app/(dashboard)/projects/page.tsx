@@ -26,8 +26,8 @@ const EVALUATOR_ROLES = ["keuangan", "hukum", "risiko"] as const;
 
 function statusStyle(status: string) {
   switch (status) {
-    case "Evaluasi":   return "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20";
-    case "Persetujuan": return "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20";
+    case "Berjalan":   return "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20";
+    case "Menunggu Persetujuan": return "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20";
     case "Draft":      return "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
     case "Dipublikasikan":  return "bg-teal-100 text-teal-700 border border-teal-200";
     case "Selesai":    return "bg-ptba-green/10 text-ptba-green border border-ptba-green/20";
@@ -61,10 +61,10 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
       phase1_closed: "Evaluasi · Ditutup",
       phase1_evaluation: "Evaluasi · Penilaian",
       phase1_approval: "Evaluasi · Persetujuan",
-      phase1_approved: "Evaluasi",
+      phase1_approved: "Berjalan",
       phase1_announcement: "Evaluasi · Pengumuman",
     };
-    return { label: sub[phase] ?? "Evaluasi", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
+    return { label: sub[phase] ?? "Berjalan", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
   }
   if (phase.startsWith("phase2")) {
     const sub2: Record<string, string> = {
@@ -87,7 +87,7 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
   return { label: sub3[phase] ?? "Proposal & FRP", color: "bg-ptba-gold/10 text-ptba-gold border-ptba-gold/20" };
 }
 
-const STATUS_TABS = ["Semua", "Draft", "Dipublikasikan", "Evaluasi", "Persetujuan", "Selesai"];
+const STATUS_TABS = ["Semua", "Draft", "Dipublikasikan", "Berjalan", "Menunggu Persetujuan", "Selesai"];
 
 export default function ProjectsPage() {
   const { user, role, accessToken } = useAuth();
@@ -125,7 +125,7 @@ export default function ProjectsPage() {
     role === "super_admin" || project.createdBy === user?.id;
 
   const baseProjects = isEvaluator
-    ? projects.filter((p) => p.status === "Evaluasi")
+    ? projects.filter((p) => p.status === "Berjalan")
     : projects;
 
   const [activeTab, setActiveTab] = useState("Semua");
@@ -140,8 +140,8 @@ export default function ProjectsPage() {
   }, [baseProjects, activeTab, search]);
 
   const total = baseProjects.length;
-  const evaluasi = baseProjects.filter((p) => p.status === "Evaluasi").length;
-  const persetujuan = baseProjects.filter((p) => p.status === "Persetujuan").length;
+  const evaluasi = baseProjects.filter((p) => p.status === "Berjalan").length;
+  const persetujuan = baseProjects.filter((p) => p.status === "Menunggu Persetujuan").length;
   const selesai = baseProjects.filter((p) => p.status === "Selesai").length;
 
   if (loading) {
@@ -199,8 +199,8 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             { label: "Total Proyek", value: total, icon: FolderKanban, color: "bg-ptba-navy" },
-            { label: "Evaluasi", value: evaluasi, icon: Clock, color: "bg-ptba-steel-blue" },
-            { label: "Persetujuan", value: persetujuan, icon: CheckSquare, color: "bg-ptba-gold" },
+            { label: "Berjalan", value: evaluasi, icon: Clock, color: "bg-ptba-steel-blue" },
+            { label: "Menunggu Persetujuan", value: persetujuan, icon: CheckSquare, color: "bg-ptba-gold" },
             { label: "Selesai", value: selesai, icon: TrendingUp, color: "bg-ptba-green" },
           ].map((kpi) => {
             const Icon = kpi.icon;

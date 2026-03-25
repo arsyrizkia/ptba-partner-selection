@@ -14,9 +14,9 @@ function getStatusVariant(
   status: Project["status"]
 ): "success" | "warning" | "error" | "info" | "neutral" {
   switch (status) {
-    case "Evaluasi":
+    case "Berjalan":
       return "info";
-    case "Persetujuan":
+    case "Menunggu Persetujuan":
       return "warning";
     case "Selesai":
       return "success";

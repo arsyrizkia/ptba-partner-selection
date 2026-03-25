@@ -43,7 +43,10 @@
       "Bash(sed -i '' 's/Direksi and viewer/Ketua Tim and viewer/g' src/controllers/document.controller.ts)",
       "Bash(sed -i '' 's/Direksi sees/Ketua Tim sees/g' src/services/approval.service.ts)",
       "Bash(cd:*)",
-      "Bash(sed -i '' \"s/''direksi''/''ketua_tim''/g; s/\"\"direksi\"\"/\"\"ketua_tim\"\"/g\" \"$f\")"
+      "Bash(sed -i '' \"s/''direksi''/''ketua_tim''/g; s/\"\"direksi\"\"/\"\"ketua_tim\"\"/g\" \"$f\")",
+      "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"admin@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"password123\"\"\"\"}')",
+      "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"ebd@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Prima2025!\"\"\"\"}')",
+      "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"ketuatim@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Prima2025!\"\"\"\"}')"
     ]
   }
 }

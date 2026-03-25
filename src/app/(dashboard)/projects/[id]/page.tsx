@@ -1189,7 +1189,7 @@ export default function ProjectDetailPage({
                     Evaluasi Belum Lengkap
                   </div>
                 )}
-                {allEvalsComplete && project.status === "Evaluasi" && (
+                {allEvalsComplete && project.status === "Berjalan" && (
                   <button
                     onClick={() => setShowPersetujuanModal(true)}
                     className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-4 py-2 text-sm font-bold text-ptba-charcoal shadow-sm hover:bg-ptba-gold-light transition-colors"

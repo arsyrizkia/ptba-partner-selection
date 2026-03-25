@@ -5,7 +5,7 @@ export const mockProjects: Project[] = [
     id: 'P001',
     name: 'Pengembangan PLTU Mulut Tambang 3x10 MW',
     type: 'power_generation',
-    status: 'Evaluasi',
+    status: 'Berjalan',
     description:
       'Proyek pembangunan Pembangkit Listrik Tenaga Uap (PLTU) mulut tambang dengan kapasitas 3x10 MW di kawasan pertambangan Tanjung Enim. Proyek ini bertujuan untuk meningkatkan efisiensi pemanfaatan batubara kualitas rendah yang tidak ekonomis untuk dijual, sekaligus mendukung kebutuhan listrik operasional tambang dan kawasan sekitar.',
     startDate: '2025-06-01',
@@ -55,7 +55,7 @@ export const mockProjects: Project[] = [
     id: 'P002',
     name: 'Kerjasama Gasifikasi Batubara',
     type: 'coal_processing',
-    status: 'Evaluasi',
+    status: 'Berjalan',
     description:
       'Proyek kerjasama strategis gasifikasi batubara untuk mengkonversi batubara menjadi syngas (gas sintesis) yang dapat digunakan sebagai bahan baku industri kimia dan bahan bakar. Proyek ini merupakan bagian dari strategi diversifikasi produk turunan batubara PTBA dan mendukung program hilirisasi batubara nasional.',
     startDate: '2025-03-01',
@@ -104,7 +104,7 @@ export const mockProjects: Project[] = [
     id: 'P003',
     name: 'Solar Panel Farm Tanjung Enim',
     type: 'power_generation',
-    status: 'Persetujuan',
+    status: 'Menunggu Persetujuan',
     description:
       'Pembangunan pembangkit listrik tenaga surya (PLTS) di lahan pasca tambang kawasan Tanjung Enim dengan kapasitas 15 MWp. Proyek ini merupakan komitmen PTBA dalam transisi energi dan pemanfaatan lahan reklamasi pasca tambang secara produktif untuk energi terbarukan.',
     startDate: '2025-09-01',

@@ -616,7 +616,7 @@ export default function ProjectForm({
             {/* Cover Image */}
             <div>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Cover Image</label>
-              <p className="mb-2 text-xs text-ptba-gray">Gambar utama yang ditampilkan di kartu proyek.</p>
+              <p className="mb-2 text-xs text-ptba-gray">Gambar utama yang ditampilkan di kartu proyek. Ukuran ideal: <strong>1200 × 400 px</strong> (format landscape/banner).</p>
               {coverImagePreview ? (
                 <div className="relative inline-block">
                   <img src={coverImagePreview} alt="Cover" className="h-32 rounded-lg object-cover border border-ptba-light-gray" />

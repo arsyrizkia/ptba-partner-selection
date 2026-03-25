@@ -178,7 +178,7 @@ function getDivisionLabel(role: string) {
     case "keuangan": return "Corporate Finance";
     case "hukum": return "Legal & Regulatory Affairs";
     case "risiko": return "Risk Management";
-    default: return "Evaluasi";
+    default: return "Berjalan";
   }
 }
 
@@ -596,7 +596,7 @@ function EvaluatorDashboard({ stats, roleValue }: { stats: DashboardStats; roleV
                             : "bg-ptba-navy text-white hover:bg-ptba-navy/90"
                         )}
                       >
-                        {task.status === "Selesai" ? "Lihat Hasil" : "Evaluasi"}
+                        {task.status === "Selesai" ? "Lihat Hasil" : "Berjalan"}
                       </Link>
                     </td>
                   </tr>
