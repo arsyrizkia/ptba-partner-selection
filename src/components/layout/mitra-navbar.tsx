@@ -1,11 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
+import { partnerApi } from "@/lib/api/client";
 import { MITRA_NAVIGATION } from "@/lib/constants/navigation";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
@@ -14,9 +16,17 @@ import type { Locale } from "@/lib/i18n/config";
 export default function MitraNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, accessToken, logout } = useAuth();
   const t = useTranslations("navigation");
   const { locale, setLocale } = useLocale();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.partnerId || !accessToken) return;
+    partnerApi(accessToken).getById(user.partnerId).then((p) => {
+      setLogoUrl(p.logo_url || null);
+    }).catch(() => {});
+  }, [user?.partnerId, accessToken]);
 
   const handleLogout = () => {
     logout();
@@ -89,6 +99,13 @@ export default function MitraNavbar() {
             </span>
           </button>
 
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="h-8 w-8 rounded-full object-contain border border-ptba-light-gray bg-white" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg border border-ptba-light-gray">
+              <Building2 className="h-4 w-4 text-ptba-gray" />
+            </div>
+          )}
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-ptba-charcoal">
               {user?.name}
