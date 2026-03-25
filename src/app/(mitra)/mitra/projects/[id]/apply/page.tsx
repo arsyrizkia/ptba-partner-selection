@@ -596,7 +596,9 @@ export default function MitraProjectApplyPage() {
     minorityEquityPercent,
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const buildFormDataRef = useRef(buildFormData);
+  buildFormDataRef.current = buildFormData;
+
   const saveFormDataToServer = useCallback(async (appId: string) => {
     if (!accessToken) return;
     await fetch(`${API_BASE}/applications/${appId}/form-data`, {
@@ -605,7 +607,7 @@ export default function MitraProjectApplyPage() {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ formData: buildFormData() }),
+      body: JSON.stringify({ formData: buildFormDataRef.current() }),
     });
   }, [accessToken]);
 

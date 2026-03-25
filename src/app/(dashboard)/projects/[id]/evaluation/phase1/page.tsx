@@ -91,25 +91,33 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
     render: (fd) => {
       const exps = fd.experiences || [];
       if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
+      const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan" };
       return (
         <div className="space-y-2">
           {exps.map((exp: any, i: number) => (
             <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
-              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1}</p>
+              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1} — {catLabels[exp.category] || exp.category}</p>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <EvalField label="Nama Proyek" value={exp.projectName} />
+                <EvalField label="Nama Pembangkit" value={exp.plantName} />
                 <EvalField label="Lokasi" value={exp.location} />
-                <EvalField label="Tipe" value={exp.type} />
-                <EvalField label="Peran" value={exp.role} />
-                <EvalField label="Tahun" value={exp.year} />
-                <EvalField label="Nilai Proyek" value={exp.projectCost} />
+                <EvalField label="Kapasitas (MW)" value={exp.totalCapacityMW} />
+                {exp.category === "developer" && <>
+                  <EvalField label="Ekuitas (%)" value={exp.equityPercent} />
+                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
+                  <EvalField label="Tahun COD" value={exp.codYear} />
+                </>}
+                {exp.category === "om_contractor" && <>
+                  <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />
+                  <EvalField label="Porsi Kerja (%)" value={exp.workPortionPercent} />
+                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
+                  <EvalField label="Tahun COD" value={exp.codYear} />
+                </>}
+                {exp.category === "financing" && <>
+                  <EvalField label="Tipe Pembiayaan" value={exp.financingType} />
+                  <EvalField label="Jumlah (USD)" value={exp.amountUSD} />
+                  <EvalField label="Tahun" value={exp.year} />
+                </>}
               </dl>
-              {exp.description && (
-                <div className="mt-1">
-                  <span className="text-[10px] text-ptba-gray">Deskripsi:</span>
-                  <p className="text-xs text-ptba-charcoal">{exp.description}</p>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -172,7 +180,13 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
       </div>
     ),
   },
+  // Aliases for section_financial → financial, section_requirements → requirements
+  financial: undefined as any,
+  requirements: undefined as any,
 };
+// Map aliases
+EVAL_FORM_DATA_MAP.financial = EVAL_FORM_DATA_MAP.financial_overview;
+EVAL_FORM_DATA_MAP.requirements = EVAL_FORM_DATA_MAP.requirements_fulfillment;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface MitraChecks {
