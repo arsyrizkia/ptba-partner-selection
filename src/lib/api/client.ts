@@ -251,11 +251,28 @@ export interface ResendVerificationResponse {
 
 export function authApi() {
   return {
-    register: (data: RegisterInput) =>
-      api<RegisterResponse>("/auth/register", {
+    register: async (data: RegisterInput, logoFile?: File): Promise<RegisterResponse> => {
+      if (logoFile) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) formData.append(key, String(value));
+        });
+        formData.append("logo", logoFile);
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Registration failed" }));
+          throw new ApiClientError(err.error || "Registration failed", res.status);
+        }
+        return res.json();
+      }
+      return api<RegisterResponse>("/auth/register", {
         method: "POST",
         body: data,
-      }),
+      });
+    },
 
     login: (email: string, password: string) =>
       api<LoginResponse>("/auth/login", {

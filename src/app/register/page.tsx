@@ -246,7 +246,7 @@ export default function RegisterPage() {
         contactPerson: contactName,
         contactPhone,
         contactEmail,
-      });
+      }, logoFile || undefined);
 
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
