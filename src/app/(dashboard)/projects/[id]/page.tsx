@@ -534,7 +534,7 @@ export default function ProjectDetailPage({
       docTotal: allDocs.length,
     };
   });
-  const isAdmin = role === "ebd" || role === "super_admin";
+  const isAdmin = role === "ebd" || role === "super_admin" || role === "ketua_tim";
   const isCreator = !!authUser && !!project?.createdBy && authUser.id === project.createdBy;
   const canEditPic = role === "super_admin" || isCreator;
   const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement";
