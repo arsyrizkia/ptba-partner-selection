@@ -91,6 +91,7 @@ export default function NotificationsPage() {
         )
       );
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      window.dispatchEvent(new Event("notifications-updated"));
     } catch {
       // ignore
     } finally {
@@ -108,6 +109,7 @@ export default function NotificationsPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
+      window.dispatchEvent(new Event("notifications-updated"));
     } catch {
       // ignore
     }

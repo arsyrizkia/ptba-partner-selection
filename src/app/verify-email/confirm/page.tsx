@@ -97,7 +97,7 @@ function VerifyEmailConfirmContent() {
         </div>
 
         <p className="mt-6 text-center text-xs text-ptba-gray">
-          &copy; 2024 PT Bukit Asam Persero Tbk. Hak Cipta Dilindungi.
+          &copy; 2026 PT Bukit Asam Persero Tbk. Hak Cipta Dilindungi.
         </p>
       </div>
     </div>

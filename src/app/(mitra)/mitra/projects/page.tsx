@@ -30,7 +30,7 @@ interface MitraApplication {
   applied_at: string;
 }
 
-const TYPE_FILTERS = ["all", "mining", "power_generation", "coal_processing", "infrastructure", "environmental", "corporate", "others"] as const;
+const ALL_TYPES = ["mining", "power_generation", "coal_processing", "infrastructure", "environmental", "corporate", "others"] as const;
 
 function typeBadge(type: string) {
   const map: Record<string, string> = {
@@ -69,6 +69,11 @@ export default function MitraProjectsPage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [accessToken]);
 
+  const typeFilters = useMemo(() => {
+    const existingTypes = new Set(projects.map((p) => p.type));
+    return ["all", ...ALL_TYPES.filter((t) => existingTypes.has(t))];
+  }, [projects]);
+
   const appliedProjectIds = useMemo(
     () => new Set(applications.map((a) => a.project_id)),
     [applications]
@@ -106,7 +111,7 @@ export default function MitraProjectsPage() {
           />
         </div>
         <div className="flex gap-1.5">
-          {TYPE_FILTERS.map((filterType) => (
+          {typeFilters.map((filterType) => (
             <button
               key={filterType}
               onClick={() => setTypeFilter(filterType)}

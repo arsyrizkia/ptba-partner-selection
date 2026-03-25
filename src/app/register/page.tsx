@@ -6,31 +6,41 @@ import Image from "next/image";
 import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { authApi, api, ApiClientError } from "@/lib/api/client";
-
-const STEPS = [
-  { key: 1, label: "Data Perusahaan" },
-  { key: 2, label: "Kontak & Dokumen" },
-  { key: 3, label: "Buat Akun" },
-];
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 
 // --- Validation helpers ---
 const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isValidDomain = (v: string) => /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(v);
 const isValidPhone = (v: string) => {
   const digitsOnly = v.replace(/\D/g, "");
   return digitsOnly.length >= 7 && digitsOnly.length <= 15;
 };
 const isPhoneChar = (v: string) => /^[\d\s()+\-]*$/.test(v);
 const isValidCompanyCode = (v: string) => /^[a-zA-Z0-9\-]{2,20}$/.test(v);
+const getEmailDomain = (email: string) => {
+  const parts = email.split("@");
+  return parts.length === 2 ? parts[1].toLowerCase() : "";
+};
 
 type FieldErrors = Record<string, string>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations("register");
+  const { locale, setLocale } = useLocale();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const STEPS = [
+    { key: 1, label: t("steps.companyData") },
+    { key: 2, label: t("steps.contactDocs") },
+    { key: 3, label: t("steps.createAccount") },
+  ];
 
   // Step 1: Data Perusahaan
   const [companyName, setCompanyName] = useState("");
@@ -39,7 +49,7 @@ export default function RegisterPage() {
   const [address, setAddress] = useState("");
   const [indonesiaOfficeAddress, setIndonesiaOfficeAddress] = useState("");
   const [phone, setPhone] = useState("");
-  const [companyEmail, setCompanyEmail] = useState("");
+  const [companyDomain, setCompanyDomain] = useState("");
 
   // Step 2: Kontak & Dokumen
   const [contactName, setContactName] = useState("");
@@ -78,11 +88,11 @@ export default function RegisterPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setFieldErrors((prev) => ({ ...prev, logo: "File harus berupa gambar" }));
+      setFieldErrors((prev) => ({ ...prev, logo: t("logo.imageOnly") }));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setFieldErrors((prev) => ({ ...prev, logo: "Ukuran file maksimal 2MB" }));
+      setFieldErrors((prev) => ({ ...prev, logo: t("logo.maxSize") }));
       return;
     }
     setLogoFile(file);
@@ -104,59 +114,63 @@ export default function RegisterPage() {
     let err = "";
     switch (field) {
       case "companyName":
-        if (!companyName.trim()) err = "Nama perusahaan wajib diisi";
-        else if (companyName.trim().length < 3) err = "Minimal 3 karakter";
+        if (!companyName.trim()) err = t("errors.companyNameRequired");
+        else if (companyName.trim().length < 3) err = t("errors.companyNameMin");
         break;
       case "companyCode":
-        if (!companyCode.trim()) err = "Kode perusahaan wajib diisi";
+        if (!companyCode.trim()) err = t("errors.companyCodeRequired");
         else if (!isValidCompanyCode(companyCode.trim()))
-          err = "Hanya huruf, angka, dan strip (2-20 karakter)";
+          err = t("errors.companyCodeFormat");
         break;
       case "businessOverview":
-        if (!businessOverview.trim()) err = "Overview bidang usaha wajib diisi";
+        if (!businessOverview.trim()) err = t("errors.businessOverviewRequired");
         break;
       case "address":
-        if (!address.trim()) err = "Alamat kantor pusat wajib diisi";
+        if (!address.trim()) err = t("errors.addressRequired");
         break;
       case "phone":
-        if (!phone.trim()) err = "Nomor telepon wajib diisi";
+        if (!phone.trim()) err = t("errors.phoneRequired");
         else if (!isValidPhone(phone.trim()))
-          err = "Nomor telepon harus 7-15 digit";
+          err = t("errors.phoneFormat");
         break;
-      case "companyEmail":
-        if (!companyEmail.trim()) err = "Email perusahaan wajib diisi";
-        else if (!isValidEmail(companyEmail.trim()))
-          err = "Format email tidak valid";
+      case "companyDomain":
+        if (!companyDomain.trim()) err = t("errors.domainRequired");
+        else if (!isValidDomain(companyDomain.trim()))
+          err = t("errors.domainFormat");
         break;
       case "contactName":
-        if (!contactName.trim()) err = "Nama contact person wajib diisi";
+        if (!contactName.trim()) err = t("errors.contactNameRequired");
         break;
       case "contactPhone":
-        if (!contactPhone.trim()) err = "Nomor telepon CP wajib diisi";
+        if (!contactPhone.trim()) err = t("errors.contactPhoneRequired");
         else if (!isValidPhone(contactPhone.trim()))
-          err = "Nomor telepon harus 7-15 digit";
+          err = t("errors.phoneFormat");
         break;
       case "contactEmail":
-        if (!contactEmail.trim()) err = "Email CP wajib diisi";
+        if (!contactEmail.trim()) err = t("errors.contactEmailRequired");
         else if (!isValidEmail(contactEmail.trim()))
-          err = "Format email tidak valid";
+          err = t("errors.contactEmailFormat");
+        else if (companyDomain.trim() && getEmailDomain(contactEmail.trim()) !== companyDomain.trim().toLowerCase())
+          err = t("errors.contactEmailDomain", { domain: companyDomain.trim() });
         break;
       case "nib":
-        if (!nib.trim()) err = "NIB wajib diisi";
+        if (!nib.trim()) err = t("errors.nibRequired");
         break;
       case "email":
-        if (!email.trim()) err = "Email akun wajib diisi";
+        if (!email.trim()) err = t("errors.emailRequired");
         else if (!isValidEmail(email.trim()))
-          err = "Format email tidak valid";
+          err = t("errors.emailFormat");
+        else if (companyDomain.trim() && getEmailDomain(email.trim()) !== companyDomain.trim().toLowerCase())
+          err = t("errors.emailDomain", { domain: companyDomain.trim() });
         break;
       case "password":
-        if (!password) err = "Kata sandi wajib diisi";
-        else if (password.length < 8) err = "Minimal 8 karakter";
+        if (!password) err = t("errors.passwordRequired");
+        else if (password.length < 8) err = t("errors.passwordMin");
         break;
       case "confirmPassword":
-        if (!confirmPassword) err = "Konfirmasi kata sandi wajib diisi";
+        if (!confirmPassword) err = t("errors.confirmPasswordRequired");
         else if (confirmPassword !== password)
-          err = "Kata sandi tidak cocok";
+          err = t("errors.confirmPasswordMismatch");
         break;
     }
     setFieldErrors((prev) => {
@@ -170,7 +184,7 @@ export default function RegisterPage() {
 
   const validateStep = (step: number): boolean => {
     const fieldsPerStep: Record<number, string[]> = {
-      1: ["companyName", "companyCode", "businessOverview", "address", "phone", "companyEmail"],
+      1: ["companyName", "companyCode", "businessOverview", "address", "phone", "companyDomain"],
       2: ["contactName", "contactPhone", "contactEmail", "nib"],
       3: ["email", "password", "confirmPassword"],
     };
@@ -189,6 +203,9 @@ export default function RegisterPage() {
   const goNext = () => {
     setError("");
     if (!validateStep(currentStep)) return;
+    if (currentStep === 2 && !email) {
+      setEmail(contactEmail);
+    }
     if (currentStep < 3) setCurrentStep((prev) => prev + 1);
   };
 
@@ -215,7 +232,7 @@ export default function RegisterPage() {
         address,
         indonesiaOfficeAddress: indonesiaOfficeAddress || undefined,
         phone,
-        companyEmail,
+        companyEmail: `info@${companyDomain.trim()}`,
         nib,
         contactPerson: contactName,
         contactPhone,
@@ -227,7 +244,7 @@ export default function RegisterPage() {
       if (err instanceof ApiClientError) {
         setError(err.message);
       } else {
-        setError("Terjadi kesalahan. Silakan coba lagi.");
+        setError(t("errors.submitFailed"));
       }
     } finally {
       setLoading(false);
@@ -263,6 +280,10 @@ export default function RegisterPage() {
     </div>
   );
 
+  const toggleLocale = () => {
+    setLocale(locale === "id" ? "en" : "id" as Locale);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-ptba-navy via-[#1e4570] to-ptba-navy-light px-4 py-8">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -271,10 +292,26 @@ export default function RegisterPage() {
       </div>
 
       <div className="relative w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+        {/* Language Switcher */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={toggleLocale}
+            className="flex items-center rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-semibold transition-colors hover:bg-ptba-section-bg"
+          >
+            <span className={cn("px-1", locale === "id" ? "text-ptba-navy" : "text-ptba-gray")}>
+              ID
+            </span>
+            <span className="text-ptba-light-gray">|</span>
+            <span className={cn("px-1", locale === "en" ? "text-ptba-navy" : "text-ptba-gray")}>
+              EN
+            </span>
+          </button>
+        </div>
+
         {/* Branding */}
         <div className="mb-4 flex flex-col items-center">
           <Image src="/ptba-logo.svg" alt="PT Bukit Asam Persero Tbk" width={200} height={36} priority />
-          <p className="mt-3 text-sm text-ptba-gray">Pendaftaran Mitra Baru</p>
+          <p className="mt-3 text-sm text-ptba-gray">{t("subtitle")}</p>
         </div>
         <div className="mx-auto mb-6 h-[3px] w-16 rounded-full bg-ptba-gold" />
 
@@ -323,84 +360,87 @@ export default function RegisterPage() {
         {/* Step 1: Data Perusahaan */}
         {currentStep === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-ptba-charcoal">Data Perusahaan</h2>
+            <h2 className="text-lg font-semibold text-ptba-charcoal">{t("step1Title")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {fieldWrapper("companyName", "Nama Perusahaan",
+              {fieldWrapper("companyName", t("fields.companyName"),
                 <input
                   type="text"
-                  placeholder="Contoh: PT Maju Bersama"
+                  placeholder={t("fields.companyNamePlaceholder")}
                   value={companyName}
                   onChange={(e) => handleChange("companyName", e.target.value, setCompanyName)}
                   onBlur={() => handleBlur("companyName")}
                   className={getError("companyName") ? errorInputClass : inputClass}
                 />,
-                "Nama lengkap perusahaan sesuai akta"
+                t("fields.companyNameHint")
               )}
-              {fieldWrapper("companyCode", "Kode Perusahaan",
+              {fieldWrapper("companyCode", t("fields.companyCode"),
                 <input
                   type="text"
-                  placeholder="Contoh: MJB"
+                  placeholder={t("fields.companyCodePlaceholder")}
                   value={companyCode}
                   onChange={(e) => handleChange("companyCode", e.target.value, setCompanyCode)}
                   onBlur={() => handleBlur("companyCode")}
                   className={getError("companyCode") ? errorInputClass : inputClass}
                 />,
-                "Kode singkat unik (huruf, angka, strip)"
+                t("fields.companyCodeHint")
               )}
             </div>
-            {fieldWrapper("businessOverview", "Overview Bidang Usaha",
+            {fieldWrapper("businessOverview", t("fields.businessOverview"),
               <textarea
-                placeholder="Jelaskan bidang usaha utama perusahaan Anda"
+                placeholder={t("fields.businessOverviewPlaceholder")}
                 value={businessOverview}
                 onChange={(e) => handleChange("businessOverview", e.target.value, setBusinessOverview)}
                 onBlur={() => handleBlur("businessOverview")}
                 className={cn(getError("businessOverview") ? errorInputClass : inputClass, "min-h-[70px] resize-y")}
               />,
-              "Deskripsi singkat bidang usaha dan kegiatan utama perusahaan"
+              t("fields.businessOverviewHint")
             )}
-            {fieldWrapper("address", "Alamat Kantor Pusat",
+            {fieldWrapper("address", t("fields.address"),
               <textarea
-                placeholder="Contoh: Jl. Sudirman No. 10, Jakarta Pusat 10340"
+                placeholder={t("fields.addressPlaceholder")}
                 value={address}
                 onChange={(e) => handleChange("address", e.target.value, setAddress)}
                 onBlur={() => handleBlur("address")}
                 className={cn(getError("address") ? errorInputClass : inputClass, "min-h-[70px] resize-y")}
               />,
-              "Alamat lengkap kantor pusat beserta kode pos"
+              t("fields.addressHint")
             )}
-            {fieldWrapper("indonesiaOfficeAddress", "Alamat Kantor Rep. Indonesia",
+            {fieldWrapper("indonesiaOfficeAddress", t("fields.indonesiaOffice"),
               <textarea
-                placeholder="Contoh: Jl. Gatot Subroto No. 5, Jakarta Selatan"
+                placeholder={t("fields.indonesiaOfficePlaceholder")}
                 value={indonesiaOfficeAddress}
                 onChange={(e) => handleChange("indonesiaOfficeAddress", e.target.value, setIndonesiaOfficeAddress)}
                 onBlur={() => handleBlur("indonesiaOfficeAddress")}
                 className={cn(inputClass, "min-h-[70px] resize-y")}
               />,
-              "Isi jika berbeda dengan alamat kantor pusat",
+              t("fields.indonesiaOfficeHint"),
               false
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {fieldWrapper("phone", "Nomor Telp Perusahaan",
+              {fieldWrapper("phone", t("fields.phone"),
                 <input
                   type="text"
-                  placeholder="Contoh: (021) 123-4567"
+                  placeholder={t("fields.phonePlaceholder")}
                   value={phone}
                   onChange={(e) => handlePhoneChange("phone", e.target.value, setPhone)}
                   onBlur={() => handleBlur("phone")}
                   className={getError("phone") ? errorInputClass : inputClass}
                 />,
-                "Nomor telepon kantor, 7-15 digit"
+                t("fields.phoneHint")
               )}
-              {fieldWrapper("companyEmail", "Alamat Email Perusahaan",
-                <input
-                  type="email"
-                  placeholder="Contoh: info@perusahaan.co.id"
-                  value={companyEmail}
-                  onChange={(e) => handleChange("companyEmail", e.target.value, setCompanyEmail)}
-                  onBlur={() => handleBlur("companyEmail")}
-                  className={getError("companyEmail") ? errorInputClass : inputClass}
-                />,
-                "Email resmi perusahaan untuk korespondensi"
+              {fieldWrapper("companyDomain", t("fields.companyDomain"),
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ptba-gray">@</span>
+                  <input
+                    type="text"
+                    placeholder={t("fields.companyDomainPlaceholder")}
+                    value={companyDomain}
+                    onChange={(e) => handleChange("companyDomain", e.target.value.replace(/^@/, ""), setCompanyDomain)}
+                    onBlur={() => handleBlur("companyDomain")}
+                    className={cn(getError("companyDomain") ? errorInputClass : inputClass, "pl-7")}
+                  />
+                </div>,
+                t("fields.companyDomainHint")
               )}
             </div>
           </div>
@@ -409,63 +449,63 @@ export default function RegisterPage() {
         {/* Step 2: Kontak & Dokumen */}
         {currentStep === 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-ptba-charcoal">Contact Person & Dokumen</h2>
-            <p className="text-sm text-ptba-gray">Data penanggung jawab dan dokumen identitas perusahaan.</p>
+            <h2 className="text-lg font-semibold text-ptba-charcoal">{t("step2Title")}</h2>
+            <p className="text-sm text-ptba-gray">{t("step2Desc")}</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {fieldWrapper("contactName", "Nama CP",
+              {fieldWrapper("contactName", t("fields.contactName"),
                 <input
                   type="text"
-                  placeholder="Contoh: Budi Santoso"
+                  placeholder={t("fields.contactNamePlaceholder")}
                   value={contactName}
                   onChange={(e) => handleChange("contactName", e.target.value, setContactName)}
                   onBlur={() => handleBlur("contactName")}
                   className={getError("contactName") ? errorInputClass : inputClass}
                 />,
-                "Nama lengkap contact person"
+                t("fields.contactNameHint")
               )}
-              {fieldWrapper("contactPhone", "Nomor Telp CP",
+              {fieldWrapper("contactPhone", t("fields.contactPhone"),
                 <input
                   type="text"
-                  placeholder="Contoh: 0812-3456-7890"
+                  placeholder={t("fields.contactPhonePlaceholder")}
                   value={contactPhone}
                   onChange={(e) => handlePhoneChange("contactPhone", e.target.value, setContactPhone)}
                   onBlur={() => handleBlur("contactPhone")}
                   className={getError("contactPhone") ? errorInputClass : inputClass}
                 />,
-                "Nomor HP contact person, 7-15 digit"
+                t("fields.contactPhoneHint")
               )}
             </div>
-            {fieldWrapper("contactEmail", "Email CP",
+            {fieldWrapper("contactEmail", t("fields.contactEmail"),
               <input
                 type="email"
-                placeholder="Contoh: budi@perusahaan.co.id"
+                placeholder={companyDomain ? `name@${companyDomain}` : t("fields.contactEmailPlaceholder")}
                 value={contactEmail}
                 onChange={(e) => handleChange("contactEmail", e.target.value, setContactEmail)}
                 onBlur={() => handleBlur("contactEmail")}
                 className={getError("contactEmail") ? errorInputClass : inputClass}
               />,
-              "Email contact person untuk komunikasi"
+              companyDomain ? t("fields.contactEmailHint") + ` (@${companyDomain})` : t("fields.contactEmailHint")
             )}
 
             <div className="border-t border-ptba-light-gray pt-4 mt-2">
-              {fieldWrapper("nib", "NIB (Nomor Induk Berusaha)",
+              {fieldWrapper("nib", t("fields.nib"),
                 <input
                   type="text"
-                  placeholder="Contoh: 1234567890123"
+                  placeholder={t("fields.nibPlaceholder")}
                   value={nib}
                   onChange={(e) => handleChange("nib", e.target.value, setNib)}
                   onBlur={() => handleBlur("nib")}
                   className={getError("nib") ? errorInputClass : inputClass}
                 />,
-                "Nomor Induk Berusaha dari OSS"
+                t("fields.nibHint")
               )}
             </div>
 
             {/* Logo Upload */}
             <div className="border-t border-ptba-light-gray pt-4 mt-2">
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">
-                Upload Logo Perusahaan
+                {t("logo.label")}
               </label>
               {logoPreview ? (
                 <div className="flex items-center gap-4 rounded-lg border border-ptba-light-gray bg-ptba-off-white p-4">
@@ -485,7 +525,7 @@ export default function RegisterPage() {
                   className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-light-gray bg-ptba-off-white px-4 py-6 text-sm text-ptba-gray hover:border-ptba-steel-blue hover:bg-ptba-section-bg transition-colors"
                 >
                   <Upload className="h-5 w-5" />
-                  <span>Klik untuk upload logo (maks. 2MB)</span>
+                  <span>{t("logo.dropzone")}</span>
                 </button>
               )}
               <input
@@ -496,7 +536,7 @@ export default function RegisterPage() {
                 className="hidden"
               />
               {fieldErrors.logo && <p className="mt-1 text-xs text-red-500">{fieldErrors.logo}</p>}
-              <p className="mt-1 text-xs text-ptba-gray">Format: JPG, PNG, SVG. Opsional.</p>
+              <p className="mt-1 text-xs text-ptba-gray">{t("logo.format")}</p>
             </div>
           </div>
         )}
@@ -504,40 +544,40 @@ export default function RegisterPage() {
         {/* Step 3: Buat Akun */}
         {currentStep === 3 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-ptba-charcoal">Buat Akun Login</h2>
-            <p className="text-sm text-ptba-gray">Buat akun untuk mengakses Portal Mitra PTBA.</p>
-            {fieldWrapper("email", "Email Akun",
+            <h2 className="text-lg font-semibold text-ptba-charcoal">{t("step3Title")}</h2>
+            <p className="text-sm text-ptba-gray">{t("step3Desc")}</p>
+            {fieldWrapper("email", t("fields.email"),
               <input
                 type="email"
-                placeholder="Contoh: akun@perusahaan.co.id"
+                placeholder={companyDomain ? `name@${companyDomain}` : t("fields.emailPlaceholder")}
                 value={email}
                 onChange={(e) => handleChange("email", e.target.value, setEmail)}
                 onBlur={() => handleBlur("email")}
                 className={getError("email") ? errorInputClass : inputClass}
               />,
-              "Email ini akan digunakan untuk login ke portal"
+              t("fields.emailHint")
             )}
-            {fieldWrapper("password", "Kata Sandi",
+            {fieldWrapper("password", t("fields.password"),
               <input
                 type="password"
-                placeholder="Minimal 8 karakter"
+                placeholder={t("fields.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => handleChange("password", e.target.value, setPassword)}
                 onBlur={() => handleBlur("password")}
                 className={getError("password") ? errorInputClass : inputClass}
               />,
-              "Gunakan kombinasi huruf besar, kecil, dan angka"
+              t("fields.passwordHint")
             )}
-            {fieldWrapper("confirmPassword", "Konfirmasi Kata Sandi",
+            {fieldWrapper("confirmPassword", t("fields.confirmPassword"),
               <input
                 type="password"
-                placeholder="Ketik ulang kata sandi"
+                placeholder={t("fields.confirmPasswordPlaceholder")}
                 value={confirmPassword}
                 onChange={(e) => handleChange("confirmPassword", e.target.value, setConfirmPassword)}
                 onBlur={() => handleBlur("confirmPassword")}
                 className={getError("confirmPassword") ? errorInputClass : inputClass}
               />,
-              "Harus sama dengan kata sandi di atas"
+              t("fields.confirmPasswordHint")
             )}
           </div>
         )}
@@ -549,11 +589,11 @@ export default function RegisterPage() {
             className="rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
             disabled={loading}
           >
-            {currentStep === 1 ? "Kembali ke Login" : "Sebelumnya"}
+            {currentStep === 1 ? t("buttons.backToLogin") : t("buttons.previous")}
           </button>
           {currentStep < 3 ? (
             <button onClick={goNext} className="rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
-              Selanjutnya
+              {t("buttons.next")}
             </button>
           ) : (
             <button
@@ -561,15 +601,15 @@ export default function RegisterPage() {
               disabled={loading}
               className="rounded-lg bg-ptba-gold px-4 py-2 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Mendaftar..." : "Daftar"}
+              {loading ? t("buttons.registering") : t("buttons.register")}
             </button>
           )}
         </div>
 
         <p className="mt-4 text-center text-xs text-ptba-gray">
-          Sudah punya akun?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <a href="/login" className="font-semibold text-ptba-steel-blue hover:text-ptba-navy transition-colors">
-            Masuk
+            {t("login")}
           </a>
         </p>
       </div>

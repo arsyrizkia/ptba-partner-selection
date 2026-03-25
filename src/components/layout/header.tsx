@@ -11,6 +11,30 @@ import { api } from "@/lib/api/client";
 import { NotificationItem } from "@/components/features/notification/notification-item";
 import type { Notification } from "@/lib/types";
 
+interface NotificationRow {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: "info" | "warning" | "success" | "error";
+  read: boolean;
+  link: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function toNotification(row: NotificationRow): Notification {
+  return {
+    id: row.id,
+    title: row.title,
+    message: row.message,
+    type: row.type,
+    read: row.read,
+    createdAt: row.created_at,
+    link: row.link ?? undefined,
+  };
+}
+
 interface HeaderProps {
   title: string;
   breadcrumbs?: BreadcrumbItem[];
@@ -44,8 +68,8 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
   const fetchNotifications = useCallback(async () => {
     if (!accessToken) return;
     try {
-      const data = await api<{ notifications: Notification[] }>("/dashboard/notifications", { token: accessToken });
-      setNotifications(data.notifications ?? []);
+      const data = await api<{ notifications: NotificationRow[] }>("/dashboard/notifications", { token: accessToken });
+      setNotifications((data.notifications ?? []).map(toNotification));
     } catch {
       /* ignore */
     }
@@ -53,6 +77,12 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
 
   useEffect(() => {
     fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    const handler = () => fetchNotifications();
+    window.addEventListener("notifications-updated", handler);
+    return () => window.removeEventListener("notifications-updated", handler);
   }, [fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
