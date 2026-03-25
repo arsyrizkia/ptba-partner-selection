@@ -13,14 +13,14 @@ import type { Notification } from "@/lib/types";
 
 interface NotificationRow {
   id: string;
-  user_id: string;
+  user_id?: string;
   title: string;
   message: string;
   type: "info" | "warning" | "success" | "error";
   read: boolean;
-  link: string | null;
-  created_at: string;
-  updated_at: string;
+  link?: string | null;
+  created_at?: string;
+  createdAt?: string;
 }
 
 function toNotification(row: NotificationRow): Notification {
@@ -30,7 +30,7 @@ function toNotification(row: NotificationRow): Notification {
     message: row.message,
     type: row.type,
     read: row.read,
-    createdAt: row.created_at,
+    createdAt: row.createdAt || row.created_at || "",
     link: row.link ?? undefined,
   };
 }
