@@ -9,7 +9,7 @@ export interface NavigationItem {
 }
 
 const ALL_INTERNAL: UserRole[] = [
-  'super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'direksi', 'viewer',
+  'super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'ketua_tim', 'viewer',
 ];
 
 export const NAVIGATION: NavigationItem[] = [
@@ -23,7 +23,7 @@ export const NAVIGATION: NavigationItem[] = [
     icon: 'FolderKanban',
     label: 'Proyek',
     href: '/projects',
-    allowedRoles: ['super_admin', 'ebd', 'direksi', 'keuangan', 'hukum', 'risiko'],
+    allowedRoles: ['super_admin', 'ebd', 'ketua_tim', 'keuangan', 'hukum', 'risiko'],
   },
   {
     icon: 'Users',
@@ -35,7 +35,7 @@ export const NAVIGATION: NavigationItem[] = [
     icon: 'CheckSquare',
     label: 'Persetujuan',
     href: '/approvals',
-    allowedRoles: ['direksi', 'super_admin'],
+    allowedRoles: ['ketua_tim', 'super_admin'],
   },
   {
     icon: 'Bell',

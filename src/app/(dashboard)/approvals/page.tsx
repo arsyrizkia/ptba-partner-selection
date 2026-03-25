@@ -30,7 +30,7 @@ function mapApiApproval(a: any): Approval {
     status: a.status,
     requestedBy: a.requested_by || "-",
     requestedAt: a.requested_at,
-    approver: a.approver || "Direksi",
+    approver: a.approver || "Ketua Tim",
     approvedAt: a.approved_at,
     notes: a.notes,
     priority: a.priority,

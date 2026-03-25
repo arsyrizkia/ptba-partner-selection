@@ -112,7 +112,7 @@ export const mockNotifications: Notification[] = [
   {
     id: 'NOTIF-013',
     title: 'Solar Panel Farm Masuk Tahap Persetujuan',
-    message: 'Proyek Solar Panel Farm Tanjung Enim (P003) telah memasuki tahap persetujuan akhir (step 12/13). Menunggu persetujuan Direksi.',
+    message: 'Proyek Solar Panel Farm Tanjung Enim (P003) telah memasuki tahap persetujuan akhir (step 12/13). Menunggu persetujuan Ketua Tim.',
     type: 'info',
     read: true,
     createdAt: '2026-02-18T14:30:00Z',

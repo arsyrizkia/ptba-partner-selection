@@ -4,7 +4,7 @@ export type UserRole =
   | 'keuangan'
   | 'hukum'
   | 'risiko'
-  | 'direksi'
+  | 'ketua_tim'
   | 'mitra'
   | 'viewer';
 

@@ -95,11 +95,11 @@ interface MitraApprovalState {
   notes: string;
 }
 
-type DireksiMitraDecision = "pending" | "setujui" | "re-evaluasi";
+type KetuaTimMitraDecision = "pending" | "setujui" | "re-evaluasi";
 
-interface DireksiMitraState {
+interface KetuaTimMitraState {
   partnerId: string;
-  decision: DireksiMitraDecision;
+  decision: KetuaTimMitraDecision;
   notes: string;
 }
 
@@ -259,11 +259,11 @@ export default function Phase1ApprovalPage({
   const [mitraStates, setMitraStates] = useState<MitraApprovalState[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  /* ---- Direksi local state ---- */
-  const [direksiMitraStates, setDireksiMitraStates] = useState<DireksiMitraState[]>([]);
-  const [direksiGlobalNotes, setDireksiGlobalNotes] = useState("");
+  /* ---- Ketua Tim local state ---- */
+  const [ketuaTimMitraStates, setKetuaTimMitraStates] = useState<KetuaTimMitraState[]>([]);
+  const [ketuaTimGlobalNotes, setketuaTimGlobalNotes] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
-  const [direksiSubmitted, setDireksiSubmitted] = useState(false);
+  const [ketuaTimSubmitted, setKetuaTimSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   /* ---- Panel tab state ---- */
@@ -309,7 +309,7 @@ export default function Phase1ApprovalPage({
         // If already decided, set states based on approval outcome
         if (alreadyDecided) {
           setSubmitted(true);
-          setDireksiSubmitted(true);
+          setKetuaTimSubmitted(true);
 
           const isApproved = approval.status === "Disetujui";
           setMitraStates(
@@ -319,7 +319,7 @@ export default function Phase1ApprovalPage({
               notes: "",
             }))
           );
-          setDireksiMitraStates(
+          setKetuaTimMitraStates(
             evals.map((ev) => ({
               partnerId: ev.partner_id,
               decision: isApproved ? "setujui" as const : "re-evaluasi" as const,
@@ -335,7 +335,7 @@ export default function Phase1ApprovalPage({
               notes: "",
             }))
           );
-          setDireksiMitraStates(
+          setKetuaTimMitraStates(
             evals.map((ev) => ({
               partnerId: ev.partner_id,
               decision: "pending" as const,
@@ -442,29 +442,29 @@ export default function Phase1ApprovalPage({
   };
   const handlePICSubmit = () => { setSubmitted(true); };
 
-  /* ---- Direksi handlers ---- */
-  const updateDireksiMitraDecision = (partnerId: string, decision: DireksiMitraDecision) => {
-    setDireksiMitraStates((prev) =>
+  /* ---- Ketua Tim handlers ---- */
+  const updateKetuaTimMitraDecision = (partnerId: string, decision: KetuaTimMitraDecision) => {
+    setKetuaTimMitraStates((prev) =>
       prev.map((m) => (m.partnerId === partnerId ? { ...m, decision } : m))
     );
   };
-  const updateDireksiMitraNotes = (partnerId: string, notes: string) => {
-    setDireksiMitraStates((prev) =>
+  const updateKetuaTimMitraNotes = (partnerId: string, notes: string) => {
+    setKetuaTimMitraStates((prev) =>
       prev.map((m) => (m.partnerId === partnerId ? { ...m, notes } : m))
     );
   };
-  const handleDireksiSubmit = () => { setShowConfirm(true); };
+  const handleKetuaTimSubmit = () => { setShowConfirm(true); };
 
   const handleConfirmFinal = async () => {
     if (!approvalRecord || !accessToken) return;
 
     setSubmitting(true);
     try {
-      const reEvalMitra = direksiMitraStates.filter((m) => m.decision === "re-evaluasi");
+      const reEvalMitra = ketuaTimMitraStates.filter((m) => m.decision === "re-evaluasi");
       const allApproved = reEvalMitra.length === 0;
 
       let status: string;
-      let notes = direksiGlobalNotes;
+      let notes = ketuaTimGlobalNotes;
 
       if (allApproved) {
         status = "Disetujui";
@@ -495,7 +495,7 @@ export default function Phase1ApprovalPage({
       });
 
       setShowConfirm(false);
-      setDireksiSubmitted(true);
+      setKetuaTimSubmitted(true);
     } catch (err: any) {
       alert(`Gagal mengirim keputusan: ${err.message || "Terjadi kesalahan"}`);
     } finally {
@@ -546,30 +546,30 @@ export default function Phase1ApprovalPage({
     );
   }
 
-  const isDireksi = role === "direksi" || role === "super_admin";
-  const isPIC = (role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko") && !isDireksi;
+  const isKetuaTim = role === "ketua_tim" || role === "super_admin";
+  const isPIC = (role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko") && !isKetuaTim;
   const allPICDecided = mitraStates.every((m) => m.decision !== "pending");
   const approvedCount = mitraStates.filter((m) => m.decision === "approved").length;
   const rejectedCount = mitraStates.filter((m) => m.decision === "rejected").length;
 
-  const allDireksiDecided = direksiMitraStates.every((m) => m.decision !== "pending");
-  const direksiSetujuiCount = direksiMitraStates.filter((m) => m.decision === "setujui").length;
-  const direksiReEvalCount = direksiMitraStates.filter((m) => m.decision === "re-evaluasi").length;
-  const hasReEvalRequests = direksiReEvalCount > 0;
+  const allKetuaTimDecided = ketuaTimMitraStates.every((m) => m.decision !== "pending");
+  const ketuaTimSetujuiCount = ketuaTimMitraStates.filter((m) => m.decision === "setujui").length;
+  const ketuaTimReEvalCount = ketuaTimMitraStates.filter((m) => m.decision === "re-evaluasi").length;
+  const hasReEvalRequests = ketuaTimReEvalCount > 0;
 
   /* ---- sidebar helpers ---- */
   const getSidebarStatus = (partnerId: string) => {
     const ev = phase1Evals.find((e) => e.partner_id === partnerId);
     const passed = ev?.overall_result === "Lolos";
     const picState = mitraStates.find((m) => m.partnerId === partnerId);
-    const dirState = direksiMitraStates.find((m) => m.partnerId === partnerId);
+    const dirState = ketuaTimMitraStates.find((m) => m.partnerId === partnerId);
 
-    if (isDireksi && direksiSubmitted && dirState) {
+    if (isKetuaTim && ketuaTimSubmitted && dirState) {
       return dirState.decision === "setujui"
         ? { text: "Disetujui", color: "text-green-600" }
         : { text: "Re-evaluasi", color: "text-amber-600" };
     }
-    if (isDireksi && dirState?.decision !== "pending") {
+    if (isKetuaTim && dirState?.decision !== "pending") {
       return dirState?.decision === "setujui"
         ? { text: "Setujui", color: "text-green-600" }
         : { text: "Minta re-eval", color: "text-amber-600" };
@@ -683,7 +683,7 @@ export default function Phase1ApprovalPage({
                 const ev = selectedEval;
                 const passed = ev.overall_result === "Lolos";
                 const mitraState = mitraStates.find((m) => m.partnerId === ev.partner_id);
-                const direksiMitraState = direksiMitraStates.find((m) => m.partnerId === ev.partner_id);
+                const ketuaTimMitraState = ketuaTimMitraStates.find((m) => m.partnerId === ev.partner_id);
                 const appDetail = selectedAppDetail;
                 const formData = appDetail?.form_data;
                 const phase1Docs = appDetail?.phase1Documents || [];
@@ -958,31 +958,31 @@ export default function Phase1ApprovalPage({
                       </div>
                     )}
 
-                    {/* Direksi per-mitra decision */}
-                    {isDireksi && !direksiSubmitted && (
+                    {/* Ketua Tim per-mitra decision */}
+                    {isKetuaTim && !ketuaTimSubmitted && (
                       <div className="rounded-xl bg-white shadow-sm overflow-hidden">
                         <div className="px-5 py-4 bg-blue-50/50 border-t-2 border-ptba-navy/20">
                           <p className="text-xs font-semibold text-ptba-navy mb-3 flex items-center gap-1.5">
                             <ShieldCheck className="h-3.5 w-3.5" /> Keputusan Pimpinan untuk Mitra Ini
                           </p>
                           <div className="flex flex-col sm:flex-row gap-3">
-                            <button type="button" onClick={() => updateDireksiMitraDecision(ev.partner_id, "setujui")}
+                            <button type="button" onClick={() => updateKetuaTimMitraDecision(ev.partner_id, "setujui")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                                direksiMitraState?.decision === "setujui" ? "bg-green-600 text-white shadow-sm" : "bg-white border border-green-300 text-green-700 hover:bg-green-50"
+                                ketuaTimMitraState?.decision === "setujui" ? "bg-green-600 text-white shadow-sm" : "bg-white border border-green-300 text-green-700 hover:bg-green-50"
                               )}>
                               <CheckCircle2 className="h-4 w-4" /> Setujui Hasil
                             </button>
-                            <button type="button" onClick={() => updateDireksiMitraDecision(ev.partner_id, "re-evaluasi")}
+                            <button type="button" onClick={() => updateKetuaTimMitraDecision(ev.partner_id, "re-evaluasi")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                                direksiMitraState?.decision === "re-evaluasi" ? "bg-amber-500 text-white shadow-sm" : "bg-white border border-amber-300 text-amber-700 hover:bg-amber-50"
+                                ketuaTimMitraState?.decision === "re-evaluasi" ? "bg-amber-500 text-white shadow-sm" : "bg-white border border-amber-300 text-amber-700 hover:bg-amber-50"
                               )}>
                               <RotateCcw className="h-4 w-4" /> Minta Re-evaluasi oleh EBD
                             </button>
                           </div>
                           <textarea
-                            value={direksiMitraState?.notes ?? ""}
-                            onChange={(e) => updateDireksiMitraNotes(ev.partner_id, e.target.value)}
-                            placeholder={direksiMitraState?.decision === "re-evaluasi" ? "Jelaskan apa yang perlu di-review ulang oleh EBD..." : "Catatan Direksi (opsional)..."}
+                            value={ketuaTimMitraState?.notes ?? ""}
+                            onChange={(e) => updateKetuaTimMitraNotes(ev.partner_id, e.target.value)}
+                            placeholder={ketuaTimMitraState?.decision === "re-evaluasi" ? "Jelaskan apa yang perlu di-review ulang oleh EBD..." : "Catatan Ketua Tim (opsional)..."}
                             rows={2}
                             className="mt-3 w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40"
                           />
@@ -990,17 +990,17 @@ export default function Phase1ApprovalPage({
                       </div>
                     )}
 
-                    {isDireksi && direksiSubmitted && direksiMitraState && (
+                    {isKetuaTim && ketuaTimSubmitted && ketuaTimMitraState && (
                       <div className={cn("rounded-xl p-4 flex items-center gap-2 text-sm",
-                        direksiMitraState.decision === "setujui" ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
+                        ketuaTimMitraState.decision === "setujui" ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
                       )}>
-                        {direksiMitraState.decision === "setujui"
+                        {ketuaTimMitraState.decision === "setujui"
                           ? <CheckCircle2 className="h-4 w-4 text-green-600" />
                           : <RotateCcw className="h-4 w-4 text-amber-600" />}
-                        <span className={cn("font-medium", direksiMitraState.decision === "setujui" ? "text-green-700" : "text-amber-700")}>
-                          {direksiMitraState.decision === "setujui" ? "Hasil Disetujui" : "Dikembalikan ke EBD untuk Re-evaluasi"}
+                        <span className={cn("font-medium", ketuaTimMitraState.decision === "setujui" ? "text-green-700" : "text-amber-700")}>
+                          {ketuaTimMitraState.decision === "setujui" ? "Hasil Disetujui" : "Dikembalikan ke EBD untuk Re-evaluasi"}
                         </span>
-                        {direksiMitraState.notes && <span className="text-ptba-gray ml-2">— {direksiMitraState.notes}</span>}
+                        {ketuaTimMitraState.notes && <span className="text-ptba-gray ml-2">— {ketuaTimMitraState.notes}</span>}
                       </div>
                     )}
                   </>
@@ -1042,13 +1042,13 @@ export default function Phase1ApprovalPage({
             </div>
           )}
 
-          {/* Direksi submit */}
-          {isDireksi && !direksiSubmitted && (
+          {/* Ketua Tim submit */}
+          {isKetuaTim && !ketuaTimSubmitted && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <div className="flex items-start gap-3 mb-5">
                 <ShieldCheck className="h-5 w-5 text-ptba-navy mt-0.5 shrink-0" />
                 <div>
-                  <h2 className="text-base font-semibold text-ptba-navy">Keputusan Akhir Direksi</h2>
+                  <h2 className="text-base font-semibold text-ptba-navy">Keputusan Akhir Ketua Tim</h2>
                   <p className="text-xs text-ptba-gray mt-0.5">
                     Pilih keputusan untuk setiap mitra di atas, lalu kirim keputusan akhir.
                   </p>
@@ -1059,41 +1059,41 @@ export default function Phase1ApprovalPage({
                 <p className="text-xs font-semibold text-ptba-navy mb-3">Ringkasan Keputusan Per Mitra</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-lg bg-white p-3 text-center">
-                    <p className="text-2xl font-bold text-ptba-gray">{direksiMitraStates.filter((m) => m.decision === "pending").length}</p>
+                    <p className="text-2xl font-bold text-ptba-gray">{ketuaTimMitraStates.filter((m) => m.decision === "pending").length}</p>
                     <p className="text-xs text-ptba-gray">Belum Diputuskan</p>
                   </div>
                   <div className="rounded-lg bg-white p-3 text-center">
-                    <p className="text-2xl font-bold text-green-600">{direksiSetujuiCount}</p>
+                    <p className="text-2xl font-bold text-green-600">{ketuaTimSetujuiCount}</p>
                     <p className="text-xs text-green-700">Disetujui</p>
                   </div>
                   <div className="rounded-lg bg-white p-3 text-center">
-                    <p className="text-2xl font-bold text-amber-600">{direksiReEvalCount}</p>
+                    <p className="text-2xl font-bold text-amber-600">{ketuaTimReEvalCount}</p>
                     <p className="text-xs text-amber-700">Minta Re-evaluasi</p>
                   </div>
                 </div>
               </div>
 
               <textarea
-                value={direksiGlobalNotes}
-                onChange={(e) => setDireksiGlobalNotes(e.target.value)}
-                placeholder="Catatan umum Direksi (opsional)..."
+                value={ketuaTimGlobalNotes}
+                onChange={(e) => setketuaTimGlobalNotes(e.target.value)}
+                placeholder="Catatan umum Ketua Tim (opsional)..."
                 rows={3}
                 className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40 mb-4"
               />
 
-              <button type="button" onClick={handleDireksiSubmit} disabled={!allDireksiDecided}
+              <button type="button" onClick={handleKetuaTimSubmit} disabled={!allKetuaTimDecided}
                 className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors",
-                  allDireksiDecided ? "bg-ptba-navy text-white hover:bg-ptba-navy/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  allKetuaTimDecided ? "bg-ptba-navy text-white hover:bg-ptba-navy/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 )}>
                 <Send className="h-4 w-4" />
-                {!allDireksiDecided ? "Putuskan semua mitra terlebih dahulu"
-                  : hasReEvalRequests ? `Kirim Keputusan (${direksiSetujuiCount} Setujui, ${direksiReEvalCount} Re-evaluasi)`
+                {!allKetuaTimDecided ? "Putuskan semua mitra terlebih dahulu"
+                  : hasReEvalRequests ? `Kirim Keputusan (${ketuaTimSetujuiCount} Setujui, ${ketuaTimReEvalCount} Re-evaluasi)`
                   : `Setujui Semua & Lanjutkan ke Fase 2`}
               </button>
             </div>
           )}
 
-          {isDireksi && direksiSubmitted && (
+          {isKetuaTim && ketuaTimSubmitted && (
             <div className={cn("rounded-xl border p-5 shadow-sm flex items-start gap-3",
               hasReEvalRequests ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200"
             )}>
@@ -1104,7 +1104,7 @@ export default function Phase1ApprovalPage({
                 </p>
                 <p className={cn("text-xs mt-1", hasReEvalRequests ? "text-amber-700" : "text-green-700")}>
                   {hasReEvalRequests
-                    ? `${direksiReEvalCount} mitra dikembalikan ke EBD. ${direksiSetujuiCount} mitra disetujui.`
+                    ? `${ketuaTimReEvalCount} mitra dikembalikan ke EBD. ${ketuaTimSetujuiCount} mitra disetujui.`
                     : "Semua hasil filtrasi Fase 1 telah disetujui. Mitra yang lolos akan diundang ke Fase 2."}
                 </p>
                 <Link href="/approvals" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors">
@@ -1130,20 +1130,20 @@ export default function Phase1ApprovalPage({
               Anda akan mengirim keputusan untuk proyek <span className="font-semibold">{project.name}</span>:
             </p>
             <div className="space-y-2 mb-5">
-              {direksiSetujuiCount > 0 && (
+              {ketuaTimSetujuiCount > 0 && (
                 <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-3">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-green-800">{direksiSetujuiCount} mitra disetujui</p>
+                    <p className="text-sm font-medium text-green-800">{ketuaTimSetujuiCount} mitra disetujui</p>
                     <p className="text-xs text-green-700">Hasil filtrasi diterima, lanjut ke Fase 2</p>
                   </div>
                 </div>
               )}
-              {direksiReEvalCount > 0 && (
+              {ketuaTimReEvalCount > 0 && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-center gap-3">
                   <RotateCcw className="h-4 w-4 text-amber-600 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-amber-800">{direksiReEvalCount} mitra diminta re-evaluasi</p>
+                    <p className="text-sm font-medium text-amber-800">{ketuaTimReEvalCount} mitra diminta re-evaluasi</p>
                     <p className="text-xs text-amber-700">Dikembalikan ke EBD untuk dicek ulang</p>
                   </div>
                 </div>
@@ -1152,7 +1152,7 @@ export default function Phase1ApprovalPage({
             <div className="rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-3 mb-5">
               <p className="text-xs font-medium text-ptba-navy mb-2">Detail per mitra:</p>
               <div className="space-y-1.5">
-                {direksiMitraStates.map((m) => {
+                {ketuaTimMitraStates.map((m) => {
                   const mEv = phase1Evals.find((e) => e.partner_id === m.partnerId);
                   return (
                     <div key={m.partnerId} className="flex items-center gap-2 text-xs">

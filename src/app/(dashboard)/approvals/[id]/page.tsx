@@ -171,7 +171,7 @@ export default function ApprovalDetailPage() {
             <Shield className="h-5 w-5 text-ptba-steel-blue mt-0.5" />
             <div>
               <p className="text-xs text-ptba-gray">Approver</p>
-              <p className="text-sm font-medium text-ptba-charcoal">{approval.approver || "Direksi"}</p>
+              <p className="text-sm font-medium text-ptba-charcoal">{approval.approver || "Ketua Tim"}</p>
             </div>
           </div>
         </div>
@@ -258,20 +258,20 @@ export default function ApprovalDetailPage() {
         </Card>
       )}
 
-      {/* Disposisi Form — only for direksi and pending status */}
-      {approval.status === "Menunggu" && !submitted && role === "direksi" && (
+      {/* Disposisi Form — only for ketua_tim and pending status */}
+      {approval.status === "Menunggu" && !submitted && role === "ketua_tim" && (
         <Card padding="lg">
           <DisposisiForm onSubmit={handleDisposisi} />
         </Card>
       )}
 
-      {/* Non-direksi viewing pending */}
-      {approval.status === "Menunggu" && role !== "direksi" && (
+      {/* Non-ketua_tim viewing pending */}
+      {approval.status === "Menunggu" && role !== "ketua_tim" && (
         <Card padding="lg">
           <div className="text-center py-4">
             <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-            <p className="text-sm font-medium text-ptba-charcoal">Menunggu Keputusan Direksi</p>
-            <p className="text-xs text-ptba-gray mt-1">Persetujuan ini sedang menunggu disposisi dari Direksi.</p>
+            <p className="text-sm font-medium text-ptba-charcoal">Menunggu Keputusan Ketua Tim</p>
+            <p className="text-xs text-ptba-gray mt-1">Persetujuan ini sedang menunggu disposisi dari Ketua Tim.</p>
           </div>
         </Card>
       )}

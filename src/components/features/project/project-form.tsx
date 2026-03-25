@@ -44,7 +44,7 @@ const PHASE_PIC_CONFIG = {
     label: "Fase 1 — Filter Evaluasi",
     roles: [
       { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 1 (boleh lebih dari 1)" },
-      { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
+      { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: false, description: "Approver" },
     ],
   },
   phase2: {
@@ -56,14 +56,14 @@ const PHASE_PIC_CONFIG = {
       { role: "keuangan" as UserRole, label: "Corporate Finance", multi: false, description: "Evaluasi keuangan" },
       { role: "hukum" as UserRole, label: "Legal & Regulatory Affairs", multi: false, description: "Evaluasi hukum" },
       { role: "risiko" as UserRole, label: "Risk Management", multi: false, description: "Evaluasi risiko" },
-      { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
+      { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: false, description: "Approver" },
     ],
   },
   phase3: {
     label: "Fase 3 — RFP & Proposal",
     roles: [
       { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 3 (boleh lebih dari 1)" },
-      { role: "direksi" as UserRole, label: "Direksi", multi: false, description: "Approver" },
+      { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: false, description: "Approver" },
     ],
   },
 } as const;
@@ -1286,7 +1286,7 @@ export default function ProjectForm({
 
               <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-3">
                 <p className="text-xs text-blue-700">
-                  <span className="font-medium">Info:</span> Fase 1 (Filter Evaluasi) & Fase 3 (RFP & Proposal) hanya memerlukan EBD dan Direksi. Fase 2 (PQ) memerlukan minimal 7 PIC dari 6 kategori evaluasi + Direksi.
+                  <span className="font-medium">Info:</span> Fase 1 (Filter Evaluasi) & Fase 3 (RFP & Proposal) hanya memerlukan EBD dan Ketua Tim. Fase 2 (PQ) memerlukan minimal 7 PIC dari 6 kategori evaluasi + Ketua Tim.
                 </p>
               </div>
             </div>

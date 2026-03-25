@@ -340,7 +340,7 @@ function Phase1ApprovedBanner({ projects }: { projects: DashboardProject[] }) {
             <div>
               <p className="text-sm font-semibold text-ptba-charcoal">{project.name}</p>
               <p className="text-xs text-green-700">
-                Fase 1 disetujui Direksi — siap memulai Fase 2
+                Fase 1 disetujui Ketua Tim — siap memulai Fase 2
               </p>
             </div>
           </div>
@@ -733,7 +733,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (role === "direksi") return <ExecutiveDashboard stats={stats} />;
+  if (role === "ketua_tim") return <ExecutiveDashboard stats={stats} />;
   if (role === "keuangan" || role === "hukum" || role === "risiko") return <EvaluatorDashboard stats={stats} roleValue={role} />;
   if (role === "viewer") return <ViewerDashboard stats={stats} />;
   return <ProjectDashboard stats={stats} />;

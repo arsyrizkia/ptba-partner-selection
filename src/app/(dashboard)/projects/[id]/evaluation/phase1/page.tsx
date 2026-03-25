@@ -1247,7 +1247,7 @@ export default function Phase1EvaluationPage({
               </div>
             )}
 
-            {/* Submit to Direksi */}
+            {/* Submit to Ketua Tim */}
             <div className="rounded-xl bg-white p-6 shadow-sm mt-6 border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className={cn(

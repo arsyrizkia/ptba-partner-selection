@@ -386,7 +386,7 @@ export default function AccountPage() {
                 {[
                   { label: "Proyek Baru & Update", emailKey: "emailProyek" as const, systemKey: "systemProyek" as const, desc: "Pembuatan proyek, perubahan fase, undangan" },
                   { label: "Evaluasi", emailKey: "emailEvaluasi" as const, systemKey: "systemEvaluasi" as const, desc: "Tugas evaluasi, deadline, hasil" },
-                  { label: "Persetujuan", emailKey: "emailPersetujuan" as const, systemKey: "systemPersetujuan" as const, desc: "Permintaan persetujuan, keputusan direksi" },
+                  { label: "Persetujuan", emailKey: "emailPersetujuan" as const, systemKey: "systemPersetujuan" as const, desc: "Permintaan persetujuan, keputusan ketua tim" },
                 ].map((item) => (
                   <tr key={item.emailKey}>
                     <td className="px-4 py-3">

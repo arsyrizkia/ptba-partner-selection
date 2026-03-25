@@ -100,7 +100,7 @@ function phaseLabel(phase?: string): string {
     phase1_evaluation: "Fase 1 - Evaluasi EBD",
     phase1_approval: "Fase 1 - Persetujuan",
     phase1_announcement: "Fase 1 - Pengumuman Shortlist",
-    phase1_approved: "Fase 1 - Disetujui Direksi",
+    phase1_approved: "Fase 1 - Disetujui Ketua Tim",
     phase2_registration: "Fase 2 - Pendaftaran",
     phase2_evaluation: "Fase 2 - Evaluasi Detail",
     phase2_approval: "Fase 2 - Persetujuan",
@@ -332,7 +332,7 @@ export default function ProjectDetailPage({
       label: "Fase 1",
       roles: [
         { role: "ebd", label: "Energy Business Development", multi: true },
-        { role: "direksi", label: "Direksi", multi: false },
+        { role: "ketua_tim", label: "Ketua Tim", multi: false },
       ],
     },
     phase2: {
@@ -344,14 +344,14 @@ export default function ProjectDetailPage({
         { role: "keuangan", label: "Corporate Finance", multi: false },
         { role: "hukum", label: "Legal & Regulatory Affairs", multi: false },
         { role: "risiko", label: "Risk Management", multi: false },
-        { role: "direksi", label: "Direksi", multi: false },
+        { role: "ketua_tim", label: "Ketua Tim", multi: false },
       ],
     },
     phase3: {
       label: "Fase 3",
       roles: [
         { role: "ebd", label: "Energy Business Development", multi: true },
-        { role: "direksi", label: "Direksi", multi: false },
+        { role: "ketua_tim", label: "Ketua Tim", multi: false },
       ],
     },
   } as const;
@@ -570,7 +570,7 @@ export default function ProjectDetailPage({
       return;
     }
     const names = selectedMitra.map((mid) => projectPartners.find((p) => p.id === mid)?.name).join(", ");
-    alert(`Persetujuan berhasil diajukan ke Direksi.\nMitra direkomendasikan: ${names}`);
+    alert(`Persetujuan berhasil diajukan ke Ketua Tim.\nMitra direkomendasikan: ${names}`);
     setShowPersetujuanModal(false);
     setSelectedMitra([]);
     setPersetujuanNotes("");
@@ -641,7 +641,7 @@ export default function ProjectDetailPage({
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-green-800">Fase 1 Disetujui oleh Direksi</h3>
+                <h3 className="text-sm font-bold text-green-800">Fase 1 Disetujui oleh Ketua Tim</h3>
                 <p className="text-xs text-green-700 mt-0.5">
                   {project.shortlistedPartners?.length ?? 0} mitra lolos shortlist dan siap melanjutkan ke Fase 2.
                   Verifikasi pembayaran mitra dan konfigurasi parameter Fase 2 untuk memulai proses selanjutnya.
@@ -1217,7 +1217,7 @@ export default function ProjectDetailPage({
                     className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-4 py-2 text-sm font-bold text-ptba-charcoal shadow-sm hover:bg-ptba-gold-light transition-colors"
                   >
                     <Send className="h-4 w-4" />
-                    Ajukan Persetujuan Direksi
+                    Ajukan Persetujuan Ketua Tim
                   </button>
                 )}
               </>
@@ -2150,7 +2150,7 @@ export default function ProjectDetailPage({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
             <div className="border-b border-ptba-light-gray px-6 py-4">
-              <h2 className="text-lg font-bold text-ptba-charcoal">Ajukan Persetujuan ke Direksi</h2>
+              <h2 className="text-lg font-bold text-ptba-charcoal">Ajukan Persetujuan ke Ketua Tim</h2>
               <p className="text-sm text-ptba-gray">Pilih mitra yang direkomendasikan untuk proyek {project.name}</p>
             </div>
             <div className="max-h-[400px] overflow-y-auto px-6 py-4">
@@ -2227,7 +2227,7 @@ export default function ProjectDetailPage({
                 })}
               </div>
               <div className="mt-4">
-                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Catatan untuk Direksi (opsional)</label>
+                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Catatan untuk Ketua Tim (opsional)</label>
                 <textarea
                   placeholder="Tambahkan catatan atau justifikasi rekomendasi..."
                   value={persetujuanNotes}
@@ -2254,7 +2254,7 @@ export default function ProjectDetailPage({
                 >
                   <span className="flex items-center gap-2">
                     <Send className="h-4 w-4" />
-                    Ajukan ke Direksi
+                    Ajukan ke Ketua Tim
                   </span>
                 </button>
               </div>

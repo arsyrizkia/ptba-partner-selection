@@ -301,7 +301,7 @@ export default function EvaluationHubPage({
                   <div>
                     <h3 className="text-sm font-bold text-green-800">Verifikasi Pembayaran Mitra</h3>
                     <p className="text-xs text-green-700 mt-0.5">
-                      Fase 1 telah disetujui Direksi. Verifikasi bukti pembayaran dari {shortlistedApps.length} mitra shortlist sebelum memulai Fase 2.
+                      Fase 1 telah disetujui Ketua Tim. Verifikasi bukti pembayaran dari {shortlistedApps.length} mitra shortlist sebelum memulai Fase 2.
                     </p>
                   </div>
                 </div>

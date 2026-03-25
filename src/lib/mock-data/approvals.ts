@@ -11,7 +11,7 @@ export const mockApprovals: Approval[] = [
     requestedAt: '2026-02-20T09:00:00Z',
     approver: 'Ir. Bambang Wijaya',
     approvedAt: undefined,
-    notes: 'Menunggu persetujuan Direksi untuk penetapan mitra PNRE pada proyek PLTS Tanjung Enim',
+    notes: 'Menunggu persetujuan Ketua Tim untuk penetapan mitra PNRE pada proyek PLTS Tanjung Enim',
     priority: 'Tinggi',
     phase: 'phase2',
     approvalCategory: 'phase2_final',

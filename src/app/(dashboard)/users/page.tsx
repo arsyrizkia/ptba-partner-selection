@@ -16,7 +16,7 @@ function getRoleBadgeVariant(role: UserRole) {
   switch (role) {
     case "super_admin":
       return "error" as const;
-    case "direksi":
+    case "ketua_tim":
       return "warning" as const;
     case "ebd":
       return "info" as const;
@@ -70,7 +70,7 @@ const rbacMatrix: Record<string, boolean[]> = {
   keuangan:    [true,  false, false, true,  false, true,  true,  false],
   hukum:       [true,  false, false, true,  false, true,  true,  false],
   risiko:      [true,  false, false, true,  false, true,  true,  false],
-  direksi:     [true,  true,  false, true,  true,  true,  true,  false],
+  ketua_tim:     [true,  true,  false, true,  true,  true,  true,  false],
   mitra:       [true,  false, false, false, false, true,  false, false],
   viewer:      [true,  false, false, false, false, false, true,  false],
 };
@@ -113,7 +113,7 @@ export default function UsersPage() {
     keuangan: "Keuangan Korporat",
     hukum: "Hukum & Regulasi",
     risiko: "Manajemen Risiko",
-    direksi: "Direksi",
+    ketua_tim: "Ketua Tim",
     viewer: "Sekretaris Perusahaan",
     mitra: "Mitra Eksternal",
   };
