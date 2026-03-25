@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft, Upload, Download, CheckCircle2, FileText, AlertTriangle, Loader2,
@@ -596,7 +596,8 @@ export default function MitraProjectApplyPage() {
     minorityEquityPercent,
   });
 
-  const saveFormDataToServer = async (appId: string) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const saveFormDataToServer = useCallback(async (appId: string) => {
     if (!accessToken) return;
     await fetch(`${API_BASE}/applications/${appId}/form-data`, {
       method: "PUT",
@@ -606,7 +607,32 @@ export default function MitraProjectApplyPage() {
       },
       body: JSON.stringify({ formData: buildFormData() }),
     });
-  };
+  }, [accessToken]);
+
+  // ─── Auto-save (debounced) ───
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveFormData = useCallback(() => {
+    if (!application?.id || !accessToken) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      saveFormDataToServer(application.id).catch(() => {});
+    }, 2000);
+  }, [application?.id, accessToken]);
+
+  // Trigger auto-save when form fields change
+  useEffect(() => {
+    if (!application?.id) return;
+    autoSaveFormData();
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [
+    signerName, signerPosition, signerDate, eoiAgreed, minorityEquityPercent, cashOnHand,
+    creditRatingAgency, creditRatingValue, financialYears, experiences,
+    requirementAnswers, requirementNotes, agreedFinal,
+    companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
+    companyWebsite, yearEstablished, countryEstablished, businessOverview,
+    orgStructure, subsidiaries, nib, contactPerson, contactPhone, contactEmail,
+    autoSaveFormData, application?.id,
+  ]);
 
   // ─── Submit ───
 
