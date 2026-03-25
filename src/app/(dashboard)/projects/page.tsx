@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText, Loader2, Trash2 } from "lucide-react";
+import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { projectApi } from "@/lib/api/client";
+import { Modal } from "@/components/ui/modal";
 
 interface ProjectItem {
   id: string;
@@ -103,14 +104,20 @@ export default function ProjectsPage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [accessToken]);
 
-  const handleDelete = async (projectId: string, projectName: string) => {
-    if (!accessToken) return;
-    if (!confirm(`Apakah Anda yakin ingin menghapus proyek "${projectName}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!accessToken || !deleteTarget) return;
+    setDeleting(true);
     try {
-      await projectApi(accessToken).delete(projectId);
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      await projectApi(accessToken).delete(deleteTarget.id);
+      setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch {
-      alert("Gagal menghapus proyek");
+      // keep modal open on error
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -289,7 +296,7 @@ export default function ProjectsPage() {
                     </span>
                     {canDelete(project) && (
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(project.id, project.name); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: project.id, name: project.name }); }}
                         className="rounded-lg p-1.5 text-ptba-gray hover:bg-red-50 hover:text-ptba-red transition-colors"
                         title="Hapus proyek"
                       >
@@ -367,6 +374,40 @@ export default function ProjectsPage() {
           })}
         </div>
       )}
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} title="Hapus Proyek" size="sm">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+            <AlertTriangle className="h-7 w-7 text-ptba-red" />
+          </div>
+          <p className="text-sm text-ptba-charcoal">
+            Apakah Anda yakin ingin menghapus proyek
+          </p>
+          <p className="mt-1 text-sm font-semibold text-ptba-charcoal">
+            &ldquo;{deleteTarget?.name}&rdquo;?
+          </p>
+          <p className="mt-2 text-xs text-ptba-gray">
+            Tindakan ini tidak dapat dibatalkan. Semua data terkait proyek ini akan dihapus.
+          </p>
+          <div className="mt-6 flex gap-3">
+            <button
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+              className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-charcoal hover:bg-ptba-section-bg transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="flex-1 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white hover:bg-ptba-red/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deleting ? "Menghapus..." : "Hapus Proyek"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
