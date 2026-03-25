@@ -255,7 +255,9 @@ export default function Phase1EvaluationPage({
   const [evalStates, setEvalStates] = useState<Record<string, MitraEvalState>>({});
   const [submittedForApproval, setSubmittedForApproval] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState<string | null>(null);
-  const [ebdPanelTab, setEbdPanelTab] = useState<"penilaian" | "dokumen" | "formulir">("penilaian");
+  const [ebdPanelTab, setEbdPanelTab] = useState<"penilaian" | "dokumen_formulir">("penilaian");
+  const [evalDocSectionOpen, setEvalDocSectionOpen] = useState(true);
+  const [evalFormSectionOpen, setEvalFormSectionOpen] = useState(true);
   const [selectedAppDocuments, setSelectedAppDocuments] = useState<ApiDocument[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -964,42 +966,98 @@ export default function Phase1EvaluationPage({
                             </button>
                             <button
                               type="button"
-                              onClick={() => setEbdPanelTab("dokumen")}
+                              onClick={() => setEbdPanelTab("dokumen_formulir")}
                               className={cn(
                                 "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                                ebdPanelTab === "dokumen"
+                                ebdPanelTab === "dokumen_formulir"
                                   ? "border-b-ptba-gold text-ptba-navy"
                                   : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
                               )}
                             >
                               <FileText className="h-4 w-4" />
-                              Dokumen
+                              Dokumen & Data
                               {selectedAppDocuments.length > 0 && (
                                 <span className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-ptba-section-bg px-1.5 text-[10px] font-bold text-ptba-navy">
                                   {selectedAppDocuments.length}
                                 </span>
                               )}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setEbdPanelTab("formulir")}
-                              className={cn(
-                                "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                                ebdPanelTab === "formulir"
-                                  ? "border-b-ptba-gold text-ptba-navy"
-                                  : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                              )}
-                            >
-                              <ClipboardCheck className="h-4 w-4" />
-                              Data Formulir
-                            </button>
                           </nav>
                         </div>
 
-                        {/* Tab: Data Formulir */}
-                        {ebdPanelTab === "formulir" && (
-                          <div className="p-6">
-                            <FormDataViewer formData={selectedAppFormData || {}} />
+                        {/* Tab: Dokumen & Data Formulir (merged) */}
+                        {ebdPanelTab === "dokumen_formulir" && (
+                          <div className="px-5 py-4 space-y-3">
+                            {/* Dokumen Section - collapsible */}
+                            <div className="rounded-lg border border-gray-200 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => setEvalDocSectionOpen(!evalDocSectionOpen)}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
+                              >
+                                <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
+                                  <FileText className="h-4 w-4" />
+                                  Dokumen ({selectedAppDocuments.length})
+                                </span>
+                                <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", evalDocSectionOpen && "rotate-180")} />
+                              </button>
+                              {evalDocSectionOpen && (
+                                <div className="p-3 space-y-2">
+                                  {loadingDocs ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader2 className="h-5 w-5 text-ptba-navy animate-spin" />
+                                      <span className="ml-2 text-xs text-ptba-gray">Memuat...</span>
+                                    </div>
+                                  ) : selectedAppDocuments.length > 0 ? (
+                                    selectedAppDocuments.map((doc) => {
+                                      const dtId = (doc as any).document_type_id || "";
+                                      const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
+                                      const docName = meta?.name || doc.name;
+                                      return (
+                                        <div key={doc.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50/50 border border-gray-100">
+                                          <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
+                                            <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate((doc as any).upload_date || "")}</p>
+                                          </div>
+                                          {(doc as any).file_key && (
+                                            <button
+                                              type="button"
+                                              onClick={async () => { try { await downloadDocument((doc as any).file_key, accessToken!); } catch {} }}
+                                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
+                                            >
+                                              <Download className="h-3 w-3" /> Unduh
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <p className="text-xs text-ptba-gray text-center py-3">Tidak ada dokumen.</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Data Formulir Section - collapsible */}
+                            <div className="rounded-lg border border-gray-200 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => setEvalFormSectionOpen(!evalFormSectionOpen)}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
+                              >
+                                <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
+                                  <ClipboardCheck className="h-4 w-4" />
+                                  Data Formulir
+                                </span>
+                                <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", evalFormSectionOpen && "rotate-180")} />
+                              </button>
+                              {evalFormSectionOpen && (
+                                <div className="p-4">
+                                  <FormDataViewer formData={selectedAppFormData || {}} />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -1104,63 +1162,7 @@ export default function Phase1EvaluationPage({
                           </div>
                         )}
 
-                        {/* Tab: Dokumen */}
-                        {ebdPanelTab === "dokumen" && (
-                          <div className="p-6">
-                            {loadingDocs ? (
-                              <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-ptba-navy" />
-                                <span className="ml-2 text-sm text-ptba-gray">Memuat dokumen...</span>
-                              </div>
-                            ) : selectedAppDocuments.length > 0 ? (
-                              <div className="space-y-2">
-                                {selectedAppDocuments.map((doc) => {
-                                  const dtId = (doc as any).document_type_id || "";
-                                  const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
-                                  const docName = meta?.name || doc.name;
-                                  const formSection = null; // Dynamic viewer used instead
-                                  const isOpen = expandedDocs[doc.id] ?? false;
-
-                                  return (
-                                    <div key={doc.id} className="rounded-lg border border-gray-200 overflow-hidden">
-                                      <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50/50">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg shrink-0">
-                                          <FileText className="h-4 w-4 text-ptba-steel-blue" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
-                                          <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate((doc as any).upload_date || "")}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                          {(doc as any).file_key && (
-                                            <button
-                                              type="button"
-                                              onClick={async () => {
-                                                try {
-                                                  await downloadDocument((doc as any).file_key, accessToken!);
-                                                } catch { /* ignore */ }
-                                              }}
-                                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                                            >
-                                              <Download className="h-3 w-3" /> Unduh
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <div className="text-center py-6">
-                                <FileText className="h-8 w-8 text-ptba-gray mx-auto mb-2" />
-                                <p className="text-sm text-ptba-gray">
-                                  Tidak ada dokumen Fase 1 untuk mitra ini.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {/* Old separate Dokumen tab removed — merged into dokumen_formulir */}
                       </div>
 
                       {/* Action Buttons */}

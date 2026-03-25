@@ -267,7 +267,10 @@ export default function Phase1ApprovalPage({
   const [submitting, setSubmitting] = useState(false);
 
   /* ---- Panel tab state ---- */
-  const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen" | "formulir">("penilaian");
+  const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen_formulir">("penilaian");
+  const [docSectionOpen, setDocSectionOpen] = useState(true);
+  const [formSectionOpen, setFormSectionOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   /* ---- Accordion state for document form data ---- */
   const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
@@ -612,14 +615,21 @@ export default function Phase1ApprovalPage({
       </div>
 
       {/* ---- Sidebar + Detail Layout ---- */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+      <div className={cn("grid grid-cols-1 gap-6", sidebarCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]")}>
         {/* Sidebar */}
         <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-ptba-navy">
-            <h3 className="text-sm font-semibold text-white">Daftar Mitra</h3>
-            <p className="text-[10px] text-white/60 mt-0.5">Pilih mitra untuk direview</p>
-          </div>
-          <div className="divide-y divide-gray-100">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full px-4 py-3 bg-ptba-navy flex items-center justify-between"
+          >
+            <div>
+              <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({phase1Evals.length})</h3>
+              {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk direview</p>}
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-white/60 transition-transform", !sidebarCollapsed && "rotate-180")} />
+          </button>
+          {!sidebarCollapsed && <div className="divide-y divide-gray-100">
             {phase1Evals.map((ev) => {
               const passed = ev.overall_result === "Lolos";
               const isSelected = ev.partner_id === selectedPartnerId;
@@ -654,7 +664,7 @@ export default function Phase1ApprovalPage({
                 </button>
               );
             })}
-          </div>
+          </div>}
         </div>
 
         {/* Right Panel */}
@@ -745,7 +755,7 @@ export default function Phase1ApprovalPage({
                       </div>
                     </div>
 
-                    {/* Tabs: Penilaian / Dokumen */}
+                    {/* Tabs: Penilaian / Dokumen & Data */}
                     <div className="rounded-xl bg-white shadow-sm overflow-hidden">
                       <div className="px-5 border-b border-ptba-light-gray">
                         <nav className="flex gap-0 -mb-px">
@@ -763,32 +773,20 @@ export default function Phase1ApprovalPage({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setPanelTab("dokumen")}
+                            onClick={() => setPanelTab("dokumen_formulir")}
                             className={cn(
                               "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                              panelTab === "dokumen"
+                              panelTab === "dokumen_formulir"
                                 ? "border-b-ptba-gold text-ptba-navy"
                                 : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
                             )}
                           >
-                            <FileText className="h-4 w-4" /> Dokumen
+                            <FileText className="h-4 w-4" /> Dokumen & Data
                             {phase1Docs.length > 0 && (
                               <span className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-ptba-section-bg px-1.5 text-[10px] font-bold text-ptba-navy">
                                 {phase1Docs.length}
                               </span>
                             )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPanelTab("formulir")}
-                            className={cn(
-                              "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                              panelTab === "formulir"
-                                ? "border-b-ptba-gold text-ptba-navy"
-                                : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                            )}
-                          >
-                            <ClipboardCheck className="h-4 w-4" /> Data Formulir
                           </button>
                         </nav>
                       </div>
@@ -854,66 +852,78 @@ export default function Phase1ApprovalPage({
                         </div>
                       )}
 
-                      {/* Tab: Dokumen */}
-                      {panelTab === "dokumen" && (
-                        <div className="px-5 py-4">
-                          {appDetailLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                              <Loader2 className="h-6 w-6 text-ptba-navy animate-spin" />
-                              <span className="ml-2 text-sm text-ptba-gray">Memuat dokumen...</span>
-                            </div>
-                          ) : phase1Docs.length > 0 ? (
-                            <div className="space-y-2">
-                              {phase1Docs.map((doc) => {
-                                const dtId = doc.document_type_id;
-                                const meta = DOCUMENT_TYPES.find((dt) => dt.id === dtId);
-                                const docName = meta?.name || doc.name;
-                                const formSection = null; // Dynamic viewer used instead
-                                const isOpen = expandedDocs[doc.document_type_id] ?? false;
-
-                                return (
-                                  <div key={doc.document_type_id} className="rounded-lg border border-gray-200 overflow-hidden">
-                                    <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50/50">
-                                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg shrink-0">
-                                        <FileText className="h-4 w-4 text-ptba-steel-blue" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
-                                        <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Tab: Dokumen & Data Formulir (merged) */}
+                      {panelTab === "dokumen_formulir" && (
+                        <div className="px-5 py-4 space-y-3">
+                          {/* Dokumen Section - collapsible */}
+                          <div className="rounded-lg border border-gray-200 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setDocSectionOpen(!docSectionOpen)}
+                              className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
+                            >
+                              <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                Dokumen ({phase1Docs.length})
+                              </span>
+                              <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", docSectionOpen && "rotate-180")} />
+                            </button>
+                            {docSectionOpen && (
+                              <div className="p-3 space-y-2">
+                                {appDetailLoading ? (
+                                  <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="h-5 w-5 text-ptba-navy animate-spin" />
+                                    <span className="ml-2 text-xs text-ptba-gray">Memuat...</span>
+                                  </div>
+                                ) : phase1Docs.length > 0 ? (
+                                  phase1Docs.map((doc) => {
+                                    const meta = DOCUMENT_TYPES.find((dt) => dt.id === doc.document_type_id);
+                                    const docName = meta?.name || doc.name;
+                                    return (
+                                      <div key={doc.document_type_id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50/50 border border-gray-100">
+                                        <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm text-ptba-charcoal truncate">{docName}</p>
+                                          <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                                        </div>
                                         {doc.file_key && (
                                           <button
                                             type="button"
-                                            onClick={async () => {
-                                              try {
-                                                await downloadDocument(doc.file_key, accessToken!);
-                                              } catch { /* ignore */ }
-                                            }}
-                                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                                            onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
                                           >
                                             <Download className="h-3 w-3" /> Unduh
                                           </button>
                                         )}
                                       </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6">
-                              <FileText className="h-8 w-8 text-ptba-gray mx-auto mb-2" />
-                              <p className="text-sm text-ptba-gray">Tidak ada dokumen Fase 1 untuk mitra ini.</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                                    );
+                                  })
+                                ) : (
+                                  <p className="text-xs text-ptba-gray text-center py-3">Tidak ada dokumen.</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
 
-                      {/* Tab: Data Formulir */}
-                      {panelTab === "formulir" && (
-                        <div className="p-6">
-                          <FormDataViewer formData={formData || {}} />
+                          {/* Data Formulir Section - collapsible */}
+                          <div className="rounded-lg border border-gray-200 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setFormSectionOpen(!formSectionOpen)}
+                              className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/50 transition-colors"
+                            >
+                              <span className="text-sm font-semibold text-ptba-navy flex items-center gap-2">
+                                <ClipboardCheck className="h-4 w-4" />
+                                Data Formulir
+                              </span>
+                              <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", formSectionOpen && "rotate-180")} />
+                            </button>
+                            {formSectionOpen && (
+                              <div className="p-4">
+                                <FormDataViewer formData={formData || {}} />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
