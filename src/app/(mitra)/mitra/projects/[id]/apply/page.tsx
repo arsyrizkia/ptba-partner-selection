@@ -1457,7 +1457,7 @@ export default function MitraProjectApplyPage() {
               <Download className="h-3.5 w-3.5 text-green-600 shrink-0" />
               <span className="text-[11px] text-ptba-gray flex-1">Click here for EBITDA and DSCR calculation</span>
               <a
-                href="/templates/ebitda-dscr-calculation-template.xlsx"
+                href={`/templates/ebitda-dscr-calculation-${financialYears[0].year}-${financialYears[2].year}.xlsx`}
                 download
                 className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 transition-colors shrink-0"
               >
