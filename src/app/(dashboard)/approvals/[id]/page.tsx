@@ -259,27 +259,26 @@ export default function ApprovalDetailPage() {
         </Card>
       )}
 
-      {/* Link to detailed approval page */}
-      {approval.status === "Menunggu" && approval.phase === "phase1" && (role === "ketua_tim" || role === "super_admin") && (
+      {/* Phase 1: link to detailed approval page instead of inline form */}
+      {approval.status === "Menunggu" && !submitted && (role === "ketua_tim" || role === "super_admin") && approval.phase === "phase1" && (
         <Card padding="lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-ptba-charcoal">Review Detail Per Mitra</p>
-              <p className="text-xs text-ptba-gray mt-0.5">Review dan berikan keputusan untuk setiap mitra satu per satu.</p>
-            </div>
+          <div className="text-center py-4">
+            <ShieldCheck className="h-10 w-10 text-ptba-navy mx-auto mb-3" />
+            <p className="text-sm font-semibold text-ptba-charcoal">Review dan berikan keputusan untuk setiap mitra</p>
+            <p className="text-xs text-ptba-gray mt-1 mb-4">Buka halaman persetujuan detail untuk mereview hasil filtrasi per mitra.</p>
             <Link
               href={`/projects/${approval.project_id}/approval/phase1`}
-              className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
             >
               <ShieldCheck className="h-4 w-4" />
-              Buka Halaman Persetujuan Detail
+              Buka Persetujuan Detail
             </Link>
           </div>
         </Card>
       )}
 
-      {/* Disposisi Form — only for ketua_tim/super_admin and pending status */}
-      {approval.status === "Menunggu" && !submitted && (role === "ketua_tim" || role === "super_admin") && (
+      {/* Non-phase1 disposisi form */}
+      {approval.status === "Menunggu" && !submitted && (role === "ketua_tim" || role === "super_admin") && approval.phase !== "phase1" && (
         <Card padding="lg">
           <DisposisiForm onSubmit={handleDisposisi} />
         </Card>
