@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText, Loader2 } from "lucide-react";
+import { FolderKanban, Plus, Search, TrendingUp, Clock, CheckSquare, FileText, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { projectApi } from "@/lib/api/client";
@@ -18,6 +18,7 @@ interface ProjectItem {
   totalSteps: number;
   phase: string;
   applicationCount: number;
+  createdBy: string;
 }
 
 const EVALUATOR_ROLES = ["keuangan", "hukum", "risiko"] as const;
@@ -88,7 +89,7 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
 const STATUS_TABS = ["Semua", "Draft", "Dipublikasikan", "Evaluasi", "Persetujuan", "Selesai"];
 
 export default function ProjectsPage() {
-  const { role, accessToken } = useAuth();
+  const { user, role, accessToken } = useAuth();
   const isEvaluator = EVALUATOR_ROLES.includes(role as typeof EVALUATOR_ROLES[number]);
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -101,6 +102,20 @@ export default function ProjectsPage() {
       setProjects(res.data as unknown as ProjectItem[]);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [accessToken]);
+
+  const handleDelete = async (projectId: string, projectName: string) => {
+    if (!accessToken) return;
+    if (!confirm(`Apakah Anda yakin ingin menghapus proyek "${projectName}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+    try {
+      await projectApi(accessToken).delete(projectId);
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    } catch {
+      alert("Gagal menghapus proyek");
+    }
+  };
+
+  const canDelete = (project: ProjectItem) =>
+    role === "super_admin" || project.createdBy === user?.id;
 
   const baseProjects = isEvaluator
     ? projects.filter((p) => p.status === "Evaluasi")
@@ -268,9 +283,20 @@ export default function ProjectsPage() {
                   <h3 className="font-semibold text-ptba-charcoal leading-snug group-hover:text-ptba-steel-blue transition-colors line-clamp-2">
                     {project.name}
                   </h3>
-                  <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium border", statusStyle(project.status))}>
-                    {project.status}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium border", statusStyle(project.status))}>
+                      {project.status}
+                    </span>
+                    {canDelete(project) && (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(project.id, project.name); }}
+                        className="rounded-lg p-1.5 text-ptba-gray hover:bg-red-50 hover:text-ptba-red transition-colors"
+                        title="Hapus proyek"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 mb-3">

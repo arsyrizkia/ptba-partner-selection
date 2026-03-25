@@ -457,6 +457,9 @@ export function projectApi(token: string) {
 
     updateRequiredDocuments: (id: string, documents: { documentTypeId: string; phase: string }[]) =>
       api<ProjectResponse>(`/projects/${id}/required-documents`, { method: "PUT", body: { documents }, token }),
+
+    delete: (id: string) =>
+      api<{ message: string }>(`/projects/${id}`, { method: "DELETE", token }),
   };
 }
 
