@@ -294,6 +294,8 @@
       "dscr": "DSCR",
       "ratingAgency": "Rating Agency",
       "ratingValue": "Rating Value",
+      "yearRange": "Financial Report Period",
+      "yearRangeHint": "Select a 3-year period based on availability of audited financial statements",
       "cashOnHand": "Cash on Hand",
       "cashOnHandHint": "Min. Cash on Hand of 1.5x equity",
       "financialDoc": "Financial Document",

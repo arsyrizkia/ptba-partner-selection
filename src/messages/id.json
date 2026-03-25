@@ -294,6 +294,8 @@
       "dscr": "DSCR",
       "ratingAgency": "Lembaga Pemeringkat",
       "ratingValue": "Nilai Rating",
+      "yearRange": "Periode Laporan Keuangan",
+      "yearRangeHint": "Pilih periode 3 tahun berdasarkan ketersediaan laporan keuangan yang telah diaudit",
       "cashOnHand": "Cash on Hand",
       "cashOnHandHint": "Min. Cash on Hand of 1.5x equity",
       "financialDoc": "Dokumen Keuangan",

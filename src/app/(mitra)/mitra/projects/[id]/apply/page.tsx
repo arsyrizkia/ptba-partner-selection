@@ -62,7 +62,10 @@ interface FinancialYear {
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
-const FINANCIAL_YEARS = [CURRENT_YEAR - 3, CURRENT_YEAR - 2, CURRENT_YEAR - 1];
+const YEAR_RANGE_OPTIONS = [
+  [CURRENT_YEAR - 3, CURRENT_YEAR - 2, CURRENT_YEAR - 1],
+  [CURRENT_YEAR - 4, CURRENT_YEAR - 3, CURRENT_YEAR - 2],
+];
 
 const IPP_CAPTIVE_OPTIONS = ['IPP', 'Captive'];
 const FINANCING_TYPE_OPTIONS = ['Non-Recourse', 'Limited Recourse', 'Corporate Financing', 'Direct Loan', 'Export Credit Facility'];
@@ -291,8 +294,13 @@ export default function MitraProjectApplyPage() {
 
   // Section: Kriteria Keuangan (financial_overview)
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>(
-    FINANCIAL_YEARS.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", ebitda: "", dscr: "" }))
+    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", ebitda: "", dscr: "" }))
   );
+  const selectedRangeKey = financialYears.map((f) => f.year).join("-");
+  const handleYearRangeChange = (rangeIndex: number) => {
+    const newYears = YEAR_RANGE_OPTIONS[rangeIndex];
+    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", ebitda: "", dscr: "" })));
+  };
   const [creditRatingAgency, setCreditRatingAgency] = useState("");
   const [creditRatingValue, setCreditRatingValue] = useState("");
   const [cashOnHand, setCashOnHand] = useState("");
@@ -1304,6 +1312,33 @@ export default function MitraProjectApplyPage() {
           onToggle={() => setOpenSection(openSection === getSectionNumber("financial_overview") ? 0 : getSectionNumber("financial_overview"))}
         >
           <p className="text-xs text-ptba-gray">{t("sections.financialOverviewDesc")}</p>
+
+          {/* Year Range Selector */}
+          <div className="mt-3 mb-1">
+            <label className="mb-1.5 block text-xs font-semibold text-ptba-charcoal">{t("financialFields.yearRange")}</label>
+            <p className="text-[10px] text-ptba-gray mb-2">{t("financialFields.yearRangeHint")}</p>
+            <div className="flex gap-2">
+              {YEAR_RANGE_OPTIONS.map((range, idx) => {
+                const key = range.join("-");
+                const isSelected = selectedRangeKey === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleYearRangeChange(idx)}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors",
+                      isSelected
+                        ? "bg-ptba-navy text-white border-ptba-navy"
+                        : "bg-white text-ptba-charcoal border-ptba-light-gray hover:border-ptba-steel-blue"
+                    )}
+                  >
+                    {range[0]}–{range[2]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Financial Table */}
           <div className="overflow-x-auto">
