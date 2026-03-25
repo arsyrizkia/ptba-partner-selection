@@ -1423,30 +1423,18 @@ export default function MitraProjectApplyPage() {
                 </label>
               ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {creditRatingAgency && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{creditRatingAgency || "Agency"}</label>
-                <input type="text" placeholder="e.g. SA2" value={creditRatingValue} onChange={(e) => setCreditRatingValue(e.target.value)} className={inputClass} />
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency})</label>
+                <input
+                  type="text"
+                  placeholder={creditRatingAgency === "DNDB" ? "e.g. SA2" : creditRatingAgency === "S&P" ? "e.g. AA+" : creditRatingAgency === "Moodys" ? "e.g. Aaa" : creditRatingAgency === "Fitch" ? "e.g. AAA" : "e.g. A+"}
+                  value={creditRatingValue}
+                  onChange={(e) => setCreditRatingValue(e.target.value)}
+                  className={cn(inputClass, "max-w-xs")}
+                />
               </div>
-              {creditRatingAgency === "S&P" && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">S&P (Pefindo)</label>
-                  <input type="text" placeholder="e.g. AA+" className={inputClass} />
-                </div>
-              )}
-              {creditRatingAgency === "Moodys" && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Moody&apos;s</label>
-                  <input type="text" placeholder="e.g. Aaa" className={inputClass} />
-                </div>
-              )}
-              {creditRatingAgency === "Fitch" && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Fitch</label>
-                  <input type="text" placeholder="e.g. AAA" className={inputClass} />
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
           {/* EBITDA & DSCR Calculation */}
