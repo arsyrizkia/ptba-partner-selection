@@ -917,32 +917,10 @@ export default function ProjectDetailPage({
           </div>
         </div>
 
-        {/* PIC Display */}
-        {project.phasePics && project.phasePics.length > 0 && (
-          <div className="mt-4 rounded-lg bg-ptba-section-bg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4 text-ptba-navy" />
-              <span className="text-xs font-semibold text-ptba-navy">PIC yang Ditunjuk</span>
-            </div>
-            {["phase1", "phase2", "phase3"].map((phase) => {
-              const pics = project.phasePics.filter((p: any) => p.phase === phase);
-              if (pics.length === 0) return null;
-              const phaseLabels: Record<string, string> = { phase1: "Fase 1", phase2: "Fase 2", phase3: "Fase 3" };
-              return (
-                <div key={phase} className="mb-2 last:mb-0">
-                  <p className="text-[10px] font-medium text-ptba-gray uppercase mb-1">{phaseLabels[phase]}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {pics.map((pic: any) => (
-                      <span key={`${pic.userId}-${pic.subcategory ?? ""}`} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs text-ptba-charcoal border border-ptba-light-gray">
-                        <UserCheck className="h-3 w-3 text-ptba-steel-blue" />
-                        <span className="font-medium">{pic.userName}</span>
-                        <span className="text-ptba-gray">({pic.role.toUpperCase()}{pic.subcategory ? ` ${pic.subcategory}` : ""})</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+        {/* Cover Image */}
+        {project.coverImageUrl && (
+          <div className="mt-4 overflow-hidden rounded-lg">
+            <img src={project.coverImageUrl} alt={project.name} className="w-full h-48 object-cover" />
           </div>
         )}
 
