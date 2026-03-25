@@ -20,6 +20,7 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -258,15 +259,34 @@ export default function ApprovalDetailPage() {
         </Card>
       )}
 
-      {/* Disposisi Form — only for ketua_tim and pending status */}
-      {approval.status === "Menunggu" && !submitted && role === "ketua_tim" && (
+      {/* Link to detailed approval page */}
+      {approval.status === "Menunggu" && approval.phase === "phase1" && (role === "ketua_tim" || role === "super_admin") && (
+        <Card padding="lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-ptba-charcoal">Review Detail Per Mitra</p>
+              <p className="text-xs text-ptba-gray mt-0.5">Review dan berikan keputusan untuk setiap mitra satu per satu.</p>
+            </div>
+            <Link
+              href={`/projects/${approval.project_id}/approval/phase1`}
+              className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Buka Halaman Persetujuan Detail
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      {/* Disposisi Form — only for ketua_tim/super_admin and pending status */}
+      {approval.status === "Menunggu" && !submitted && (role === "ketua_tim" || role === "super_admin") && (
         <Card padding="lg">
           <DisposisiForm onSubmit={handleDisposisi} />
         </Card>
       )}
 
       {/* Non-ketua_tim viewing pending */}
-      {approval.status === "Menunggu" && role !== "ketua_tim" && (
+      {approval.status === "Menunggu" && role !== "ketua_tim" && role !== "super_admin" && (
         <Card padding="lg">
           <div className="text-center py-4">
             <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
