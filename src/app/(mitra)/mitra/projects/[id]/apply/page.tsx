@@ -1090,13 +1090,23 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
-          {/* Minority Equity — JV equity commitment */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.minorityEquity")}</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("eoiFields.minorityEquityHint")}</p>
-            <div className="flex items-center gap-2">
-              <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
-              <span className="text-sm text-ptba-gray">%</span>
+          {/* JV Equity & Cash on Hand */}
+          <div className="rounded-lg border border-ptba-light-gray p-4 space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
+              <p className="mb-1 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
+              <div className="flex items-center gap-2">
+                <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
+                <span className="text-sm text-ptba-gray">%</span>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
+              <p className="mb-1 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
+              <div className="flex items-center gap-2">
+                <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder={t("companyFields.example", { value: "350" })} className={cn(inputClass, "w-40")} />
+                <span className="text-sm text-ptba-gray">Mill USD</span>
+              </div>
             </div>
           </div>
 
@@ -1436,16 +1446,6 @@ export default function MitraProjectApplyPage() {
                   <input type="text" placeholder="e.g. AAA" className={inputClass} />
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Cash on Hand */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.cashOnHand")}</label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("financialFields.cashOnHandHint")}</p>
-            <div className="flex items-center gap-2">
-              <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder={t("companyFields.example", { value: "350" })} className={cn(inputClass, "w-40")} />
-              <span className="text-sm text-ptba-gray">Mill USD</span>
             </div>
           </div>
 
