@@ -1090,22 +1090,22 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
-          {/* JV Equity & Cash on Hand */}
-          <div className="rounded-lg border border-ptba-light-gray p-4 space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
-              <p className="mb-1 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
-              <div className="flex items-center gap-2">
-                <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder={t("companyFields.example", { value: "35" })} className={cn(inputClass, "w-32")} />
-                <span className="text-sm text-ptba-gray">%</span>
+          {/* JV Equity & Cash on Hand — side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-ptba-light-gray p-4">
+              <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
+              <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
+              <div className="relative">
+                <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder="35" className={cn(inputClass, "pr-10")} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
               </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
-              <p className="mb-1 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
-              <div className="flex items-center gap-2">
-                <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder={t("companyFields.example", { value: "350" })} className={cn(inputClass, "w-40")} />
-                <span className="text-sm text-ptba-gray">Mill USD</span>
+            <div className="rounded-lg border border-ptba-light-gray p-4">
+              <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
+              <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
+              <div className="relative">
+                <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder="350,000,000" className={cn(inputClass, "pr-14")} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
               </div>
             </div>
           </div>
