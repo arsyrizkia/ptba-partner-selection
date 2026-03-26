@@ -812,7 +812,7 @@ export default function Phase1ApprovalPage({
                                                       <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
                                                     </div>
                                                     {doc.file_key && (
-                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
                                                         <Download className="h-3 w-3" /> Unduh
                                                       </button>
                                                     )}

@@ -920,9 +920,9 @@ export default function Phase1EvaluationPage({
                           </div>
                         </div>
 
-                        {/* PDF Download + Prev / Next */}
-                        {selectedAppFormData && (
-                          <div className="px-6 py-2 bg-ptba-section-bg border-b border-gray-100">
+                        {/* PDF Download + Download All Docs + Prev / Next */}
+                        <div className="px-6 py-2 bg-ptba-section-bg border-b border-gray-100 flex items-center gap-2 flex-wrap">
+                          {selectedAppFormData && (
                             <button
                               type="button"
                               onClick={() => generateApplicationPdf(app.partner_name || "Mitra", selectedAppFormData)}
@@ -930,8 +930,42 @@ export default function Phase1EvaluationPage({
                             >
                               <Download className="h-3.5 w-3.5" /> Unduh PDF Formulir
                             </button>
-                          </div>
-                        )}
+                          )}
+                          {selectedAppDocuments.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const JSZip = (await import("jszip")).default;
+                                  const zip = new JSZip();
+                                  for (const doc of selectedAppDocuments) {
+                                    const fk = (doc as any).file_key;
+                                    if (!fk) continue;
+                                    const res = await api<{ url: string }>(`/documents/download/${encodeURIComponent(fk)}`, { token: accessToken! });
+                                    if (res.url) {
+                                      const blob = await fetch(res.url).then((r) => r.blob());
+                                      const ext = fk.split(".").pop() || "pdf";
+                                      const name = `${doc.name || fk.split("/").pop()}.${ext}`;
+                                      zip.file(name, blob);
+                                    }
+                                  }
+                                  const content = await zip.generateAsync({ type: "blob" });
+                                  const url = URL.createObjectURL(content);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = `Dokumen_${(app.partner_name || "Mitra").replace(/\s+/g, "_")}.zip`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                } catch { /* ignore */ }
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Unduh Semua Dokumen ({selectedAppDocuments.length})
+                            </button>
+                          )}
+                        </div>
                         <div className="px-6 py-2.5 bg-gray-50 flex items-center justify-between text-sm border-b border-gray-100">
                           <button
                             onClick={() => prevMitra && navigateToMitra(prevMitra.partner_id)}
@@ -1051,7 +1085,7 @@ export default function Phase1EvaluationPage({
                                                       <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
                                                     </div>
                                                     {doc.file_key && (
-                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
                                                         <Download className="h-3 w-3" /> Unduh
                                                       </button>
                                                     )}
@@ -1116,7 +1150,7 @@ export default function Phase1EvaluationPage({
                                               <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
                                             </div>
                                             {doc.file_key && (
-                                              <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                              <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
                                                 <Download className="h-3 w-3" /> Unduh
                                               </button>
                                             )}

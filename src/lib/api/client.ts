@@ -517,10 +517,25 @@ export function negotiationApi(token: string) {
 }
 
 // Document download helper — gets presigned URL from API and opens it
-export async function downloadDocument(fileKey: string, token: string): Promise<void> {
+export async function downloadDocument(fileKey: string, token: string, fileName?: string): Promise<void> {
   try {
     const res = await api<{ url: string }>(`/documents/download/${encodeURIComponent(fileKey)}`, { token });
-    if (res.url) window.open(res.url, "_blank");
+    if (res.url) {
+      // Use fetch + blob to control filename
+      const response = await fetch(res.url);
+      const blob = await response.blob();
+      const ext = fileKey.split(".").pop() || "pdf";
+      const safeName = (fileName || fileKey.split("/").pop() || "document").replace(/[^a-zA-Z0-9_\-\s.]/g, "_");
+      const downloadName = safeName.endsWith(`.${ext}`) ? safeName : `${safeName}.${ext}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = downloadName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   } catch {
     // ignore
   }
