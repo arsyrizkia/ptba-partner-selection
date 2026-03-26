@@ -1129,26 +1129,11 @@ export default function ProjectDetailPage({
                   Fase 1 Selesai
                 </div>
                 <button
-                  onClick={async () => {
-                    if (!accessToken) return;
-                    setActionLoading(true);
-                    try {
-                      await api(`/projects/${id}/start-phase2`, {
-                        method: "POST",
-                        token: accessToken,
-                      });
-                      window.location.reload();
-                    } catch {
-                      alert("Gagal memulai Fase 2");
-                    } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-ptba-steel-blue px-4 py-2 text-sm font-bold text-white hover:bg-ptba-steel-blue/90 transition-colors disabled:opacity-50"
+                  onClick={() => setShowPhase2Modal(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-ptba-steel-blue px-4 py-2 text-sm font-bold text-white hover:bg-ptba-steel-blue/90 transition-colors"
                 >
                   <ArrowRight className="h-4 w-4" />
-                  {actionLoading ? "Memproses..." : "Lanjutkan ke Fase 2"}
+                  Lanjutkan ke Fase 2
                 </button>
               </>
             )}
