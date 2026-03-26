@@ -1106,44 +1106,45 @@ export default function Phase1EvaluationPage({
                                                 ))}
                                               </div>
                                             )}
-
-                                            {/* Evaluation: Document pass/fail */}
-                                            <div className={cn("rounded-lg border p-3", docChecked === true ? "border-green-200 bg-green-50/30" : docChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
-                                              <div className="flex items-center justify-between mb-1.5">
-                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
-                                                {isEditable ? (
-                                                  <div className="flex gap-1.5">
-                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                                  </div>
-                                                ) : (
-                                                  <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docChecked === true ? "bg-green-100 text-green-700" : docChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docChecked === true ? "Lulus" : docChecked === false ? "Tidak Lulus" : "Belum"}</span>
-                                                )}
-                                              </div>
-                                              {isEditable ? (
-                                                <textarea placeholder="Komentar dokumen..." value={docComment} onChange={(e) => updateComment(app.partner_id, section.docItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
-                                              ) : docComment ? <p className="text-xs text-ptba-gray">{docComment}</p> : null}
-                                            </div>
-
-                                            {/* Evaluation: Form data pass/fail */}
-                                            <div className={cn("rounded-lg border p-3", formChecked === true ? "border-green-200 bg-green-50/30" : formChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
-                                              <div className="flex items-center justify-between mb-1.5">
-                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Data Formulir</p>
-                                                {isEditable ? (
-                                                  <div className="flex gap-1.5">
-                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                                  </div>
-                                                ) : (
-                                                  <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formChecked === true ? "bg-green-100 text-green-700" : formChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formChecked === true ? "Lulus" : formChecked === false ? "Tidak Lulus" : "Belum"}</span>
-                                                )}
-                                              </div>
-                                              {isEditable ? (
-                                                <textarea placeholder="Komentar data..." value={formComment} onChange={(e) => updateComment(app.partner_id, section.formItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
-                                              ) : formComment ? <p className="text-xs text-ptba-gray">{formComment}</p> : null}
-                                            </div>
                                           </div>
                                         )}
+
+                                        {/* Evaluation pass/fail — always visible, side by side */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border-t border-gray-200 bg-gray-50/30">
+                                          <div className={cn("rounded-lg border p-3", docChecked === true ? "border-green-200 bg-green-50/30" : docChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                              <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
+                                              {isEditable ? (
+                                                <div className="flex gap-1.5">
+                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                                </div>
+                                              ) : (
+                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docChecked === true ? "bg-green-100 text-green-700" : docChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docChecked === true ? "Lulus" : docChecked === false ? "Tidak Lulus" : "Belum"}</span>
+                                              )}
+                                            </div>
+                                            {isEditable ? (
+                                              <textarea placeholder="Komentar dokumen..." value={docComment} onChange={(e) => updateComment(app.partner_id, section.docItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                            ) : docComment ? <p className="text-xs text-ptba-gray">{docComment}</p> : null}
+                                          </div>
+
+                                          <div className={cn("rounded-lg border p-3", formChecked === true ? "border-green-200 bg-green-50/30" : formChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                              <p className="text-xs font-medium text-ptba-gray">Penilaian Data Formulir</p>
+                                              {isEditable ? (
+                                                <div className="flex gap-1.5">
+                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                                </div>
+                                              ) : (
+                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formChecked === true ? "bg-green-100 text-green-700" : formChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formChecked === true ? "Lulus" : formChecked === false ? "Tidak Lulus" : "Belum"}</span>
+                                              )}
+                                            </div>
+                                            {isEditable ? (
+                                              <textarea placeholder="Komentar data..." value={formComment} onChange={(e) => updateComment(app.partner_id, section.formItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                            ) : formComment ? <p className="text-xs text-ptba-gray">{formComment}</p> : null}
+                                          </div>
+                                        </div>
                                       </div>
                                     );
                                   })}
