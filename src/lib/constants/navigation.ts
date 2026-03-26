@@ -53,7 +53,7 @@ export const NAVIGATION: NavigationItem[] = [
     icon: 'Settings',
     label: 'Manajemen Pengguna',
     href: '/users',
-    allowedRoles: ['super_admin'],
+    allowedRoles: ['super_admin', 'ketua_tim'],
   },
 ];
 
