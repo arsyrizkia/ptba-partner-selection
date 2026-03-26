@@ -274,6 +274,7 @@ export default function Phase1EvaluationPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { role, accessToken } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // ── Loading & data state ────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -776,14 +777,21 @@ export default function Phase1EvaluationPage({
 
       {/* Main Layout */}
       {phase1Applicants.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        <div className={cn("grid grid-cols-1 gap-6", sidebarCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]")}>
           {/* Sidebar */}
           <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-ptba-navy">
-              <h3 className="text-sm font-semibold text-white">Daftar Mitra</h3>
-              <p className="text-[10px] text-white/60 mt-0.5">Pilih mitra untuk difiltrasi</p>
-            </div>
-            <div className="divide-y divide-gray-100">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-full px-4 py-3 bg-ptba-navy flex items-center justify-between"
+            >
+              <div>
+                <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({phase1Applicants.length})</h3>
+                {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk difiltrasi</p>}
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-white/60 transition-transform", !sidebarCollapsed && "rotate-180")} />
+            </button>
+            {!sidebarCollapsed && <div className="divide-y divide-gray-100">
               {phase1Applicants.map((app, idx) => {
                 const state = evalStates[app.partner_id];
                 const isSelected = app.partner_id === selectedPartnerId;
@@ -829,7 +837,7 @@ export default function Phase1EvaluationPage({
                   </button>
                 );
               })}
-            </div>
+            </div>}
           </div>
 
           {/* Right Panel */}
