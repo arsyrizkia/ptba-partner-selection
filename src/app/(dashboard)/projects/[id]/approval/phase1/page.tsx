@@ -784,28 +784,40 @@ export default function Phase1ApprovalPage({
                                           {item.passed ? "Lulus" : "Tidak Lulus"}
                                         </span>
                                       </div>
-                                      {/* Inline document download for document items */}
+                                      {/* Inline document download for document items — all related docs */}
                                       {item.item_type === "document" && (() => {
-                                        const matchedDoc = phase1Docs.find((d: any) => d.document_type_id === item.criterion_id);
+                                        const DOC_SECTION_MAP: Record<string, string[]> = {
+                                          compro: ["compro"],
+                                          statement_eoi: ["statement_eoi", "adherent_letter", "confidential_guarantee_letter"],
+                                          portfolio: ["portfolio", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+                                          financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+                                          requirements_fulfillment: ["requirements_fulfillment"],
+                                        };
+                                        const relatedIds = DOC_SECTION_MAP[item.criterion_id] || [item.criterion_id];
+                                        const matchedDocs = phase1Docs.filter((d: any) => relatedIds.includes(d.document_type_id));
                                         const isOpen = expandedDocs[`approval_${item.criterion_id}`] ?? false;
-                                        return matchedDoc ? (
+                                        return matchedDocs.length > 0 ? (
                                           <div className="mt-1.5">
                                             <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`approval_${item.criterion_id}`]: !isOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
                                               <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
-                                              {isOpen ? "Sembunyikan dokumen" : "Lihat dokumen"}
+                                              {isOpen ? "Sembunyikan dokumen" : `Lihat dokumen (${matchedDocs.length})`}
                                             </button>
                                             {isOpen && (
-                                              <div className="mt-1.5 flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                                <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                                <div className="flex-1 min-w-0">
-                                                  <p className="text-xs text-ptba-charcoal truncate">{matchedDoc.name}</p>
-                                                  <p className="text-[10px] text-ptba-gray">{matchedDoc.status} · {formatDate(matchedDoc.upload_date)}</p>
-                                                </div>
-                                                {matchedDoc.file_key && (
-                                                  <button type="button" onClick={async () => { try { await downloadDocument(matchedDoc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                    <Download className="h-3 w-3" /> Unduh
-                                                  </button>
-                                                )}
+                                              <div className="mt-1.5 space-y-1.5">
+                                                {matchedDocs.map((doc: any) => (
+                                                  <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                    <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                      <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                      <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                                                    </div>
+                                                    {doc.file_key && (
+                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                        <Download className="h-3 w-3" /> Unduh
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                ))}
                                               </div>
                                             )}
                                           </div>

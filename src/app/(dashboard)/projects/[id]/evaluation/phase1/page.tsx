@@ -990,7 +990,16 @@ export default function Phase1EvaluationPage({
                                 {PHASE1_DOCUMENT_ITEMS.map((item) => {
                                   const checked = state?.checks[item.id];
                                   const comment = state?.comments[item.id] || "";
-                                  const matchedDoc = selectedAppDocuments.find((d: any) => d.document_type_id === item.id);
+                                  // Map each evaluation item to its related document type IDs
+                                  const DOC_SECTION_MAP: Record<string, string[]> = {
+                                    compro: ["compro"],
+                                    statement_eoi: ["statement_eoi", "adherent_letter", "confidential_guarantee_letter"],
+                                    portfolio: ["portfolio", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+                                    financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+                                    requirements_fulfillment: ["requirements_fulfillment"],
+                                  };
+                                  const relatedDocIds = DOC_SECTION_MAP[item.id] || [item.id];
+                                  const matchedDocs = selectedAppDocuments.filter((d: any) => relatedDocIds.includes(d.document_type_id));
                                   const isDocOpen = expandedDocs[`eval_${item.id}`] ?? false;
                                   const docMeta = DOCUMENT_TYPES.find((dt) => dt.id === item.id);
                                   const docLabel = docMeta?.name || item.nameKey.split(".").pop()?.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) || item.id;
@@ -1007,25 +1016,29 @@ export default function Phase1EvaluationPage({
                                           <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", checked === true ? "bg-green-100 text-green-700" : checked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{checked === true ? "Lulus" : checked === false ? "Tidak Lulus" : "Belum Dinilai"}</span>
                                         )}
                                       </div>
-                                      {/* Inline document viewer */}
-                                      {matchedDoc && (
+                                      {/* Inline document viewer — all related docs */}
+                                      {matchedDocs.length > 0 && (
                                         <div className="mb-2">
                                           <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`eval_${item.id}`]: !isDocOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
                                             <ChevronDown className={cn("h-3 w-3 transition-transform", isDocOpen && "rotate-180")} />
-                                            {isDocOpen ? "Sembunyikan dokumen" : "Lihat dokumen"}
+                                            {isDocOpen ? "Sembunyikan dokumen" : `Lihat dokumen (${matchedDocs.length})`}
                                           </button>
                                           {isDocOpen && (
-                                            <div className="mt-1.5 flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-xs text-ptba-charcoal truncate">{matchedDoc.name}</p>
-                                                <p className="text-[10px] text-ptba-gray">{matchedDoc.status} · {formatDate((matchedDoc as any).upload_date || "")}</p>
-                                              </div>
-                                              {(matchedDoc as any).file_key && (
-                                                <button type="button" onClick={async () => { try { await downloadDocument((matchedDoc as any).file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                  <Download className="h-3 w-3" /> Unduh
-                                                </button>
-                                              )}
+                                            <div className="mt-1.5 space-y-1.5">
+                                              {matchedDocs.map((doc: any) => (
+                                                <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                  <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                  <div className="flex-1 min-w-0">
+                                                    <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                    <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                                  </div>
+                                                  {doc.file_key && (
+                                                    <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                      <Download className="h-3 w-3" /> Unduh
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              ))}
                                             </div>
                                           )}
                                         </div>
