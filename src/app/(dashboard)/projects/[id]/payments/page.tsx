@@ -159,7 +159,7 @@ export default function PaymentVerificationPage({
         <div className="mt-4 rounded-lg bg-ptba-section-bg p-3 flex items-center gap-3">
           <CreditCard className="h-4 w-4 text-ptba-navy shrink-0" />
           <span className="text-xs text-ptba-gray">
-            Biaya pendaftaran Fase 2: <span className="font-bold text-ptba-navy">{formatCurrency(project.registrationFee ?? 0)}</span> per mitra
+            Commitment Fee Fase 2: <span className="font-bold text-ptba-navy">{formatCurrency(project.registrationFee ?? 0)}</span> per mitra
           </span>
         </div>
       </div>

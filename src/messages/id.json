@@ -339,7 +339,7 @@
   },
   "phase2": {
     "title": "Fase 2 — Penilaian Detail",
-    "description": "Selamat, Anda telah lolos Fase 1 (Shortlisted). Silakan lengkapi pembayaran biaya pendaftaran, unduh dokumen PTBA, dan unggah dokumen Fase 2 yang diperlukan.",
+    "description": "Selamat, Anda telah lolos Fase 1 (Shortlisted). Silakan lengkapi pembayaran commitment fee, unduh dokumen PTBA, dan unggah dokumen Fase 2 yang diperlukan.",
     "fee": "Biaya:",
     "requiredDocs": "dokumen wajib",
     "applicationNotFound": "Lamaran tidak ditemukan",
@@ -358,8 +358,8 @@
       "waitingEvaluation": "Menunggu Evaluasi"
     },
     "payment": {
-      "title": "Pembayaran Biaya Pendaftaran",
-      "feeLabel": "Biaya Pendaftaran Fase 2",
+      "title": "Pembayaran Commitment Fee",
+      "feeLabel": "Commitment Fee Fase 2",
       "transferInfo": "Transfer ke rekening PT Bukit Asam Persero Tbk — Bank Mandiri 123-456-789",
       "uploadProof": "Upload Bukti Pembayaran",
       "uploadProofDesc": "Lakukan transfer sesuai nominal di atas, lalu unggah bukti transfer (PDF/JPG/PNG)",
@@ -377,7 +377,7 @@
     },
     "ptbaDocs": {
       "title": "Unduh Dokumen PTBA",
-      "payFirst": "Selesaikan pembayaran biaya pendaftaran terlebih dahulu untuk mengakses dokumen PTBA.",
+      "payFirst": "Selesaikan pembayaran commitment fee terlebih dahulu untuk mengakses dokumen PTBA.",
       "noDocs": "Tidak ada dokumen PTBA untuk proyek ini."
     },
     "uploadDocs": {
@@ -388,7 +388,7 @@
     "submit": {
       "requirementsNotMet": "Persyaratan belum terpenuhi untuk pengiriman:",
       "paymentPending": "Bukti pembayaran masih menunggu verifikasi EBD",
-      "paymentNotPaid": "Biaya pendaftaran belum dibayar",
+      "paymentNotPaid": "Commitment fee belum dibayar",
       "docsNotUploaded": "{count} dokumen wajib belum diunggah",
       "submitDocs": "Kirim Dokumen Fase 2"
     },

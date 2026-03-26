@@ -709,8 +709,9 @@ export default function ProjectDetailPage({
             <div className="mb-4">
               <label className="flex items-center gap-1.5 text-sm font-semibold text-ptba-charcoal mb-1.5">
                 <DollarSign className="h-4 w-4 text-ptba-gray" />
-                Biaya Pendaftaran Fase 2
+                Commitment Fee Fase 2
               </label>
+              <p className="text-[10px] text-ptba-gray mb-1.5 italic">Mitra wajib membayar commitment fee untuk melanjutkan proses seleksi ke Fase 2. Biaya ini bersifat non-refundable.</p>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ptba-gray">Rp</span>
                 <input
@@ -734,32 +735,31 @@ export default function ProjectDetailPage({
                 Batal
               </button>
               <button
-                onClick={() => {
-                  // Check if all shortlisted mitra payments are verified
-                  const shortlistedIds = project.shortlistedPartners ?? [];
-                  const allPaid = shortlistedIds.every((pid: string) => {
-                    const app = undefined as any;
-                    if (!app) return false;
-                    const decision = paymentDecisions[app.id];
-                    if (decision === "approved") return true;
-                    if (!decision && app.feePaymentStatus === "Sudah Bayar") return true;
-                    return false;
-                  });
-
-                  if (!allPaid) {
-                    setShowUnverifiedWarning(true);
-                  } else {
-                    alert(
-                      `Fase 2 berhasil dimulai!\n\nBatas Waktu: ${phase2Deadline}\nBiaya Pendaftaran: Rp ${phase2Fee.toLocaleString("id-ID")}\nDivisi: ${phase2Divisions.join(", ")}\n\nNotifikasi telah dikirim ke ${shortlistedIds.length} mitra yang lolos.`
-                    );
+                onClick={async () => {
+                  if (!accessToken) return;
+                  setActionLoading(true);
+                  try {
+                    await api(`/projects/${id}/start-phase2`, {
+                      method: "POST",
+                      body: {
+                        phase2Deadline,
+                        registrationFee: phase2Fee,
+                      },
+                      token: accessToken,
+                    });
                     setShowPhase2Modal(false);
+                    window.location.reload();
+                  } catch {
+                    alert("Gagal memulai Fase 2");
+                  } finally {
+                    setActionLoading(false);
                   }
                 }}
-                disabled={phase2Divisions.length === 0}
+                disabled={actionLoading || !phase2Deadline}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-ptba-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Rocket className="h-4 w-4" />
-                Mulai Fase 2
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                {actionLoading ? "Memproses..." : "Mulai Fase 2"}
               </button>
             </div>
           </div>

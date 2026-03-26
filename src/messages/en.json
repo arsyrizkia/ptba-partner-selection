@@ -339,7 +339,7 @@
   },
   "phase2": {
     "title": "Phase 2 — Detailed Assessment",
-    "description": "Congratulations, you have passed Phase 1 (Shortlisted). Please complete the registration fee payment, download PTBA documents, and upload the required Phase 2 documents.",
+    "description": "Congratulations, you have passed Phase 1 (Shortlisted). Please complete the commitment fee payment, download PTBA documents, and upload the required Phase 2 documents.",
     "fee": "Fee:",
     "requiredDocs": "required documents",
     "applicationNotFound": "Application not found",
@@ -358,8 +358,8 @@
       "waitingEvaluation": "Awaiting Evaluation"
     },
     "payment": {
-      "title": "Registration Fee Payment",
-      "feeLabel": "Phase 2 Registration Fee",
+      "title": "Commitment Fee Payment",
+      "feeLabel": "Phase 2 Commitment Fee",
       "transferInfo": "Transfer to PT Bukit Asam Persero Tbk account — Bank Mandiri 123-456-789",
       "uploadProof": "Upload Payment Proof",
       "uploadProofDesc": "Transfer the amount above, then upload proof of transfer (PDF/JPG/PNG)",
@@ -377,7 +377,7 @@
     },
     "ptbaDocs": {
       "title": "Download PTBA Documents",
-      "payFirst": "Complete the registration fee payment first to access PTBA documents.",
+      "payFirst": "Complete the commitment fee payment first to access PTBA documents.",
       "noDocs": "No PTBA documents available for this project."
     },
     "uploadDocs": {
@@ -388,7 +388,7 @@
     "submit": {
       "requirementsNotMet": "Requirements not met for submission:",
       "paymentPending": "Payment proof is still awaiting EBD verification",
-      "paymentNotPaid": "Registration fee has not been paid",
+      "paymentNotPaid": "Commitment fee has not been paid",
       "docsNotUploaded": "{count} required documents not yet uploaded",
       "submitDocs": "Submit Phase 2 Documents"
     },
