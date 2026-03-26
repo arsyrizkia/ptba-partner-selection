@@ -275,6 +275,7 @@ export default function Phase1EvaluationPage({
   const searchParams = useSearchParams();
   const { role, accessToken } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   // ── Loading & data state ────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -925,7 +926,14 @@ export default function Phase1EvaluationPage({
                           {selectedAppFormData && (
                             <button
                               type="button"
-                              onClick={() => generateApplicationPdf(app.partner_name || "Mitra", selectedAppFormData)}
+                              onClick={() => {
+                                try {
+                                  generateApplicationPdf(app.partner_name || "Mitra", selectedAppFormData);
+                                } catch (err) {
+                                  console.error("PDF generation failed:", err);
+                                  alert("Gagal membuat PDF: " + (err instanceof Error ? err.message : String(err)));
+                                }
+                              }}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
                             >
                               <Download className="h-3.5 w-3.5" /> Unduh PDF Formulir
@@ -934,7 +942,9 @@ export default function Phase1EvaluationPage({
                           {selectedAppDocuments.length > 0 && (
                             <button
                               type="button"
+                              disabled={downloadingZip}
                               onClick={async () => {
+                                setDownloadingZip(true);
                                 try {
                                   const JSZip = (await import("jszip")).default;
                                   const zip = new JSZip();
@@ -958,11 +968,14 @@ export default function Phase1EvaluationPage({
                                   a.click();
                                   document.body.removeChild(a);
                                   URL.revokeObjectURL(url);
-                                } catch { /* ignore */ }
+                                } catch { /* ignore */ } finally {
+                                  setDownloadingZip(false);
+                                }
                               }}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50"
                             >
-                              <Download className="h-3.5 w-3.5" /> Unduh Semua Dokumen ({selectedAppDocuments.length})
+                              {downloadingZip ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                              {downloadingZip ? "Mengunduh dokumen..." : `Unduh Semua Dokumen (${selectedAppDocuments.length})`}
                             </button>
                           )}
                         </div>
