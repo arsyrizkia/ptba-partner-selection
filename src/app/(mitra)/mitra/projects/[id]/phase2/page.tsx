@@ -440,6 +440,37 @@ export default function MitraPhase2Page() {
     );
   }
 
+  // ─── Guard: project not in phase2 yet ───
+
+  const projectPhase = project?.phase || "";
+  if (!projectPhase.startsWith("phase2") && !projectPhase.startsWith("phase3") && projectPhase !== "completed") {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
+        >
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
+        </button>
+        <div className="rounded-xl bg-white p-12 text-center shadow-sm">
+          <Lock className="mx-auto h-12 w-12 text-ptba-gray" />
+          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">
+            Fase 2 Belum Dibuka
+          </p>
+          <p className="mt-1 text-sm text-ptba-gray">
+            Proses Fase 2 belum dimulai untuk proyek ini. Silakan tunggu pemberitahuan dari tim PTBA.
+          </p>
+          <button
+            onClick={() => router.push(`/mitra/projects/${projectId}`)}
+            className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
+          >
+            {tc("backToProjectDetail")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ─── Guard: not shortlisted (phase1_result !== 'Lolos') ───
 
   if (application.phase1_result !== "Lolos") {
