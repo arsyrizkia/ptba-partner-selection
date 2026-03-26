@@ -978,121 +978,148 @@ export default function Phase1EvaluationPage({
                       {/* Evaluation Panel */}
                       <div className="rounded-xl bg-white shadow-sm overflow-hidden">
 
-                        {/* Penilaian Content — documents inline, form data inline */}
+                        {/* Penilaian Content — unified sections mirroring EoI form */}
                         {(
                           <div className={cn("p-6", isFinalized && "opacity-75")}>
-                            {/* Dokumen Section */}
-                            <div className="mb-6">
-                              <h4 className="text-sm font-semibold text-ptba-charcoal mb-3 flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-ptba-steel-blue" /> Dokumen
-                              </h4>
-                              <div className="space-y-3">
-                                {PHASE1_DOCUMENT_ITEMS.map((item) => {
-                                  const checked = state?.checks[item.id];
-                                  const comment = state?.comments[item.id] || "";
-                                  // Map each evaluation item to its related document type IDs
-                                  const DOC_SECTION_MAP: Record<string, string[]> = {
-                                    compro: ["compro"],
-                                    statement_eoi: ["statement_eoi", "adherent_letter", "confidential_guarantee_letter"],
-                                    portfolio: ["portfolio", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
-                                    financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
-                                    requirements_fulfillment: ["requirements_fulfillment"],
-                                  };
-                                  const relatedDocIds = DOC_SECTION_MAP[item.id] || [item.id];
-                                  const matchedDocs = selectedAppDocuments.filter((d: any) => relatedDocIds.includes(d.document_type_id));
-                                  const isDocOpen = expandedDocs[`eval_${item.id}`] ?? false;
-                                  const docMeta = DOCUMENT_TYPES.find((dt) => dt.id === item.id);
-                                  const docLabel = docMeta?.name || item.nameKey.split(".").pop()?.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()) || item.id;
-                                  return (
-                                    <div key={item.id} className={cn("rounded-lg border p-3", checked === true ? "border-green-200 bg-green-50/30" : checked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
-                                      <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-medium text-ptba-charcoal">{docLabel}</p>
-                                        {isEditable ? (
-                                          <div className="flex gap-1.5">
-                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                          </div>
-                                        ) : (
-                                          <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", checked === true ? "bg-green-100 text-green-700" : checked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{checked === true ? "Lulus" : checked === false ? "Tidak Lulus" : "Belum Dinilai"}</span>
-                                        )}
-                                      </div>
-                                      {/* Inline document viewer — all related docs */}
-                                      {matchedDocs.length > 0 && (
-                                        <div className="mb-2">
-                                          <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`eval_${item.id}`]: !isDocOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
-                                            <ChevronDown className={cn("h-3 w-3 transition-transform", isDocOpen && "rotate-180")} />
-                                            {isDocOpen ? "Sembunyikan dokumen" : `Lihat dokumen (${matchedDocs.length})`}
-                                          </button>
-                                          {isDocOpen && (
-                                            <div className="mt-1.5 space-y-1.5">
-                                              {matchedDocs.map((doc: any) => (
-                                                <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                                  <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                                  <div className="flex-1 min-w-0">
-                                                    <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                                    <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
-                                                  </div>
-                                                  {doc.file_key && (
-                                                    <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                      <Download className="h-3 w-3" /> Unduh
-                                                    </button>
-                                                  )}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                      {isEditable ? (
-                                        <textarea placeholder="Komentar..." value={comment} onChange={(e) => updateComment(app.partner_id, item.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
-                                      ) : comment ? (
-                                        <p className="text-xs text-ptba-gray">{comment}</p>
-                                      ) : null}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                            {/* Unified sections: each combines doc eval + form eval + related documents */}
+                            {(() => {
+                              const DOC_SECTION_MAP: Record<string, string[]> = {
+                                compro: ["compro"],
+                                statement_eoi: ["statement_eoi", "adherent_letter", "confidential_guarantee_letter"],
+                                portfolio: ["portfolio", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+                                financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+                                requirements_fulfillment: ["requirements_fulfillment"],
+                              };
+                              const UNIFIED_SECTIONS = [
+                                { docItem: PHASE1_DOCUMENT_ITEMS[0], formItem: PHASE1_FORM_SECTION_ITEMS[0], title: EVAL_FORM_DATA_MAP.compro?.title || "Company Profile", formKey: "compro" },
+                                { docItem: PHASE1_DOCUMENT_ITEMS[1], formItem: PHASE1_FORM_SECTION_ITEMS[1], title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI", formKey: "statement_eoi" },
+                                { docItem: PHASE1_DOCUMENT_ITEMS[2], formItem: PHASE1_FORM_SECTION_ITEMS[2], title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek", formKey: "portfolio" },
+                                { docItem: PHASE1_DOCUMENT_ITEMS[3], formItem: PHASE1_FORM_SECTION_ITEMS[3], title: EVAL_FORM_DATA_MAP.financial?.title || "Data Keuangan", formKey: "financial_overview" },
+                                { docItem: PHASE1_DOCUMENT_ITEMS[4], formItem: PHASE1_FORM_SECTION_ITEMS[4], title: EVAL_FORM_DATA_MAP.requirements?.title || "Pemenuhan Persyaratan", formKey: "requirements_fulfillment" },
+                              ];
+                              // Find additional docs not in any section
+                              const allMappedDocIds = Object.values(DOC_SECTION_MAP).flat();
+                              const additionalDocs = selectedAppDocuments.filter((d: any) => !allMappedDocIds.includes(d.document_type_id));
 
-                            {/* Data Formulir Section */}
-                            <div className="mb-6">
-                              <h4 className="text-sm font-semibold text-ptba-charcoal mb-3 flex items-center gap-2">
-                                <ClipboardCheck className="h-4 w-4 text-ptba-navy" /> Data Formulir
-                              </h4>
-                              <div className="space-y-3">
-                                {PHASE1_FORM_SECTION_ITEMS.map((item) => {
-                                  const checked = state?.checks[item.id];
-                                  const comment = state?.comments[item.id] || "";
-                                  const sectionKey = item.id.replace("section_", "");
-                                  const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
-                                  return (
-                                    <div key={item.id} className={cn("rounded-lg border p-3", checked === true ? "border-green-200 bg-green-50/30" : checked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
-                                      <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-medium text-ptba-charcoal">{formRenderer?.title || item.id}</p>
-                                        {isEditable ? (
-                                          <div className="flex gap-1.5">
-                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                            <button type="button" onClick={() => updateCheck(app.partner_id, item.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", checked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                              return (
+                                <div className="space-y-4">
+                                  {UNIFIED_SECTIONS.map((section, sIdx) => {
+                                    const docChecked = state?.checks[section.docItem.id];
+                                    const docComment = state?.comments[section.docItem.id] || "";
+                                    const formChecked = state?.checks[section.formItem.id];
+                                    const formComment = state?.comments[section.formItem.id] || "";
+                                    const relatedDocIds = DOC_SECTION_MAP[section.docItem.id] || [section.docItem.id];
+                                    const matchedDocs = selectedAppDocuments.filter((d: any) => relatedDocIds.includes(d.document_type_id));
+                                    const sectionKey = section.formItem.id.replace("section_", "");
+                                    const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
+                                    const isOpen = expandedDocs[`section_${sIdx}`] ?? true;
+
+                                    return (
+                                      <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
+                                        {/* Section header */}
+                                        <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`section_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                          <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
+                                          <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                                        </button>
+
+                                        {isOpen && (
+                                          <div className="p-4 space-y-3">
+                                            {/* Form Data */}
+                                            {formRenderer && selectedAppFormData && (
+                                              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                                                {formRenderer.render(selectedAppFormData)}
+                                              </div>
+                                            )}
+
+                                            {/* Documents */}
+                                            {matchedDocs.length > 0 && (
+                                              <div className="space-y-1.5">
+                                                <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
+                                                {matchedDocs.map((doc: any) => (
+                                                  <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                    <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                      <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                      <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                                    </div>
+                                                    {doc.file_key && (
+                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                        <Download className="h-3 w-3" /> Unduh
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {/* Evaluation: Document pass/fail */}
+                                            <div className={cn("rounded-lg border p-3", docChecked === true ? "border-green-200 bg-green-50/30" : docChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
+                                              <div className="flex items-center justify-between mb-1.5">
+                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
+                                                {isEditable ? (
+                                                  <div className="flex gap-1.5">
+                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                                  </div>
+                                                ) : (
+                                                  <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docChecked === true ? "bg-green-100 text-green-700" : docChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docChecked === true ? "Lulus" : docChecked === false ? "Tidak Lulus" : "Belum"}</span>
+                                                )}
+                                              </div>
+                                              {isEditable ? (
+                                                <textarea placeholder="Komentar dokumen..." value={docComment} onChange={(e) => updateComment(app.partner_id, section.docItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                              ) : docComment ? <p className="text-xs text-ptba-gray">{docComment}</p> : null}
+                                            </div>
+
+                                            {/* Evaluation: Form data pass/fail */}
+                                            <div className={cn("rounded-lg border p-3", formChecked === true ? "border-green-200 bg-green-50/30" : formChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-gray-50/50")}>
+                                              <div className="flex items-center justify-between mb-1.5">
+                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Data Formulir</p>
+                                                {isEditable ? (
+                                                  <div className="flex gap-1.5">
+                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                                    <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                                  </div>
+                                                ) : (
+                                                  <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formChecked === true ? "bg-green-100 text-green-700" : formChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formChecked === true ? "Lulus" : formChecked === false ? "Tidak Lulus" : "Belum"}</span>
+                                                )}
+                                              </div>
+                                              {isEditable ? (
+                                                <textarea placeholder="Komentar data..." value={formComment} onChange={(e) => updateComment(app.partner_id, section.formItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                              ) : formComment ? <p className="text-xs text-ptba-gray">{formComment}</p> : null}
+                                            </div>
                                           </div>
-                                        ) : (
-                                          <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", checked === true ? "bg-green-100 text-green-700" : checked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{checked === true ? "Lulus" : checked === false ? "Tidak Lulus" : "Belum Dinilai"}</span>
                                         )}
                                       </div>
-                                      {formRenderer && selectedAppFormData && (
-                                        <div className="mb-2 rounded border border-gray-200 bg-white p-2.5">
-                                          {formRenderer.render(selectedAppFormData)}
-                                        </div>
-                                      )}
-                                      {isEditable ? (
-                                        <textarea placeholder="Komentar..." value={comment} onChange={(e) => updateComment(app.partner_id, item.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
-                                      ) : comment ? (
-                                        <p className="text-xs text-ptba-gray">{comment}</p>
-                                      ) : null}
+                                    );
+                                  })}
+
+                                  {/* Additional Documents (not in any section) */}
+                                  {additionalDocs.length > 0 && (
+                                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                      <div className="px-4 py-3 bg-ptba-section-bg">
+                                        <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan</span>
+                                      </div>
+                                      <div className="p-4 space-y-1.5">
+                                        {additionalDocs.map((doc: any) => (
+                                          <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                            <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                              <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                            </div>
+                                            {doc.file_key && (
+                                              <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                <Download className="h-3 w-3" /> Unduh
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                             {/* Summary */}
                             <div className="rounded-lg bg-ptba-section-bg p-4">
