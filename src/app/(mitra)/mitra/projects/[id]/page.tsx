@@ -183,7 +183,7 @@ export default function MitraProjectDetailPage() {
             <div>
               <p className="text-sm font-bold text-green-800">{t("shortlistCongrats")}</p>
               <p className="mt-1 text-xs text-green-700">
-                {t("shortlistDesc")}
+                {canAccessPhase2 ? t("shortlistPhase2Ready") : t("shortlistPhase2Email")}
               </p>
               {canAccessPhase2 && (
                 <button
