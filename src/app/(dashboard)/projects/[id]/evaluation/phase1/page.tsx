@@ -985,7 +985,7 @@ export default function Phase1EvaluationPage({
                             {(() => {
                               const DOC_SECTION_MAP: Record<string, string[]> = {
                                 compro: ["compro"],
-                                statement_eoi: ["statement_eoi", "adherent_letter", "confidential_guarantee_letter"],
+                                statement_eoi: ["statement_eoi"],
                                 portfolio: ["portfolio", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
                                 financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
                                 requirements_fulfillment: ["requirements_fulfillment"],
