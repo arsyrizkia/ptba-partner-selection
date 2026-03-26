@@ -52,25 +52,40 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
   compro: {
     title: "Informasi Perusahaan",
     render: (fd) => (
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-        <EvalField label="Nama Perusahaan" value={fd.companyName} />
-        <EvalField label="Kode Perusahaan" value={fd.companyCode} />
-        <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
-        <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
-        <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
-        <EvalField label="Telepon" value={fd.companyPhone} />
-        <EvalField label="Email" value={fd.companyEmail} />
-        <EvalField label="Website" value={fd.companyWebsite} />
-        <EvalField label="NIB" value={fd.nib} />
-        <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
-        <EvalField label="Negara" value={fd.countryEstablished} />
-        <EvalField label="Status" value={fd.companyStatus} />
-        <EvalField label="Struktur Organisasi" value={fd.orgStructure} />
-        <EvalField label="Anak Perusahaan / Afiliasi" value={fd.subsidiaries} />
-        <EvalField label="Contact Person" value={fd.contactPerson} />
-        <EvalField label="Telepon CP" value={fd.contactPhone} />
-        <EvalField label="Email CP" value={fd.contactEmail} />
-      </dl>
+      <div className="space-y-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Nama Perusahaan" value={fd.companyName} />
+          <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
+          <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Telepon" value={fd.companyPhone} />
+          <EvalField label="Email" value={fd.companyEmail} />
+          <EvalField label="Website" value={fd.companyWebsite} />
+          <EvalField label="NIB" value={fd.nib} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
+          <EvalField label="Negara" value={fd.countryEstablished} />
+        </dl>
+        {(fd.orgStructure || fd.subsidiaries) && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {fd.orgStructure && <EvalField label="Struktur Organisasi" value={fd.orgStructure} />}
+            {fd.subsidiaries && <EvalField label="Anak Perusahaan / Afiliasi" value={fd.subsidiaries} />}
+          </dl>
+        )}
+        <div className="border-t border-gray-200 pt-2">
+          <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1">Contact Person</p>
+          <dl className="grid grid-cols-3 gap-x-4 gap-y-2">
+            <EvalField label="Nama" value={fd.contactPerson} />
+            <EvalField label="Telepon" value={fd.contactPhone} />
+            <EvalField label="Email" value={fd.contactEmail} />
+          </dl>
+        </div>
+      </div>
     ),
   },
   statement_eoi: {
@@ -1153,23 +1168,45 @@ export default function Phase1EvaluationPage({
                                   {additionalDocs.length > 0 && (
                                     <div className="rounded-xl border border-gray-200 overflow-hidden">
                                       <div className="px-4 py-3 bg-ptba-section-bg">
-                                        <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan</span>
+                                        <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
                                       </div>
-                                      <div className="p-4 space-y-1.5">
-                                        {additionalDocs.map((doc: any) => (
-                                          <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                            <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                              <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                      <div className="p-4 space-y-3">
+                                        {additionalDocs.map((doc: any) => {
+                                          const dtId = doc.document_type_id || doc.id;
+                                          const addChecked = state?.checks[`additional_${dtId}`];
+                                          const addComment = state?.comments[`additional_${dtId}`] || "";
+                                          return (
+                                            <div key={doc.id} className={cn("rounded-lg border p-3", addChecked === true ? "border-green-200 bg-green-50/30" : addChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-xs font-medium text-ptba-charcoal truncate">{doc.name}</p>
+                                                  <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                                </div>
+                                                {doc.file_key && (
+                                                  <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                    <Download className="h-3 w-3" /> Unduh
+                                                  </button>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center justify-between">
+                                                <p className="text-[10px] text-ptba-gray">Penilaian</p>
+                                                {isEditable ? (
+                                                  <div className="flex gap-1.5">
+                                                    <button type="button" onClick={() => updateCheck(app.partner_id, `additional_${dtId}`, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                                    <button type="button" onClick={() => updateCheck(app.partner_id, `additional_${dtId}`, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                                  </div>
+                                                ) : (
+                                                  <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", addChecked === true ? "bg-green-100 text-green-700" : addChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{addChecked === true ? "Lulus" : addChecked === false ? "Tidak Lulus" : "Belum"}</span>
+                                                )}
+                                              </div>
+                                              {isEditable && (
+                                                <textarea placeholder="Catatan..." value={addComment} onChange={(e) => updateComment(app.partner_id, `additional_${dtId}`, e.target.value)} className="mt-1.5 w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                              )}
+                                              {!isEditable && addComment && <p className="mt-1 text-xs text-ptba-gray">{addComment}</p>}
                                             </div>
-                                            {doc.file_key && (
-                                              <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                <Download className="h-3 w-3" /> Unduh
-                                              </button>
-                                            )}
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   )}
