@@ -725,43 +725,6 @@ export default function ProjectDetailPage({
               </div>
             </div>
 
-            {/* Required divisions */}
-            <div className="mb-6">
-              <label className="text-sm font-semibold text-ptba-charcoal mb-1.5 block">Divisi Evaluasi yang Diperlukan</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { key: "keuangan", label: "Keuangan (KEP-100)" },
-                  { key: "hukum", label: "Hukum & Regulasi" },
-                  { key: "risiko", label: "Manajemen Risiko" },
-                  { key: "ebd", label: "EBD (Teknis & Pasar)" },
-                ].map((div) => (
-                  <label
-                    key={div.key}
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium cursor-pointer transition-colors",
-                      phase2Divisions.includes(div.key)
-                        ? "border-ptba-navy bg-ptba-navy/5 text-ptba-navy"
-                        : "border-ptba-light-gray text-ptba-gray hover:bg-ptba-section-bg"
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={phase2Divisions.includes(div.key)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setPhase2Divisions((prev) => [...prev, div.key]);
-                        } else {
-                          setPhase2Divisions((prev) => prev.filter((d) => d !== div.key));
-                        }
-                      }}
-                      className="rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy h-3.5 w-3.5"
-                    />
-                    {div.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
             {/* Actions */}
             <div className="flex gap-3">
               <button
