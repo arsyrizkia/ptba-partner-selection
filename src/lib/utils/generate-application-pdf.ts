@@ -29,7 +29,7 @@ export function generateApplicationPdf(
     addPageIfNeeded(10);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 58, 92); // navy
+    doc.setTextColor(30, 58, 92);
     doc.text(text, margin, y);
     y += 6;
     doc.setTextColor(0, 0, 0);
@@ -41,8 +41,8 @@ export function generateApplicationPdf(
     doc.setFont("helvetica", "bold");
     doc.text(label + ":", margin, y);
     doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(value || "-", contentWidth - 40);
-    doc.text(lines, margin + 40, y);
+    const lines = doc.splitTextToSize(value || "-", contentWidth - 45);
+    doc.text(lines, margin + 45, y);
     y += Math.max(5, lines.length * 4.5);
   };
 
@@ -54,7 +54,7 @@ export function generateApplicationPdf(
   };
 
   // Header
-  addTitle(`Formulir Aplikasi — ${partnerName}`);
+  addTitle(`Formulir Expression of Interest — ${partnerName}`);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(120, 120, 120);
@@ -65,22 +65,37 @@ export function generateApplicationPdf(
   // 1. Informasi Perusahaan
   addSectionHeader("1. Informasi Perusahaan");
   addField("Nama Perusahaan", formData.companyName);
-  addField("Alamat", formData.companyAddress);
+  addField("Kode Perusahaan", formData.companyCode);
+  addField("Overview Bidang Usaha", formData.businessOverview);
+  addField("Alamat Kantor Pusat", formData.companyAddress);
+  addField("Alamat Rep. Indonesia", formData.companyIndonesiaAddress);
+  addField("Telepon", formData.companyPhone);
+  addField("Email", formData.companyEmail);
   addField("Website", formData.companyWebsite);
+  addField("NIB", formData.nib);
   addField("Tahun Berdiri", formData.yearEstablished);
   addField("Negara", formData.countryEstablished);
+  addField("Status", formData.companyStatus);
+  addField("Struktur Organisasi", formData.orgStructure);
+  addField("Anak Perusahaan", formData.subsidiaries);
+  addField("Contact Person", formData.contactPerson);
+  addField("Telepon CP", formData.contactPhone);
+  addField("Email CP", formData.contactEmail);
   addSeparator();
 
   // 2. Surat Pernyataan EoI
-  addSectionHeader("2. Surat Pernyataan EoI");
+  addSectionHeader("2. Surat Pernyataan Expression of Interest");
   addField("Penandatangan", formData.signerName);
   addField("Jabatan", formData.signerPosition);
   addField("Tanggal", formData.signerDate);
+  addField("Ekuitas JV (%)", formData.minorityEquityPercent ? `${formData.minorityEquityPercent}%` : "-");
+  addField("Cash on Hand", formData.cashOnHand ? `USD ${formData.cashOnHand}` : "-");
   addField("Menyetujui EoI", formData.eoiAgreed ? "Ya" : "Tidak");
   addSeparator();
 
   // 3. Pengalaman Proyek
   addSectionHeader("3. Pengalaman Proyek");
+  const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan" };
   const experiences = formData.experiences || [];
   if (experiences.length === 0) {
     addField("Data", "Tidak ada data pengalaman");
@@ -89,23 +104,23 @@ export function generateApplicationPdf(
       addPageIfNeeded(25);
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      doc.text(`Pengalaman #${i + 1} (${exp.category || "-"})`, margin, y);
+      doc.text(`Pengalaman #${i + 1} — ${catLabels[exp.category] || exp.category || "-"}`, margin, y);
       y += 5;
       addField("Nama Pembangkit", exp.plantName);
       addField("Lokasi", exp.location);
-      addField("Kapasitas Total", exp.totalCapacityMW ? `${exp.totalCapacityMW} MW` : "-");
+      addField("Kapasitas (MW)", exp.totalCapacityMW);
       if (exp.category === "developer") {
-        addField("Ekuitas", exp.equityPercent ? `${exp.equityPercent}%` : "-");
-        addField("IPP/Captive", exp.ippOrCaptive);
+        addField("Ekuitas (%)", exp.equityPercent);
+        addField("IPP / Captive", exp.ippOrCaptive);
         addField("Tahun COD", exp.codYear);
       } else if (exp.category === "om_contractor") {
-        addField("Nilai Kontrak", exp.contractValueUSD ? `USD ${exp.contractValueUSD}` : "-");
-        addField("Porsi Pekerjaan", exp.workPortionPercent ? `${exp.workPortionPercent}%` : "-");
-        addField("IPP/Captive", exp.ippOrCaptive);
+        addField("Nilai Kontrak (USD)", exp.contractValueUSD);
+        addField("Porsi Kerja (%)", exp.workPortionPercent);
+        addField("IPP / Captive", exp.ippOrCaptive);
         addField("Tahun COD", exp.codYear);
       } else if (exp.category === "financing") {
         addField("Tipe Pembiayaan", exp.financingType);
-        addField("Jumlah", exp.amountUSD ? `USD ${exp.amountUSD}` : "-");
+        addField("Jumlah (USD)", exp.amountUSD);
         addField("Tahun", exp.year);
       }
       y += 2;
@@ -117,9 +132,29 @@ export function generateApplicationPdf(
   addSectionHeader("4. Data Keuangan");
   const financialYears = formData.financialYears || [];
   if (financialYears.length > 0) {
+    // Table header
+    addPageIfNeeded(15);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    const colX = [margin, margin + 25, margin + 65, margin + 105];
+    doc.text("Tahun", colX[0], y);
+    doc.text("Total Asset", colX[1], y);
+    doc.text("EBITDA", colX[2], y);
+    doc.text("DSCR", colX[3], y);
+    y += 4;
+    doc.setDrawColor(180, 180, 180);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 3;
+    doc.setFont("helvetica", "normal");
     financialYears.forEach((fy: any) => {
-      addField(`Tahun ${fy.year}`, `Total Asset: ${fy.totalAsset || "-"} | EBITDA: ${fy.ebitda || "-"} | DSCR: ${fy.dscr || "-"}`);
+      addPageIfNeeded(6);
+      doc.text(String(fy.year), colX[0], y);
+      doc.text(fy.totalAsset || "-", colX[1], y);
+      doc.text(fy.ebitda || "-", colX[2], y);
+      doc.text(fy.dscr || "-", colX[3], y);
+      y += 5;
     });
+    y += 2;
   }
   if (formData.creditRatingAgency) addField("Lembaga Rating", formData.creditRatingAgency);
   if (formData.creditRatingValue) addField("Nilai Rating", formData.creditRatingValue);
@@ -133,6 +168,9 @@ export function generateApplicationPdf(
     addField("Status", "Tidak ada data");
   }
   if (formData.requirementNotes) addField("Catatan", formData.requirementNotes);
+  if (formData.agreedFinal) addField("Pernyataan Akhir", "Disetujui");
 
-  doc.save(`Formulir_${partnerName.replace(/\s+/g, "_")}.pdf`);
+  // Save
+  const safeName = partnerName.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+  doc.save(`Formulir_EoI_${safeName}.pdf`);
 }
