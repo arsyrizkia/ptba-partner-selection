@@ -120,22 +120,51 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
   compro: {
     title: "Informasi Perusahaan",
     render: (fd) => (
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-        <EvalField label="Nama Perusahaan" value={fd.companyName} />
-        <EvalField label="Alamat" value={fd.companyAddress} />
-        <EvalField label="Website" value={fd.companyWebsite} />
-        <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
-        <EvalField label="Negara" value={fd.countryEstablished} />
-      </dl>
+      <div className="space-y-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Nama Perusahaan" value={fd.companyName} />
+          <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
+          <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Telepon" value={fd.companyPhone} />
+          <EvalField label="Email" value={fd.companyEmail} />
+          <EvalField label="Website" value={fd.companyWebsite} />
+          <EvalField label="NIB" value={fd.nib} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
+          <EvalField label="Negara" value={fd.countryEstablished} />
+        </dl>
+        {(fd.orgStructure || fd.subsidiaries) && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {fd.orgStructure && <EvalField label="Struktur Organisasi" value={fd.orgStructure} />}
+            {fd.subsidiaries && <EvalField label="Anak Perusahaan / Afiliasi" value={fd.subsidiaries} />}
+          </dl>
+        )}
+        <div className="border-t border-gray-200 pt-2">
+          <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1">Contact Person</p>
+          <dl className="grid grid-cols-3 gap-x-4 gap-y-2">
+            <EvalField label="Nama" value={fd.contactPerson} />
+            <EvalField label="Telepon" value={fd.contactPhone} />
+            <EvalField label="Email" value={fd.contactEmail} />
+          </dl>
+        </div>
+      </div>
     ),
   },
   statement_eoi: {
-    title: "Surat Pernyataan EoI",
+    title: "Surat Pernyataan Expression of Interest",
     render: (fd) => (
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
         <EvalField label="Nama Penandatangan" value={fd.signerName} />
         <EvalField label="Jabatan" value={fd.signerPosition} />
         <EvalField label="Tanggal" value={fd.signerDate} />
+        <EvalField label="Ekuitas Joint Venture (%)" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
+        <EvalField label="Cash on Hand (USD)" value={fd.cashOnHand} />
         <EvalField label="Menyetujui EoI" value={fd.eoiAgreed ? "Ya" : "Tidak"} />
       </dl>
     ),
@@ -145,25 +174,33 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
     render: (fd) => {
       const exps = fd.experiences || [];
       if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
+      const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan" };
       return (
         <div className="space-y-2">
           {exps.map((exp: any, i: number) => (
             <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
-              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1}</p>
+              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1} — {catLabels[exp.category] || exp.category}</p>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <EvalField label="Nama Proyek" value={exp.projectName} />
+                <EvalField label="Nama Pembangkit" value={exp.plantName} />
                 <EvalField label="Lokasi" value={exp.location} />
-                <EvalField label="Tipe" value={exp.type} />
-                <EvalField label="Peran" value={exp.role} />
-                <EvalField label="Tahun" value={exp.year} />
-                <EvalField label="Nilai Proyek" value={exp.projectCost} />
+                <EvalField label="Kapasitas (MW)" value={exp.totalCapacityMW} />
+                {exp.category === "developer" && <>
+                  <EvalField label="Ekuitas (%)" value={exp.equityPercent} />
+                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
+                  <EvalField label="Tahun COD" value={exp.codYear} />
+                </>}
+                {exp.category === "om_contractor" && <>
+                  <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />
+                  <EvalField label="Porsi Kerja (%)" value={exp.workPortionPercent} />
+                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
+                  <EvalField label="Tahun COD" value={exp.codYear} />
+                </>}
+                {exp.category === "financing" && <>
+                  <EvalField label="Tipe Pembiayaan" value={exp.financingType} />
+                  <EvalField label="Jumlah (USD)" value={exp.amountUSD} />
+                  <EvalField label="Tahun" value={exp.year} />
+                </>}
               </dl>
-              {exp.description && (
-                <div className="mt-1">
-                  <span className="text-[10px] text-ptba-gray">Deskripsi:</span>
-                  <p className="text-xs text-ptba-charcoal">{exp.description}</p>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -226,7 +263,12 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
       </div>
     ),
   },
+  // Aliases
+  financial: undefined as any,
+  requirements: undefined as any,
 };
+EVAL_FORM_DATA_MAP.financial = EVAL_FORM_DATA_MAP.financial_overview;
+EVAL_FORM_DATA_MAP.requirements = EVAL_FORM_DATA_MAP.requirements_fulfillment;
 
 /* ------------------------------------------------------------------ */
 /*  Page Component                                                     */
@@ -768,78 +810,121 @@ export default function Phase1ApprovalPage({
                             </div>
                           ) : selectedDetail ? (
                             <>
-                              <div className="space-y-2">
-                                {selectedDetail.scores.map((item) => {
-                                  const itemDef = ALL_FILTRATION_ITEMS.find((f) => f.id === item.criterion_id);
-                                  const label = itemDef?.id || item.criterion_id;
-                                  const typeLabel = item.item_type === "document" ? "Dokumen" : "Data Formulir";
-                                  return (
-                                    <div key={item.criterion_id} className={cn("rounded-lg border p-3", item.passed ? "border-green-200 bg-green-50/30" : "border-red-200 bg-red-50/30")}>
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-sm font-medium text-ptba-charcoal">{label}</p>
-                                          <p className="text-[10px] text-ptba-gray">{typeLabel}</p>
-                                        </div>
-                                        <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", item.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-ptba-red")}>
-                                          {item.passed ? "Lulus" : "Tidak Lulus"}
-                                        </span>
-                                      </div>
-                                      {/* Inline document download for document items — all related docs */}
-                                      {item.item_type === "document" && (() => {
-                                        const DOC_SECTION_MAP: Record<string, string[]> = {
-                                          compro: ["compro", "nib_document", "org_structure"],
-                                          statement_eoi: ["statement_eoi"],
-                                          portfolio: ["portfolio", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
-                                          financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
-                                          requirements_fulfillment: ["requirements_fulfillment"],
-                                        };
-                                        const relatedIds = DOC_SECTION_MAP[item.criterion_id] || [item.criterion_id];
-                                        const matchedDocs = phase1Docs.filter((d: any) => relatedIds.includes(d.document_type_id));
-                                        const isOpen = expandedDocs[`approval_${item.criterion_id}`] ?? false;
-                                        return matchedDocs.length > 0 ? (
-                                          <div className="mt-1.5">
-                                            <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`approval_${item.criterion_id}`]: !isOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
-                                              <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
-                                              {isOpen ? "Sembunyikan dokumen" : `Lihat dokumen (${matchedDocs.length})`}
-                                            </button>
-                                            {isOpen && (
-                                              <div className="mt-1.5 space-y-1.5">
-                                                {matchedDocs.map((doc: any) => (
-                                                  <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                                    <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                                    <div className="flex-1 min-w-0">
-                                                      <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                                      <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                              {/* Unified sections — same layout as evaluation page */}
+                              {(() => {
+                                const DOC_SECTION_MAP: Record<string, string[]> = {
+                                  compro: ["compro", "nib_document", "org_structure"],
+                                  statement_eoi: ["statement_eoi"],
+                                  portfolio: ["portfolio", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+                                  financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+                                  requirements_fulfillment: ["requirements_fulfillment"],
+                                };
+                                const SECTIONS = [
+                                  { docId: "compro", formId: "section_compro", title: EVAL_FORM_DATA_MAP.compro?.title || "Informasi Perusahaan", formKey: "compro" },
+                                  { docId: "statement_eoi", formId: "section_statement_eoi", title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI", formKey: "statement_eoi" },
+                                  { docId: "portfolio", formId: "section_portfolio", title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek", formKey: "portfolio" },
+                                  { docId: "financial_overview", formId: "section_financial", title: EVAL_FORM_DATA_MAP.financial?.title || "Data Keuangan", formKey: "financial_overview" },
+                                  { docId: "requirements_fulfillment", formId: "section_requirements", title: EVAL_FORM_DATA_MAP.requirements?.title || "Pemenuhan Persyaratan", formKey: "requirements_fulfillment" },
+                                ];
+                                const allMappedDocIds = Object.values(DOC_SECTION_MAP).flat();
+                                const additionalDocs = phase1Docs.filter((d: any) => !allMappedDocIds.includes(d.document_type_id));
+
+                                return (
+                                  <div className="space-y-4">
+                                    {SECTIONS.map((section, sIdx) => {
+                                      const docScore = selectedDetail.scores.find((s) => s.criterion_id === section.docId);
+                                      const formScore = selectedDetail.scores.find((s) => s.criterion_id === section.formId);
+                                      const relatedDocIds = DOC_SECTION_MAP[section.docId] || [section.docId];
+                                      const matchedDocs = phase1Docs.filter((d: any) => relatedDocIds.includes(d.document_type_id));
+                                      const sectionKey = section.formId.replace("section_", "");
+                                      const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
+                                      const isOpen = expandedDocs[`section_${sIdx}`] ?? true;
+
+                                      return (
+                                        <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
+                                          <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`section_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                            <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
+                                            <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                                          </button>
+
+                                          {isOpen && (
+                                            <div className="p-4 space-y-3">
+                                              {formRenderer && formData && (
+                                                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                                                  {formRenderer.render(formData)}
+                                                </div>
+                                              )}
+                                              {matchedDocs.length > 0 && (
+                                                <div className="space-y-1.5">
+                                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
+                                                  {matchedDocs.map((doc: any) => (
+                                                    <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                      <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                      <div className="flex-1 min-w-0">
+                                                        <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                        <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                                                      </div>
+                                                      {doc.file_key && (
+                                                        <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                          <Download className="h-3 w-3" /> Unduh
+                                                        </button>
+                                                      )}
                                                     </div>
-                                                    {doc.file_key && (
-                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                        <Download className="h-3 w-3" /> Unduh
-                                                      </button>
-                                                    )}
-                                                  </div>
-                                                ))}
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {/* Eval results — always visible, side by side */}
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border-t border-gray-200 bg-gray-50/30">
+                                            <div className={cn("rounded-lg border p-3", docScore?.passed ? "border-green-200 bg-green-50/30" : docScore?.passed === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                              <div className="flex items-center justify-between">
+                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
+                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docScore?.passed ? "bg-green-100 text-green-700" : docScore?.passed === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docScore?.passed ? "Lulus" : docScore?.passed === false ? "Tidak Lulus" : "Belum"}</span>
                                               </div>
-                                            )}
+                                              {docScore?.notes && <p className="mt-1 text-xs text-ptba-gray">{docScore.notes}</p>}
+                                            </div>
+                                            <div className={cn("rounded-lg border p-3", formScore?.passed ? "border-green-200 bg-green-50/30" : formScore?.passed === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                              <div className="flex items-center justify-between">
+                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Data</p>
+                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formScore?.passed ? "bg-green-100 text-green-700" : formScore?.passed === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formScore?.passed ? "Lulus" : formScore?.passed === false ? "Tidak Lulus" : "Belum"}</span>
+                                              </div>
+                                              {formScore?.notes && <p className="mt-1 text-xs text-ptba-gray">{formScore.notes}</p>}
+                                            </div>
                                           </div>
-                                        ) : null;
-                                      })()}
-                                      {/* Inline form data for form_section items */}
-                                      {item.item_type === "form_section" && formData && (() => {
-                                        const isOpen = expandedDocs[`approval_${item.criterion_id}`] ?? false;
-                                        return (
-                                          <div className="mt-1.5">
-                                            <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`approval_${item.criterion_id}`]: !isOpen }))} className="flex items-center gap-1.5 text-xs text-ptba-steel-blue hover:text-ptba-navy transition-colors">
-                                              <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
-                                              {isOpen ? "Sembunyikan data" : "Lihat data formulir"}
-                                            </button>
-                                          </div>
-                                        );
-                                      })()}
-                                      {item.notes && <p className="mt-1.5 text-xs text-ptba-gray">{item.notes}</p>}
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {/* Additional docs */}
+                                    {additionalDocs.length > 0 && (
+                                      <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-4 py-3 bg-ptba-section-bg">
+                                          <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
+                                        </div>
+                                        <div className="p-4 space-y-1.5">
+                                          {additionalDocs.map((doc: any) => (
+                                            <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                                              </div>
+                                              {doc.file_key && (
+                                                <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                  <Download className="h-3 w-3" /> Unduh
+                                                </button>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
                               <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
                                 <div className="flex items-center justify-between">
                                   <p className="text-sm font-medium text-ptba-gray">Hasil Filtrasi</p>
