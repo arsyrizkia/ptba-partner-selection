@@ -630,6 +630,9 @@ export default function MitraPhase2Page() {
               <p className="text-xs text-ptba-gray mt-1">
                 {t("payment.transferInfo")}
               </p>
+              <p className="text-[10px] text-amber-600 mt-1.5 italic">
+                {t("payment.disclaimer")}
+              </p>
             </div>
           </div>
         </div>

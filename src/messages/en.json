@@ -361,6 +361,7 @@
       "title": "Commitment Fee Payment",
       "feeLabel": "Phase 2 Commitment Fee",
       "transferInfo": "Transfer to PT Bukit Asam Persero Tbk account — Bank Mandiri 123-456-789",
+      "disclaimer": "The commitment fee is non-refundable and must be paid to proceed with the Phase 2 selection process.",
       "uploadProof": "Upload Payment Proof",
       "uploadProofDesc": "Transfer the amount above, then upload proof of transfer (PDF/JPG/PNG)",
       "submitProof": "Submit Payment Proof",

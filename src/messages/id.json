@@ -361,6 +361,7 @@
       "title": "Pembayaran Commitment Fee",
       "feeLabel": "Commitment Fee Fase 2",
       "transferInfo": "Transfer ke rekening PT Bukit Asam Persero Tbk — Bank Mandiri 123-456-789",
+      "disclaimer": "Commitment fee bersifat non-refundable dan wajib dibayarkan untuk melanjutkan proses seleksi ke Fase 2.",
       "uploadProof": "Upload Bukti Pembayaran",
       "uploadProofDesc": "Lakukan transfer sesuai nominal di atas, lalu unggah bukti transfer (PDF/JPG/PNG)",
       "submitProof": "Kirim Bukti Pembayaran",
