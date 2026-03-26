@@ -1165,51 +1165,49 @@ export default function Phase1EvaluationPage({
                                   })}
 
                                   {/* Additional Documents (not in any section) */}
-                                  {additionalDocs.length > 0 && (
-                                    <div className="rounded-xl border border-gray-200 overflow-hidden">
-                                      <div className="px-4 py-3 bg-ptba-section-bg">
-                                        <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
-                                      </div>
-                                      <div className="p-4 space-y-3">
-                                        {additionalDocs.map((doc: any) => {
-                                          const dtId = doc.document_type_id || doc.id;
-                                          const addChecked = state?.checks[`additional_${dtId}`];
-                                          const addComment = state?.comments[`additional_${dtId}`] || "";
-                                          return (
-                                            <div key={doc.id} className={cn("rounded-lg border p-3", addChecked === true ? "border-green-200 bg-green-50/30" : addChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
-                                              <div className="flex items-center gap-2 mb-2">
-                                                <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                                <div className="flex-1 min-w-0">
-                                                  <p className="text-xs font-medium text-ptba-charcoal truncate">{doc.name}</p>
-                                                  <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
-                                                </div>
-                                                {doc.file_key && (
-                                                  <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                    <Download className="h-3 w-3" /> Unduh
-                                                  </button>
-                                                )}
+                                  {additionalDocs.length > 0 && (() => {
+                                    const addChecked = state?.checks["additional_docs"];
+                                    const addComment = state?.comments["additional_docs"] || "";
+                                    return (
+                                      <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-4 py-3 bg-ptba-section-bg">
+                                          <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
+                                        </div>
+                                        <div className="p-4 space-y-1.5">
+                                          {additionalDocs.map((doc: any) => (
+                                            <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
                                               </div>
-                                              <div className="flex items-center justify-between">
-                                                <p className="text-[10px] text-ptba-gray">Penilaian</p>
-                                                {isEditable ? (
-                                                  <div className="flex gap-1.5">
-                                                    <button type="button" onClick={() => updateCheck(app.partner_id, `additional_${dtId}`, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                                    <button type="button" onClick={() => updateCheck(app.partner_id, `additional_${dtId}`, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                                  </div>
-                                                ) : (
-                                                  <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", addChecked === true ? "bg-green-100 text-green-700" : addChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{addChecked === true ? "Lulus" : addChecked === false ? "Tidak Lulus" : "Belum"}</span>
-                                                )}
-                                              </div>
-                                              {isEditable && (
-                                                <textarea placeholder="Catatan..." value={addComment} onChange={(e) => updateComment(app.partner_id, `additional_${dtId}`, e.target.value)} className="mt-1.5 w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                              {doc.file_key && (
+                                                <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                  <Download className="h-3 w-3" /> Unduh
+                                                </button>
                                               )}
-                                              {!isEditable && addComment && <p className="mt-1 text-xs text-ptba-gray">{addComment}</p>}
                                             </div>
-                                          );
-                                        })}
+                                          ))}
+                                        </div>
+                                        <div className={cn("p-4 border-t border-gray-200 bg-gray-50/30", addChecked === true ? "bg-green-50/30" : addChecked === false ? "bg-red-50/30" : "")}>
+                                          <div className="flex items-center justify-between mb-1.5">
+                                            <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen Tambahan</p>
+                                            {isEditable ? (
+                                              <div className="flex gap-1.5">
+                                                <button type="button" onClick={() => updateCheck(app.partner_id, "additional_docs", true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
+                                                <button type="button" onClick={() => updateCheck(app.partner_id, "additional_docs", false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
+                                              </div>
+                                            ) : (
+                                              <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", addChecked === true ? "bg-green-100 text-green-700" : addChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{addChecked === true ? "Lulus" : addChecked === false ? "Tidak Lulus" : "Belum"}</span>
+                                            )}
+                                          </div>
+                                          {isEditable ? (
+                                            <textarea placeholder="Catatan dokumen tambahan..." value={addComment} onChange={(e) => updateComment(app.partner_id, "additional_docs", e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
+                                          ) : addComment ? <p className="text-xs text-ptba-gray">{addComment}</p> : null}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    );
+                                  })()}
                                 </div>
                               );
                             })()}
