@@ -787,7 +787,7 @@ export default function Phase1ApprovalPage({
                                       {/* Inline document download for document items — all related docs */}
                                       {item.item_type === "document" && (() => {
                                         const DOC_SECTION_MAP: Record<string, string[]> = {
-                                          compro: ["compro"],
+                                          compro: ["compro", "nib_document", "org_structure"],
                                           statement_eoi: ["statement_eoi"],
                                           portfolio: ["portfolio", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
                                           financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
