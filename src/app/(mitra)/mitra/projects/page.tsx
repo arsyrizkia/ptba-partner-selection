@@ -147,7 +147,7 @@ export default function MitraProjectsPage() {
                 className="rounded-xl bg-white shadow-sm border border-ptba-light-gray/50 text-left transition-all hover:shadow-md hover:border-ptba-steel-blue/30 overflow-hidden"
               >
                 {(project as any).coverImageUrl && (
-                  <img src={(project as any).coverImageUrl} alt="" className="h-36 w-full object-cover" />
+                  <img src={(project as any).coverImageUrl} alt="" className="w-full aspect-video object-cover" />
                 )}
                 <div className="p-5">
                 <div className="flex items-start justify-between gap-2">

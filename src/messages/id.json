@@ -147,7 +147,9 @@
   "projectDetail": {
     "step": "Langkah {current}/{total}",
     "shortlistCongrats": "Selamat! Perusahaan Anda Lolos Fase 1",
-    "shortlistDesc": "Anda telah lolos tahap evaluasi Fase 1 (Expression of Interest) dan diundang untuk melanjutkan ke Fase 2 (Detailed Assessment).",
+    "shortlistDesc": "Anda telah lolos evaluasi Fase 1 dan diundang untuk melanjutkan ke Fase 2 (Detailed Assessment).",
+    "shortlistPhase2Ready": "Silakan lengkapi dokumen dan pembayaran commitment fee untuk melanjutkan ke Fase 2.",
+    "shortlistPhase2Email": "Informasi Fase 2 akan dikomunikasikan melalui email.",
     "continueToPhase2": "Lanjut ke Fase 2",
     "projectDescription": "Deskripsi Proyek",
     "noDescription": "Belum ada deskripsi.",

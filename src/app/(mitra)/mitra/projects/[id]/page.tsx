@@ -125,7 +125,7 @@ export default function MitraProjectDetailPage() {
       {/* Project Header */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue text-white overflow-hidden">
         {project.coverImageUrl && (
-          <img src={project.coverImageUrl} alt="" className="w-full h-48 object-cover" />
+          <img src={project.coverImageUrl} alt="" className="w-full aspect-video object-cover" />
         )}
         <div className="p-6">
         <div className="flex flex-wrap gap-2 mb-3">

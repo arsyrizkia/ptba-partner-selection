@@ -147,7 +147,9 @@
   "projectDetail": {
     "step": "Step {current}/{total}",
     "shortlistCongrats": "Congratulations! Your Company Passed Phase 1",
-    "shortlistDesc": "You have passed the Phase 1 evaluation (Expression of Interest) and are invited to proceed to Phase 2 (Detailed Assessment).",
+    "shortlistDesc": "You have passed the Phase 1 evaluation and are invited to proceed to Phase 2 (Detailed Assessment).",
+    "shortlistPhase2Ready": "Please complete documents and commitment fee payment to proceed to Phase 2.",
+    "shortlistPhase2Email": "Phase 2 information will be communicated via email.",
     "continueToPhase2": "Continue to Phase 2",
     "projectDescription": "Project Description",
     "noDescription": "No description available.",
