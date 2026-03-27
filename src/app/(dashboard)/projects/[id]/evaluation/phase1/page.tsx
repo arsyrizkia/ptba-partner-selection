@@ -334,6 +334,10 @@ export default function Phase1EvaluationPage({
 
   const isAuthorized = role === "ebd" || role === "super_admin";
 
+  // View-only when the project has moved past phase1 evaluation
+  const projectPhase = (project as any)?.phase as string | undefined;
+  const viewOnly = !!projectPhase && projectPhase !== "phase1_closed" && projectPhase !== "phase1_evaluation";
+
   // ── Fetch project + applicants + evaluations ─────────────────────────────
   const fetchData = useCallback(async () => {
     if (!accessToken) return;
@@ -886,7 +890,7 @@ export default function Phase1EvaluationPage({
                   const allScored = isAllScored(app.partner_id);
                   const isFinalized = state?.status === "finalized";
                   const isReturned = state?.status === "returned";
-                  const isEditable = !isFinalized;
+                  const isEditable = !isFinalized && !viewOnly;
                   const existingNotes = evalNotes[app.partner_id];
 
                   return (
@@ -1324,7 +1328,7 @@ export default function Phase1EvaluationPage({
             )}
 
             {/* Submit to Ketua Tim */}
-            <div className="rounded-xl bg-white p-6 shadow-sm mt-6 border border-gray-100">
+            {!viewOnly && <div className="rounded-xl bg-white p-6 shadow-sm mt-6 border border-gray-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className={cn(
                   "flex h-10 w-10 items-center justify-center rounded-lg",
@@ -1409,7 +1413,7 @@ export default function Phase1EvaluationPage({
                   </Link>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       )}
