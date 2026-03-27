@@ -27,7 +27,7 @@
     "select": "Select...",
     "required": "Required",
     "requiredMark": "*Required",
-    "phase1": "Phase 1 (Filtration)",
+    "phase1": "Phase 1 (Stage 1 Evaluation)",
     "phase2": "Phase 2 (PQ)",
     "phase3": "Phase 3 (Proposal & FRP)",
     "general": "General",
@@ -56,11 +56,11 @@
     },
     "phaseLabels": {
       "published": "Published",
-      "phase1_registration": "Filtration - Expression of Interest (EoI) Registration",
-      "phase1_closed": "Filtration - Registration Closed",
-      "phase1_evaluation": "Filtration - Assessment",
-      "phase1_approval": "Filtration - Approval",
-      "phase1_announcement": "Filtration - Announcement",
+      "phase1_registration": "Stage 1 Evaluation - Registration",
+      "phase1_closed": "Stage 1 Evaluation - Registration Closed",
+      "phase1_evaluation": "Stage 1 Evaluation - Assessment",
+      "phase1_approval": "Stage 1 Evaluation - Approval",
+      "phase1_announcement": "Stage 1 Evaluation - Announcement",
       "phase2_registration": "PQ - Registration",
       "phase2_evaluation": "PQ - Detailed Evaluation",
       "phase2_approval": "PQ - Approval",
@@ -156,9 +156,9 @@
     "supportDocumentsDesc": "Documents from PTBA available for download as reference (TOR, technical specifications, etc.)",
     "yourApplicationStatus": "Your Application Status",
     "viewStatusDetail": "View Status Detail",
-    "submitEoi": "Submit Expression of Interest",
+    "submitEoi": "Submit Phase 1 Registration",
     "submitEoiDesc": "Prepare the required Expression of Interest (EoI) documents and submit your Phase 1 application for this project.",
-    "applyEoi": "Submit Expression of Interest",
+    "applyEoi": "Submit Registration",
     "deadlinePassed": "Registration deadline has passed.",
     "notOpenForRegistration": "Registration is not yet open for this project.",
     "notAcceptingRegistration": "This project is not accepting applications at this time.",
@@ -166,13 +166,13 @@
     "requiredDocumentsDesc": "Prepare the following documents before submitting your Expression of Interest (EoI)"
   },
   "applySuccess": {
-    "title": "Expression of Interest (EoI) Successfully Submitted!",
+    "title": "Phase 1 Registration Successfully Submitted!",
     "description": "Your Expression of Interest has been successfully submitted. The evaluation team will review your documents. We will notify you of the evaluation results through the portal and email.",
     "viewProjectDetail": "View Project Detail",
     "viewRegistrationStatus": "View Registration Status"
   },
   "apply": {
-    "title": "Expression of Interest Form",
+    "title": "Phase 1 Registration Form",
     "phaseLabel": "Phase 1 (Evaluation)",
     "alreadyRegistered": "You have already applied for this project",
     "statusLabel": "Status: {status}",
@@ -326,7 +326,7 @@
       "draftSaved": "Draft saved!",
       "saveDraft": "Save Draft",
       "savingDraft": "Saving...",
-      "submitEoi": "Submit Expression of Interest",
+      "submitEoi": "Submit Phase 1 Registration",
       "submitting": "Submitting..."
     },
     "errors": {
@@ -607,8 +607,8 @@
     }
   },
   "filtration": {
-    "title": "Phase 1 Filtration (EBD)",
-    "description": "Filtration of partner eligibility based on Expression of Interest (EoI) documents and form data.",
+    "title": "Phase 1 Evaluation (EBD)",
+    "description": "Evaluation of partner eligibility based on Expression of Interest (EoI) documents and form data.",
     "lulus": "Pass",
     "tidakLulus": "Fail",
     "belumDinilai": "Not Assessed",

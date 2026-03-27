@@ -114,7 +114,7 @@ export default function ApprovalDetailPage() {
 
   const phase = approval.phase;
   const typeLabel = approval.type === "phase1_evaluation"
-    ? "Persetujuan Hasil Evaluasi Fase 1"
+    ? "Persetujuan Hasil Evaluasi Tahap 1"
     : approval.approval_category || approval.type;
 
   return (

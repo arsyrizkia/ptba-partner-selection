@@ -573,7 +573,7 @@ export default function Phase1EvaluationPage({
       showToast("Filtrasi berhasil disimpan. Anda masih dapat mengubah penilaian ini.");
     } catch (err) {
       console.error("Failed to save filtration:", err);
-      showToast("Gagal menyimpan filtrasi. Silakan coba lagi.", "error");
+      showToast("Gagal menyimpan evaluasi. Silakan coba lagi.", "error");
     } finally {
       setSaving(false);
     }
@@ -638,7 +638,7 @@ export default function Phase1EvaluationPage({
       setSubmittedForApproval(true);
     } catch (err) {
       console.error("Failed to submit for approval:", err);
-      showToast("Gagal mengirim filtrasi. Silakan coba lagi.", "error");
+      showToast("Gagal mengirim evaluasi. Silakan coba lagi.", "error");
     } finally {
       setSaving(false);
     }
@@ -675,7 +675,7 @@ export default function Phase1EvaluationPage({
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-ptba-navy" />
-          <p className="text-sm text-ptba-gray">Memuat data filtrasi...</p>
+          <p className="text-sm text-ptba-gray">Memuat data evaluasi...</p>
         </div>
       </div>
     );
@@ -697,7 +697,7 @@ export default function Phase1EvaluationPage({
           <ChevronRight className="h-3.5 w-3.5" />
           <Link href={`/projects/${id}`} className="hover:text-ptba-navy">{project.name}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-ptba-charcoal font-medium">Filtrasi Fase 1</span>
+          <span className="text-ptba-charcoal font-medium">Evaluasi Tahap 1</span>
         </nav>
         <div className="rounded-xl bg-white p-6 shadow-sm border border-red-200">
           <div className="flex items-center gap-3">
@@ -725,7 +725,7 @@ export default function Phase1EvaluationPage({
         <ChevronRight className="h-3.5 w-3.5" />
         <Link href={`/projects/${id}`} className="hover:text-ptba-navy">{project.name}</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-ptba-charcoal font-medium">Filtrasi Fase 1</span>
+        <span className="text-ptba-charcoal font-medium">Evaluasi Tahap 1</span>
       </nav>
 
       <button
@@ -737,9 +737,9 @@ export default function Phase1EvaluationPage({
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ptba-navy">Filtrasi Fase 1 (EBD)</h1>
+        <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 (EBD)</h1>
         <p className="text-sm text-ptba-gray mt-1">
-          Filtrasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).
+          Evaluasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).
         </p>
       </div>
 
@@ -803,7 +803,7 @@ export default function Phase1EvaluationPage({
             >
               <div>
                 <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({phase1Applicants.length})</h3>
-                {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk difiltrasi</p>}
+                {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk dievaluasi</p>}
               </div>
               <ChevronDown className={cn("h-4 w-4 text-white/60 transition-transform", !sidebarCollapsed && "rotate-180")} />
             </button>
@@ -863,9 +863,9 @@ export default function Phase1EvaluationPage({
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-ptba-section-bg mx-auto mb-4">
                   <User className="h-8 w-8 text-ptba-gray" />
                 </div>
-                <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Difiltrasi</h3>
+                <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Dievaluasi</h3>
                 <p className="text-sm text-ptba-gray max-w-md mx-auto">
-                  Klik salah satu mitra di panel kiri untuk memulai atau melanjutkan filtrasi.
+                  Klik salah satu mitra di panel kiri untuk memulai atau melanjutkan evaluasi.
                 </p>
                 {phase1Applicants.length > 0 && (
                   <button
@@ -1216,7 +1216,7 @@ export default function Phase1EvaluationPage({
                             <div className="rounded-lg bg-ptba-section-bg p-4">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className="text-sm font-medium text-ptba-gray">Hasil Filtrasi</p>
+                                  <p className="text-sm font-medium text-ptba-gray">Hasil Evaluasi</p>
                                   <p className="text-xs text-ptba-gray mt-0.5">Semua item harus Lulus untuk lolos</p>
                                 </div>
                                 <div className="text-right">
@@ -1254,7 +1254,7 @@ export default function Phase1EvaluationPage({
                                     Pastikan semua penilaian sudah benar.
                                   </p>
                                   <div className="mt-3 rounded-lg bg-white/80 p-3">
-                                    <p className="text-xs text-ptba-gray mb-1">Hasil filtrasi:</p>
+                                    <p className="text-xs text-ptba-gray mb-1">Hasil evaluasi:</p>
                                     <p className={cn(
                                       "text-lg font-bold",
                                       result === "Lolos" ? "text-green-600" : "text-ptba-red"
@@ -1333,7 +1333,7 @@ export default function Phase1EvaluationPage({
                   <Send className={cn("h-5 w-5", allFinalized ? "text-white" : "text-gray-400")} />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Filtrasi untuk Persetujuan</h3>
+                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi untuk Persetujuan</h3>
                   <p className="text-sm text-ptba-gray mt-0.5">
                     {(project as any)?.isOpenForApplication
                       ? "Pendaftaran Fase 1 masih dibuka. Tutup pendaftaran terlebih dahulu sebelum mengirim untuk persetujuan."

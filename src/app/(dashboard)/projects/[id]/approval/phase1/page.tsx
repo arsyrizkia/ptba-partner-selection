@@ -554,7 +554,7 @@ export default function Phase1ApprovalPage({
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 className="h-10 w-10 text-ptba-navy mx-auto mb-3 animate-spin" />
-          <p className="text-sm text-ptba-gray">Memuat data filtrasi...</p>
+          <p className="text-sm text-ptba-gray">Memuat data evaluasi...</p>
         </div>
       </div>
     );
@@ -584,8 +584,8 @@ export default function Phase1ApprovalPage({
         <BackHeader projectId={id} projectName={project.name} />
         <div className="rounded-xl bg-white p-6 shadow-sm text-center">
           <AlertTriangle className="h-10 w-10 text-ptba-gold mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Filtrasi Fase 1</h2>
-          <p className="text-sm text-ptba-gray">Filtrasi Fase 1 belum selesai untuk proyek ini.</p>
+          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Evaluasi Tahap 1</h2>
+          <p className="text-sm text-ptba-gray">Evaluasi Tahap 1 belum selesai untuk proyek ini.</p>
         </div>
       </div>
     );
@@ -642,7 +642,7 @@ export default function Phase1ApprovalPage({
         <div className="flex items-start gap-3">
           <ShieldCheck className="h-6 w-6 text-ptba-navy mt-0.5 shrink-0" />
           <div>
-            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Filtrasi Fase 1</h1>
+            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi Tahap 1</h1>
             <p className="text-sm text-ptba-gray mt-1">
               Review dan setujui hasil shortlist Fase 1 untuk seluruh mitra sebelum melanjutkan ke Fase 2.
             </p>
@@ -718,7 +718,7 @@ export default function Phase1ApprovalPage({
               </div>
               <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Direview</h3>
               <p className="text-sm text-ptba-gray max-w-md mx-auto">
-                Klik salah satu mitra di panel kiri untuk melihat detail filtrasi dan memberikan keputusan.
+                Klik salah satu mitra di panel kiri untuk melihat detail evaluasi dan memberikan keputusan.
               </p>
               {phase1Evals.length > 0 && (
                 <button
@@ -927,7 +927,7 @@ export default function Phase1ApprovalPage({
 
                               <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
                                 <div className="flex items-center justify-between">
-                                  <p className="text-sm font-medium text-ptba-gray">Hasil Filtrasi</p>
+                                  <p className="text-sm font-medium text-ptba-gray">Hasil Evaluasi</p>
                                   <p className={cn("text-lg font-bold", selectedDetail.overall_result === "Lolos" ? "text-green-600" : "text-ptba-red")}>
                                     {selectedDetail.overall_result}
                                   </p>
@@ -1144,7 +1144,7 @@ export default function Phase1ApprovalPage({
                 <p className={cn("text-xs mt-1", hasReEvalRequests ? "text-amber-700" : "text-green-700")}>
                   {hasReEvalRequests
                     ? `${ketuaTimReEvalCount} mitra dikembalikan ke EBD. ${ketuaTimSetujuiCount} mitra disetujui.`
-                    : "Semua hasil filtrasi Fase 1 telah disetujui. Mitra yang lolos akan diundang ke Fase 2."}
+                    : "Semua hasil evaluasi Fase 1 telah disetujui. Mitra yang lolos akan diundang ke Fase 2."}
                 </p>
                 <Link href="/approvals" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors">
                   Kembali ke Antrian Persetujuan <ChevronRight className="h-4 w-4" />
@@ -1174,7 +1174,7 @@ export default function Phase1ApprovalPage({
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-green-800">{ketuaTimSetujuiCount} mitra disetujui</p>
-                    <p className="text-xs text-green-700">Hasil filtrasi diterima, lanjut ke Fase 2</p>
+                    <p className="text-xs text-green-700">Hasil evaluasi diterima, lanjut ke Fase 2</p>
                   </div>
                 </div>
               )}
