@@ -557,7 +557,19 @@ export default function MitraProjectApplyPage() {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const data = await res.json();
-      if (data.url) window.open(data.url, "_blank");
+      if (data.url) {
+        const blob = await fetch(data.url).then((r) => r.blob());
+        const ext = (reqDoc.templateFileName || reqDoc.templateFileKey || "").split(".").pop() || "pdf";
+        const fileName = reqDoc.templateFileName || `Template_${docTypeId}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     } catch {
       setError(t("errors.templateFailed"));
     }
