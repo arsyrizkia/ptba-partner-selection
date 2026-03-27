@@ -313,6 +313,12 @@ export default function MitraProjectDetailPage() {
               </div>
 
               <div className="mt-3 space-y-2">
+                <button
+                  onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
+                  className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                >
+                  {locale === "en" ? "View Submission" : "Lihat Pendaftaran"}
+                </button>
                 {canAccessPhase2 && (
                   <button
                     onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}

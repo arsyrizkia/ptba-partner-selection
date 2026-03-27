@@ -14,6 +14,8 @@ import { partnerApi } from "@/lib/api/client";
 import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
+import FormDataViewer from "@/components/features/project/form-data-viewer";
+import { downloadDocument } from "@/lib/api/client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -819,19 +821,68 @@ export default function MitraProjectApplyPage() {
   }
 
   if (application && application.status !== "Draft") {
+    const fd = application.form_data
+      ? (typeof application.form_data === "string" ? JSON.parse(application.form_data) : application.form_data)
+      : null;
+    const appDocs = application.phase1Documents || application.documents || [];
+
     return (
       <div className="space-y-6">
-        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
+        <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
           <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
-        <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-          <p className="mt-3 text-lg font-semibold text-ptba-charcoal">{t("alreadyRegistered")}</p>
-          <p className="mt-1 text-sm text-ptba-gray">{t("statusLabel", { status: application.status })}</p>
-          <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white">
-            {t("viewProjectDetail")}
-          </button>
+
+        {/* Status Banner */}
+        <div className="rounded-xl bg-green-50 border border-green-200 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-green-800">{t("alreadyRegistered")}</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                {t("statusLabel", { status: application.status })} · {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" })}
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Read-only Form Data */}
+        {fd && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-ptba-charcoal mb-4">
+              {locale === "en" ? "Submitted Data" : "Data yang Diajukan"}
+            </h2>
+            <FormDataViewer formData={fd} />
+          </div>
+        )}
+
+        {/* Uploaded Documents */}
+        {appDocs.length > 0 && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-ptba-charcoal mb-4">
+              {locale === "en" ? "Uploaded Documents" : "Dokumen yang Diunggah"} ({appDocs.length})
+            </h2>
+            <div className="space-y-2">
+              {appDocs.map((doc: any) => (
+                <div key={doc.id || doc.document_type_id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
+                  <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-ptba-charcoal truncate">{doc.name}</p>
+                    <p className="text-[10px] text-ptba-gray">{doc.status} · {doc.upload_date ? new Date(doc.upload_date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""}</p>
+                  </div>
+                  {doc.file_key && (
+                    <button
+                      type="button"
+                      onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
+                    >
+                      <Download className="h-3 w-3" /> {tc("download")}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
