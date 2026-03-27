@@ -855,38 +855,43 @@ export default function ProjectDetailPage({
       })()}
 
       {/* Header Card */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", typeBadgeClass(project.type))}>
-                {typeLabel(project.type)}
-              </span>
-              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", statusBadgeClass(project.status))}>
-                {project.status}
-              </span>
-              {project.phase && project.phase !== "published" && (
-                <span className="rounded-full bg-ptba-steel-blue/10 px-2.5 py-0.5 text-xs font-semibold text-ptba-steel-blue">
-                  {phaseLabel(project.phase)}
-                </span>
-              )}
+      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+        <div className={cn("flex flex-col", project.coverImageUrl ? "lg:flex-row" : "")}>
+          {/* Cover Image — left side */}
+          {project.coverImageUrl && (
+            <div className="lg:w-[400px] shrink-0">
+              <img src={project.coverImageUrl} alt={project.name} className="w-full h-48 lg:h-full object-cover" />
             </div>
-            <h1 className="text-2xl font-bold text-ptba-charcoal">{project.name}</h1>
-            <p className="text-sm text-ptba-gray">
-              {formatDate(project.startDate)} — {formatDate(project.endDate)}
-            </p>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-xs text-ptba-gray mt-1">{projectPartners.length} Mitra Berpartisipasi</p>
+          )}
+
+          {/* Details — right side */}
+          <div className="flex-1 p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", typeBadgeClass(project.type))}>
+                    {typeLabel(project.type)}
+                  </span>
+                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", statusBadgeClass(project.status))}>
+                    {project.status}
+                  </span>
+                  {project.phase && project.phase !== "published" && (
+                    <span className="rounded-full bg-ptba-steel-blue/10 px-2.5 py-0.5 text-xs font-semibold text-ptba-steel-blue">
+                      {phaseLabel(project.phase)}
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-2xl font-bold text-ptba-charcoal">{project.name}</h1>
+                <p className="text-sm text-ptba-gray">
+                  {formatDate(project.startDate)} — {formatDate(project.endDate)}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-xs text-ptba-gray mt-1">{projectPartners.length} Mitra Berpartisipasi</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Cover Image */}
-        {project.coverImageUrl && (
-          <div className="mt-4 overflow-hidden rounded-lg">
-            <img src={project.coverImageUrl} alt={project.name} className="w-full h-48 object-cover" />
-          </div>
-        )}
 
         {/* Action Buttons */}
         {isAdmin && project.status === "Draft" && (
