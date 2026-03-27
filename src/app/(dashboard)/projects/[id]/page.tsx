@@ -97,7 +97,7 @@ function phaseLabel(phase?: string): string {
   const map: Record<string, string> = {
     phase1_registration: "Fase 1 - Pendaftaran",
     phase1_closed: "Fase 1 - Pendaftaran Ditutup",
-    phase1_evaluation: "Fase 1 - Evaluasi 1",
+    phase1_evaluation: "Fase 1 - Evaluasi Tahap 1",
     phase1_approval: "Fase 1 - Persetujuan",
     phase1_announcement: "Fase 1 - Pengumuman Shortlist",
     phase1_approved: "Fase 1 - Disetujui Ketua Tim",

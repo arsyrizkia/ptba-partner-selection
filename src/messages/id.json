@@ -27,7 +27,7 @@
     "select": "Pilih...",
     "required": "Wajib",
     "requiredMark": "*Wajib",
-    "phase1": "Fase 1 (Evaluasi 1)",
+    "phase1": "Fase 1 (Evaluasi Tahap 1)",
     "phase2": "Fase 2 (PQ)",
     "phase3": "Fase 3 (Proposal & FRP)",
     "general": "Umum",
@@ -607,7 +607,7 @@
     }
   },
   "filtration": {
-    "title": "Evaluasi 1 (EBD)",
+    "title": "Evaluasi Tahap 1 (EBD)",
     "description": "Evaluasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).",
     "lulus": "Lulus",
     "tidakLulus": "Tidak Lulus",

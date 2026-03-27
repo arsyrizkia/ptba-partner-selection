@@ -737,7 +737,7 @@ export default function Phase1EvaluationPage({
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi 1 (EBD)</h1>
+        <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 (EBD)</h1>
         <p className="text-sm text-ptba-gray mt-1">
           Evaluasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).
         </p>
