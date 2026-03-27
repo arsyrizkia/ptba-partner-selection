@@ -257,7 +257,7 @@
       "eoiDocLabel": "Signed Expression of Interest Letter (PDF, signed by authorized representative)"
     },
     "portfolioFields": {
-      "relevantProjects": "Relevant Projects in the Last 10 Years (min. 2)",
+      "relevantProjects": "Relevant Projects in the Last 10 Years",
       "notes": "Notes:",
       "note1": "Parent Company data may be used if shareholding is min. 51% and accompanied by a Support Letter",
       "note2": "Affiliate data may be used if shareholding is >90%",
@@ -286,7 +286,8 @@
       "workPortionPlaceholder": "Example: 60",
       "amountPlaceholder": "Example: 10000000",
       "yearPlaceholder": "Example: 2022",
-      "credentialDoc": "Credential Document (PDF)",
+      "credentialDoc": "Contract Evidence & Project Profile (PDF)",
+      "credentialDocHint": "Include: contract copy, project photos, technical specifications, reference letter from employer, and other supporting documents.",
       "addExperience": "Add Experience",
       "portfolioDoc": "Portfolio Document",
       "portfolioDocLabel": "Project Experience Portfolio Document (PDF)"

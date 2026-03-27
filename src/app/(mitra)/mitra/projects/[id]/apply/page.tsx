@@ -712,7 +712,7 @@ export default function MitraProjectApplyPage() {
   const sectionComplete: Record<string, boolean> = {
     compro: !!companyName && !!companyAddress && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && eoiAgreed && isDoc("statement_eoi"),
-    portfolio: experiences.length >= 2 && isDoc("portfolio") && experiences.every((exp) => {
+    portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
       if (exp.category === 'developer') return base && !!exp.equityPercent && !!exp.ippOrCaptive && !!exp.codYear;
@@ -1313,14 +1313,15 @@ export default function MitraProjectApplyPage() {
               </div>
 
               {/* Per-experience credential document */}
-              <div className="pt-1">
+              <div className="pt-2">
+                <p className="text-[10px] text-ptba-gray italic mb-1.5">{t("portfolioFields.credentialDocHint")}</p>
                 <FileUploadButton
                   label={t("portfolioFields.credentialDoc")}
                   accept=".pdf"
                   uploaded={isDoc(`credential_exp_${exp.uid}`)}
                   uploading={uploadedDocs[`credential_exp_${exp.uid}`]?.uploading ?? false}
                   fileName={uploadedDocs[`credential_exp_${exp.uid}`]?.name}
-                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Credential - ${exp.plantName || 'Experience'}`, f)}
+                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Bukti Kontrak & Profil - ${exp.plantName || 'Proyek'}`, f)}
                   onDelete={() => deleteDoc(`credential_exp_${exp.uid}`)}
                 />
               </div>
@@ -1335,20 +1336,6 @@ export default function MitraProjectApplyPage() {
             {t("portfolioFields.addExperience")}
           </button>
 
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">{t("portfolioFields.portfolioDoc")} <span className="text-ptba-red">*</span></p>
-            <FileUploadButton
-              label={t("portfolioFields.portfolioDocLabel")}
-              accept=".pdf"
-              uploaded={isDoc("portfolio")}
-              uploading={uploadedDocs["portfolio"]?.uploading ?? false}
-              fileName={uploadedDocs["portfolio"]?.name}
-              onSelect={(f) => uploadDoc("portfolio", "Portfolio", f)}
-              templateFileName={getTemplateInfo("portfolio")?.fileName}
-              onDownloadTemplate={() => downloadTemplate("portfolio")}
-              onDelete={() => deleteDoc("portfolio")}
-            />
-          </div>
         </Section>
       )}
 

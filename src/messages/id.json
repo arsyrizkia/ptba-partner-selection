@@ -257,7 +257,7 @@
       "eoiDocLabel": "Surat Expression of Interest yang ditandatangani (PDF, oleh perwakilan berwenang)"
     },
     "portfolioFields": {
-      "relevantProjects": "Proyek Relevan 10 Tahun Terakhir (min. 2)",
+      "relevantProjects": "Proyek Relevan 10 Tahun Terakhir",
       "notes": "Catatan / Notes:",
       "note1": "Data Parent Company dapat digunakan apabila kepemilikan saham min. 51% dan disertai Support Letter / Data Parent Company may be used if shareholding is min. 51% and accompanied by a Support Letter",
       "note2": "Data Afiliasi dapat digunakan apabila kepemilikan saham >90% / Affiliate data may be used if shareholding is >90%",
@@ -286,7 +286,8 @@
       "workPortionPlaceholder": "Contoh: 60",
       "amountPlaceholder": "Contoh: 10000000",
       "yearPlaceholder": "Contoh: 2022",
-      "credentialDoc": "Dokumen Kredensial / Credential Document (PDF)",
+      "credentialDoc": "Bukti Kontrak & Profil Proyek (PDF)",
+      "credentialDocHint": "Sertakan: salinan kontrak, foto proyek, spesifikasi teknis, surat referensi dari pemberi kerja, dan dokumen pendukung lainnya.",
       "addExperience": "Tambah Pengalaman",
       "portfolioDoc": "Dokumen Portfolio",
       "portfolioDocLabel": "Dokumen Portfolio Pengalaman Proyek (PDF)"
