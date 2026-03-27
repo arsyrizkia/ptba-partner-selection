@@ -236,12 +236,6 @@ export default function ApprovalDetailPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-ptba-navy">
-                          {typeof ev.weightedScore === "number" ? ev.weightedScore.toFixed(2) : ev.weightedScore}
-                        </p>
-                        <p className="text-[10px] text-ptba-gray">/ 5.00</p>
-                      </div>
                       <span className={cn(
                         "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold",
                         ev.result === "Lolos"
@@ -253,6 +247,12 @@ export default function ApprovalDetailPage() {
                       </span>
                     </div>
                   </div>
+                  {ev.notes && (
+                    <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
+                      <p className="text-[10px] text-ptba-gray mb-0.5">Catatan Evaluator</p>
+                      <p className="text-xs text-ptba-charcoal">{ev.notes}</p>
+                    </div>
+                  )}
                 </div>
               ))}
           </div>
