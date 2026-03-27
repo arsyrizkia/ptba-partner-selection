@@ -6,11 +6,11 @@ export interface ProjectStep {
 }
 
 export const PROJECT_STEPS: ProjectStep[] = [
-  // Fase 1: Evaluasi Tahap 1 (Sistem Gugur - EBD only)
+  // Fase 1: Evaluasi 1 (Sistem Gugur - EBD only)
   { step: 1, name: 'Inisiasi', description: 'Pembentukan tim dan penetapan ruang lingkup proyek', phase: 'phase1' },
   { step: 2, name: 'Pendaftaran Mitra', description: 'Pembukaan pendaftaran Fase 1', phase: 'phase1' },
   { step: 3, name: 'Penutupan Pendaftaran', description: 'Penutupan periode pendaftaran Fase 1', phase: 'phase1' },
-  { step: 4, name: 'Evaluasi Tahap 1', description: 'Evaluasi EBD terhadap dokumen dan data mitra (sistem gugur)', phase: 'phase1' },
+  { step: 4, name: 'Evaluasi 1', description: 'Evaluasi EBD terhadap dokumen dan data mitra (sistem gugur)', phase: 'phase1' },
   { step: 5, name: 'Persetujuan Ketua Tim', description: 'Persetujuan shortlist oleh Ketua Tim', phase: 'phase1' },
   { step: 6, name: 'Pengumuman Shortlist', description: 'Pengumuman mitra yang lolos ke Fase 2', phase: 'phase1' },
   // Fase 2: Detailed Assessment (Sistem Gugur - 6 evaluators: 3 EBD + Legal, Finance, Risk)

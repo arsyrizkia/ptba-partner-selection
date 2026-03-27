@@ -57,12 +57,12 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
   if (phase === "cancelled") return { label: "Dibatalkan", color: "bg-ptba-red/10 text-ptba-red border-ptba-red/20" };
   if (phase.startsWith("phase1")) {
     const sub: Record<string, string> = {
-      phase1_registration: "Tahap 1 · Pendaftaran",
-      phase1_closed: "Tahap 1 · Ditutup",
-      phase1_evaluation: "Tahap 1 · Penilaian",
-      phase1_approval: "Tahap 1 · Persetujuan",
+      phase1_registration: "Evaluasi 1 · Pendaftaran",
+      phase1_closed: "Evaluasi 1 · Ditutup",
+      phase1_evaluation: "Evaluasi 1 · Penilaian",
+      phase1_approval: "Evaluasi 1 · Persetujuan",
       phase1_approved: "Berjalan",
-      phase1_announcement: "Tahap 1 · Pengumuman",
+      phase1_announcement: "Evaluasi 1 · Pengumuman",
     };
     return { label: sub[phase] ?? "Berjalan", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
   }

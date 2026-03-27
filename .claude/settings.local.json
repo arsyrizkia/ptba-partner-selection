@@ -46,7 +46,18 @@
       "Bash(sed -i '' \"s/''direksi''/''ketua_tim''/g; s/\"\"direksi\"\"/\"\"ketua_tim\"\"/g\" \"$f\")",
       "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"admin@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"password123\"\"\"\"}')",
       "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"ebd@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Prima2025!\"\"\"\"}')",
-      "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"ketuatim@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Prima2025!\"\"\"\"}')"
+      "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"ketuatim@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Prima2025!\"\"\"\"}')",
+      "Bash(ls:*)",
+      "Bash(curl -s https://dev.prima-ptba.cloud/api/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"direksi@primaptba.dev\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Prima2025!\"\"\"\"}')",
+      "Bash(ssh:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "Bash(wc:*)",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "Bash(npm install:*)",
+      "mcp__plugin_playwright_playwright__browser_run_code"
     ]
   }
 }

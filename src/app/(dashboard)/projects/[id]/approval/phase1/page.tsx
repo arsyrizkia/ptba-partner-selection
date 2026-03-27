@@ -584,8 +584,8 @@ export default function Phase1ApprovalPage({
         <BackHeader projectId={id} projectName={project.name} />
         <div className="rounded-xl bg-white p-6 shadow-sm text-center">
           <AlertTriangle className="h-10 w-10 text-ptba-gold mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Evaluasi Tahap 1</h2>
-          <p className="text-sm text-ptba-gray">Evaluasi Tahap 1 belum selesai untuk proyek ini.</p>
+          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Evaluasi 1</h2>
+          <p className="text-sm text-ptba-gray">Evaluasi 1 belum selesai untuk proyek ini.</p>
         </div>
       </div>
     );
@@ -642,7 +642,7 @@ export default function Phase1ApprovalPage({
         <div className="flex items-start gap-3">
           <ShieldCheck className="h-6 w-6 text-ptba-navy mt-0.5 shrink-0" />
           <div>
-            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi Tahap 1</h1>
+            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi 1</h1>
             <p className="text-sm text-ptba-gray mt-1">
               Review dan setujui hasil shortlist Fase 1 untuk seluruh mitra sebelum melanjutkan ke Fase 2.
             </p>
