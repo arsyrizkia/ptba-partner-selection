@@ -1300,10 +1300,10 @@ export default function Phase1EvaluationPage({
                                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                                 )}
                               >
-                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Nilai
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Nilai Sementara
                               </button>
 
-                              {/* Simpan & Finalisasi */}
+                              {/* Finalisasi Nilai */}
                               <button
                                 type="button"
                                 onClick={() => setConfirmFinalize(app.partner_id)}
@@ -1315,7 +1315,7 @@ export default function Phase1EvaluationPage({
                                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                                 )}
                               >
-                                <Lock className="h-4 w-4" /> Simpan & Finalisasi Nilai
+                                <Lock className="h-4 w-4" /> Finalisasi Nilai
                               </button>
                             </div>
                           )}
