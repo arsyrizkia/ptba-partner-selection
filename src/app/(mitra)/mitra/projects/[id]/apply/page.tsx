@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  ArrowLeft, Upload, Download, CheckCircle2, FileText, AlertTriangle, Loader2,
+  ArrowLeft, Upload, Download, CheckCircle2, FileText, AlertTriangle, Loader2, Send,
   Building2, DollarSign, Briefcase, ShieldCheck, ChevronDown, ChevronUp, Plus, Trash2,
   PenLine, ClipboardCheck, Save,
 } from "lucide-react";
@@ -261,6 +261,7 @@ export default function MitraProjectApplyPage() {
   const [_partner, setPartner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [error, setError] = useState("");
@@ -1708,7 +1709,7 @@ export default function MitraProjectApplyPage() {
               {savingDraft ? t("submitBar.savingDraft") : t("submitBar.saveDraft")}
             </button>
             <button
-              onClick={allComplete ? handleSubmit : scrollToFirstIncomplete}
+              onClick={allComplete ? () => setShowSubmitConfirm(true) : scrollToFirstIncomplete}
               disabled={submitting}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition-colors",
@@ -1723,6 +1724,47 @@ export default function MitraProjectApplyPage() {
           </div>
         </div>
       </div>
+
+      {/* Submit Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !submitting && setShowSubmitConfirm(false)}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle className="h-7 w-7 text-amber-600" />
+              </div>
+              <h2 className="text-lg font-bold text-ptba-charcoal">
+                {locale === "en" ? "Confirm Submission" : "Konfirmasi Pengajuan"}
+              </h2>
+              <p className="mt-2 text-sm text-ptba-gray">
+                {locale === "en"
+                  ? "Once submitted, your registration cannot be edited. Please make sure all data and documents are correct before proceeding."
+                  : "Setelah dikirim, pendaftaran Anda tidak dapat diubah lagi. Pastikan semua data dan dokumen sudah benar sebelum melanjutkan."}
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowSubmitConfirm(false)}
+                  disabled={submitting}
+                  className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-charcoal hover:bg-ptba-section-bg transition-colors disabled:opacity-50"
+                >
+                  {locale === "en" ? "Review Again" : "Periksa Kembali"}
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleSubmit();
+                    setShowSubmitConfirm(false);
+                  }}
+                  disabled={submitting}
+                  className="flex-1 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {submitting ? (locale === "en" ? "Submitting..." : "Mengirim...") : (locale === "en" ? "Submit" : "Kirim Pendaftaran")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

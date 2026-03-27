@@ -76,6 +76,7 @@ export default function MitraPhase2Page() {
 
   // Submission
   const [submitting, setSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   // ─── Fetch Data ───
@@ -1079,7 +1080,7 @@ export default function MitraPhase2Page() {
             {tc("cancel")}
           </button>
           <button
-            onClick={handleSubmit}
+            onClick={() => setShowSubmitConfirm(true)}
             disabled={!canSubmit}
             className={cn(
               "rounded-lg px-6 py-2 text-sm font-bold transition-colors inline-flex items-center gap-2",
@@ -1093,6 +1094,47 @@ export default function MitraPhase2Page() {
           </button>
         </div>
       </div>
+
+      {/* Submit Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !submitting && setShowSubmitConfirm(false)}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle className="h-7 w-7 text-amber-600" />
+              </div>
+              <h2 className="text-lg font-bold text-ptba-charcoal">
+                {locale === "en" ? "Confirm Submission" : "Konfirmasi Pengajuan"}
+              </h2>
+              <p className="mt-2 text-sm text-ptba-gray">
+                {locale === "en"
+                  ? "Once submitted, your Phase 2 documents cannot be edited. Please make sure all documents are correct."
+                  : "Setelah dikirim, dokumen Fase 2 Anda tidak dapat diubah lagi. Pastikan semua dokumen sudah benar."}
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowSubmitConfirm(false)}
+                  disabled={submitting}
+                  className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-charcoal hover:bg-ptba-section-bg transition-colors disabled:opacity-50"
+                >
+                  {locale === "en" ? "Review Again" : "Periksa Kembali"}
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleSubmit();
+                    setShowSubmitConfirm(false);
+                  }}
+                  disabled={submitting}
+                  className="flex-1 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {submitting ? (locale === "en" ? "Submitting..." : "Mengirim...") : (locale === "en" ? "Submit" : "Kirim Dokumen")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
