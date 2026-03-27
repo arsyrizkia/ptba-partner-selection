@@ -1357,26 +1357,18 @@ export default function MitraProjectApplyPage() {
           <div className="mt-3 mb-1">
             <label className="mb-1.5 block text-xs font-semibold text-ptba-charcoal">{t("financialFields.yearRange")}</label>
             <p className="text-[10px] text-ptba-gray mb-2">{t("financialFields.yearRangeHint")}</p>
-            <div className="flex gap-2">
-              {YEAR_RANGE_OPTIONS.map((range, idx) => {
-                const key = range.join("-");
-                const isSelected = selectedRangeKey === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handleYearRangeChange(idx)}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors",
-                      isSelected
-                        ? "bg-ptba-navy text-white border-ptba-navy"
-                        : "bg-white text-ptba-charcoal border-ptba-light-gray hover:border-ptba-steel-blue"
-                    )}
-                  >
+            <div>
+              <select
+                value={YEAR_RANGE_OPTIONS.findIndex((r) => r.join("-") === selectedRangeKey)}
+                onChange={(e) => handleYearRangeChange(Number(e.target.value))}
+                className="rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
+              >
+                {YEAR_RANGE_OPTIONS.map((range, idx) => (
+                  <option key={range.join("-")} value={idx}>
                     {range[0]}–{range[2]}
-                  </button>
-                );
-              })}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
