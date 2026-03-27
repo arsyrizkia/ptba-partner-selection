@@ -106,6 +106,7 @@ function FileUploadButton({
   onDownloadTemplate,
   readOnly,
   onDownload,
+  error,
 }: {
   label: string;
   accept?: string;
@@ -118,6 +119,7 @@ function FileUploadButton({
   onDownloadTemplate?: () => void;
   readOnly?: boolean;
   onDownload?: () => void;
+  error?: boolean;
 }) {
   const tc = useTranslations("common");
 
@@ -165,7 +167,7 @@ function FileUploadButton({
       )}
       <div className={cn(
         "rounded-lg border p-3 transition-colors",
-        uploaded ? "border-green-200 bg-green-50/50" : "border-ptba-light-gray"
+        uploaded ? "border-green-200 bg-green-50/50" : error ? "border-ptba-red/60 bg-red-50/30 ring-2 ring-ptba-red/10" : "border-ptba-light-gray"
       )}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -305,6 +307,7 @@ export default function MitraProjectApplyPage() {
   const [draftSaved, setDraftSaved] = useState(false);
   const [error, setError] = useState("");
   const [openSection, setOpenSection] = useState(1);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Section: Informasi Perusahaan (compro)
   const [companyName, setCompanyName] = useState("");
@@ -862,6 +865,12 @@ export default function MitraProjectApplyPage() {
       : "border-ptba-light-gray bg-ptba-off-white focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
   );
 
+  // Error highlight: returns red border class when field is empty and showErrors is active
+  const errBorder = (value: string | boolean) => showErrors && !value ? "!border-ptba-red/60 !ring-2 !ring-ptba-red/10" : "";
+  const errMsg = (value: string | boolean) => showErrors && !value;
+  const ErrText = ({ show }: { show: boolean }) => show ? <p className="text-[10px] text-ptba-red mt-0.5">{locale === "en" ? "This field is required" : "Wajib diisi"}</p> : null;
+  const ErrDocText = ({ docId }: { docId: string }) => showErrors && !isDoc(docId) ? <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Document required" : "Dokumen wajib diunggah"}</p> : null;
+
   const dateLocale = locale === "en" ? "en-US" : "id-ID";
 
   // ─── Loading / Guards ───
@@ -1016,7 +1025,8 @@ export default function MitraProjectApplyPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyName")} <span className="text-ptba-red">*</span></label>
-              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} />
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={cn(inputClass, errBorder(companyName))} />
+              <ErrText show={errMsg(companyName) as boolean} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyCode")}</label>
@@ -1035,7 +1045,8 @@ export default function MitraProjectApplyPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.hqAddress")} <span className="text-ptba-red">*</span></label>
-              <textarea value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={cn(inputClass, "min-h-[60px] resize-y")} />
+              <textarea value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(companyAddress))} />
+              <ErrText show={errMsg(companyAddress) as boolean} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.indonesiaOffice")}</label>
@@ -1140,6 +1151,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("compro")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("compro")}
+              error={showErrors && !isDoc("compro")}
             />
           </div>
         </Section>
@@ -1169,8 +1181,9 @@ export default function MitraProjectApplyPage() {
                   placeholder={t("eoiFields.signerNamePlaceholder")}
                   value={signerName}
                   onChange={(e) => setSignerName(e.target.value)}
-                  className={inputClass}
+                  className={cn(inputClass, errBorder(signerName))}
                 />
+                <ErrText show={errMsg(signerName) as boolean} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.signerPosition")} <span className="text-ptba-red">*</span></label>
@@ -1179,8 +1192,9 @@ export default function MitraProjectApplyPage() {
                   placeholder={t("eoiFields.signerPositionPlaceholder")}
                   value={signerPosition}
                   onChange={(e) => setSignerPosition(e.target.value)}
-                  className={inputClass}
+                  className={cn(inputClass, errBorder(signerPosition))}
                 />
+                <ErrText show={errMsg(signerPosition) as boolean} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("eoiFields.signerDate")} <span className="text-ptba-red">*</span></label>
@@ -1189,8 +1203,9 @@ export default function MitraProjectApplyPage() {
                   onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                   value={signerDate}
                   onChange={(e) => setSignerDate(e.target.value)}
-                  className={inputClass}
+                  className={cn(inputClass, errBorder(signerDate))}
                 />
+                <ErrText show={errMsg(signerDate) as boolean} />
               </div>
             </div>
           </div>
@@ -1210,6 +1225,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("statement_eoi")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("statement_eoi")}
+              error={showErrors && !isDoc("statement_eoi")}
             />
           </div>
 
@@ -1303,11 +1319,13 @@ export default function MitraProjectApplyPage() {
                 {/* Common fields */}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.plantName")} <span className="text-ptba-red">*</span></label>
-                  <input type="text" value={exp.plantName} onChange={(e) => updateExperience(i, "plantName", e.target.value)} className={inputClass} />
+                  <input type="text" value={exp.plantName} onChange={(e) => updateExperience(i, "plantName", e.target.value)} className={cn(inputClass, errBorder(exp.plantName))} />
+                  <ErrText show={errMsg(exp.plantName) as boolean} />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.location")} <span className="text-ptba-red">*</span></label>
-                  <input type="text" value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} className={inputClass} />
+                  <input type="text" value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} className={cn(inputClass, errBorder(exp.location))} />
+                  <ErrText show={errMsg(exp.location) as boolean} />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.totalCapacity")} <span className="text-ptba-red">*</span></label>
@@ -1395,6 +1413,7 @@ export default function MitraProjectApplyPage() {
                   onDelete={() => deleteDoc(`credential_exp_${exp.uid}`)}
                   readOnly={readOnly}
                   onDownload={docDownloadHandler(`credential_exp_${exp.uid}`)}
+                  error={showErrors && !isDoc(`credential_exp_${exp.uid}`)}
                 />
               </div>
             </div>
@@ -1559,6 +1578,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("ebitda_dscr_calculation")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("ebitda_dscr_calculation")}
+              error={showErrors && !isDoc("ebitda_dscr_calculation")}
             />
           </div>
 
@@ -1576,6 +1596,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("credit_rating_evidence")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("credit_rating_evidence")}
+              error={showErrors && !isDoc("credit_rating_evidence")}
             />
           </div>
 
@@ -1597,6 +1618,7 @@ export default function MitraProjectApplyPage() {
                   onDelete={() => deleteDoc(docId)}
                   readOnly={readOnly}
                   onDownload={docDownloadHandler(docId)}
+                  error={showErrors && !isDoc(docId)}
                 />
               );
             })}
@@ -1701,6 +1723,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("requirements_fulfillment")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("requirements_fulfillment")}
+              error={showErrors && !isDoc("requirements_fulfillment")}
             />
           </div>
         </Section>
@@ -1755,12 +1778,12 @@ export default function MitraProjectApplyPage() {
           {t("finalStatement.declaration")}
         </div>
 
-        <label className="flex items-start gap-3 cursor-pointer">
+        <label className={cn("flex items-start gap-3 cursor-pointer rounded-lg p-3 -m-3 transition-colors", showErrors && !agreedFinal && "bg-red-50 ring-2 ring-ptba-red/20")}>
           <input
             type="checkbox"
             checked={agreedFinal}
             onChange={(e) => setAgreedFinal(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-steel-blue"
+            className={cn("mt-0.5 h-4 w-4 rounded text-ptba-navy focus:ring-ptba-steel-blue", showErrors && !agreedFinal ? "border-ptba-red" : "border-ptba-light-gray")}
           />
           <span className="text-sm text-ptba-gray">
             {t.rich("finalStatement.agreeStatement", { strong: (chunks) => <strong>{chunks}</strong> })}
@@ -1796,7 +1819,7 @@ export default function MitraProjectApplyPage() {
               {savingDraft ? t("submitBar.savingDraft") : t("submitBar.saveDraft")}
             </button>
             <button
-              onClick={allComplete ? () => setShowSubmitConfirm(true) : scrollToFirstIncomplete}
+              onClick={allComplete ? () => setShowSubmitConfirm(true) : () => { setShowErrors(true); scrollToFirstIncomplete(); }}
               disabled={submitting}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition-colors",
