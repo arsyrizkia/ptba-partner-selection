@@ -124,10 +124,13 @@ export default function MitraProjectDetailPage() {
 
       {/* Project Header */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue text-white overflow-hidden">
+        <div className={cn("flex flex-col", project.coverImageUrl ? "lg:flex-row" : "")}>
         {project.coverImageUrl && (
-          <img src={project.coverImageUrl} alt="" className="w-full aspect-video object-cover" />
+          <div className="lg:w-[400px] shrink-0">
+            <img src={project.coverImageUrl} alt="" className="w-full h-48 lg:h-full object-cover" />
+          </div>
         )}
-        <div className="p-6">
+        <div className="flex-1 p-6">
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{tc(`typeLabels.${project.type}`)}</span>
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status}</span>
@@ -172,6 +175,7 @@ export default function MitraProjectDetailPage() {
             </div>
           </div>
         )}
+        </div>
         </div>
       </div>
 
