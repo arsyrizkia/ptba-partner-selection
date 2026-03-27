@@ -890,8 +890,6 @@ export default function ProjectDetailPage({
                 <p className="text-xs text-ptba-gray mt-1">{projectPartners.length} Mitra Berpartisipasi</p>
               </div>
             </div>
-          </div>
-        </div>
 
         {/* Action Buttons */}
         {isAdmin && project.status === "Draft" && (
@@ -1195,6 +1193,8 @@ export default function ProjectDetailPage({
               ))}
             </div>
           </div>
+          </div>
+        </div>
         </div>
       </div>
 
