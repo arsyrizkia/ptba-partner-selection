@@ -327,6 +327,14 @@ export default function MitraProjectDetailPage() {
                     {t("continueToPhase2")}
                   </button>
                 )}
+                {isPassedPhase2 && (
+                  <button
+                    onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
+                    className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                  >
+                    {locale === "en" ? "View Phase 2 Submission" : "Lihat Dokumen Fase 2"}
+                  </button>
+                )}
               </div>
             </div>
           ) : (

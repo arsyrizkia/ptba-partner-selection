@@ -505,6 +505,8 @@ export default function MitraPhase2Page() {
   // ─── Success state ───
 
   if (submitted) {
+    const phase2Docs = Object.entries(uploadedDocs).filter(([, v]) => v && !v.uploading);
+
     return (
       <div className="space-y-6">
         <button
@@ -513,25 +515,56 @@ export default function MitraPhase2Page() {
         >
           <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
         </button>
-        <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
-          <p className="mt-3 text-xl font-bold text-ptba-charcoal">
-            {t("submittedTitle")}
-          </p>
-          <p className="mt-2 text-sm text-ptba-gray">
-            {t("submittedDesc")}{" "}
-            <span className="font-medium text-ptba-charcoal">
-              {project.name}
-            </span>
-            . {t("submittedEvaluation")}
-          </p>
-          <button
-            onClick={() => router.push(`/mitra/projects/${projectId}`)}
-            className="mt-6 rounded-lg bg-ptba-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
-          >
-            {t("viewStatus")}
-          </button>
+
+        {/* Status Banner */}
+        <div className="rounded-xl bg-green-50 border border-green-200 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-green-800">{t("submittedTitle")}</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                {t("submittedDesc")} <span className="font-medium">{project.name}</span>. {t("submittedEvaluation")}
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Payment Status */}
+        {feePaid && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{t("payment.title")}</h3>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <p className="text-sm text-green-700">{t("payment.verified")}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Uploaded Documents */}
+        {phase2Docs.length > 0 && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-ptba-charcoal mb-4">
+              {locale === "en" ? "Uploaded Phase 2 Documents" : "Dokumen Fase 2 yang Diunggah"} ({phase2Docs.length})
+            </h3>
+            <div className="space-y-2">
+              {phase2Docs.map(([docId, doc]) => (
+                <div key={docId} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
+                  <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-ptba-charcoal truncate">{doc!.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={() => router.push(`/mitra/projects/${projectId}`)}
+          className="rounded-lg bg-ptba-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
+        >
+          {tc("backToProjectDetail")}
+        </button>
       </div>
     );
   }
