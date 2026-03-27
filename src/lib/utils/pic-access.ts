@@ -1,6 +1,6 @@
 import type { Project, User, UserRole } from '@/lib/types';
 
-const ALWAYS_ACCESS_ROLES: UserRole[] = ['super_admin', 'ketua_tim', 'viewer'];
+const ALWAYS_ACCESS_ROLES: UserRole[] = ['super_admin', 'ebd', 'ketua_tim', 'viewer'];
 const EVALUATOR_ROLES: UserRole[] = ['ebd', 'keuangan', 'hukum', 'risiko'];
 
 /**
