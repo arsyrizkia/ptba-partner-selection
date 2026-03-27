@@ -313,12 +313,6 @@ export default function MitraProjectDetailPage() {
               </div>
 
               <div className="mt-3 space-y-2">
-                <button
-                  onClick={() => router.push("/mitra/status")}
-                  className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
-                >
-                  {t("viewStatusDetail")}
-                </button>
                 {canAccessPhase2 && (
                   <button
                     onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
@@ -356,39 +350,56 @@ export default function MitraProjectDetailPage() {
             </div>
           )}
 
-          {/* Required Documents - show docs for current phase */}
-          {(() => {
-            let currentDocs: typeof phase1RequiredDocs;
-            let phaseLabel: string;
-            if (isPassedPhase2) {
-              currentDocs = phase3RequiredDocs;
-              phaseLabel = tc("phase3");
-            } else if (isShortlisted) {
-              currentDocs = phase2RequiredDocs;
-              phaseLabel = tc("phase2");
-            } else {
-              currentDocs = phase1RequiredDocs;
-              phaseLabel = tc("phase1");
-            }
-            return currentDocs.length > 0 ? (
+          {/* Status Pendaftaran - milestone timeline */}
+          {application && application.status !== "Draft" && (() => {
+            const MILESTONES = [
+              { id: 1, label: locale === "en" ? "Registration" : "Pendaftaran", stepRange: [2, 2], phase: "phase1" },
+              { id: 2, label: locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup", stepRange: [3, 3], phase: "phase1" },
+              { id: 3, label: locale === "en" ? "Evaluation" : "Evaluasi Tahap 1", stepRange: [4, 5], phase: "phase1" },
+              { id: 4, label: locale === "en" ? "Shortlist" : "Pengumuman Shortlist", stepRange: [6, 6], phase: "phase1" },
+              { id: 5, label: locale === "en" ? "Phase 2" : "Fase 2", stepRange: [7, 11], phase: "phase2" },
+              { id: 6, label: locale === "en" ? "Phase 3" : "Fase 3", stepRange: [12, 14], phase: "phase3" },
+              { id: 7, label: locale === "en" ? "Winner" : "Pemenang", stepRange: [15, 16], phase: "phase3" },
+            ];
+            const step = project.currentStep || 1;
+            return (
               <div className="rounded-xl bg-white p-6 shadow-sm">
-                <h3 className="text-sm font-semibold text-ptba-charcoal mb-1">
-                  {t("requiredDocuments")} — {phaseLabel}
+                <h3 className="text-sm font-semibold text-ptba-charcoal mb-4">
+                  {locale === "en" ? "Registration Status" : "Status Pendaftaran"}
                 </h3>
-                <p className="text-xs text-ptba-gray mb-3">{t("requiredDocumentsDesc")}</p>
-                <ul className="space-y-2">
-                  {currentDocs.map((doc: any) => (
-                    <li key={doc.id} className="flex items-start gap-2 text-sm">
-                      <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-steel-blue" />
-                      <div>
-                        <p className="text-ptba-charcoal">{doc.name}</p>
-                        {doc.required && <span className="text-[10px] text-ptba-red font-medium">{tc("required")}</span>}
+                <div className="space-y-0">
+                  {MILESTONES.map((m, i) => {
+                    const isCompleted = step > m.stepRange[1];
+                    const isCurrent = step >= m.stepRange[0] && step <= m.stepRange[1];
+                    return (
+                      <div key={m.id} className="flex items-start gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold shrink-0",
+                            isCompleted ? "bg-green-500 text-white" :
+                            isCurrent ? "bg-ptba-navy text-white ring-2 ring-ptba-navy/30" :
+                            "bg-gray-200 text-gray-400"
+                          )}>
+                            {isCompleted ? "✓" : m.id}
+                          </div>
+                          {i < MILESTONES.length - 1 && (
+                            <div className={cn("w-0.5 h-6", isCompleted ? "bg-green-300" : "bg-gray-200")} />
+                          )}
+                        </div>
+                        <p className={cn(
+                          "text-xs pt-1",
+                          isCompleted ? "text-green-700 font-medium" :
+                          isCurrent ? "text-ptba-navy font-semibold" :
+                          "text-ptba-gray"
+                        )}>
+                          {m.label}
+                        </p>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    );
+                  })}
+                </div>
               </div>
-            ) : null;
+            );
           })()}
         </div>
       </div>

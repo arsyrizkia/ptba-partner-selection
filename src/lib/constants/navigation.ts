@@ -86,11 +86,4 @@ export const MITRA_NAVIGATION: NavigationItem[] = [
     href: '/mitra/profile',
     allowedRoles: ['mitra'],
   },
-  {
-    icon: 'GitBranch',
-    label: 'Status',
-    labelKey: 'status',
-    href: '/mitra/status',
-    allowedRoles: ['mitra'],
-  },
 ];
