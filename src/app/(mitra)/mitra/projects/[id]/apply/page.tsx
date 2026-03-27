@@ -708,7 +708,7 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.year;
       return false;
     }),
-    financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda) && isDoc("financial_overview")
+    financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && isDoc("credit_rating_evidence")
       && isDoc("ebitda_dscr_calculation"),
@@ -1491,22 +1491,6 @@ export default function MitraProjectApplyPage() {
               fileName={uploadedDocs["ebitda_dscr_calculation"]?.name}
               onSelect={(f) => uploadDoc("ebitda_dscr_calculation", "EBITDA & DSCR Calculation", f)}
               onDelete={() => deleteDoc("ebitda_dscr_calculation")}
-            />
-          </div>
-
-          {/* Financial Overview Document */}
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">{t("financialFields.financialDoc")} <span className="text-ptba-red">*</span></p>
-            <FileUploadButton
-              label={t("financialFields.financialDocLabel")}
-              accept=".pdf"
-              uploaded={isDoc("financial_overview")}
-              uploading={uploadedDocs["financial_overview"]?.uploading ?? false}
-              fileName={uploadedDocs["financial_overview"]?.name}
-              onSelect={(f) => uploadDoc("financial_overview", "Gambaran Umum Keuangan", f)}
-              templateFileName={getTemplateInfo("financial_overview")?.fileName}
-              onDownloadTemplate={() => downloadTemplate("financial_overview")}
-              onDelete={() => deleteDoc("financial_overview")}
             />
           </div>
 
