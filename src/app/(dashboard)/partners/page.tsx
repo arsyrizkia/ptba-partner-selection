@@ -7,7 +7,6 @@ import { SearchInput } from "@/components/ui/search-input";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
-import { ProgressBar } from "@/components/ui/progress-bar";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api } from "@/lib/api/client";
 
@@ -20,6 +19,7 @@ interface PartnerRow {
   registration_date: string;
   email: string | null;
   phone: string | null;
+  logo_url: string | null;
   documents: { id: string; status: string }[];
 }
 
@@ -32,12 +32,6 @@ function getStatusVariant(status: string): "success" | "warning" | "error" {
     default:
       return "error";
   }
-}
-
-function calcDocCompleteness(docs: { status: string }[]): number {
-  if (docs.length === 0) return 0;
-  const completed = docs.filter((d) => d.status === "Lengkap" || d.status === "verified").length;
-  return Math.round((completed / docs.length) * 100);
 }
 
 const statusOptions = [
@@ -80,7 +74,6 @@ export default function PartnersPage() {
     _code: p.code || "-",
     _industry: p.industry || "-",
     _status: p.status,
-    _docCompleteness: calcDocCompleteness(p.documents || []),
     _registrationDate: p.registration_date,
   }));
 
@@ -90,7 +83,16 @@ export default function PartnersPage() {
       label: "Nama Mitra",
       sortable: true,
       render: (item: (typeof tableData)[0]) => (
-        <span className="font-medium text-ptba-navy">{item.name}</span>
+        <div className="flex items-center gap-3">
+          {item.logo_url ? (
+            <img src={item.logo_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0 border border-ptba-light-gray" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-navy/10 text-xs font-bold text-ptba-navy shrink-0">
+              {item.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="font-medium text-ptba-navy">{item.name}</span>
+        </div>
       ),
     },
     {
@@ -111,28 +113,6 @@ export default function PartnersPage() {
         <Badge variant={getStatusVariant(item.status)}>
           {item.status}
         </Badge>
-      ),
-    },
-    {
-      key: "_docCompleteness",
-      label: "Kelengkapan Dokumen",
-      sortable: true,
-      render: (item: (typeof tableData)[0]) => (
-        <div className="w-32">
-          <ProgressBar
-            value={item._docCompleteness}
-            color={
-              item._docCompleteness === 100
-                ? "green"
-                : item._docCompleteness >= 70
-                  ? "navy"
-                  : item._docCompleteness >= 40
-                    ? "gold"
-                    : "red"
-            }
-            showPercent
-          />
-        </div>
       ),
     },
     {
