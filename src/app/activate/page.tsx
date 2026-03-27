@@ -47,7 +47,7 @@ function ActivateForm() {
         if (err instanceof ApiClientError) {
           setTokenError(err.message);
         } else {
-          setTokenError("Token tidak valid.");
+          setTokenError("Link aktivasi sudah tidak berlaku atau sudah digunakan.");
         }
       } finally {
         setTokenLoading(false);
@@ -69,9 +69,9 @@ function ActivateForm() {
     return (
       <div className="text-center">
         <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-4" />
-        <h2 className="text-lg font-bold text-ptba-charcoal mb-2">Token Tidak Valid</h2>
+        <h2 className="text-lg font-bold text-ptba-charcoal mb-2">Link Tidak Berlaku</h2>
         <p className="text-sm text-ptba-gray mb-6">
-          {tokenError || "Link aktivasi tidak valid atau sudah digunakan."}
+          {tokenError || "Link aktivasi sudah kedaluwarsa atau sudah digunakan sebelumnya. Silakan hubungi admin untuk mengirim ulang undangan."}
         </p>
         <a
           href="/login"

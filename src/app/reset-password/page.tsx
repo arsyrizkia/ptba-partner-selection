@@ -58,7 +58,7 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="text-center space-y-4">
-        <p className="text-sm text-red-600">Token tidak valid. Silakan request reset password kembali.</p>
+        <p className="text-sm text-red-600">Link sudah tidak berlaku. Silakan ajukan permintaan reset password baru.</p>
         <Link href="/forgot-password" className="text-sm font-semibold text-ptba-steel-blue hover:text-ptba-navy">
           Lupa Password
         </Link>
