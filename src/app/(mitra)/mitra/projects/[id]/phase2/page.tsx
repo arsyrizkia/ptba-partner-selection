@@ -502,72 +502,11 @@ export default function MitraPhase2Page() {
     );
   }
 
-  // ─── Success state ───
-
-  if (submitted) {
-    const phase2Docs = Object.entries(uploadedDocs).filter(([, v]) => v && !v.uploading);
-
-    return (
-      <div className="space-y-6">
-        <button
-          onClick={() => router.push(`/mitra/projects/${projectId}`)}
-          className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
-        >
-          <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
-        </button>
-
-        {/* Status Banner */}
-        <div className="rounded-xl bg-green-50 border border-green-200 p-5">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-green-800">{t("submittedTitle")}</p>
-              <p className="text-xs text-green-700 mt-0.5">
-                {t("submittedDesc")} <span className="font-medium">{project.name}</span>. {t("submittedEvaluation")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Status */}
-        {feePaid && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{t("payment.title")}</h3>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <p className="text-sm text-green-700">{t("payment.verified")}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Uploaded Documents */}
-        {phase2Docs.length > 0 && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-bold text-ptba-charcoal mb-4">
-              {locale === "en" ? "Uploaded Phase 2 Documents" : "Dokumen Fase 2 yang Diunggah"} ({phase2Docs.length})
-            </h3>
-            <div className="space-y-2">
-              {phase2Docs.map(([docId, doc]) => (
-                <div key={docId} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
-                  <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ptba-charcoal truncate">{doc!.name}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={() => router.push(`/mitra/projects/${projectId}`)}
-          className="rounded-lg bg-ptba-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
-        >
-          {tc("backToProjectDetail")}
-        </button>
-      </div>
-    );
-  }
+  // Helper to get file_key for download in submitted mode
+  const getPhase2DocFileKey = (docTypeId: string): string | undefined => {
+    const docs = application?.phase2Documents || [];
+    return docs.find((d: any) => d.document_type_id === docTypeId)?.file_key;
+  };
 
   return (
     <div className="space-y-6">
@@ -589,6 +528,21 @@ export default function MitraPhase2Page() {
         <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
       </button>
 
+      {/* Status Banner (submitted) */}
+      {submitted && (
+        <div className="rounded-xl bg-green-50 border border-green-200 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-green-800">{t("submittedTitle")}</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                {t("submittedDesc")} <span className="font-medium">{project.name}</span>. {t("submittedEvaluation")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
         <p className="text-white/70 text-sm">{t("title")}</p>
@@ -609,7 +563,7 @@ export default function MitraPhase2Page() {
       </div>
 
       {/* Progress Stepper */}
-      <div className="rounded-xl bg-white p-5 shadow-sm">
+      {!submitted && <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           {[
             { step: 1, label: paymentState === "pending" ? t("steps.waitingVerification") : t("steps.payFee"), done: feePaid },
@@ -649,7 +603,7 @@ export default function MitraPhase2Page() {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Section 1: Registration Fee Payment */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -703,23 +657,25 @@ export default function MitraPhase2Page() {
         </div>
 
         {/* Hidden file input for payment proof */}
-        <input
-          ref={paymentProofRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.jpg,.jpeg,.png"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) {
-              setSelectedProofFile(f);
-              setPaymentProofName(f.name);
-            }
-            e.target.value = "";
-          }}
-        />
+        {!submitted && (
+          <input
+            ref={paymentProofRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.jpg,.jpeg,.png"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) {
+                setSelectedProofFile(f);
+                setPaymentProofName(f.name);
+              }
+              e.target.value = "";
+            }}
+          />
+        )}
 
         {/* Payment state-specific UI */}
-        {paymentState === "belum" && !selectedProofFile && (
+        {!submitted && paymentState === "belum" && !selectedProofFile && (
           <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
             <Upload className="mx-auto h-8 w-8 text-ptba-gray mb-2" />
             <p className="text-sm font-medium text-ptba-charcoal mb-1">{t("payment.uploadProof")}</p>
@@ -736,7 +692,7 @@ export default function MitraPhase2Page() {
           </div>
         )}
 
-        {paymentState === "belum" && selectedProofFile && (
+        {!submitted && paymentState === "belum" && selectedProofFile && (
           <div className="rounded-lg border border-ptba-steel-blue/30 bg-ptba-section-bg p-5">
             <div className="flex items-center gap-3 mb-4">
               <FileText className="h-5 w-5 text-ptba-steel-blue shrink-0" />
@@ -769,7 +725,7 @@ export default function MitraPhase2Page() {
           </div>
         )}
 
-        {paymentState === "uploading" && (
+        {!submitted && paymentState === "uploading" && (
           <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
             <Loader2 className="mx-auto h-8 w-8 text-ptba-gold animate-spin mb-2" />
             <p className="text-sm font-medium text-ptba-charcoal mb-1">{t("payment.uploadingProof")}</p>
@@ -777,7 +733,7 @@ export default function MitraPhase2Page() {
           </div>
         )}
 
-        {paymentState === "pending" && (
+        {!submitted && paymentState === "pending" && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
             <div className="flex items-start gap-3">
               <Clock className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
@@ -796,7 +752,7 @@ export default function MitraPhase2Page() {
           </div>
         )}
 
-        {paymentState === "rejected" && (
+        {!submitted && paymentState === "rejected" && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-5">
             <div className="flex items-start gap-3">
               <XCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
@@ -1019,7 +975,21 @@ export default function MitraPhase2Page() {
                     </div>
                   </div>
                   <div className="shrink-0 flex items-center gap-1.5">
-                    {isUploaded ? (
+                    {submitted && isUploaded ? (
+                      /* Read-only: show download button */
+                      (() => {
+                        const fileKey = getPhase2DocFileKey(doc.id);
+                        return fileKey ? (
+                          <button
+                            type="button"
+                            onClick={() => downloadDocument(fileKey, accessToken!, docState?.name)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                          >
+                            <Download className="h-3 w-3" /> {tc("download")}
+                          </button>
+                        ) : null;
+                      })()
+                    ) : isUploaded ? (
                       <>
                         <button
                           onClick={() => handleDeleteDoc(doc.id)}
@@ -1081,7 +1051,7 @@ export default function MitraPhase2Page() {
       </div>
 
       {/* Submit Section */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      {!submitted && <div className="rounded-xl bg-white p-6 shadow-sm">
         {/* Validation warnings */}
         {(!feePaid || !allRequiredUploaded) && (
           <div className="mb-4 rounded-lg border border-ptba-gold/30 bg-ptba-gold-light/30 p-4">
@@ -1126,10 +1096,10 @@ export default function MitraPhase2Page() {
             {submitting ? tc("sending") : t("submit.submitDocs")}
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Submit Confirmation Modal */}
-      {showSubmitConfirm && (
+      {!submitted && showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !submitting && setShowSubmitConfirm(false)}>
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">

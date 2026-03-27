@@ -14,7 +14,6 @@ import { partnerApi } from "@/lib/api/client";
 import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
-import FormDataViewer from "@/components/features/project/form-data-viewer";
 import { downloadDocument } from "@/lib/api/client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
@@ -105,6 +104,8 @@ function FileUploadButton({
   onDelete,
   templateFileName,
   onDownloadTemplate,
+  readOnly,
+  onDownload,
 }: {
   label: string;
   accept?: string;
@@ -115,8 +116,38 @@ function FileUploadButton({
   onDelete?: () => void;
   templateFileName?: string;
   onDownloadTemplate?: () => void;
+  readOnly?: boolean;
+  onDownload?: () => void;
 }) {
   const tc = useTranslations("common");
+
+  // Read-only mode: show uploaded doc with download button, or nothing
+  if (readOnly) {
+    if (!uploaded && !fileName) return null;
+    return (
+      <div className="rounded-lg border border-green-200 bg-green-50/50 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-ptba-charcoal">{label}</p>
+              {fileName && <p className="text-[10px] text-green-600 truncate">{fileName}</p>}
+            </div>
+          </div>
+          {onDownload && (
+            <button
+              type="button"
+              onClick={onDownload}
+              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
+            >
+              <Download className="h-3 w-3" /> {tc("download")}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {templateFileName && onDownloadTemplate && (
@@ -211,6 +242,7 @@ function Section({
   open,
   onToggle,
   children,
+  readOnly,
 }: {
   id?: string;
   number: number;
@@ -220,6 +252,7 @@ function Section({
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  readOnly?: boolean;
 }) {
   return (
     <div id={id} className="rounded-xl bg-white shadow-sm overflow-hidden">
@@ -240,7 +273,11 @@ function Section({
         <Icon className="h-4 w-4 text-ptba-gray shrink-0" />
         {open ? <ChevronUp className="h-4 w-4 text-ptba-gray" /> : <ChevronDown className="h-4 w-4 text-ptba-gray" />}
       </button>
-      {open && <div className="border-t border-ptba-light-gray p-5 space-y-4">{children}</div>}
+      {open && (
+        <fieldset disabled={readOnly} className="border-0 border-t border-ptba-light-gray p-5 space-y-4 min-w-0 m-0">
+          {children}
+        </fieldset>
+      )}
     </div>
   );
 }
@@ -636,9 +673,9 @@ export default function MitraProjectApplyPage() {
     }, 2000);
   }, [application?.id, accessToken]);
 
-  // Trigger auto-save when form fields change
+  // Trigger auto-save when form fields change (skip in read-only mode)
   useEffect(() => {
-    if (!application?.id) return;
+    if (!application?.id || readOnly) return;
     autoSaveFormData();
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [
@@ -805,7 +842,25 @@ export default function MitraProjectApplyPage() {
     }));
   };
 
-  const inputClass = "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
+  // Read-only mode: form already submitted
+  const readOnly = !!(application && application.status !== "Draft");
+
+  // Helper to get file_key for a document type (for download in readOnly mode)
+  const getDocFileKey = (docTypeId: string): string | undefined => {
+    const docs = application?.phase1Documents || application?.documents || [];
+    return docs.find((d: any) => d.document_type_id === docTypeId)?.file_key;
+  };
+  const docDownloadHandler = (docTypeId: string) => {
+    const fileKey = getDocFileKey(docTypeId);
+    return fileKey ? () => downloadDocument(fileKey, accessToken!, uploadedDocs[docTypeId]?.name) : undefined;
+  };
+
+  const inputClass = cn(
+    "w-full rounded-lg border px-3 py-2 text-sm outline-none",
+    readOnly
+      ? "border-ptba-light-gray/50 bg-transparent text-ptba-charcoal"
+      : "border-ptba-light-gray bg-ptba-off-white focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
+  );
 
   const dateLocale = locale === "en" ? "en-US" : "id-ID";
 
@@ -820,74 +875,7 @@ export default function MitraProjectApplyPage() {
     );
   }
 
-  if (application && application.status !== "Draft") {
-    const fd = application.form_data
-      ? (typeof application.form_data === "string" ? JSON.parse(application.form_data) : application.form_data)
-      : null;
-    const appDocs = application.phase1Documents || application.documents || [];
-
-    return (
-      <div className="space-y-6">
-        <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> {tc("back")}
-        </button>
-
-        {/* Status Banner */}
-        <div className="rounded-xl bg-green-50 border border-green-200 p-5">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-green-800">{t("alreadyRegistered")}</p>
-              <p className="text-xs text-green-700 mt-0.5">
-                {t("statusLabel", { status: application.status })} · {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" })}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Read-only Form Data */}
-        {fd && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-ptba-charcoal mb-4">
-              {locale === "en" ? "Submitted Data" : "Data yang Diajukan"}
-            </h2>
-            <FormDataViewer formData={fd} />
-          </div>
-        )}
-
-        {/* Uploaded Documents */}
-        {appDocs.length > 0 && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-ptba-charcoal mb-4">
-              {locale === "en" ? "Uploaded Documents" : "Dokumen yang Diunggah"} ({appDocs.length})
-            </h2>
-            <div className="space-y-2">
-              {appDocs.map((doc: any) => (
-                <div key={doc.id || doc.document_type_id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
-                  <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ptba-charcoal truncate">{doc.name}</p>
-                    <p className="text-[10px] text-ptba-gray">{doc.status} · {doc.upload_date ? new Date(doc.upload_date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" }) : ""}</p>
-                  </div>
-                  {doc.file_key && (
-                    <button
-                      type="button"
-                      onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
-                    >
-                      <Download className="h-3 w-3" /> {tc("download")}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (!project || !project.isOpenForApplication) {
+  if (!project || (!readOnly && !project.isOpenForApplication)) {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
@@ -929,8 +917,23 @@ export default function MitraProjectApplyPage() {
         </p>
       </div>
 
+      {/* Status Banner (read-only) */}
+      {readOnly && (
+        <div className="rounded-xl bg-green-50 border border-green-200 p-5">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-green-800">{t("alreadyRegistered")}</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                {t("statusLabel", { status: application.status })} · {tc("submitted")}: {application.applied_at ? new Date(application.applied_at).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* EoI Description */}
-      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+      {!readOnly && <div className="rounded-xl bg-white shadow-sm overflow-hidden">
         <div className="bg-ptba-navy px-5 py-3">
           <p className="text-sm font-bold text-white">{t("importantInfo")}</p>
         </div>
@@ -974,18 +977,20 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Progress */}
-      <div className="rounded-xl bg-ptba-navy/5 border border-ptba-navy/10 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-ptba-gray">{t("formCompleteness")}</span>
-          <span className="text-sm font-bold text-ptba-navy">{t("sectionsCount", { completed: completedCount, total: totalSections })}</span>
+      {!readOnly && (
+        <div className="rounded-xl bg-ptba-navy/5 border border-ptba-navy/10 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-ptba-gray">{t("formCompleteness")}</span>
+            <span className="text-sm font-bold text-ptba-navy">{t("sectionsCount", { completed: completedCount, total: totalSections })}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
+            <div className={cn("h-full rounded-full transition-all", allComplete ? "bg-green-500" : "bg-ptba-gold")} style={{ width: `${(completedCount / totalSections) * 100}%` }} />
+          </div>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
-          <div className={cn("h-full rounded-full transition-all", allComplete ? "bg-green-500" : "bg-ptba-gold")} style={{ width: `${(completedCount / totalSections) * 100}%` }} />
-        </div>
-      </div>
+      )}
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -1001,8 +1006,9 @@ export default function MitraProjectApplyPage() {
           title={t("sections.companyInfo")}
           icon={Building2}
           complete={sectionComplete.compro}
-          open={openSection === getSectionNumber("compro")}
+          open={readOnly || openSection === getSectionNumber("compro")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("compro") ? 0 : getSectionNumber("compro"))}
+          readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.companyInfoDesc")}</p>
 
@@ -1062,6 +1068,8 @@ export default function MitraProjectApplyPage() {
                 fileName={uploadedDocs["nib_document"]?.name}
                 onSelect={(f) => uploadDoc("nib_document", "NIB Document", f)}
                 onDelete={() => deleteDoc("nib_document")}
+                readOnly={readOnly}
+                onDownload={docDownloadHandler("nib_document")}
               />
             </div>
             <div>
@@ -1090,6 +1098,8 @@ export default function MitraProjectApplyPage() {
               fileName={uploadedDocs["org_structure"]?.name}
               onSelect={(f) => uploadDoc("org_structure", "Organizational Structure", f)}
               onDelete={() => deleteDoc("org_structure")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("org_structure")}
             />
           </div>
           <div>
@@ -1128,6 +1138,8 @@ export default function MitraProjectApplyPage() {
               templateFileName={getTemplateInfo("compro")?.fileName}
               onDownloadTemplate={() => downloadTemplate("compro")}
               onDelete={() => deleteDoc("compro")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("compro")}
             />
           </div>
         </Section>
@@ -1141,8 +1153,9 @@ export default function MitraProjectApplyPage() {
           title={t("sections.eoiStatement")}
           icon={PenLine}
           complete={sectionComplete.statement_eoi}
-          open={openSection === getSectionNumber("statement_eoi")}
+          open={readOnly || openSection === getSectionNumber("statement_eoi")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("statement_eoi") ? 0 : getSectionNumber("statement_eoi"))}
+          readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.eoiStatementDesc")}</p>
 
@@ -1195,6 +1208,8 @@ export default function MitraProjectApplyPage() {
               templateFileName={getTemplateInfo("statement_eoi")?.fileName}
               onDownloadTemplate={() => downloadTemplate("statement_eoi")}
               onDelete={() => deleteDoc("statement_eoi")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("statement_eoi")}
             />
           </div>
 
@@ -1245,8 +1260,9 @@ export default function MitraProjectApplyPage() {
           title={t("sections.portfolio")}
           icon={Briefcase}
           complete={sectionComplete.portfolio}
-          open={openSection === getSectionNumber("portfolio")}
+          open={readOnly || openSection === getSectionNumber("portfolio")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("portfolio") ? 0 : getSectionNumber("portfolio"))}
+          readOnly={readOnly}
         >
           <div className="space-y-1">
             <p className="text-sm font-semibold text-ptba-charcoal">{t("portfolioFields.relevantProjects")}</p>
@@ -1265,9 +1281,11 @@ export default function MitraProjectApplyPage() {
             <div key={exp.uid} className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-ptba-charcoal">{t("portfolioFields.experienceNumber", { number: i + 1 })}</p>
-                <button onClick={() => removeExperience(i)} className="text-ptba-red hover:text-red-700 transition-colors">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {!readOnly && (
+                  <button onClick={() => removeExperience(i)} className="text-ptba-red hover:text-red-700 transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Category selector */}
@@ -1375,18 +1393,22 @@ export default function MitraProjectApplyPage() {
                   fileName={uploadedDocs[`credential_exp_${exp.uid}`]?.name}
                   onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Bukti Kontrak & Profil - ${exp.plantName || 'Proyek'}`, f)}
                   onDelete={() => deleteDoc(`credential_exp_${exp.uid}`)}
+                  readOnly={readOnly}
+                  onDownload={docDownloadHandler(`credential_exp_${exp.uid}`)}
                 />
               </div>
             </div>
           ))}
 
-          <button
-            onClick={() => addExperience('developer')}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-steel-blue/30 py-3 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            {t("portfolioFields.addExperience")}
-          </button>
+          {!readOnly && (
+            <button
+              onClick={() => addExperience('developer')}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-steel-blue/30 py-3 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              {t("portfolioFields.addExperience")}
+            </button>
+          )}
 
         </Section>
       )}
@@ -1399,8 +1421,9 @@ export default function MitraProjectApplyPage() {
           title={t("sections.financialOverview")}
           icon={DollarSign}
           complete={sectionComplete.financial_overview}
-          open={openSection === getSectionNumber("financial_overview")}
+          open={readOnly || openSection === getSectionNumber("financial_overview")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("financial_overview") ? 0 : getSectionNumber("financial_overview"))}
+          readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.financialOverviewDesc")}</p>
 
@@ -1534,6 +1557,8 @@ export default function MitraProjectApplyPage() {
               fileName={uploadedDocs["ebitda_dscr_calculation"]?.name}
               onSelect={(f) => uploadDoc("ebitda_dscr_calculation", "EBITDA & DSCR Calculation", f)}
               onDelete={() => deleteDoc("ebitda_dscr_calculation")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("ebitda_dscr_calculation")}
             />
           </div>
 
@@ -1549,6 +1574,8 @@ export default function MitraProjectApplyPage() {
               fileName={uploadedDocs["credit_rating_evidence"]?.name}
               onSelect={(f) => uploadDoc("credit_rating_evidence", "Credit Rating Evidence", f)}
               onDelete={() => deleteDoc("credit_rating_evidence")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("credit_rating_evidence")}
             />
           </div>
 
@@ -1568,6 +1595,8 @@ export default function MitraProjectApplyPage() {
                   fileName={uploadedDocs[docId]?.name}
                   onSelect={(f) => uploadDoc(docId, `Audited Financial Statement ${fy.year}`, f)}
                   onDelete={() => deleteDoc(docId)}
+                  readOnly={readOnly}
+                  onDownload={docDownloadHandler(docId)}
                 />
               );
             })}
@@ -1583,8 +1612,9 @@ export default function MitraProjectApplyPage() {
           title={t("sections.requirementsFulfillment")}
           icon={ClipboardCheck}
           complete={sectionComplete.requirements_fulfillment}
-          open={openSection === getSectionNumber("requirements_fulfillment")}
+          open={readOnly || openSection === getSectionNumber("requirements_fulfillment")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("requirements_fulfillment") ? 0 : getSectionNumber("requirements_fulfillment"))}
+          readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.requirementsFulfillmentDesc")}</p>
 
@@ -1669,6 +1699,8 @@ export default function MitraProjectApplyPage() {
               templateFileName={getTemplateInfo("requirements_fulfillment")?.fileName}
               onDownloadTemplate={() => downloadTemplate("requirements_fulfillment")}
               onDelete={() => deleteDoc("requirements_fulfillment")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("requirements_fulfillment")}
             />
           </div>
         </Section>
@@ -1682,8 +1714,9 @@ export default function MitraProjectApplyPage() {
           title={t("sections.additionalDocs")}
           icon={FileText}
           complete={additionalDocsComplete}
-          open={openSection === additionalDocsSectionNumber}
+          open={readOnly || openSection === additionalDocsSectionNumber}
           onToggle={() => setOpenSection(openSection === additionalDocsSectionNumber ? 0 : additionalDocsSectionNumber)}
+          readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.additionalDocsDesc")}</p>
           <div className="space-y-2">
@@ -1699,6 +1732,8 @@ export default function MitraProjectApplyPage() {
                 onDelete={() => deleteDoc(doc.id)}
                 templateFileName={getTemplateInfo(doc.id)?.fileName}
                 onDownloadTemplate={() => downloadTemplate(doc.id)}
+                readOnly={readOnly}
+                onDownload={docDownloadHandler(doc.id)}
               />
             ))}
           </div>
@@ -1712,8 +1747,9 @@ export default function MitraProjectApplyPage() {
         title={t("sections.finalStatement")}
         icon={ShieldCheck}
         complete={sectionComplete.final}
-        open={openSection === finalSectionNumber}
+        open={readOnly || openSection === finalSectionNumber}
         onToggle={() => setOpenSection(openSection === finalSectionNumber ? 0 : finalSectionNumber)}
+        readOnly={readOnly}
       >
         <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
           {t("finalStatement.declaration")}
@@ -1733,7 +1769,7 @@ export default function MitraProjectApplyPage() {
       </Section>
 
       {/* ═══ Submit Bar ═══ */}
-      <div className="rounded-xl bg-white p-5 shadow-sm">
+      {!readOnly && <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-ptba-charcoal">{t("submitBar.sectionsCompleted", { completed: completedCount, total: totalSections })}</p>
@@ -1774,10 +1810,10 @@ export default function MitraProjectApplyPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Submit Confirmation Modal */}
-      {showSubmitConfirm && (
+      {!readOnly && showSubmitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !submitting && setShowSubmitConfirm(false)}>
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="text-center">
