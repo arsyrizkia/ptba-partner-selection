@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES, LEGACY_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi } from "@/lib/api/client";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import type { UserRole } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────
@@ -605,11 +606,10 @@ export default function ProjectForm({
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Deskripsi</label>
-              <textarea
-                placeholder="Jelaskan ruang lingkup dan tujuan proyek..."
+              <RichTextEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className={cn(inputClass, "min-h-[100px] resize-y")}
+                onChange={setDescription}
+                placeholder="Jelaskan ruang lingkup dan tujuan proyek..."
               />
             </div>
 

@@ -1709,8 +1709,10 @@ export default function ProjectDetailPage({
               <h3 className="mb-3 font-semibold text-ptba-charcoal">Deskripsi Proyek</h3>
               {editMode ? (
                 <textarea value={editDraft.description} onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))} className={cn(inputCls, "min-h-[80px] resize-y")} />
+              ) : project.description ? (
+                <div className="text-sm leading-relaxed text-ptba-gray prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.description }} />
               ) : (
-                <p className="text-sm leading-relaxed text-ptba-gray">{project.description || "-"}</p>
+                <p className="text-sm leading-relaxed text-ptba-gray">-</p>
               )}
             </div>
 

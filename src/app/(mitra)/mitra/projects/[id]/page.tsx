@@ -203,7 +203,11 @@ export default function MitraProjectDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("projectDescription")}</h2>
-            <p className="text-sm text-ptba-gray leading-relaxed">{project.description || t("noDescription")}</p>
+            {project.description ? (
+              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.description }} />
+            ) : (
+              <p className="text-sm text-ptba-gray leading-relaxed">{t("noDescription")}</p>
+            )}
             {project.projectImages && project.projectImages.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {project.projectImages.map((img: any) => (
