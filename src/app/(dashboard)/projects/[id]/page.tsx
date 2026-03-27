@@ -305,7 +305,7 @@ function EvalStatusCell({ done }: { done: boolean }) {
   );
 }
 
-type Tab = "mitra" | "dokumen" | "informasi";
+type Tab = "mitra" | "dokumen" | "informasi" | "riwayat";
 
 export default function ProjectDetailPage({
   params,
@@ -407,6 +407,7 @@ export default function ProjectDetailPage({
   const [applicationCount, setApplicationCount] = useState(0);
   const [projectApplications, setProjectApplications] = useState<any[]>([]);
   const [projectEvaluations, setProjectEvaluations] = useState<any[]>([]);
+  const [projectApprovals, setProjectApprovals] = useState<any[]>([]);
 
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
@@ -482,6 +483,11 @@ export default function ProjectDetailPage({
     // Fetch evaluations for this project
     api<{ evaluations: any[] }>(`/evaluations/phase1/${id}`, { token: accessToken })
       .then((res) => setProjectEvaluations(res.evaluations || []))
+      .catch(() => {});
+
+    // Fetch approvals for this project
+    api<{ approvals: any[] }>(`/approvals?project_id=${id}`, { token: accessToken })
+      .then((res) => setProjectApprovals(res.approvals || []))
       .catch(() => {});
   }, [id, accessToken]);
 
@@ -1207,6 +1213,7 @@ export default function ProjectDetailPage({
                 { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
                 { key: "dokumen", label: "Dokumen", icon: FileText },
                 { key: "informasi", label: "Informasi", icon: Info },
+                { key: "riwayat", label: "Riwayat", icon: Clock },
               ] as const
             ).map(({ key, label, icon: Icon }) => (
               <button
@@ -2076,6 +2083,115 @@ export default function ProjectDetailPage({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab D: Riwayat */}
+      {activeTab === "riwayat" && (
+        <div className="space-y-6">
+          {/* Phase 1 Evaluations */}
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-ptba-charcoal mb-4 flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-ptba-navy" />
+              Evaluasi Tahap 1
+            </h3>
+            {projectEvaluations.length > 0 ? (
+              <div className="space-y-3">
+                {projectEvaluations.map((ev: any) => (
+                  <div key={ev.id} className={cn("rounded-lg border p-4", ev.overall_result === "Lolos" ? "border-green-200 bg-green-50/30" : ev.overall_result === "Tidak Lolos" ? "border-red-200 bg-red-50/30" : "border-gray-200")}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-semibold text-ptba-charcoal">{ev.partner_name}</p>
+                        <p className="text-[10px] text-ptba-gray">
+                          Evaluator: {ev.evaluator_name || "-"} · {ev.evaluated_at ? formatDate(ev.evaluated_at) : "-"}
+                          {ev.is_finalized && " · Difinalisasi"}
+                        </p>
+                      </div>
+                      <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", ev.overall_result === "Lolos" ? "bg-green-100 text-green-700" : ev.overall_result === "Tidak Lolos" ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>
+                        {ev.overall_result || "Belum Dinilai"}
+                      </span>
+                    </div>
+                    {ev.notes && <p className="text-xs text-ptba-gray mt-1">{ev.notes}</p>}
+                    <div className="mt-2">
+                      <Link
+                        href={`/projects/${id}/evaluation/phase1?partnerId=${ev.partner_id}`}
+                        className="text-xs text-ptba-steel-blue hover:underline"
+                      >
+                        Lihat Detail Evaluasi →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-ptba-gray italic">Belum ada evaluasi.</p>
+            )}
+          </div>
+
+          {/* Approvals */}
+          {(() => {
+            const approvals = projectApprovals;
+            return approvals.length > 0 ? (
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-ptba-charcoal mb-4 flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-ptba-gold" />
+                  Persetujuan
+                </h3>
+                <div className="space-y-3">
+                  {approvals.map((ap: any) => (
+                    <div key={ap.id} className={cn("rounded-lg border p-4", ap.status === "Disetujui" ? "border-green-200 bg-green-50/30" : ap.status === "Ditolak" ? "border-red-200 bg-red-50/30" : "border-amber-200 bg-amber-50/30")}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-ptba-charcoal">{ap.approval_category || ap.type}</p>
+                          <p className="text-[10px] text-ptba-gray">
+                            Diminta oleh: {ap.requested_by} · {ap.requested_at ? formatDate(ap.requested_at) : "-"}
+                          </p>
+                        </div>
+                        <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", ap.status === "Disetujui" ? "bg-green-100 text-green-700" : ap.status === "Ditolak" ? "bg-red-100 text-ptba-red" : ap.status === "Dikembalikan" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
+                          {ap.status}
+                        </span>
+                      </div>
+                      {ap.approver && (
+                        <p className="text-xs text-ptba-gray">Approver: {ap.approver} {ap.approved_at ? `· ${formatDate(ap.approved_at)}` : ""}</p>
+                      )}
+                      {ap.notes && <p className="text-xs text-ptba-gray mt-1 italic">"{ap.notes}"</p>}
+                      <div className="mt-2">
+                        <Link
+                          href={`/approvals/${ap.id}`}
+                          className="text-xs text-ptba-steel-blue hover:underline"
+                        >
+                          Lihat Detail Persetujuan →
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Phase 2 Payment History */}
+          {project.phase?.startsWith("phase2") && projectPartners.some((p: any) => p.feePaymentStatus) && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-ptba-charcoal mb-4 flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-ptba-steel-blue" />
+                Pembayaran Commitment Fee
+              </h3>
+              <div className="space-y-2">
+                {projectPartners.filter((p: any) => p.feePaymentStatus).map((p: any) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
+                    <div>
+                      <p className="text-sm font-medium text-ptba-charcoal">{p.name}</p>
+                      <p className="text-[10px] text-ptba-gray">{p.feePaymentStatus}</p>
+                    </div>
+                    <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold", p.feePaymentStatus === "Sudah Bayar" ? "bg-green-100 text-green-700" : p.feePaymentStatus === "Ditolak" ? "bg-red-100 text-ptba-red" : "bg-amber-100 text-amber-700")}>
+                      {p.feePaymentStatus}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
