@@ -352,14 +352,30 @@ export default function MitraProjectDetailPage() {
 
           {/* Status Pendaftaran - milestone timeline */}
           {application && application.status !== "Draft" && (() => {
-            const MILESTONES = [
-              { id: 1, label: locale === "en" ? "Registration" : "Pendaftaran", stepRange: [2, 2], phase: "phase1" },
-              { id: 2, label: locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup", stepRange: [3, 3], phase: "phase1" },
-              { id: 3, label: locale === "en" ? "Evaluation" : "Evaluasi Tahap 1", stepRange: [4, 5], phase: "phase1" },
-              { id: 4, label: locale === "en" ? "Shortlist" : "Pengumuman Shortlist", stepRange: [6, 6], phase: "phase1" },
-              { id: 5, label: locale === "en" ? "Phase 2" : "Fase 2", stepRange: [7, 11], phase: "phase2" },
-              { id: 6, label: locale === "en" ? "Phase 3" : "Fase 3", stepRange: [12, 14], phase: "phase3" },
-              { id: 7, label: locale === "en" ? "Winner" : "Pemenang", stepRange: [15, 16], phase: "phase3" },
+            const MILESTONES = locale === "en" ? [
+              { id: 1, label: "Phase 1 Registration", stepRange: [2, 2] },
+              { id: 2, label: "Registration Closed", stepRange: [3, 3] },
+              { id: 3, label: "Phase 1 Evaluation", stepRange: [4, 5] },
+              { id: 4, label: "Shortlist Announcement", stepRange: [6, 6] },
+              { id: 5, label: "Phase 2 Registration", stepRange: [7, 8] },
+              { id: 6, label: "Phase 2 Evaluation (PQ)", stepRange: [9, 10] },
+              { id: 7, label: "Phase 2 Announcement", stepRange: [11, 11] },
+              { id: 8, label: "Phase 3 Registration", stepRange: [12, 12] },
+              { id: 9, label: "Evaluation & Ranking", stepRange: [13, 13] },
+              { id: 10, label: "Negotiation", stepRange: [14, 14] },
+              { id: 11, label: "Winner Announcement", stepRange: [15, 16] },
+            ] : [
+              { id: 1, label: "Pendaftaran Fase 1", stepRange: [2, 2] },
+              { id: 2, label: "Pendaftaran Ditutup", stepRange: [3, 3] },
+              { id: 3, label: "Evaluasi Tahap 1", stepRange: [4, 5] },
+              { id: 4, label: "Pengumuman Shortlist", stepRange: [6, 6] },
+              { id: 5, label: "Pendaftaran Fase 2", stepRange: [7, 8] },
+              { id: 6, label: "Evaluasi Fase 2 (PQ)", stepRange: [9, 10] },
+              { id: 7, label: "Pengumuman Fase 2", stepRange: [11, 11] },
+              { id: 8, label: "Pendaftaran Fase 3", stepRange: [12, 12] },
+              { id: 9, label: "Evaluasi & Peringkat", stepRange: [13, 13] },
+              { id: 10, label: "Negosiasi", stepRange: [14, 14] },
+              { id: 11, label: "Pengumuman Pemenang", stepRange: [15, 16] },
             ];
             const step = project.currentStep || 1;
             return (
