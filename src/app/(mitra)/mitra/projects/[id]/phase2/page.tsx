@@ -525,7 +525,7 @@ export default function MitraPhase2Page() {
             . {t("submittedEvaluation")}
           </p>
           <button
-            onClick={() => router.push("/mitra/status")}
+            onClick={() => router.push(`/mitra/projects/${projectId}`)}
             className="mt-6 rounded-lg bg-ptba-navy px-6 py-2.5 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
           >
             {t("viewStatus")}

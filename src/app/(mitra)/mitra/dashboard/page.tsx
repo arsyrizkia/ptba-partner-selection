@@ -109,7 +109,7 @@ export default function MitraDashboardPage() {
           <h2 className="text-lg font-semibold text-ptba-charcoal">{t("myApplications")}</h2>
           {applications.length > 0 && (
             <button
-              onClick={() => router.push("/mitra/status")}
+              onClick={() => router.push("/mitra/projects")}
               className="text-xs font-medium text-ptba-steel-blue hover:underline"
             >
               {tc("viewAll")}

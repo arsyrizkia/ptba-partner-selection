@@ -28,7 +28,7 @@ export default function ApplySuccessPage() {
             {t("viewProjectDetail")} <ArrowRight className="h-4 w-4" />
           </button>
           <button
-            onClick={() => router.push("/mitra/status")}
+            onClick={() => router.push(`/mitra/projects/${projectId}`)}
             className="w-full rounded-lg border border-ptba-navy px-4 py-2.5 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
           >
             {t("viewRegistrationStatus")}
