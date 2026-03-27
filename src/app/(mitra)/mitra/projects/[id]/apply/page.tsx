@@ -1118,6 +1118,22 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
+          {/* EoI Document Upload */}
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-ptba-charcoal">{t("eoiFields.eoiDoc")} <span className="text-ptba-red">*</span></p>
+            <FileUploadButton
+              label={t("eoiFields.eoiDocLabel")}
+              accept=".pdf"
+              uploaded={isDoc("statement_eoi")}
+              uploading={uploadedDocs["statement_eoi"]?.uploading ?? false}
+              fileName={uploadedDocs["statement_eoi"]?.name}
+              onSelect={(f) => uploadDoc("statement_eoi", "Signed EoI Letter", f)}
+              templateFileName={getTemplateInfo("statement_eoi")?.fileName}
+              onDownloadTemplate={() => downloadTemplate("statement_eoi")}
+              onDelete={() => deleteDoc("statement_eoi")}
+            />
+          </div>
+
           {/* JV Equity & Cash on Hand — side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-lg border border-ptba-light-gray p-4">
@@ -1154,20 +1170,6 @@ export default function MitraProjectApplyPage() {
             </span>
           </label>
 
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">{t("eoiFields.eoiDoc")} <span className="text-ptba-red">*</span></p>
-            <FileUploadButton
-              label={t("eoiFields.eoiDocLabel")}
-              accept=".pdf"
-              uploaded={isDoc("statement_eoi")}
-              uploading={uploadedDocs["statement_eoi"]?.uploading ?? false}
-              fileName={uploadedDocs["statement_eoi"]?.name}
-              onSelect={(f) => uploadDoc("statement_eoi", "Signed EoI Letter", f)}
-              templateFileName={getTemplateInfo("statement_eoi")?.fileName}
-              onDownloadTemplate={() => downloadTemplate("statement_eoi")}
-              onDelete={() => deleteDoc("statement_eoi")}
-            />
-          </div>
         </Section>
       )}
 
