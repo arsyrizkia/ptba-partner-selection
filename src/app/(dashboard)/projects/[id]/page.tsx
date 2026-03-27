@@ -509,7 +509,11 @@ export default function ProjectDetailPage({
   const isPhase2 = project.phase?.startsWith("phase2");
 
   // Derive partner list from applications + evaluations
-  const shortlistedIds = new Set(project?.shortlistedPartners ?? []);
+  const shortlistedIds = new Set(
+    projectApplications
+      .filter((a: any) => a.status === "Shortlisted" || a.phase1_result === "Lolos")
+      .map((a: any) => a.partner_id)
+  );
   const projectPartners: any[] = projectApplications.map((a: any) => {
     const evaluation = projectEvaluations.find((e: any) => e.application_id === a.id);
     const allDocs = [
@@ -643,7 +647,7 @@ export default function ProjectDetailPage({
               <div>
                 <h3 className="text-sm font-bold text-green-800">Fase 1 Disetujui oleh Ketua Tim</h3>
                 <p className="text-xs text-green-700 mt-0.5">
-                  {project.shortlistedPartners?.length ?? 0} mitra lolos shortlist dan siap melanjutkan ke Fase 2.
+                  {shortlistedIds.size} mitra lolos shortlist dan siap melanjutkan ke Fase 2.
                   Verifikasi pembayaran mitra dan konfigurasi parameter Fase 2 untuk memulai proses selanjutnya.
                 </p>
               </div>
@@ -679,15 +683,12 @@ export default function ProjectDetailPage({
             <div className="rounded-lg bg-ptba-section-bg p-3 mb-5">
               <p className="text-xs font-semibold text-ptba-navy mb-1.5">Mitra yang Lolos Fase 1</p>
               <div className="flex flex-wrap gap-1.5">
-                {(project.shortlistedPartners ?? []).map((pid: string) => {
-                  const partner = undefined as any;
-                  return (
-                    <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ptba-charcoal border border-ptba-light-gray">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      {partner?.name ?? pid}
-                    </span>
-                  );
-                })}
+                {projectPartners.filter((p: any) => p.isShortlisted).map((p: any) => (
+                  <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ptba-charcoal border border-ptba-light-gray">
+                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    {p.name}
+                  </span>
+                ))}
               </div>
             </div>
 
