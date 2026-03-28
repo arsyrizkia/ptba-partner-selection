@@ -258,6 +258,7 @@ export default function ProjectForm({
   const [picPhaseTab, setPicPhaseTab] = useState<PhaseKey>("phase1");
 
   const [stepError, setStepError] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // ── Pre-fill from initialData (edit mode) ──────────────────────
   useEffect(() => {
@@ -565,6 +566,23 @@ export default function ProjectForm({
   const inputClass =
     "w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-3 py-2.5 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20";
 
+  // Format number with thousand separators (1234567.89 → 1,234,567.89)
+  const fmtNum = (v: string) => {
+    const clean = v.replace(/[^0-9.]/g, "");
+    const [int, dec] = clean.split(".");
+    const formatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return dec !== undefined ? `${formatted}.${dec}` : formatted;
+  };
+  // Strip commas for storage (1,234,567.89 → 1234567.89)
+  const rawNum = (v: string) => v.replace(/,/g, "");
+  // onChange handler for formatted number inputs
+  const numChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9.,]/g, "");
+    setter(rawNum(raw));
+  };
+  // Display value with formatting
+  const numDisplay = (v: string) => v ? fmtNum(v) : "";
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
@@ -676,7 +694,7 @@ export default function ProjectForm({
               <p className="mb-2 text-xs text-ptba-gray">Gambar utama yang ditampilkan di kartu proyek. Ukuran ideal: <strong>1920 × 1080 px</strong> (rasio 16:9).</p>
               {coverImagePreview ? (
                 <div className="relative inline-block">
-                  <img src={coverImagePreview} alt="Cover" className="h-32 rounded-lg object-cover border border-ptba-light-gray" />
+                  <img src={coverImagePreview} alt="Cover" className="h-32 rounded-lg object-cover border border-ptba-light-gray cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(coverImagePreview)} />
                   <button
                     type="button"
                     onClick={() => { setCoverImageFile(null); setCoverImagePreview(null); }}
@@ -716,7 +734,7 @@ export default function ProjectForm({
               <div className="flex flex-wrap gap-3">
                 {existingDescriptionImages.map((img) => (
                   <div key={img.id} className="relative">
-                    <img src={img.url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray" />
+                    <img src={img.url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(img.url)} />
                     <button
                       type="button"
                       onClick={() => setExistingDescriptionImages((prev) => prev.filter((i) => i.id !== img.id))}
@@ -728,7 +746,7 @@ export default function ProjectForm({
                 ))}
                 {descriptionImagePreviews.map((url, i) => (
                   <div key={i} className="relative">
-                    <img src={url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray" />
+                    <img src={url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(url)} />
                     <button
                       type="button"
                       onClick={() => {
@@ -774,7 +792,7 @@ export default function ProjectForm({
                   <div>
                     <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kapasitas</label>
                     <div className="relative">
-                      <input type="text" placeholder="Contoh: 1250" value={capacityMw} onChange={(e) => setCapacityMw(e.target.value)} className={cn(inputClass, "pr-12")} />
+                      <input type="text" inputMode="decimal" placeholder="1,250" value={numDisplay(capacityMw)} onChange={numChange(setCapacityMw)} className={cn(inputClass, "pr-12")} />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">MW</span>
                     </div>
                   </div>
@@ -783,7 +801,8 @@ export default function ProjectForm({
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Indicative Capex</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
-                    <input type="text" placeholder="1.93 bn" value={indicativeCapex} onChange={(e) => setIndicativeCapex(e.target.value)} className={cn(inputClass, "pl-12")} />
+                    <input type="text" inputMode="decimal" placeholder="1,930" value={numDisplay(indicativeCapex)} onChange={numChange(setIndicativeCapex)} className={cn(inputClass, "pl-12 pr-12")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
                   </div>
                 </div>
               </div>
@@ -797,7 +816,8 @@ export default function ProjectForm({
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Net Present Value (NPV)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
-                    <input type="text" placeholder="±515.8 Mn" value={npv} onChange={(e) => setNpv(e.target.value)} className={cn(inputClass, "pl-12")} />
+                    <input type="text" inputMode="decimal" placeholder="515.8" value={numDisplay(npv)} onChange={numChange(setNpv)} className={cn(inputClass, "pl-12 pr-12")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
                   </div>
                 </div>
                 <div>
@@ -807,42 +827,42 @@ export default function ProjectForm({
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lifetime</label>
                   <div className="relative">
-                    <input type="number" placeholder="30" value={lifetime} onChange={(e) => setLifetime(e.target.value)} className={cn(inputClass, "pr-14")} />
+                    <input type="text" inputMode="numeric" placeholder="30" value={lifetime} onChange={(e) => setLifetime(e.target.value.replace(/[^0-9]/g, ""))} className={cn(inputClass, "pr-14")} />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Years</span>
                   </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Project Internal Rate of Return (Project IRR)</label>
                   <div className="relative">
-                    <input type="number" step="0.01" placeholder="10.70" value={projectIrr} onChange={(e) => setProjectIrr(e.target.value)} className={cn(inputClass, "pr-8")} />
+                    <input type="text" inputMode="decimal" placeholder="10.70" value={projectIrr} onChange={(e) => setProjectIrr(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputClass, "pr-8")} />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">%</span>
                   </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Equity Internal Rate of Return (Equity IRR)</label>
                   <div className="relative">
-                    <input type="number" step="0.01" placeholder="16.69" value={equityIrr} onChange={(e) => setEquityIrr(e.target.value)} className={cn(inputClass, "pr-8")} />
+                    <input type="text" inputMode="decimal" placeholder="16.69" value={equityIrr} onChange={(e) => setEquityIrr(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputClass, "pr-8")} />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">%</span>
                   </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Payback Period</label>
                   <div className="relative">
-                    <input type="number" placeholder="11" value={paybackPeriod} onChange={(e) => setPaybackPeriod(e.target.value)} className={cn(inputClass, "pr-14")} />
+                    <input type="text" inputMode="numeric" placeholder="11" value={paybackPeriod} onChange={(e) => setPaybackPeriod(e.target.value.replace(/[^0-9]/g, ""))} className={cn(inputClass, "pr-14")} />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Years</span>
                   </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Weighted Average Cost of Capital (WACC)</label>
                   <div className="relative">
-                    <input type="number" step="0.01" placeholder="7.7" value={wacc} onChange={(e) => setWacc(e.target.value)} className={cn(inputClass, "pr-8")} />
+                    <input type="text" inputMode="decimal" placeholder="7.7" value={wacc} onChange={(e) => setWacc(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputClass, "pr-8")} />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">%</span>
                   </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tariff Levelized</label>
                   <div className="relative">
-                    <input type="number" step="0.01" placeholder="7.9" value={tariffLevelized} onChange={(e) => setTariffLevelized(e.target.value)} className={cn(inputClass, "pr-20")} />
+                    <input type="text" inputMode="decimal" placeholder="7.9" value={tariffLevelized} onChange={(e) => setTariffLevelized(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputClass, "pr-20")} />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">cUSD/kWh</span>
                   </div>
                 </div>
@@ -850,7 +870,7 @@ export default function ProjectForm({
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Biaya Pokok Produksi (BPP)</label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <input type="number" step="0.01" placeholder="10.5" value={bppValue} onChange={(e) => setBppValue(e.target.value)} className={cn(inputClass, "pr-20")} />
+                      <input type="text" inputMode="decimal" placeholder="10.5" value={bppValue} onChange={(e) => setBppValue(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputClass, "pr-20")} />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">cUSD/kWh</span>
                     </div>
                     <input type="text" placeholder="Lokasi PLN" value={bppLocation} onChange={(e) => setBppLocation(e.target.value)} className={cn(inputClass, "w-28")} />
@@ -1626,6 +1646,16 @@ export default function ProjectForm({
           )}
         </div>
       </div>
+
+      {/* Image Preview Lightbox */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewImage(null)}>
+          <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+            <span className="text-2xl leading-none">&times;</span>
+          </button>
+          <img src={previewImage} alt="" className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }
