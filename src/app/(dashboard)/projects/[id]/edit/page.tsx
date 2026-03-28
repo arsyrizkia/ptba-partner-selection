@@ -162,15 +162,19 @@ export default function EditProjectPage({
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
-      // Upload cover image if new
+      // Upload cover image if new file selected
       if (formData.coverImageFile) {
         const fd = new FormData();
         fd.append("file", formData.coverImageFile);
-        await fetch(`${API_BASE}/projects/${id}/cover-image`, {
+        const coverRes = await fetch(`${API_BASE}/projects/${id}/cover-image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
           body: fd,
         });
+        if (!coverRes.ok) {
+          const errData = await coverRes.json().catch(() => ({}));
+          console.error("Cover image upload failed:", errData);
+        }
       }
 
       // Upload new description images
