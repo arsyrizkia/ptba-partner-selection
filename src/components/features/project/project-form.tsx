@@ -730,11 +730,34 @@ export default function ProjectForm({
             {/* Description Images */}
             <div>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Gambar Deskripsi</label>
-              <p className="mb-2 text-xs text-ptba-gray">Gambar pendukung yang ditampilkan di halaman detail proyek (bisa lebih dari satu).</p>
+              <p className="mb-2 text-xs text-ptba-gray">Gambar pendukung yang ditampilkan di halaman detail proyek (bisa lebih dari satu). Seret untuk mengubah urutan.</p>
               <div className="flex flex-wrap gap-3">
-                {existingDescriptionImages.map((img) => (
-                  <div key={img.id} className="relative">
-                    <img src={img.url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(img.url)} />
+                {/* Existing images (from server) */}
+                {existingDescriptionImages.map((img, idx) => (
+                  <div
+                    key={img.id}
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData("text/plain", `existing-${idx}`); e.currentTarget.classList.add("opacity-50"); }}
+                    onDragEnd={(e) => { e.currentTarget.classList.remove("opacity-50"); }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-ptba-steel-blue"); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove("ring-2", "ring-ptba-steel-blue"); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("ring-2", "ring-ptba-steel-blue");
+                      const src = e.dataTransfer.getData("text/plain");
+                      if (!src.startsWith("existing-")) return;
+                      const fromIdx = parseInt(src.split("-")[1]);
+                      if (fromIdx === idx) return;
+                      setExistingDescriptionImages((prev) => {
+                        const next = [...prev];
+                        const [moved] = next.splice(fromIdx, 1);
+                        next.splice(idx, 0, moved);
+                        return next;
+                      });
+                    }}
+                    className="relative cursor-grab active:cursor-grabbing rounded-lg transition-all"
+                  >
+                    <img src={img.url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(img.url)} />
                     <button
                       type="button"
                       onClick={() => setExistingDescriptionImages((prev) => prev.filter((i) => i.id !== img.id))}
@@ -744,14 +767,43 @@ export default function ProjectForm({
                     </button>
                   </div>
                 ))}
-                {descriptionImagePreviews.map((url, i) => (
-                  <div key={i} className="relative">
-                    <img src={url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(url)} />
+                {/* New images (not yet uploaded) */}
+                {descriptionImagePreviews.map((url, idx) => (
+                  <div
+                    key={`new-${idx}`}
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData("text/plain", `new-${idx}`); e.currentTarget.classList.add("opacity-50"); }}
+                    onDragEnd={(e) => { e.currentTarget.classList.remove("opacity-50"); }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("ring-2", "ring-ptba-steel-blue"); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove("ring-2", "ring-ptba-steel-blue"); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove("ring-2", "ring-ptba-steel-blue");
+                      const src = e.dataTransfer.getData("text/plain");
+                      if (!src.startsWith("new-")) return;
+                      const fromIdx = parseInt(src.split("-")[1]);
+                      if (fromIdx === idx) return;
+                      setDescriptionImageFiles((prev) => {
+                        const next = [...prev];
+                        const [moved] = next.splice(fromIdx, 1);
+                        next.splice(idx, 0, moved);
+                        return next;
+                      });
+                      setDescriptionImagePreviews((prev) => {
+                        const next = [...prev];
+                        const [moved] = next.splice(fromIdx, 1);
+                        next.splice(idx, 0, moved);
+                        return next;
+                      });
+                    }}
+                    className="relative cursor-grab active:cursor-grabbing rounded-lg transition-all"
+                  >
+                    <img src={url} alt="" className="h-24 w-24 rounded-lg object-cover border border-ptba-light-gray hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(url)} />
                     <button
                       type="button"
                       onClick={() => {
-                        setDescriptionImageFiles((prev) => prev.filter((_, idx) => idx !== i));
-                        setDescriptionImagePreviews((prev) => prev.filter((_, idx) => idx !== i));
+                        setDescriptionImageFiles((prev) => prev.filter((_, i) => i !== idx));
+                        setDescriptionImagePreviews((prev) => prev.filter((_, i) => i !== idx));
                       }}
                       className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow"
                     >
