@@ -359,14 +359,9 @@ export default function MitraProjectDetailPage() {
                      !project.isOpenForApplication ? t("notOpenForRegistration") :
                      t("notAcceptingRegistration")}
                   </p>
-                  {!phase1DeadlinePassed && project.phase1Deadline && (
-                    <p className="text-xs text-ptba-steel-blue font-medium">
-                      {locale === "en" ? "Phase 1 Deadline" : "Deadline Fase 1"}: {new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
-                    </p>
-                  )}
                   {project.startDate && (
-                    <p className="text-xs text-ptba-gray">
-                      {locale === "en" ? "Project Period" : "Periode Proyek"}: {new Date(project.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })} — {project.endDate ? new Date(project.endDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                    <p className="text-xs text-ptba-steel-blue font-medium">
+                      {locale === "en" ? "Registration opens" : "Pendaftaran dibuka"}: {new Date(project.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
                     </p>
                   )}
                 </div>
