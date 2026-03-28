@@ -205,10 +205,10 @@ export default function MitraProjectDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow-sm">
+          <div className="rounded-xl bg-white p-6 shadow-sm overflow-hidden">
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("projectDescription")}</h2>
             {project.description ? (
-              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.description }} />
+              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg" dangerouslySetInnerHTML={{ __html: project.description }} />
             ) : (
               <p className="text-sm text-ptba-gray leading-relaxed">{t("noDescription")}</p>
             )}
@@ -353,12 +353,22 @@ export default function MitraProjectDetailPage() {
                   </button>
                 </>
               ) : (
-                <div className="rounded-lg bg-ptba-gray/5 p-4 text-center">
+                <div className="rounded-lg bg-ptba-gray/5 p-4 text-center space-y-2">
                   <p className="text-sm text-ptba-gray">
                     {phase1DeadlinePassed ? t("deadlinePassed") :
                      !project.isOpenForApplication ? t("notOpenForRegistration") :
                      t("notAcceptingRegistration")}
                   </p>
+                  {!phase1DeadlinePassed && project.phase1Deadline && (
+                    <p className="text-xs text-ptba-steel-blue font-medium">
+                      {locale === "en" ? "Phase 1 Deadline" : "Deadline Fase 1"}: {new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                  {project.startDate && (
+                    <p className="text-xs text-ptba-gray">
+                      {locale === "en" ? "Project Period" : "Periode Proyek"}: {new Date(project.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })} — {project.endDate ? new Date(project.endDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
