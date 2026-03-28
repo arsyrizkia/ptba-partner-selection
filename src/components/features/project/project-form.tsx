@@ -128,6 +128,20 @@ export interface ProjectFormData {
   internalUsers: InternalUser[];
   coverImageFile?: File | null;
   descriptionImageFiles?: File[];
+  // Project Viability & Financial Projection
+  location: string;
+  capacityMw: string;
+  indicativeCapex: string;
+  npv: string;
+  der: string;
+  lifetime: string;
+  projectIrr: string;
+  equityIrr: string;
+  paybackPeriod: string;
+  wacc: string;
+  tariffLevelized: string;
+  bppValue: string;
+  bppLocation: string;
 }
 
 export interface ProjectFormProps {
@@ -194,6 +208,21 @@ export default function ProjectForm({
   const [descriptionImagePreviews, setDescriptionImagePreviews] = useState<string[]>([]);
   const [existingDescriptionImages, setExistingDescriptionImages] = useState<{ id: string; url: string }[]>([]);
 
+  // Step 1 — Project Viability & Financial Projection
+  const [location, setLocation] = useState("");
+  const [capacityMw, setCapacityMw] = useState("");
+  const [indicativeCapex, setIndicativeCapex] = useState("");
+  const [npv, setNpv] = useState("");
+  const [der, setDer] = useState("");
+  const [lifetime, setLifetime] = useState("");
+  const [projectIrr, setProjectIrr] = useState("");
+  const [equityIrr, setEquityIrr] = useState("");
+  const [paybackPeriod, setPaybackPeriod] = useState("");
+  const [wacc, setWacc] = useState("");
+  const [tariffLevelized, setTariffLevelized] = useState("");
+  const [bppValue, setBppValue] = useState("");
+  const [bppLocation, setBppLocation] = useState("");
+
   // Step 2
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -239,6 +268,21 @@ export default function ProjectForm({
     setProjectName(project.name || "");
     setProjectType(project.type || "");
     setDescription(typeof project.description === "string" ? project.description : "");
+
+    // Step 1 — Viability & Financial
+    setLocation(project.location || "");
+    setCapacityMw(project.capacityMw || project.capacity_mw || "");
+    setIndicativeCapex(project.indicativeCapex || project.indicative_capex || "");
+    setNpv(project.npv || "");
+    setDer(project.der || "");
+    setLifetime(project.lifetime || "");
+    setProjectIrr(project.projectIrr || project.project_irr || "");
+    setEquityIrr(project.equityIrr || project.equity_irr || "");
+    setPaybackPeriod(project.paybackPeriod || project.payback_period || "");
+    setWacc(project.wacc || "");
+    setTariffLevelized(project.tariffLevelized || project.tariff_levelized || "");
+    setBppValue(project.bppValue || project.bpp_value || "");
+    setBppLocation(project.bppLocation || project.bpp_location || "");
 
     // Step 2
     setStartDate(formatDateForInput(project.startDate as string));
@@ -499,6 +543,19 @@ export default function ProjectForm({
         internalUsers,
         coverImageFile,
         descriptionImageFiles,
+        location,
+        capacityMw,
+        indicativeCapex,
+        npv,
+        der,
+        lifetime,
+        projectIrr,
+        equityIrr,
+        paybackPeriod,
+        wacc,
+        tariffLevelized,
+        bppValue,
+        bppLocation,
       },
       templateFiles,
       andPublish
@@ -702,6 +759,76 @@ export default function ProjectForm({
                 >
                   <Plus className="h-5 w-5" />
                 </button>
+              </div>
+            </div>
+
+            {/* ── Project Viability ── */}
+            <div className="border-t border-ptba-light-gray pt-4 mt-2">
+              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Project Viability</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lokasi</label>
+                  <input type="text" placeholder="Contoh: Mempawah, Kalimantan Barat" value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} />
+                </div>
+                {projectType === "power_generation" && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kapasitas</label>
+                    <div className="relative">
+                      <input type="text" placeholder="Contoh: 1250" value={capacityMw} onChange={(e) => setCapacityMw(e.target.value)} className={cn(inputClass, "pr-12")} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">MW</span>
+                    </div>
+                  </div>
+                )}
+                <div className={projectType !== "power_generation" ? "" : ""}>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Indicative Capex</label>
+                  <input type="text" placeholder="Contoh: USD 1.93 bn" value={indicativeCapex} onChange={(e) => setIndicativeCapex(e.target.value)} className={inputClass} />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Indicative Financial Projection ── */}
+            <div className="border-t border-ptba-light-gray pt-4">
+              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Indicative Financial Projection</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Net Present Value (NPV)</label>
+                  <input type="text" placeholder="Contoh: USD ±515.8 Mn" value={npv} onChange={(e) => setNpv(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Debt to Equity Ratio (DER)</label>
+                  <input type="text" placeholder="Contoh: 70:30" value={der} onChange={(e) => setDer(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lifetime</label>
+                  <input type="text" placeholder="Contoh: 30 Years" value={lifetime} onChange={(e) => setLifetime(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Project Internal Rate of Return (Project IRR)</label>
+                  <input type="text" placeholder="Contoh: 10.70%" value={projectIrr} onChange={(e) => setProjectIrr(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Equity Internal Rate of Return (Equity IRR)</label>
+                  <input type="text" placeholder="Contoh: 16.69%" value={equityIrr} onChange={(e) => setEquityIrr(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Payback Period</label>
+                  <input type="text" placeholder="Contoh: 11 Years" value={paybackPeriod} onChange={(e) => setPaybackPeriod(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Weighted Average Cost of Capital (WACC)</label>
+                  <input type="text" placeholder="Contoh: 7.7%" value={wacc} onChange={(e) => setWacc(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tariff Levelized</label>
+                  <input type="text" placeholder="Contoh: 7.9 cUSD/kWh" value={tariffLevelized} onChange={(e) => setTariffLevelized(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Biaya Pokok Produksi (BPP)</label>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Contoh: 10.5 cUSD/kWh" value={bppValue} onChange={(e) => setBppValue(e.target.value)} className={cn(inputClass, "flex-1")} />
+                    <input type="text" placeholder="Lokasi PLN" value={bppLocation} onChange={(e) => setBppLocation(e.target.value)} className={cn(inputClass, "w-32")} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1314,6 +1441,29 @@ export default function ProjectForm({
                 </div>
               </div>
             </div>
+
+            {/* Project Viability & Financial */}
+            {(location || capacityMw || indicativeCapex || npv || der || lifetime) && (
+              <div className="rounded-lg border border-ptba-light-gray overflow-hidden">
+                <div className="bg-ptba-section-bg px-4 py-2.5">
+                  <h3 className="text-sm font-semibold text-ptba-charcoal">Project Viability & Financial Projection</h3>
+                </div>
+                <div className="divide-y divide-ptba-light-gray/50 px-4">
+                  {location && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Lokasi</span><span className="text-sm font-medium text-ptba-charcoal">{location}</span></div>}
+                  {capacityMw && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Kapasitas</span><span className="text-sm font-medium text-ptba-charcoal">{capacityMw} MW</span></div>}
+                  {indicativeCapex && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Indicative Capex</span><span className="text-sm font-medium text-ptba-charcoal">{indicativeCapex}</span></div>}
+                  {npv && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Net Present Value (NPV)</span><span className="text-sm font-medium text-ptba-charcoal">{npv}</span></div>}
+                  {der && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Debt to Equity Ratio (DER)</span><span className="text-sm font-medium text-ptba-charcoal">{der}</span></div>}
+                  {lifetime && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Lifetime</span><span className="text-sm font-medium text-ptba-charcoal">{lifetime}</span></div>}
+                  {projectIrr && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Project IRR</span><span className="text-sm font-medium text-ptba-charcoal">{projectIrr}</span></div>}
+                  {equityIrr && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Equity IRR</span><span className="text-sm font-medium text-ptba-charcoal">{equityIrr}</span></div>}
+                  {paybackPeriod && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Payback Period</span><span className="text-sm font-medium text-ptba-charcoal">{paybackPeriod}</span></div>}
+                  {wacc && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">WACC</span><span className="text-sm font-medium text-ptba-charcoal">{wacc}</span></div>}
+                  {tariffLevelized && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Tariff (Levelized)</span><span className="text-sm font-medium text-ptba-charcoal">{tariffLevelized}</span></div>}
+                  {bppValue && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">BPP{bppLocation ? ` ${bppLocation}` : ""}</span><span className="text-sm font-medium text-ptba-charcoal">{bppValue}</span></div>}
+                </div>
+              </div>
+            )}
 
             {/* Timeline */}
             <div className="rounded-lg border border-ptba-light-gray overflow-hidden">

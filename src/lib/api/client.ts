@@ -413,6 +413,20 @@ export interface CreateProjectInput {
   picAssignments?: { role: string; userId: string; userName?: string }[];
   phasePics?: { phase: string; role: string; subcategory?: string; userId: string; userName?: string }[];
   ptbaDocuments?: { name: string; type: string }[];
+  registrationFee?: number;
+  location?: string;
+  capacityMw?: string;
+  indicativeCapex?: string;
+  npv?: string;
+  der?: string;
+  lifetime?: string;
+  projectIrr?: string;
+  equityIrr?: string;
+  paybackPeriod?: string;
+  wacc?: string;
+  tariffLevelized?: string;
+  bppValue?: string;
+  bppLocation?: string;
 }
 
 export interface ProjectResponse {

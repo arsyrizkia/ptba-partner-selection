@@ -1761,6 +1761,43 @@ export default function ProjectDetailPage({
               )}
             </div>
 
+            {/* Project Viability */}
+            {(project.location || project.capacity_mw || project.indicative_capex) && (
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <h3 className="mb-4 font-semibold text-ptba-charcoal">Project Viability</h3>
+                <dl className="space-y-3 text-sm">
+                  {project.location && <div className="flex justify-between"><dt className="text-ptba-gray">Lokasi</dt><dd className="font-medium text-ptba-charcoal">{project.location}</dd></div>}
+                  {project.capacity_mw && <div className="flex justify-between"><dt className="text-ptba-gray">Kapasitas</dt><dd className="font-medium text-ptba-charcoal">{project.capacity_mw} MW</dd></div>}
+                  {project.indicative_capex && <div className="flex justify-between"><dt className="text-ptba-gray">Indicative Capex</dt><dd className="font-medium text-ptba-charcoal">{project.indicative_capex}</dd></div>}
+                </dl>
+              </div>
+            )}
+
+            {/* Indicative Financial Projection */}
+            {(project.npv || project.der || project.lifetime || project.project_irr || project.wacc) && (
+              <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+                <h3 className="mb-4 font-semibold text-ptba-charcoal">Indicative Financial Projection</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Net Present Value (NPV)", value: project.npv },
+                    { label: "Debt to Equity Ratio (DER)", value: project.der },
+                    { label: "Lifetime", value: project.lifetime },
+                    { label: "Project IRR", value: project.project_irr },
+                    { label: "Equity IRR", value: project.equity_irr },
+                    { label: "Payback Period", value: project.payback_period },
+                    { label: "WACC", value: project.wacc },
+                    { label: "Tariff (Levelized)", value: project.tariff_levelized },
+                    { label: `BPP${project.bpp_location ? ` ${project.bpp_location}` : ""}`, value: project.bpp_value },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-lg border border-ptba-light-gray p-3 text-center">
+                      <p className="text-[10px] font-semibold text-ptba-navy mb-1">{item.label}</p>
+                      <p className="text-sm font-bold text-ptba-charcoal">{item.value || "-"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Timeline */}
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h3 className="mb-4 font-semibold text-ptba-charcoal">Timeline</h3>

@@ -133,6 +133,19 @@ export default function EditProjectPage({
         phase3Deadline: formData.phase3Deadline || undefined,
         picAssignments: picAssignments.length > 0 ? picAssignments : undefined,
         phasePics: formData.phasePics.length > 0 ? formData.phasePics : undefined,
+        location: formData.location || undefined,
+        capacityMw: formData.capacityMw || undefined,
+        indicativeCapex: formData.indicativeCapex || undefined,
+        npv: formData.npv || undefined,
+        der: formData.der || undefined,
+        lifetime: formData.lifetime || undefined,
+        projectIrr: formData.projectIrr || undefined,
+        equityIrr: formData.equityIrr || undefined,
+        paybackPeriod: formData.paybackPeriod || undefined,
+        wacc: formData.wacc || undefined,
+        tariffLevelized: formData.tariffLevelized || undefined,
+        bppValue: formData.bppValue || undefined,
+        bppLocation: formData.bppLocation || undefined,
       });
 
       // Update requirements
