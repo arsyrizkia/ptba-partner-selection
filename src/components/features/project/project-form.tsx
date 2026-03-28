@@ -779,9 +779,12 @@ export default function ProjectForm({
                     </div>
                   </div>
                 )}
-                <div className={projectType !== "power_generation" ? "" : ""}>
+                <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Indicative Capex</label>
-                  <input type="text" placeholder="Contoh: USD 1.93 bn" value={indicativeCapex} onChange={(e) => setIndicativeCapex(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
+                    <input type="text" placeholder="1.93 bn" value={indicativeCapex} onChange={(e) => setIndicativeCapex(e.target.value)} className={cn(inputClass, "pl-12")} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -792,41 +795,65 @@ export default function ProjectForm({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Net Present Value (NPV)</label>
-                  <input type="text" placeholder="Contoh: USD ±515.8 Mn" value={npv} onChange={(e) => setNpv(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
+                    <input type="text" placeholder="±515.8 Mn" value={npv} onChange={(e) => setNpv(e.target.value)} className={cn(inputClass, "pl-12")} />
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Debt to Equity Ratio (DER)</label>
-                  <input type="text" placeholder="Contoh: 70:30" value={der} onChange={(e) => setDer(e.target.value)} className={inputClass} />
+                  <input type="text" placeholder="70:30" value={der} onChange={(e) => setDer(e.target.value)} className={inputClass} />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lifetime</label>
-                  <input type="text" placeholder="Contoh: 30 Years" value={lifetime} onChange={(e) => setLifetime(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <input type="number" placeholder="30" value={lifetime} onChange={(e) => setLifetime(e.target.value)} className={cn(inputClass, "pr-14")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Years</span>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Project Internal Rate of Return (Project IRR)</label>
-                  <input type="text" placeholder="Contoh: 10.70%" value={projectIrr} onChange={(e) => setProjectIrr(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <input type="number" step="0.01" placeholder="10.70" value={projectIrr} onChange={(e) => setProjectIrr(e.target.value)} className={cn(inputClass, "pr-8")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">%</span>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Equity Internal Rate of Return (Equity IRR)</label>
-                  <input type="text" placeholder="Contoh: 16.69%" value={equityIrr} onChange={(e) => setEquityIrr(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <input type="number" step="0.01" placeholder="16.69" value={equityIrr} onChange={(e) => setEquityIrr(e.target.value)} className={cn(inputClass, "pr-8")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">%</span>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Payback Period</label>
-                  <input type="text" placeholder="Contoh: 11 Years" value={paybackPeriod} onChange={(e) => setPaybackPeriod(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <input type="number" placeholder="11" value={paybackPeriod} onChange={(e) => setPaybackPeriod(e.target.value)} className={cn(inputClass, "pr-14")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Years</span>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Weighted Average Cost of Capital (WACC)</label>
-                  <input type="text" placeholder="Contoh: 7.7%" value={wacc} onChange={(e) => setWacc(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <input type="number" step="0.01" placeholder="7.7" value={wacc} onChange={(e) => setWacc(e.target.value)} className={cn(inputClass, "pr-8")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">%</span>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tariff Levelized</label>
-                  <input type="text" placeholder="Contoh: 7.9 cUSD/kWh" value={tariffLevelized} onChange={(e) => setTariffLevelized(e.target.value)} className={inputClass} />
+                  <div className="relative">
+                    <input type="number" step="0.01" placeholder="7.9" value={tariffLevelized} onChange={(e) => setTariffLevelized(e.target.value)} className={cn(inputClass, "pr-20")} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">cUSD/kWh</span>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Biaya Pokok Produksi (BPP)</label>
                   <div className="flex gap-2">
-                    <input type="text" placeholder="Contoh: 10.5 cUSD/kWh" value={bppValue} onChange={(e) => setBppValue(e.target.value)} className={cn(inputClass, "flex-1")} />
-                    <input type="text" placeholder="Lokasi PLN" value={bppLocation} onChange={(e) => setBppLocation(e.target.value)} className={cn(inputClass, "w-32")} />
+                    <div className="relative flex-1">
+                      <input type="number" step="0.01" placeholder="10.5" value={bppValue} onChange={(e) => setBppValue(e.target.value)} className={cn(inputClass, "pr-20")} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">cUSD/kWh</span>
+                    </div>
+                    <input type="text" placeholder="Lokasi PLN" value={bppLocation} onChange={(e) => setBppLocation(e.target.value)} className={cn(inputClass, "w-28")} />
                   </div>
                 </div>
               </div>
