@@ -182,7 +182,7 @@
     "projectNotFound": "Proyek tidak ditemukan",
     "registrationNotOpen": "Pendaftaran belum dibuka",
     "importantInfo": "INFORMASI PENTING — BACA SEBELUM MENGISI FORMULIR",
-    "eoiIntro": "Formulir Pendaftaran Fase 1 ini merupakan tahap awal (<strong>Fase 1</strong>) dari proses seleksi mitra strategis PT Bukit Asam Persero Tbk. Dengan mengisi formulir ini, perusahaan Anda menyatakan minat untuk berpartisipasi dalam proyek <strong>{projectName}</strong>.",
+    "eoiIntro": "Formulir Pendaftaran ini merupakan tahap awal (<strong>Fase 1</strong>) dari proses seleksi mitra strategis PT Bukit Asam Persero Tbk. Dengan mengisi formulir ini, perusahaan Anda menyatakan minat untuk berpartisipasi dalam proyek <strong>{projectName}</strong>.",
     "requiredDocs": "Dokumen yang Diperlukan:",
     "checkFinalAgreement": "Centang Persetujuan Pernyataan Akhir sebelum mengirim formulir.",
     "docFormat": "Format Dokumen",
