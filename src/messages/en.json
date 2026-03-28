@@ -182,7 +182,7 @@
     "projectNotFound": "Project not found",
     "registrationNotOpen": "Registration is not open",
     "importantInfo": "IMPORTANT INFORMATION — READ BEFORE FILLING OUT THE FORM",
-    "eoiIntro": "This Expression of Interest (EoI) form is the first stage (<strong>Phase 1</strong>) of the PT Bukit Asam Persero Tbk strategic partner selection process. By filling out this form, your company expresses interest in participating in the <strong>{projectName}</strong> project.",
+    "eoiIntro": "This Phase 1 Registration Form is the first stage (<strong>Phase 1</strong>) of the PT Bukit Asam Persero Tbk strategic partner selection process. By filling out this form, your company expresses interest in participating in the <strong>{projectName}</strong> project.",
     "requiredDocs": "Required Documents:",
     "checkFinalAgreement": "Check the Final Agreement before submitting the form.",
     "docFormat": "Document Format",

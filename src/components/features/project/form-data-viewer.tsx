@@ -49,9 +49,9 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const EXPERIENCE_CATEGORY_LABELS: Record<string, { label: string; labelEn: string }> = {
-  developer: { label: "Sebagai Developer yang Berhasil", labelEn: "As a Successful Developer" },
-  om_contractor: { label: "Sebagai Kontraktor O&M yang Berhasil", labelEn: "As a Successful O&M Contractor" },
-  financing: { label: "Sebagai Kontributor Pembiayaan Proyek yang Berhasil", labelEn: "As a Successful Project Financing Contributor" },
+  developer: { label: "Sebagai Developer", labelEn: "As a Successful Developer" },
+  om_contractor: { label: "Sebagai Kontraktor O&M", labelEn: "As a Successful O&M Contractor" },
+  financing: { label: "Sebagai Kontributor Pembiayaan Proyek", labelEn: "As a Successful Project Financing Contributor" },
 };
 
 const EXPERIENCE_SKIP_KEYS = new Set(["uid", "category"]);

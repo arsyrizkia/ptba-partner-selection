@@ -71,9 +71,9 @@ const YEAR_RANGE_OPTIONS = [
 const IPP_CAPTIVE_OPTIONS = ['IPP', 'Captive'];
 const FINANCING_TYPE_OPTIONS = ['Non-Recourse', 'Limited Recourse', 'Corporate Financing', 'Direct Loan', 'Export Credit Facility'];
 const EXPERIENCE_CATEGORIES: { key: ExperienceCategory; label: string; labelEn: string }[] = [
-  { key: 'developer', label: 'Sebagai Developer yang Berhasil', labelEn: 'As a Successful Developer' },
-  { key: 'om_contractor', label: 'Sebagai Kontraktor O&M yang Berhasil', labelEn: 'As a Successful O&M Contractor' },
-  { key: 'financing', label: 'Sebagai Kontributor Pembiayaan Proyek yang Berhasil', labelEn: 'As a Successful Project Financing Contributor' },
+  { key: 'developer', label: 'Sebagai Developer', labelEn: 'As a Successful Developer' },
+  { key: 'om_contractor', label: 'Sebagai Kontraktor O&M', labelEn: 'As a Successful O&M Contractor' },
+  { key: 'financing', label: 'Sebagai Kontributor Pembiayaan Proyek', labelEn: 'As a Successful Project Financing Contributor' },
 ];
 
 // ─── Document-to-Section mapping ───
@@ -1235,9 +1235,19 @@ export default function MitraProjectApplyPage() {
               <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
               <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
               <div className="relative">
-                <input type="text" value={minorityEquityPercent} onChange={(e) => setMinorityEquityPercent(e.target.value)} placeholder="35" className={cn(inputClass, "pr-10")} />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={minorityEquityPercent}
+                  onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.]/g, ""))}
+                  placeholder="49"
+                  className={cn(inputClass, "pr-10", minorityEquityPercent && Number(minorityEquityPercent) < 49 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
               </div>
+              {minorityEquityPercent && Number(minorityEquityPercent) < 49 && (
+                <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Minimum equity percentage is 49%" : "Persentase ekuitas minimum adalah 49%"}</p>
+              )}
             </div>
             <div className="rounded-lg border border-ptba-light-gray p-4">
               <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
