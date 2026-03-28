@@ -7,21 +7,30 @@ const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const MODULES = {
   toolbar: [
-    [{ header: [2, 3, false] }],
-    ["bold", "italic", "underline"],
+    [{ header: [1, 2, 3, false] }],
+    [{ size: ["small", false, "large", "huge"] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ color: [] }, { background: [] }],
+    [{ align: [] }],
     [{ list: "ordered" }, { list: "bullet" }],
-    ["link"],
+    ["link", "image"],
     ["clean"],
   ],
 };
 
 const FORMATS = [
   "header",
+  "size",
   "bold",
   "italic",
   "underline",
+  "strike",
+  "color",
+  "background",
+  "align",
   "list",
   "link",
+  "image",
 ];
 
 interface RichTextEditorProps {
