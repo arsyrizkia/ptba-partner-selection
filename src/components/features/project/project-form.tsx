@@ -293,28 +293,40 @@ export default function ProjectForm({
     setPhase3Deadline(formatDateForInput(project.phase3Deadline as string));
     setIsOpenForApplication(!!project.isOpenForApplication);
 
-    // Cover image preview
-    if (project.coverImageKey && accessToken) {
+    // Cover image preview — use presigned URL if already returned by API
+    if (project.coverImageUrl) {
+      setCoverImagePreview(project.coverImageUrl);
+    } else if (project.coverImageKey && accessToken) {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
       fetch(`${API_BASE}/documents/download/${project.coverImageKey}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       }).then(r => r.json()).then(d => { if (d.url) setCoverImagePreview(d.url); }).catch(() => {});
     }
 
-    // Description images
-    if (project.projectImages && Array.isArray(project.projectImages) && accessToken) {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
-      Promise.all(
-        project.projectImages.map(async (img: any) => {
-          try {
-            const r = await fetch(`${API_BASE}/documents/download/${img.fileKey}`, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            const d = await r.json();
-            return { id: img.id, url: d.url || "" };
-          } catch { return { id: img.id, url: "" }; }
-        })
-      ).then(setExistingDescriptionImages);
+    // Description images — use presigned URLs already returned by API
+    if (project.projectImages && Array.isArray(project.projectImages)) {
+      const images = project.projectImages
+        .filter((img: any) => img.url)
+        .map((img: any) => ({ id: img.id, url: img.url }));
+      if (images.length > 0) {
+        setExistingDescriptionImages(images);
+      } else if (accessToken) {
+        // Fallback: fetch presigned URLs if not included
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+        Promise.all(
+          project.projectImages.map(async (img: any) => {
+            try {
+              const key = img.fileKey || img.file_key;
+              if (!key) return { id: img.id, url: "" };
+              const r = await fetch(`${API_BASE}/documents/download/${key}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              const d = await r.json();
+              return { id: img.id, url: d.url || "" };
+            } catch { return { id: img.id, url: "" }; }
+          })
+        ).then(setExistingDescriptionImages);
+      }
     }
 
     // Supporting files from ptbaDocuments
