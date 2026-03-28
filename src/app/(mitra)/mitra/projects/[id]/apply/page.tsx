@@ -1401,7 +1401,7 @@ export default function MitraProjectApplyPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.totalCapacity")} <span className="text-ptba-red">*</span></label>
-                  <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value)} className={inputClass} />
+                  <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} inputMode="decimal" value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
                 </div>
 
                 {/* Developer-specific fields */}
@@ -1409,7 +1409,7 @@ export default function MitraProjectApplyPage() {
                   <>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.equity")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.equityPlaceholder")} value={exp.equityPercent} onChange={(e) => updateExperience(i, "equityPercent", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.equityPlaceholder")} inputMode="decimal" value={exp.equityPercent} onChange={(e) => updateExperience(i, "equityPercent", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.ippCaptive")} <span className="text-ptba-red">*</span></label>
@@ -1420,7 +1420,7 @@ export default function MitraProjectApplyPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.codYear")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} inputMode="numeric" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value.replace(/[^0-9]/g, ""))} className={inputClass} />
                     </div>
                   </>
                 )}
@@ -1430,11 +1430,11 @@ export default function MitraProjectApplyPage() {
                   <>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.contractValue")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.contractValuePlaceholder")} value={exp.contractValueUSD} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.contractValuePlaceholder")} inputMode="decimal" value={exp.contractValueUSD} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.workPortion")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.workPortionPlaceholder")} value={exp.workPortionPercent} onChange={(e) => updateExperience(i, "workPortionPercent", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.workPortionPlaceholder")} inputMode="decimal" value={exp.workPortionPercent} onChange={(e) => updateExperience(i, "workPortionPercent", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.ippCaptive")} <span className="text-ptba-red">*</span></label>
@@ -1445,7 +1445,7 @@ export default function MitraProjectApplyPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.codYear")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} inputMode="numeric" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value.replace(/[^0-9]/g, ""))} className={inputClass} />
                     </div>
                   </>
                 )}
@@ -1462,11 +1462,11 @@ export default function MitraProjectApplyPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.amount")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.amountPlaceholder")} value={exp.amountUSD} onChange={(e) => updateExperience(i, "amountUSD", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.amountPlaceholder")} inputMode="decimal" value={exp.amountUSD} onChange={(e) => updateExperience(i, "amountUSD", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.year")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.yearPlaceholder")} value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value)} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.yearPlaceholder")} inputMode="numeric" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value.replace(/[^0-9]/g, ""))} className={inputClass} />
                     </div>
                   </>
                 )}

@@ -137,7 +137,9 @@ export default function MitraProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {filtered.map((project) => {
-            const hasApplied = appliedProjectIds.has(project.id);
+            const application = applications.find((a) => a.project_id === project.id);
+            const hasApplied = !!application;
+            const isDraft = application?.status === "Draft";
             const canApply = project.isOpenForApplication && !hasApplied;
 
             return (
@@ -160,10 +162,15 @@ export default function MitraProjectsPage() {
                       <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", typeBadge(project.type))}>
                         {tc(`typeLabels.${project.type}`)}
                       </span>
-                      {hasApplied && (
+                      {hasApplied && !isDraft && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 border border-green-200">
                           <CheckCircle2 className="h-3 w-3" />
                           {t("alreadyRegistered")}
+                        </span>
+                      )}
+                      {isDraft && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
+                          {locale === "en" ? "Draft" : "Proses Pendaftaran"}
                         </span>
                       )}
                       {canApply && (
