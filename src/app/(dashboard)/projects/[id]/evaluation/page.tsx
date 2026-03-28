@@ -94,7 +94,7 @@ export default function EvaluationHubPage({
   const isPhase1 = isPhase1Active || isPhase1Approved;
   const isPhase2 = project.phase?.startsWith("phase2");
 
-  // Redirect Phase 2 projects to the dedicated hub
+  // Redirect Fase 2 projects to the dedicated hub
   useEffect(() => {
     if (isPhase2) {
       router.replace(`/projects/${id}/evaluation/phase2`);
@@ -109,7 +109,7 @@ export default function EvaluationHubPage({
     );
   }
 
-  // For Phase 2, only show shortlisted partners
+  // For Fase 2, only show shortlisted partners
   const partnerIds = isPhase2 && project.shortlistedPartners
     ? project.shortlistedPartners
     : project.partners;
@@ -200,7 +200,7 @@ export default function EvaluationHubPage({
         </div>
       </div>
 
-      {/* Phase 1 Active: EBD-only evaluation cards */}
+      {/* Fase 1 Active: EBD-only evaluation cards */}
       {isPhase1Active && (
         <div className="space-y-4">
           {projectPartners.map((partner) => {
@@ -267,7 +267,7 @@ export default function EvaluationHubPage({
         </div>
       )}
 
-      {/* Phase 1 Approved: Payment Verification View */}
+      {/* Fase 1 Approved: Payment Verification View */}
       {isPhase1Approved && (() => {
         const shortlistedIds = project.shortlistedPartners ?? [];
         const shortlistedApps = shortlistedIds.map((pid) => {
@@ -301,7 +301,7 @@ export default function EvaluationHubPage({
                   <div>
                     <h3 className="text-sm font-bold text-green-800">Verifikasi Pembayaran Mitra</h3>
                     <p className="text-xs text-green-700 mt-0.5">
-                      Fase 1 telah disetujui Direksi. Verifikasi bukti pembayaran dari {shortlistedApps.length} mitra shortlist sebelum memulai Fase 2.
+                      Fase 1 telah disetujui Ketua Tim. Verifikasi bukti pembayaran dari {shortlistedApps.length} mitra shortlist sebelum memulai Fase 2.
                     </p>
                   </div>
                 </div>
@@ -517,7 +517,7 @@ export default function EvaluationHubPage({
         );
       })()}
 
-      {/* Phase 2: Full 5-division evaluation cards (shortlisted mitra only) */}
+      {/* Fase 2: Full 5-division evaluation cards (shortlisted mitra only) */}
       {(isPhase2 || (!isPhase1 && !isPhase2)) && (
         <div className="space-y-4">
           {projectPartners.map((partner) => {

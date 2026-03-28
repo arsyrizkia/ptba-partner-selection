@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Building2,
   Phone,
-  Mail,
   MapPin,
   Globe,
   User,
@@ -68,10 +67,6 @@ export function PartnerInfoPanel({ partner }: { partner: Partner }) {
           <div className="flex items-center gap-2">
             <Phone className="h-3.5 w-3.5 shrink-0 text-ptba-gray" />
             <span className="text-ptba-charcoal">{partner.phone}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Mail className="h-3.5 w-3.5 shrink-0 text-ptba-gray" />
-            <span className="text-ptba-charcoal truncate">{partner.email}</span>
           </div>
           {partner.website && (
             <div className="flex items-center gap-2">

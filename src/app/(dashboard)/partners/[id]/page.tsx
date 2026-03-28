@@ -133,7 +133,7 @@ function ProfilTab({ partner }: { partner: Partner }) {
     { label: "Industri", value: partner.industry },
     { label: "Alamat", value: partner.address },
     { label: "Telepon", value: partner.phone },
-    { label: "Email", value: partner.email },
+    { label: "Domain Email", value: partner.company_domain ? `@${partner.company_domain}` : "-" },
     { label: "Website", value: partner.website || "-" },
     { label: "NPWP", value: partner.npwp },
     { label: "SIUP", value: partner.siup },

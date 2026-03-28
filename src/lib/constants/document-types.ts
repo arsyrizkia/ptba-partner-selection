@@ -3,17 +3,20 @@ export interface DocumentTypeDef {
   name: string;
   description: string;
   required: boolean;
+  hidden?: boolean;
   category: 'legal' | 'keuangan' | 'teknis' | 'administrasi';
-  phase?: 'phase1' | 'phase2' | 'both';
+  phase?: 'phase1' | 'phase2' | 'phase3' | 'both';
 }
 
 /**
- * 17 jenis dokumen kualifikasi mitra sesuai TCK 5.1.3
- * + Phase 1 EoI document types
- * + Phase 2 detailed assessment document types
+ * Document types per phase:
+ * - Phase 1: EoI / Pre-qualification
+ * - Phase 2: Detailed Assessment (sistem gugur)
+ * - Phase 3: Final Proposal & Ranking
+ * - Both: General qualification docs
  */
 export const DOCUMENT_TYPES: DocumentTypeDef[] = [
-  // === Existing documents (both phases / legacy) ===
+  // === General documents (all phases / legacy) ===
   {
     id: 'akta_pendirian',
     name: 'Akta Pendirian',
@@ -151,7 +154,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     phase: 'both',
   },
 
-  // === Phase 1 EoI Document Types ===
+  // === Fase 1: EoI Document Types ===
   {
     id: 'statement_eoi',
     name: 'Statement of Expression of Interest',
@@ -188,12 +191,29 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     id: 'requirements_fulfillment',
     name: 'Pemenuhan Persyaratan',
     description: 'Dokumen yang menunjukkan pemenuhan persyaratan dasar proyek',
-    required: true,
+    required: false,
+    hidden: true,
     category: 'administrasi',
     phase: 'phase1',
   },
+  {
+    id: 'confidential_guarantee_letter',
+    name: 'Confidential Guarantee Statement Letter',
+    description: 'Surat pernyataan jaminan kerahasiaan informasi proyek',
+    required: true,
+    category: 'legal',
+    phase: 'phase1',
+  },
+  {
+    id: 'adherent_letter',
+    name: 'Adherent Letter',
+    description: 'Surat pernyataan kepatuhan terhadap syarat dan ketentuan seleksi',
+    required: true,
+    category: 'legal',
+    phase: 'phase1',
+  },
 
-  // === Phase 2 Detailed Assessment Document Types ===
+  // === Fase 2: Detailed Assessment Document Types (sistem gugur) ===
   {
     id: 'confidential_guarantee_signed',
     name: 'Confidential Guarantee (Signed)',
@@ -208,14 +228,6 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Surat pernyataan niat kerjasama yang telah ditandatangani',
     required: true,
     category: 'legal',
-    phase: 'phase2',
-  },
-  {
-    id: 'proposal_detail',
-    name: 'Proposal Detail',
-    description: 'Proposal teknis dan komersial secara detail untuk proyek',
-    required: true,
-    category: 'teknis',
     phase: 'phase2',
   },
   {
@@ -234,8 +246,43 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     category: 'administrasi',
     phase: 'phase2',
   },
+
+  // === Fase 3: Final Proposal & Ranking Document Types ===
+  {
+    id: 'proposal_detail',
+    name: 'Proposal Teknis & Komersial',
+    description: 'Proposal teknis dan komersial secara detail termasuk nilai penawaran',
+    required: true,
+    category: 'teknis',
+    phase: 'phase3',
+  },
+  {
+    id: 'rencana_kerja',
+    name: 'Rencana Kerja & Jadwal',
+    description: 'Rencana kerja detail dan jadwal pelaksanaan proyek',
+    required: true,
+    category: 'teknis',
+    phase: 'phase3',
+  },
+  {
+    id: 'rab',
+    name: 'Rencana Anggaran Biaya (RAB)',
+    description: 'Rincian anggaran biaya proyek secara detail',
+    required: true,
+    category: 'keuangan',
+    phase: 'phase3',
+  },
+  {
+    id: 'jaminan_pelaksanaan',
+    name: 'Jaminan Pelaksanaan',
+    description: 'Jaminan pelaksanaan dari bank atau lembaga keuangan',
+    required: true,
+    category: 'keuangan',
+    phase: 'phase3',
+  },
 ];
 
 export const PHASE1_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase1');
 export const PHASE2_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase2');
+export const PHASE3_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase3');
 export const LEGACY_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'both');

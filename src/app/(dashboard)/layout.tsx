@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { useAuth } from "@/lib/auth/auth-context";
-import RoleSwitcher from "@/components/layout/role-switcher";
 
 const pageTitleMap: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -60,7 +59,6 @@ export default function DashboardLayout({
       <Sidebar currentPath={pathname} />
       <Header title={title} />
       <main className="ml-[260px] min-h-screen pt-16 p-6">{children}</main>
-      <RoleSwitcher />
     </div>
   );
 }

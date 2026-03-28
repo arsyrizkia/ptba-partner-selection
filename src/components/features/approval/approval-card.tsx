@@ -102,7 +102,7 @@ export function ApprovalCard({ approval }: ApprovalCardProps) {
                     approval.phase === "phase1" ? "bg-ptba-navy" : "bg-ptba-steel-blue"
                   )}
                 >
-                  {approval.phase === "phase1" ? "Fase 1" : "Fase 2"}
+                  {approval.phase === "phase1" ? "Evaluasi" : approval.phase === "phase2" ? "PQ" : "Proposal & FRP"}
                 </span>
               )}
               <Badge variant={getPriorityVariant(approval.priority)}>
@@ -187,7 +187,7 @@ export function ApprovalCard({ approval }: ApprovalCardProps) {
             <div className="flex items-center gap-2 text-xs mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
               <XCircle className="h-3.5 w-3.5 text-red-600 flex-shrink-0" />
               <span className="text-red-700 font-medium">
-                Ditolak oleh Direksi
+                Ditolak oleh Ketua Tim
               </span>
             </div>
           )}

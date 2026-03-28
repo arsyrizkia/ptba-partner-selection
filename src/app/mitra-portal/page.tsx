@@ -59,7 +59,7 @@ export default function MitraPortalPage() {
           <div className="flex items-center gap-3">
             <Image
               src="/ptba-logo.svg"
-              alt="PT Bukit Asam Tbk"
+              alt="PT Bukit Asam Persero Tbk"
               width={140}
               height={25}
               priority
@@ -99,7 +99,7 @@ export default function MitraPortalPage() {
             Portal Mitra PT Bukit Asam
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
-            Sistem pemilihan mitra terintegrasi untuk proyek-proyek strategis PT Bukit Asam Tbk.
+            Sistem pemilihan mitra terintegrasi untuk proyek-proyek strategis PT Bukit Asam Persero Tbk.
             Daftarkan perusahaan Anda, unggah dokumen, dan ikuti proses seleksi secara transparan.
           </p>
           <div className="mt-8 flex items-center justify-center gap-4">
@@ -208,13 +208,13 @@ export default function MitraPortalPage() {
         <div className="mx-auto max-w-6xl px-6 text-center">
           <Image
             src="/ptba-logo.svg"
-            alt="PT Bukit Asam Tbk"
+            alt="PT Bukit Asam Persero Tbk"
             width={120}
             height={22}
             className="mx-auto"
           />
           <p className="mt-3 text-xs text-ptba-gray">
-            PT Bukit Asam Tbk - Sistem Pemilihan Mitra
+            PT Bukit Asam Persero Tbk - Sistem Pemilihan Mitra
           </p>
         </div>
       </footer>

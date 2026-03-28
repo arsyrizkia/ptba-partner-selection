@@ -1,155 +1,182 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, Download, FileText, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockApplications } from "@/lib/mock-data/applications";
+import { api, projectApi } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { formatDate } from "@/lib/utils/format";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 function typeBadge(type: string) {
-  switch (type) {
-    case "CAPEX": return "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20";
-    case "OPEX": return "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20";
-    case "Strategis": return "bg-purple-100 text-purple-700 border border-purple-200";
-    default: return "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
-  }
+  const map: Record<string, string> = {
+    mining: "bg-amber-100 text-amber-700 border border-amber-200",
+    power_generation: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
+    coal_processing: "bg-ptba-gold/10 text-ptba-gold border border-ptba-gold/20",
+    infrastructure: "bg-blue-100 text-blue-700 border border-blue-200",
+    environmental: "bg-green-100 text-green-700 border border-green-200",
+    corporate: "bg-gray-100 text-gray-600 border border-gray-200",
+    others: "bg-purple-100 text-purple-700 border border-purple-200",
+  };
+  return map[type] ?? "bg-ptba-gray/10 text-ptba-gray border border-ptba-gray/20";
 }
 
-function phaseLabel(phase?: string): string {
+function phaseLabel(phase: string | undefined, tc: (key: string) => string): string {
   if (!phase) return "";
-  const map: Record<string, string> = {
-    phase1_registration: "Phase 1 - Pendaftaran EoI",
-    phase1_closed: "Phase 1 - Pendaftaran Ditutup",
-    phase1_evaluation: "Phase 1 - Evaluasi",
-    phase1_approval: "Phase 1 - Persetujuan",
-    phase1_announcement: "Phase 1 - Pengumuman",
-    phase2_registration: "Phase 2 - Pendaftaran",
-    phase2_evaluation: "Phase 2 - Evaluasi",
-    phase2_ranking: "Phase 2 - Peringkat",
-    phase2_negotiation: "Phase 2 - Negosiasi",
-    phase2_approval: "Phase 2 - Persetujuan",
-    phase2_announcement: "Phase 2 - Pengumuman",
-    completed: "Selesai",
-    cancelled: "Dibatalkan",
-  };
-  return map[phase] ?? "";
+  return tc(`phaseLabels.${phase}`) || "";
 }
 
 export default function MitraProjectDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const projectId = params.id as string;
+  const t = useTranslations("projectDetail");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
 
-  const project = mockProjects.find((p) => p.id === projectId);
-  const application = useMemo(
-    () => mockApplications.find((a) => a.projectId === projectId && a.partnerId === user?.partnerId),
-    [projectId, user?.partnerId]
-  );
+  const [project, setProject] = useState<any>(null);
+  const [application, setApplication] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const dateLocale = locale === "en" ? "en-US" : "id-ID";
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoading(true);
+    Promise.all([
+      projectApi(accessToken).getById(projectId),
+      api<{ applications: any[] }>("/applications", { token: accessToken }),
+    ]).then(([projRes, appRes]) => {
+      setProject(projRes.data);
+      const apps = appRes.applications || [];
+      setApplication(apps.find((a: any) => a.project_id === projectId) || null);
+    }).catch(() => {
+      setProject(null);
+    }).finally(() => setLoading(false));
+  }, [projectId, accessToken]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">{tc("loadingProject")}</span>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
       <div className="space-y-6">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-          <ArrowLeft className="h-4 w-4" /> Kembali
+          <ArrowLeft className="h-4 w-4" /> {tc("back")}
         </button>
         <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <p className="text-ptba-gray">Proyek tidak ditemukan.</p>
+          <p className="text-ptba-gray">{tc("projectNotFound")}</p>
         </div>
       </div>
     );
   }
 
-  const isDeadlinePassed = project.applicationDeadline && new Date(project.applicationDeadline) < new Date();
   const phase1DeadlinePassed = project.phase1Deadline && new Date(project.phase1Deadline) < new Date();
-  const canApply = project.isOpenForApplication && !phase1DeadlinePassed && !isDeadlinePassed && !application;
-  const isShortlisted = application?.phase1Result === "Lolos";
+  const hasPendingApplication = application && application.status !== "Draft";
+  const canApply = project.isOpenForApplication && !phase1DeadlinePassed && !hasPendingApplication;
   const isPhase2 = project.phase?.startsWith("phase2");
+  const isPhase3 = project.phase?.startsWith("phase3");
+  const isShortlisted = application?.status === "Shortlisted";
+  const isPassedPhase2 = application?.status === "Diterima" || application?.status === "Terpilih";
   const canAccessPhase2 = isShortlisted && isPhase2;
 
-  const requiredDocTypes = (project.requiredDocuments ?? [])
-    .map((id) => DOCUMENT_TYPES.find((d) => d.id === id))
-    .filter(Boolean);
+  // Required documents from project - grouped by phase
+  const requiredDocs = project.requiredDocuments || [];
+  const getDocName = (docTypeId: string) => {
+    try { return tc(`docTypes.${docTypeId}`); } catch { return docTypeId.replace(/_/g, " "); }
+  };
+  const phase1RequiredDocs = requiredDocs
+    .filter((d: any) => d.phase === "phase1" || d.phase === "both")
+    .map((d: any) => {
+      const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+      return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
+    });
+  const phase2RequiredDocs = requiredDocs
+    .filter((d: any) => d.phase === "phase2" || d.phase === "both")
+    .map((d: any) => {
+      const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+      return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
+    });
+  const phase3RequiredDocs = requiredDocs
+    .filter((d: any) => d.phase === "phase3")
+    .map((d: any) => {
+      const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+      return { id: d.documentTypeId, name: getDocName(d.documentTypeId), required: meta?.required ?? false, phase: d.phase };
+    });
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
   return (
     <div className="space-y-6">
       <button onClick={() => router.push("/mitra/projects")} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
-        <ArrowLeft className="h-4 w-4" /> Kembali ke Proyek
+        <ArrowLeft className="h-4 w-4" /> {tc("backToProjects")}
       </button>
 
       {/* Project Header */}
-      <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
+      <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue text-white overflow-hidden">
+        <div className={cn("flex flex-col", project.coverImageUrl ? "lg:flex-row" : "")}>
+        {project.coverImageUrl && (
+          <div className="lg:w-[400px] shrink-0">
+            <img src={project.coverImageUrl} alt="" className="w-full h-48 lg:h-full object-cover" />
+          </div>
+        )}
+        <div className="flex-1 p-6">
         <div className="flex flex-wrap gap-2 mb-3">
-          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.type}</span>
+          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{tc(`typeLabels.${project.type}`)}</span>
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status}</span>
-          {project.phase && (
+          {project.phase && project.phase !== "published" && (
             <span className="inline-flex rounded-full bg-white/30 px-2.5 py-0.5 text-xs font-semibold">
-              {phaseLabel(project.phase)}
+              {phaseLabel(project.phase, tc)}
             </span>
           )}
         </div>
         <h1 className="text-2xl font-bold">{project.name}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
-          <span>Nilai: {formatCurrency(project.capexValue)}</span>
-          <span>Periode: {formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
+          {project.startDate && (
+            <span>
+              {locale === "en" ? "Period" : "Periode"}: {new Date(project.startDate).toLocaleDateString(dateLocale)} - {new Date(project.endDate).toLocaleDateString(dateLocale)}
+            </span>
+          )}
           {project.phase1Deadline && (
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              Deadline Phase 1: {formatDate(project.phase1Deadline)}
+              {locale === "en" ? "Phase 1 Deadline" : "Deadline Fase 1"}: {new Date(project.phase1Deadline).toLocaleDateString(dateLocale)}
             </span>
           )}
         </div>
 
         {/* Phase Progress */}
-        {project.phase && (
+        {project.phase && project.phase !== "published" && (
           <div className="mt-4">
-            <div className="flex items-center gap-2 text-xs text-white/70 mb-1.5">
-              <span>Langkah {project.currentStep}/{project.totalSteps}</span>
+            <div className="flex items-center justify-between text-xs text-white/70 mb-1.5">
+              <span>{t("step", { current: project.currentStep, total: project.totalSteps || 16 })}</span>
+              <span className="font-semibold text-white">{Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%</span>
             </div>
-            <div className="flex items-center gap-0">
-              <div className="flex-1">
-                <div className="flex gap-0.5 overflow-hidden rounded-l-full">
-                  {Array.from({ length: 7 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-2 flex-1",
-                        i + 1 < project.currentStep ? "bg-white/80" :
-                        i + 1 === project.currentStep ? "bg-ptba-gold" : "bg-white/20"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="w-0.5 h-3 bg-white/30 mx-0.5" />
-              <div className="flex-1">
-                <div className="flex gap-0.5 overflow-hidden rounded-r-full">
-                  {Array.from({ length: 6 }).map((_, i) => {
-                    const step = i + 8;
-                    return (
-                      <div
-                        key={i}
-                        className={cn(
-                          "h-2 flex-1",
-                          step < project.currentStep ? "bg-white/80" :
-                          step === project.currentStep ? "bg-ptba-gold" : "bg-white/20"
-                        )}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="h-2 rounded-full bg-white/20 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-white/90 via-ptba-gold to-ptba-gold transition-all duration-500"
+                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%` }}
+              />
             </div>
-            <div className="mt-1 flex justify-between text-[10px] text-white/50">
-              <span>Phase 1</span>
-              <span>Phase 2</span>
+            <div className="mt-1.5 flex text-[10px] text-white/50">
+              <span style={{ width: "37.5%" }}>{tc("phase1")}</span>
+              <span style={{ width: "31.25%" }}>{tc("phase2")}</span>
+              <span style={{ width: "31.25%" }} className="text-right">{tc("phase3")}</span>
             </div>
           </div>
         )}
+        </div>
+        </div>
       </div>
 
       {/* Shortlist Announcement */}
@@ -158,34 +185,18 @@ export default function MitraProjectDetailPage() {
           <div className="flex items-start gap-3">
             <ShieldCheck className="h-6 w-6 shrink-0 text-green-600 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-green-800">Selamat! Perusahaan Anda Lolos Phase 1</p>
+              <p className="text-sm font-bold text-green-800">{t("shortlistCongrats")}</p>
               <p className="mt-1 text-xs text-green-700">
-                Anda telah lolos tahap evaluasi Phase 1 (Expression of Interest) dan diundang untuk melanjutkan ke Phase 2 (Detailed Assessment).
+                {canAccessPhase2 ? t("shortlistPhase2Ready") : t("shortlistPhase2Email")}
               </p>
               {canAccessPhase2 && (
                 <button
                   onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
                 >
-                  Lanjut ke Phase 2 <ArrowRight className="h-4 w-4" />
+                  {t("continueToPhase2")} <ArrowRight className="h-4 w-4" />
                 </button>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {application?.phase1Result === "Tidak Lolos" && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
-              <span className="text-xs font-bold text-red-600">!</span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-red-800">Tidak Lolos Phase 1</p>
-              <p className="mt-1 text-xs text-red-700">
-                Maaf, perusahaan Anda belum memenuhi kriteria evaluasi Phase 1 untuk proyek ini. Terima kasih atas partisipasi Anda.
-              </p>
             </div>
           </div>
         </div>
@@ -194,174 +205,235 @@ export default function MitraProjectDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Deskripsi Proyek</h2>
-            <p className="text-sm text-ptba-gray leading-relaxed">{project.description}</p>
+          <div className="rounded-xl bg-white p-6 shadow-sm overflow-hidden">
+            <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("projectDescription")}</h2>
+            {project.description ? (
+              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg" dangerouslySetInnerHTML={{ __html: project.description }} />
+            ) : (
+              <p className="text-sm text-ptba-gray leading-relaxed">{t("noDescription")}</p>
+            )}
+            {project.projectImages && project.projectImages.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {project.projectImages.map((img: any) => (
+                  <img
+                    key={img.id}
+                    src={img.url}
+                    alt={img.caption || ""}
+                    className="w-full rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(img.url, "_blank")}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
-          {project.prdDocument && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Dokumen Pendukung</h2>
-              <div className="flex items-center justify-between rounded-lg border border-ptba-light-gray p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ptba-red/10">
-                    <FileText className="h-5 w-5 text-ptba-red" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-ptba-charcoal">{project.prdDocument}</p>
-                    <p className="text-xs text-ptba-gray">PDF Document</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => alert("Download simulasi: " + project.prdDocument)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-3 py-2 text-xs font-medium text-white hover:bg-ptba-navy/90 transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5" /> Unduh
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* Requirements */}
           {project.requirements && project.requirements.length > 0 && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">Persyaratan Mitra</h2>
+              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("partnerRequirements")}</h2>
               <ol className="space-y-2">
-                {project.requirements.map((req, idx) => (
+                {project.requirements.map((req: any, idx: number) => (
                   <li key={idx} className="flex gap-3 text-sm text-ptba-gray">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ptba-steel-blue/10 text-xs font-semibold text-ptba-steel-blue">
                       {idx + 1}
                     </span>
-                    <span className="pt-0.5">{req}</span>
+                    <span className="pt-0.5">{req.requirement || req}</span>
                   </li>
                 ))}
               </ol>
             </div>
           )}
+
+          {/* PTBA Documents - downloadable by mitra (phase 1 only) */}
+          {(() => {
+            const phase1Docs = (project.ptbaDocuments || []).filter((d: any) => !d.phase || d.phase === "phase1");
+            return phase1Docs.length > 0 ? (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("supportDocuments")}</h2>
+              <p className="text-xs text-ptba-gray mb-3">{t("supportDocumentsDesc")}</p>
+              <div className="space-y-2">
+                {phase1Docs.map((doc: any) => (
+                  <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
+                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name}</p>
+                      <p className="text-xs text-ptba-gray">{doc.type}</p>
+                    </div>
+                    {doc.fileKey && accessToken && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/projects/${projectId}/documents/${doc.id}`, {
+                              headers: { Authorization: `Bearer ${accessToken}` },
+                            });
+                            if (!res.ok) return;
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            window.open(url, "_blank");
+                          } catch { /* ignore */ }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
+                      >
+                        <Download className="h-3 w-3" />
+                        {tc("download")}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null;
+          })()}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Application Status or CTA */}
-          {application ? (
+          {application && application.status !== "Draft" ? (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Status Lamaran Anda</h3>
+              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">{t("yourApplicationStatus")}</h3>
               <div className={cn(
                 "rounded-lg p-4 text-center",
-                application.status === "Terpilih" ? "bg-green-50 border border-green-200" :
+                application.status === "Shortlisted" ? "bg-green-50 border border-green-200" :
                 application.status === "Ditolak" ? "bg-red-50 border border-red-200" :
                 "bg-ptba-steel-blue/5 border border-ptba-steel-blue/20"
               )}>
                 <p className={cn(
                   "text-lg font-bold",
-                  application.status === "Terpilih" ? "text-green-700" :
+                  application.status === "Shortlisted" ? "text-green-700" :
                   application.status === "Ditolak" ? "text-ptba-red" : "text-ptba-steel-blue"
                 )}>
                   {application.status}
                 </p>
-                <p className="mt-1 text-xs text-ptba-gray">Diajukan: {formatDate(application.appliedAt)}</p>
-
-                {/* Phase info */}
-                {application.phase && (
-                  <p className="mt-1 text-xs font-medium text-ptba-steel-blue">
-                    {application.phase === "phase1" ? "Phase 1 (EoI)" : "Phase 2 (Assessment)"}
-                  </p>
-                )}
-
-                {/* Phase 1 Result */}
-                {application.phase1Result && (
-                  <div className="mt-2">
-                    <span className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      application.phase1Result === "Lolos" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                    )}>
-                      {application.phase1Result === "Lolos" && <CheckCircle2 className="h-3 w-3" />}
-                      Phase 1: {application.phase1Result}
-                    </span>
-                  </div>
-                )}
-
-                {application.currentEvalStep && application.totalEvalSteps && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs text-ptba-gray mb-1">
-                      <span>Progres Evaluasi</span>
-                      <span>{application.currentEvalStep}/{application.totalEvalSteps}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-ptba-light-gray">
-                      <div className="h-full rounded-full bg-ptba-steel-blue" style={{ width: `${Math.round((application.currentEvalStep / application.totalEvalSteps) * 100)}%` }} />
-                    </div>
-                  </div>
-                )}
+                <p className="mt-1 text-xs text-ptba-gray">
+                  {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(dateLocale)}
+                </p>
               </div>
 
               <div className="mt-3 space-y-2">
                 <button
-                  onClick={() => router.push("/mitra/status")}
+                  onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
                   className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
                 >
-                  Lihat Detail Status
+                  {locale === "en" ? "View Submission" : "Lihat Pendaftaran"}
                 </button>
                 {canAccessPhase2 && (
                   <button
                     onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
                     className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
                   >
-                    Lanjut ke Phase 2
+                    {t("continueToPhase2")}
+                  </button>
+                )}
+                {isPassedPhase2 && (
+                  <button
+                    onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
+                    className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                  >
+                    {locale === "en" ? "View Phase 2 Submission" : "Lihat Dokumen Fase 2"}
                   </button>
                 )}
               </div>
             </div>
           ) : (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">Ajukan Expression of Interest</h3>
+              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">{t("submitEoi")}</h3>
               {canApply ? (
                 <>
                   <p className="text-sm text-ptba-gray mb-4">
-                    Siapkan dokumen EoI yang diperlukan dan ajukan lamaran Phase 1 untuk proyek ini.
+                    {t("submitEoiDesc")}
                   </p>
                   <button
                     onClick={() => router.push(`/mitra/projects/${project.id}/apply`)}
                     className="w-full rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
                   >
-                    Ajukan EoI
+                    {t("applyEoi")}
                   </button>
                 </>
               ) : (
-                <div className="rounded-lg bg-ptba-gray/5 p-4 text-center">
+                <div className="rounded-lg bg-ptba-gray/5 p-4 text-center space-y-2">
                   <p className="text-sm text-ptba-gray">
-                    {phase1DeadlinePassed || isDeadlinePassed ? "Deadline lamaran telah lewat." : "Proyek ini tidak menerima lamaran saat ini."}
+                    {phase1DeadlinePassed ? t("deadlinePassed") :
+                     !project.isOpenForApplication ? t("notOpenForRegistration") :
+                     t("notAcceptingRegistration")}
                   </p>
+                  {project.startDate && (
+                    <p className="text-xs text-ptba-steel-blue font-medium">
+                      {locale === "en" ? "Registration opens" : "Pendaftaran dibuka"}: {new Date(project.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Required Documents */}
-          {requiredDocTypes.length > 0 && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-ptba-charcoal mb-3">
-                Dokumen Diperlukan ({requiredDocTypes.length})
-              </h3>
-              <ul className="space-y-2">
-                {requiredDocTypes.map((doc) => {
-                  if (!doc) return null;
-                  const appDoc = application?.documents.find((d) => d.documentTypeId === doc.id);
-                  return (
-                    <li key={doc.id} className="flex items-start gap-2 text-sm">
-                      {appDoc ? (
-                        <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
-                      ) : (
-                        <div className="h-4 w-4 mt-0.5 shrink-0 rounded-full border-2 border-ptba-light-gray" />
-                      )}
-                      <div>
-                        <p className="text-ptba-charcoal">{doc.name}</p>
-                        {doc.required && <span className="text-[10px] text-ptba-red font-medium">Wajib</span>}
+          {/* Status Pendaftaran - milestone timeline */}
+          {application && application.status !== "Draft" && (() => {
+            const MILESTONES = locale === "en" ? [
+              { id: 1, label: "Phase 1 Registration", stepRange: [2, 3] },
+              { id: 2, label: "Phase 1 Evaluation", stepRange: [4, 5] },
+              { id: 3, label: "Shortlist Announcement", stepRange: [6, 6] },
+              { id: 4, label: "Phase 2 Registration", stepRange: [7, 8] },
+              { id: 5, label: "Phase 2 Evaluation (PQ)", stepRange: [9, 10] },
+              { id: 6, label: "Phase 2 Shortlist Announcement", stepRange: [11, 11] },
+              { id: 7, label: "Phase 3 Registration", stepRange: [12, 12] },
+              { id: 8, label: "Evaluation & Ranking", stepRange: [13, 13] },
+              { id: 9, label: "Negotiation", stepRange: [14, 14] },
+              { id: 10, label: "Winner Announcement", stepRange: [15, 16] },
+            ] : [
+              { id: 1, label: "Pendaftaran Fase 1", stepRange: [2, 3] },
+              { id: 2, label: "Evaluasi Tahap 1", stepRange: [4, 5] },
+              { id: 3, label: "Pengumuman Shortlist", stepRange: [6, 6] },
+              { id: 4, label: "Pendaftaran Fase 2", stepRange: [7, 8] },
+              { id: 5, label: "Evaluasi Fase 2 (PQ)", stepRange: [9, 10] },
+              { id: 6, label: "Pengumuman Shortlist Fase 2", stepRange: [11, 11] },
+              { id: 7, label: "Pendaftaran Fase 3", stepRange: [12, 12] },
+              { id: 8, label: "Evaluasi & Peringkat", stepRange: [13, 13] },
+              { id: 9, label: "Negosiasi", stepRange: [14, 14] },
+              { id: 10, label: "Pengumuman Pemenang", stepRange: [15, 16] },
+            ];
+            const step = project.currentStep || 1;
+            return (
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <h3 className="text-sm font-semibold text-ptba-charcoal mb-4">
+                  {locale === "en" ? "Registration Status" : "Status Pendaftaran"}
+                </h3>
+                <div className="space-y-0">
+                  {MILESTONES.map((m, i) => {
+                    const isCompleted = step > m.stepRange[1];
+                    const isCurrent = step >= m.stepRange[0] && step <= m.stepRange[1];
+                    return (
+                      <div key={m.id} className="flex items-start gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold shrink-0",
+                            isCompleted ? "bg-green-500 text-white" :
+                            isCurrent ? "bg-ptba-navy text-white ring-2 ring-ptba-navy/30" :
+                            "bg-gray-200 text-gray-400"
+                          )}>
+                            {isCompleted ? "✓" : m.id}
+                          </div>
+                          {i < MILESTONES.length - 1 && (
+                            <div className={cn("w-0.5 h-6", isCompleted ? "bg-green-300" : "bg-gray-200")} />
+                          )}
+                        </div>
+                        <p className={cn(
+                          "text-xs pt-1",
+                          isCompleted ? "text-green-700 font-medium" :
+                          isCurrent ? "text-ptba-navy font-semibold" :
+                          "text-ptba-gray"
+                        )}>
+                          {m.label}
+                        </p>
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -39,9 +39,9 @@ export const mockUsers: User[] = [
   {
     id: 'U006',
     name: 'Ir. Bambang Wijaya',
-    email: 'direksi@bukitasam.co.id',
-    role: 'direksi',
-    department: 'Direksi',
+    email: 'ketuatim@bukitasam.co.id',
+    role: 'ketua_tim',
+    department: 'Ketua Tim',
   },
   {
     id: 'U007',
@@ -76,8 +76,8 @@ export const mockUsers: User[] = [
   {
     id: 'U011',
     name: 'Dr. Maya Putri',
-    email: 'direksi2@bukitasam.co.id',
-    role: 'direksi',
+    email: 'ketuatim2@bukitasam.co.id',
+    role: 'ketua_tim',
     department: 'Komisaris',
   },
 ];

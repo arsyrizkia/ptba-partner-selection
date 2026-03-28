@@ -1,51 +1,24 @@
-export interface Phase1CriteriaDef {
+export interface FiltrationItem {
   id: string;
-  name: string;
-  weight: number;
-  maxScore: number;
-  description: string;
+  nameKey: string; // i18n key
+  type: 'document' | 'form_section';
+  descriptionKey: string; // i18n key
 }
 
-/**
- * 5 evaluation criteria for EBD Phase 1 evaluation
- * Total weight = 100%
- */
-export const PHASE1_CRITERIA: Phase1CriteriaDef[] = [
-  {
-    id: 'profil_perusahaan',
-    name: 'Kualitas Profil Perusahaan',
-    weight: 20,
-    maxScore: 5,
-    description: 'Penilaian kelengkapan dan kualitas profil perusahaan, visi misi, dan struktur organisasi',
-  },
-  {
-    id: 'pengalaman_proyek',
-    name: 'Pengalaman Proyek Relevan',
-    weight: 25,
-    maxScore: 5,
-    description: 'Penilaian pengalaman dan track record proyek sejenis dalam 5 tahun terakhir',
-  },
-  {
-    id: 'kemampuan_pembiayaan',
-    name: 'Kemampuan Pembiayaan',
-    weight: 25,
-    maxScore: 5,
-    description: 'Penilaian kapasitas pembiayaan dan kemampuan pendanaan proyek',
-  },
-  {
-    id: 'gambaran_keuangan',
-    name: 'Gambaran Umum Keuangan',
-    weight: 15,
-    maxScore: 5,
-    description: 'Penilaian kondisi keuangan umum berdasarkan laporan ringkas',
-  },
-  {
-    id: 'pemenuhan_persyaratan',
-    name: 'Pemenuhan Persyaratan',
-    weight: 15,
-    maxScore: 5,
-    description: 'Penilaian kelengkapan pemenuhan persyaratan dasar yang ditetapkan',
-  },
+export const PHASE1_DOCUMENT_ITEMS: FiltrationItem[] = [
+  { id: 'compro', nameKey: 'filtration.items.compro', type: 'document', descriptionKey: 'filtration.itemDesc.compro' },
+  { id: 'statement_eoi', nameKey: 'filtration.items.statementEoi', type: 'document', descriptionKey: 'filtration.itemDesc.statementEoi' },
+  { id: 'portfolio', nameKey: 'filtration.items.portfolio', type: 'document', descriptionKey: 'filtration.itemDesc.portfolio' },
+  { id: 'financial_overview', nameKey: 'filtration.items.financialOverview', type: 'document', descriptionKey: 'filtration.itemDesc.financialOverview' },
+  { id: 'requirements_fulfillment', nameKey: 'filtration.items.requirementsFulfillment', type: 'document', descriptionKey: 'filtration.itemDesc.requirementsFulfillment' },
 ];
 
-export const PHASE1_PASSING_SCORE = 3.0; // minimum weighted average to pass
+export const PHASE1_FORM_SECTION_ITEMS: FiltrationItem[] = [
+  { id: 'section_compro', nameKey: 'filtration.items.sectionCompro', type: 'form_section', descriptionKey: 'filtration.itemDesc.sectionCompro' },
+  { id: 'section_statement_eoi', nameKey: 'filtration.items.sectionStatementEoi', type: 'form_section', descriptionKey: 'filtration.itemDesc.sectionStatementEoi' },
+  { id: 'section_portfolio', nameKey: 'filtration.items.sectionPortfolio', type: 'form_section', descriptionKey: 'filtration.itemDesc.sectionPortfolio' },
+  { id: 'section_financial', nameKey: 'filtration.items.sectionFinancial', type: 'form_section', descriptionKey: 'filtration.itemDesc.sectionFinancial' },
+  { id: 'section_requirements', nameKey: 'filtration.items.sectionRequirements', type: 'form_section', descriptionKey: 'filtration.itemDesc.sectionRequirements' },
+];
+
+export const ALL_FILTRATION_ITEMS: FiltrationItem[] = [...PHASE1_DOCUMENT_ITEMS, ...PHASE1_FORM_SECTION_ITEMS];

@@ -1,17 +1,44 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { ApprovalCard } from "@/components/features/approval/approval-card";
-import { mockApprovals } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth/auth-context";
+import { api } from "@/lib/api/client";
 import type { Approval } from "@/lib/types";
-import { Clock, CheckCircle2, ListChecks, Shield } from "lucide-react";
+import { Clock, CheckCircle2, ListChecks, Shield, Loader2 } from "lucide-react";
 
 const PRIORITY_ORDER: Record<string, number> = {
   Tinggi: 0,
   Sedang: 1,
   Rendah: 2,
 };
+
+function mapApiApproval(a: any): Approval {
+  const evalSummary = a.evaluation_summary
+    ? (typeof a.evaluation_summary === "string" ? JSON.parse(a.evaluation_summary) : a.evaluation_summary)
+    : null;
+
+  const lolos = evalSummary ? evalSummary.filter((e: any) => e.result === "Lolos").length : 0;
+  const tidakLolos = evalSummary ? evalSummary.filter((e: any) => e.result === "Tidak Lolos").length : 0;
+
+  return {
+    id: a.id,
+    projectId: a.project_id,
+    projectName: a.project_name,
+    type: a.type === "phase1_evaluation" ? "Persetujuan Hasil Evaluasi Fase 1" : a.type,
+    status: a.status,
+    requestedBy: a.requested_by || "-",
+    requestedAt: a.requested_at,
+    approver: a.approver || "Ketua Tim",
+    approvedAt: a.approved_at,
+    notes: a.notes,
+    priority: a.priority,
+    phase: a.phase,
+    approvalCategory: a.approval_category === "Evaluasi Fase 1" ? "phase1_shortlist" : a.approval_category,
+    evaluationSummary: evalSummary ? { totalMitra: evalSummary.length, lolos, tidakLolos } : undefined,
+  };
+}
 
 function sortApprovals(approvals: Approval[]): Approval[] {
   return [...approvals].sort((a, b) => {
@@ -26,8 +53,21 @@ function sortApprovals(approvals: Approval[]): Approval[] {
 }
 
 export default function ApprovalsPage() {
-  const [activeTab, setActiveTab] = useState("all");
-  const approvals = mockApprovals;
+  const { accessToken } = useAuth();
+  const [activeTab, setActiveTab] = useState("Menunggu");
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    api<{ approvals: any[] }>("/approvals", { token: accessToken })
+      .then((res) => {
+        const mapped = (res.approvals || []).map(mapApiApproval);
+        setApprovals(mapped);
+      })
+      .catch(() => setApprovals([]))
+      .finally(() => setLoading(false));
+  }, [accessToken]);
 
   const counts = useMemo(() => {
     const menunggu = approvals.filter((a) => a.status === "Menunggu").length;
@@ -65,6 +105,15 @@ export default function ApprovalsPage() {
     return sortApprovals(filtered);
   }, [activeTab, approvals]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">Memuat...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -82,9 +131,7 @@ export default function ApprovalsPage() {
               <Clock className="h-4.5 w-4.5 text-amber-600" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">
-                Menunggu
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Menunggu</p>
               <p className="text-xl font-bold text-amber-600">{counts.menunggu}</p>
             </div>
           </div>
@@ -95,12 +142,8 @@ export default function ApprovalsPage() {
               <ListChecks className="h-4.5 w-4.5 text-ptba-navy" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">
-                Fase 1 Pending
-              </p>
-              <p className="text-xl font-bold text-ptba-navy">
-                {counts.phase1Pending}
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Fase 1 Pending</p>
+              <p className="text-xl font-bold text-ptba-navy">{counts.phase1Pending}</p>
             </div>
           </div>
         </div>
@@ -110,12 +153,8 @@ export default function ApprovalsPage() {
               <Shield className="h-4.5 w-4.5 text-ptba-steel-blue" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">
-                Fase 2 Pending
-              </p>
-              <p className="text-xl font-bold text-ptba-steel-blue">
-                {counts.phase2Pending}
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Fase 2 Pending</p>
+              <p className="text-xl font-bold text-ptba-steel-blue">{counts.phase2Pending}</p>
             </div>
           </div>
         </div>
@@ -125,9 +164,7 @@ export default function ApprovalsPage() {
               <CheckCircle2 className="h-4.5 w-4.5 text-green-600" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">
-                Selesai
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Selesai</p>
               <p className="text-xl font-bold text-green-600">{counts.selesai}</p>
             </div>
           </div>
@@ -136,17 +173,16 @@ export default function ApprovalsPage() {
 
       <Tabs tabs={filterTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filteredApprovals.map((approval) => (
-          <ApprovalCard key={approval.id} approval={approval} />
-        ))}
-      </div>
-
-      {filteredApprovals.length === 0 && (
-        <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-          <p className="text-ptba-gray">
-            Tidak ada persetujuan dengan status ini.
-          </p>
+      {filteredApprovals.length === 0 ? (
+        <div className="rounded-xl bg-white p-12 shadow-sm text-center">
+          <Clock className="h-10 w-10 text-ptba-light-gray mx-auto mb-3" />
+          <p className="text-ptba-gray">Tidak ada persetujuan untuk ditampilkan.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredApprovals.map((approval) => (
+            <ApprovalCard key={approval.id} approval={approval} />
+          ))}
         </div>
       )}
     </div>

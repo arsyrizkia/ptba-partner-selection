@@ -3,12 +3,13 @@ import type { UserRole } from '@/lib/types';
 export interface NavigationItem {
   icon: string;
   label: string;
+  labelKey?: string;
   href: string;
   allowedRoles: UserRole[];
 }
 
 const ALL_INTERNAL: UserRole[] = [
-  'super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'direksi', 'viewer',
+  'super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'ketua_tim', 'viewer',
 ];
 
 export const NAVIGATION: NavigationItem[] = [
@@ -22,7 +23,7 @@ export const NAVIGATION: NavigationItem[] = [
     icon: 'FolderKanban',
     label: 'Proyek',
     href: '/projects',
-    allowedRoles: ['super_admin', 'ebd', 'direksi', 'keuangan', 'hukum', 'risiko'],
+    allowedRoles: ['super_admin', 'ebd', 'ketua_tim', 'keuangan', 'hukum', 'risiko'],
   },
   {
     icon: 'Users',
@@ -34,13 +35,7 @@ export const NAVIGATION: NavigationItem[] = [
     icon: 'CheckSquare',
     label: 'Persetujuan',
     href: '/approvals',
-    allowedRoles: ['direksi', 'super_admin'],
-  },
-  {
-    icon: 'FileText',
-    label: 'Dokumen',
-    href: '/documents',
-    allowedRoles: ['super_admin', 'ebd', 'direksi', 'viewer'],
+    allowedRoles: ['ketua_tim', 'super_admin'],
   },
   {
     icon: 'Bell',
@@ -49,16 +44,16 @@ export const NAVIGATION: NavigationItem[] = [
     allowedRoles: ALL_INTERNAL,
   },
   {
-    icon: 'Clock',
-    label: 'SLA Monitoring',
-    href: '/notifications/sla',
-    allowedRoles: ['super_admin', 'ebd', 'direksi'],
+    icon: 'ImageIcon',
+    label: 'Popup Banner',
+    href: '/banners',
+    allowedRoles: ['super_admin', 'ebd'],
   },
   {
     icon: 'Settings',
     label: 'Manajemen Pengguna',
     href: '/users',
-    allowedRoles: ['super_admin'],
+    allowedRoles: ['super_admin', 'ketua_tim'],
   },
 ];
 
@@ -66,31 +61,29 @@ export const MITRA_NAVIGATION: NavigationItem[] = [
   {
     icon: 'LayoutDashboard',
     label: 'Dashboard',
+    labelKey: 'dashboard',
     href: '/mitra/dashboard',
     allowedRoles: ['mitra'],
   },
   {
     icon: 'FolderKanban',
     label: 'Proyek Tersedia',
+    labelKey: 'projects',
     href: '/mitra/projects',
     allowedRoles: ['mitra'],
   },
   {
     icon: 'FileText',
     label: 'Dokumen Saya',
+    labelKey: 'documents',
     href: '/mitra/documents',
     allowedRoles: ['mitra'],
   },
-{
+  {
     icon: 'Building2',
     label: 'Profil',
+    labelKey: 'profile',
     href: '/mitra/profile',
-    allowedRoles: ['mitra'],
-  },
-  {
-    icon: 'GitBranch',
-    label: 'Status',
-    href: '/mitra/status',
     allowedRoles: ['mitra'],
   },
 ];

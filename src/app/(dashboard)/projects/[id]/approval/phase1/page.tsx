@@ -1,36 +1,93 @@
 "use client";
 
-import { use, useState } from "react";
+import React, { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   XCircle,
   ShieldCheck,
   Send,
   AlertTriangle,
   RotateCcw,
-  MessageSquare,
   FileText,
   Download,
   ClipboardCheck,
   User,
-  Lock,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { mockProjects } from "@/lib/mock-data/projects";
-import { mockEvaluations } from "@/lib/mock-data/evaluations";
-import { mockApplications } from "@/lib/mock-data/applications";
-import { PHASE1_CRITERIA, PHASE1_PASSING_SCORE } from "@/lib/constants/phase1-criteria";
+import { api, projectApi, downloadDocument } from "@/lib/api/client";
+import { ALL_FILTRATION_ITEMS } from "@/lib/constants/phase1-criteria";
+import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
+import FormDataViewer from "@/components/features/project/form-data-viewer";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
+
+interface Phase1EvalSummary {
+  id: string;
+  application_id: string;
+  evaluator_id: string;
+  overall_result: string;
+  weighted_score: number | null;
+  notes: string | null;
+  evaluated_at: string;
+  partner_id: string;
+  partner_name: string;
+}
+
+interface Phase1ScoreDetail {
+  criterion_id: string;
+  score: number | null;
+  passed: boolean | null;
+  item_type: string;
+  notes: string | null;
+}
+
+interface Phase1EvalDetail {
+  id: string;
+  weighted_score: number | null;
+  overall_result: string;
+  notes: string | null;
+  evaluated_at: string;
+  partner_name: string;
+  scores: Phase1ScoreDetail[];
+}
+
+interface AppDocument {
+  id?: string;
+  document_type_id: string;
+  name: string;
+  file_key: string;
+  status: string;
+  upload_date: string;
+}
+
+interface ApplicationDetail {
+  id: string;
+  partner_id: string;
+  partner_name?: string;
+  applied_at?: string;
+  phase1Documents?: AppDocument[];
+  form_data?: Record<string, any>;
+}
+
+interface ApprovalRecord {
+  id: string;
+  project_id: string;
+  type: string;
+  status: string;
+  [key: string]: unknown;
+}
 
 interface MitraApprovalState {
   partnerId: string;
@@ -38,33 +95,180 @@ interface MitraApprovalState {
   notes: string;
 }
 
-type DireksiMitraDecision = "pending" | "setujui" | "re-evaluasi";
+type KetuaTimMitraDecision = "pending" | "setujui" | "re-evaluasi";
 
-interface DireksiMitraState {
+interface KetuaTimMitraState {
   partnerId: string;
-  decision: DireksiMitraDecision;
+  decision: KetuaTimMitraDecision;
   notes: string;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
+/*  Form Data Rendering for Document Tab                               */
 /* ------------------------------------------------------------------ */
 
-function computeWeightedAverage(
-  criteria: { name: string; score: number; maxScore: number }[]
-): number {
-  const criteriaWeights = PHASE1_CRITERIA.reduce<Record<string, number>>(
-    (acc, c) => { acc[c.name] = c.weight; return acc; }, {}
+function EvalField({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <dt className="text-[10px] text-ptba-gray">{label}</dt>
+      <dd className="text-xs text-ptba-charcoal">{value || "-"}</dd>
+    </div>
   );
-  let totalWeight = 0;
-  let weightedSum = 0;
-  for (const c of criteria) {
-    const w = criteriaWeights[c.name] ?? 0;
-    weightedSum += c.score * w;
-    totalWeight += w;
-  }
-  return totalWeight > 0 ? weightedSum / totalWeight : 0;
 }
+
+const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => React.ReactNode }> = {
+  compro: {
+    title: "Informasi Perusahaan",
+    render: (fd) => (
+      <div className="space-y-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Nama Perusahaan" value={fd.companyName} />
+          <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
+          <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Telepon" value={fd.companyPhone} />
+          <EvalField label="Email" value={fd.companyEmail} />
+          <EvalField label="Website" value={fd.companyWebsite} />
+          <EvalField label="NIB" value={fd.nib} />
+        </dl>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
+          <EvalField label="Negara" value={fd.countryEstablished} />
+        </dl>
+        {(fd.orgStructure || fd.subsidiaries) && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {fd.orgStructure && <EvalField label="Struktur Organisasi" value={fd.orgStructure} />}
+            {fd.subsidiaries && <EvalField label="Anak Perusahaan / Afiliasi" value={fd.subsidiaries} />}
+          </dl>
+        )}
+        <div className="border-t border-gray-200 pt-2">
+          <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1">Contact Person</p>
+          <dl className="grid grid-cols-3 gap-x-4 gap-y-2">
+            <EvalField label="Nama" value={fd.contactPerson} />
+            <EvalField label="Telepon" value={fd.contactPhone} />
+            <EvalField label="Email" value={fd.contactEmail} />
+          </dl>
+        </div>
+      </div>
+    ),
+  },
+  statement_eoi: {
+    title: "Surat Pernyataan Expression of Interest",
+    render: (fd) => (
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <EvalField label="Nama Penandatangan" value={fd.signerName} />
+        <EvalField label="Jabatan" value={fd.signerPosition} />
+        <EvalField label="Tanggal" value={fd.signerDate} />
+        <EvalField label="Ekuitas Joint Venture (%)" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
+        <EvalField label="Cash on Hand (USD)" value={fd.cashOnHand} />
+        <EvalField label="Menyetujui EoI" value={fd.eoiAgreed ? "Ya" : "Tidak"} />
+      </dl>
+    ),
+  },
+  portfolio: {
+    title: "Pengalaman Proyek",
+    render: (fd) => {
+      const exps = fd.experiences || [];
+      if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
+      const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan" };
+      return (
+        <div className="space-y-2">
+          {exps.map((exp: any, i: number) => (
+            <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
+              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1} — {catLabels[exp.category] || exp.category}</p>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <EvalField label="Nama Pembangkit" value={exp.plantName} />
+                <EvalField label="Lokasi" value={exp.location} />
+                <EvalField label="Kapasitas (MW)" value={exp.totalCapacityMW} />
+                {exp.category === "developer" && <>
+                  <EvalField label="Ekuitas (%)" value={exp.equityPercent} />
+                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
+                  <EvalField label="Tahun COD" value={exp.codYear} />
+                </>}
+                {exp.category === "om_contractor" && <>
+                  <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />
+                  <EvalField label="Porsi Kerja (%)" value={exp.workPortionPercent} />
+                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
+                  <EvalField label="Tahun COD" value={exp.codYear} />
+                </>}
+                {exp.category === "financing" && <>
+                  <EvalField label="Tipe Pembiayaan" value={exp.financingType} />
+                  <EvalField label="Jumlah (USD)" value={exp.amountUSD} />
+                  <EvalField label="Tahun" value={exp.year} />
+                </>}
+              </dl>
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+  financial_overview: {
+    title: "Data Keuangan",
+    render: (fd) => {
+      const years = fd.financialYears || [];
+      return (
+        <div className="space-y-2">
+          {years.length > 0 && (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-ptba-light-gray">
+                  <th className="py-1 text-left text-ptba-gray font-medium">Tahun</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium">Total Asset</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium">EBITDA</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium">DSCR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {years.map((fy: any, i: number) => (
+                  <tr key={i} className="border-b border-ptba-light-gray/30">
+                    <td className="py-1 text-ptba-charcoal">{fy.year}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.totalAsset || "-"}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.ebitda || "-"}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.dscr || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {(fd.creditRatingAgency || fd.creditRatingValue) && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <EvalField label="Lembaga Rating" value={fd.creditRatingAgency} />
+              <EvalField label="Nilai Rating" value={fd.creditRatingValue} />
+            </dl>
+          )}
+        </div>
+      );
+    },
+  },
+  requirements_fulfillment: {
+    title: "Pemenuhan Persyaratan",
+    render: (fd) => (
+      <div className="space-y-1">
+        {fd.requirementAnswers && Object.keys(fd.requirementAnswers).length > 0 ? (
+          <p className="text-xs text-green-700">Semua persyaratan telah dikonfirmasi.</p>
+        ) : (
+          <p className="text-xs text-ptba-gray">Tidak ada data persyaratan.</p>
+        )}
+        {fd.requirementNotes && (
+          <div>
+            <span className="text-[10px] text-ptba-gray">Catatan:</span>
+            <p className="text-xs text-ptba-charcoal">{fd.requirementNotes}</p>
+          </div>
+        )}
+      </div>
+    ),
+  },
+  // Aliases
+  financial: undefined as any,
+  requirements: undefined as any,
+};
+EVAL_FORM_DATA_MAP.financial = EVAL_FORM_DATA_MAP.financial_overview;
+EVAL_FORM_DATA_MAP.requirements = EVAL_FORM_DATA_MAP.requirements_fulfillment;
 
 /* ------------------------------------------------------------------ */
 /*  Page Component                                                     */
@@ -76,54 +280,195 @@ export default function Phase1ApprovalPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  /* ---- data look-ups ---- */
-  const project = mockProjects.find((p) => p.id === id);
-  const phase1Evals = mockEvaluations.filter(
-    (ev) => ev.projectId === id && ev.phase === "phase1" && ev.phase1Eval
-  );
-  const projectApps = mockApplications.filter((a) => a.projectId === id);
+  /* ---- loading / data state ---- */
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [project, setProject] = useState<{ id: string; name: string; [key: string]: unknown } | null>(null);
+  const [phase1Evals, setPhase1Evals] = useState<Phase1EvalSummary[]>([]);
+  const [approvalRecord, setApprovalRecord] = useState<ApprovalRecord | null>(null);
+
+  /* ---- detail loading for selected mitra ---- */
+  const [selectedDetail, setSelectedDetail] = useState<Phase1EvalDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedAppDetail, setSelectedAppDetail] = useState<ApplicationDetail | null>(null);
+  const [appDetailLoading, setAppDetailLoading] = useState(false);
 
   /* ---- PIC local state ---- */
-  const [mitraStates, setMitraStates] = useState<MitraApprovalState[]>(() =>
-    phase1Evals.map((ev) => ({
-      partnerId: ev.partnerId, decision: "pending", notes: "",
-    }))
-  );
+  const [mitraStates, setMitraStates] = useState<MitraApprovalState[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  /* ---- Direksi local state ---- */
-  const [direksiMitraStates, setDireksiMitraStates] = useState<DireksiMitraState[]>(() =>
-    phase1Evals.map((ev) => ({
-      partnerId: ev.partnerId, decision: "pending", notes: "",
-    }))
-  );
-  const [direksiGlobalNotes, setDireksiGlobalNotes] = useState("");
+  /* ---- Ketua Tim local state ---- */
+  const [ketuaTimMitraStates, setKetuaTimMitraStates] = useState<KetuaTimMitraState[]>([]);
+  const [ketuaTimGlobalNotes, setketuaTimGlobalNotes] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
-  const [direksiSubmitted, setDireksiSubmitted] = useState(false);
+  const [ketuaTimSubmitted, setKetuaTimSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   /* ---- Panel tab state ---- */
-  const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen">("penilaian");
+  const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen_formulir">("penilaian");
+  const [docSectionOpen, setDocSectionOpen] = useState(true);
+  const [formSectionOpen, setFormSectionOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  /* ---- Accordion state for document form data ---- */
+  const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
 
   /* ---- Selected mitra ---- */
   const selectedPartnerId = searchParams.get("partnerId");
+
+  /* ---- Fetch initial data ---- */
+  useEffect(() => {
+    if (!accessToken) return;
+
+    let cancelled = false;
+
+    async function fetchData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [projectRes, evalsRes, approvalsRes] = await Promise.all([
+          projectApi(accessToken!).getById(id),
+          api<{ evaluations: Phase1EvalSummary[] }>(`/evaluations/phase1/${id}`, { token: accessToken! }),
+          api<{ approvals: ApprovalRecord[] }>(`/approvals?project_id=${id}&type=phase1_evaluation`, { token: accessToken! }),
+        ]);
+
+        if (cancelled) return;
+
+        setProject(projectRes.data);
+        setPhase1Evals(evalsRes.evaluations || []);
+
+        // Find the approval record for this project
+        const approvals = approvalsRes.approvals || [];
+        const approval = approvals.find(
+          (a) => a.project_id === id && a.type === "phase1_evaluation"
+        ) || null;
+        setApprovalRecord(approval);
+
+        const evals = evalsRes.evaluations || [];
+        const alreadyDecided = approval && approval.status !== "Menunggu";
+
+        // If already decided, set states based on approval outcome
+        if (alreadyDecided) {
+          setSubmitted(true);
+          setKetuaTimSubmitted(true);
+
+          const isApproved = approval.status === "Disetujui";
+          setMitraStates(
+            evals.map((ev) => ({
+              partnerId: ev.partner_id,
+              decision: "approved" as const,
+              notes: "",
+            }))
+          );
+          setKetuaTimMitraStates(
+            evals.map((ev) => ({
+              partnerId: ev.partner_id,
+              decision: isApproved ? "setujui" as const : "re-evaluasi" as const,
+              notes: (approval.notes as string) || "",
+            }))
+          );
+        } else {
+          // Initialize as pending
+          setMitraStates(
+            evals.map((ev) => ({
+              partnerId: ev.partner_id,
+              decision: "pending" as const,
+              notes: "",
+            }))
+          );
+          setKetuaTimMitraStates(
+            evals.map((ev) => ({
+              partnerId: ev.partner_id,
+              decision: "pending" as const,
+              notes: "",
+            }))
+          );
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err.message || "Gagal memuat data");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [id, accessToken]);
+
+  /* ---- Fetch detail scores when a mitra is selected ---- */
+  const fetchEvalDetail = useCallback(
+    async (partnerId: string) => {
+      if (!accessToken) return;
+      const ev = phase1Evals.find((e) => e.partner_id === partnerId);
+      if (!ev) return;
+
+      setDetailLoading(true);
+      setSelectedDetail(null);
+      try {
+        const res = await api<{ evaluation: Phase1EvalDetail }>(
+          `/evaluations/phase1/${id}/${ev.application_id}`,
+          { token: accessToken }
+        );
+        setSelectedDetail(res.evaluation);
+      } catch {
+        setSelectedDetail(null);
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [accessToken, id, phase1Evals]
+  );
+
+  /* ---- Fetch application detail for document tab ---- */
+  const fetchAppDetail = useCallback(
+    async (partnerId: string) => {
+      if (!accessToken) return;
+      const ev = phase1Evals.find((e) => e.partner_id === partnerId);
+      if (!ev) return;
+
+      setAppDetailLoading(true);
+      setSelectedAppDetail(null);
+      try {
+        const res = await api<{ application: ApplicationDetail }>(
+          `/applications/${ev.application_id}`,
+          { token: accessToken }
+        );
+        setSelectedAppDetail(res.application);
+      } catch {
+        setSelectedAppDetail(null);
+      } finally {
+        setAppDetailLoading(false);
+      }
+    },
+    [accessToken, phase1Evals]
+  );
+
+  /* ---- Fetch detail when selectedPartnerId changes ---- */
+  useEffect(() => {
+    if (selectedPartnerId) {
+      fetchEvalDetail(selectedPartnerId);
+      fetchAppDetail(selectedPartnerId);
+    }
+  }, [selectedPartnerId, fetchEvalDetail, fetchAppDetail]);
+
   const selectedEval = selectedPartnerId
-    ? phase1Evals.find((ev) => ev.partnerId === selectedPartnerId)
-    : null;
-  const selectedApp = selectedPartnerId
-    ? projectApps.find((a) => a.partnerId === selectedPartnerId)
+    ? phase1Evals.find((ev) => ev.partner_id === selectedPartnerId)
     : null;
 
   const navigateToMitra = (partnerId: string) => {
     router.push(`/projects/${id}/approval/phase1?partnerId=${partnerId}`);
     setPanelTab("penilaian");
+    setExpandedDocs({});
   };
 
   const currentIndex = selectedEval
-    ? phase1Evals.findIndex((ev) => ev.partnerId === selectedPartnerId)
+    ? phase1Evals.findIndex((ev) => ev.partner_id === selectedPartnerId)
     : -1;
   const prevMitra = currentIndex > 0 ? phase1Evals[currentIndex - 1] : null;
   const nextMitra = currentIndex >= 0 && currentIndex < phase1Evals.length - 1
@@ -142,31 +487,91 @@ export default function Phase1ApprovalPage({
   };
   const handlePICSubmit = () => { setSubmitted(true); };
 
-  /* ---- Direksi handlers ---- */
-  const updateDireksiMitraDecision = (partnerId: string, decision: DireksiMitraDecision) => {
-    setDireksiMitraStates((prev) =>
+  /* ---- Ketua Tim handlers ---- */
+  const updateKetuaTimMitraDecision = (partnerId: string, decision: KetuaTimMitraDecision) => {
+    setKetuaTimMitraStates((prev) =>
       prev.map((m) => (m.partnerId === partnerId ? { ...m, decision } : m))
     );
   };
-  const updateDireksiMitraNotes = (partnerId: string, notes: string) => {
-    setDireksiMitraStates((prev) =>
+  const updateKetuaTimMitraNotes = (partnerId: string, notes: string) => {
+    setKetuaTimMitraStates((prev) =>
       prev.map((m) => (m.partnerId === partnerId ? { ...m, notes } : m))
     );
   };
-  const handleDireksiSubmit = () => { setShowConfirm(true); };
-  const handleConfirmFinal = () => {
-    setShowConfirm(false);
-    setDireksiSubmitted(true);
+  const handleKetuaTimSubmit = () => { setShowConfirm(true); };
+
+  const handleConfirmFinal = async () => {
+    if (!approvalRecord || !accessToken) return;
+
+    setSubmitting(true);
+    try {
+      const reEvalMitra = ketuaTimMitraStates.filter((m) => m.decision === "re-evaluasi");
+      const allApproved = reEvalMitra.length === 0;
+
+      let status: string;
+      let notes = ketuaTimGlobalNotes;
+
+      if (allApproved) {
+        status = "Disetujui";
+      } else {
+        status = "Dikembalikan";
+        // Build notes listing which mitra need re-evaluation
+        const reEvalNames = reEvalMitra.map((m) => {
+          const ev = phase1Evals.find((e) => e.partner_id === m.partnerId);
+          return ev?.partner_name || m.partnerId;
+        });
+        const reEvalNote = `Mitra yang perlu re-evaluasi: ${reEvalNames.join(", ")}`;
+        notes = notes ? `${notes}\n\n${reEvalNote}` : reEvalNote;
+
+        // Append per-mitra notes if any
+        for (const m of reEvalMitra) {
+          if (m.notes) {
+            const ev = phase1Evals.find((e) => e.partner_id === m.partnerId);
+            const name = ev?.partner_name || m.partnerId;
+            notes += `\n- ${name}: ${m.notes}`;
+          }
+        }
+      }
+
+      await api(`/approvals/${approvalRecord.id}/decide`, {
+        method: "PUT",
+        body: { status, notes },
+        token: accessToken,
+      });
+
+      setShowConfirm(false);
+      setKetuaTimSubmitted(true);
+    } catch (err: any) {
+      alert(`Gagal mengirim keputusan: ${err.message || "Terjadi kesalahan"}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  /* ---- guards ---- */
-  if (!project) {
+  /* ---- Loading state ---- */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 text-ptba-navy mx-auto mb-3 animate-spin" />
+          <p className="text-sm text-ptba-gray">Memuat data evaluasi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- Error state ---- */
+  if (error || !project) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-ptba-gold mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Proyek Tidak Ditemukan</h2>
-          <p className="text-sm text-ptba-gray mb-4">Proyek dengan ID &quot;{id}&quot; tidak tersedia.</p>
+          <h2 className="text-lg font-semibold text-ptba-navy mb-1">
+            {error ? "Gagal Memuat Data" : "Proyek Tidak Ditemukan"}
+          </h2>
+          <p className="text-sm text-ptba-gray mb-4">
+            {error || `Proyek dengan ID "${id}" tidak tersedia.`}
+          </p>
           <Link href="/projects" className="text-sm text-ptba-steel-blue hover:underline">Kembali ke Daftar Proyek</Link>
         </div>
       </div>
@@ -179,37 +584,37 @@ export default function Phase1ApprovalPage({
         <BackHeader projectId={id} projectName={project.name} />
         <div className="rounded-xl bg-white p-6 shadow-sm text-center">
           <AlertTriangle className="h-10 w-10 text-ptba-gold mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Evaluasi Fase 1</h2>
-          <p className="text-sm text-ptba-gray">Evaluasi Fase 1 belum selesai untuk proyek ini.</p>
+          <h2 className="text-lg font-semibold text-ptba-navy mb-1">Belum Ada Evaluasi 1</h2>
+          <p className="text-sm text-ptba-gray">Evaluasi 1 belum selesai untuk proyek ini.</p>
         </div>
       </div>
     );
   }
 
-  const isDireksi = role === "direksi";
-  const isPIC = role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko" || role === "super_admin";
+  const isKetuaTim = role === "ketua_tim" || role === "super_admin";
+  const isPIC = (role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko") && !isKetuaTim;
   const allPICDecided = mitraStates.every((m) => m.decision !== "pending");
   const approvedCount = mitraStates.filter((m) => m.decision === "approved").length;
   const rejectedCount = mitraStates.filter((m) => m.decision === "rejected").length;
 
-  const allDireksiDecided = direksiMitraStates.every((m) => m.decision !== "pending");
-  const direksiSetujuiCount = direksiMitraStates.filter((m) => m.decision === "setujui").length;
-  const direksiReEvalCount = direksiMitraStates.filter((m) => m.decision === "re-evaluasi").length;
-  const hasReEvalRequests = direksiReEvalCount > 0;
+  const allKetuaTimDecided = ketuaTimMitraStates.every((m) => m.decision !== "pending");
+  const ketuaTimSetujuiCount = ketuaTimMitraStates.filter((m) => m.decision === "setujui").length;
+  const ketuaTimReEvalCount = ketuaTimMitraStates.filter((m) => m.decision === "re-evaluasi").length;
+  const hasReEvalRequests = ketuaTimReEvalCount > 0;
 
   /* ---- sidebar helpers ---- */
   const getSidebarStatus = (partnerId: string) => {
-    const ev = phase1Evals.find((e) => e.partnerId === partnerId);
-    const passed = ev?.phase1Eval?.overallResult === "Lolos";
+    const ev = phase1Evals.find((e) => e.partner_id === partnerId);
+    const passed = ev?.overall_result === "Lolos";
     const picState = mitraStates.find((m) => m.partnerId === partnerId);
-    const dirState = direksiMitraStates.find((m) => m.partnerId === partnerId);
+    const dirState = ketuaTimMitraStates.find((m) => m.partnerId === partnerId);
 
-    if (isDireksi && direksiSubmitted && dirState) {
+    if (isKetuaTim && ketuaTimSubmitted && dirState) {
       return dirState.decision === "setujui"
         ? { text: "Disetujui", color: "text-green-600" }
         : { text: "Re-evaluasi", color: "text-amber-600" };
     }
-    if (isDireksi && dirState?.decision !== "pending") {
+    if (isKetuaTim && dirState?.decision !== "pending") {
       return dirState?.decision === "setujui"
         ? { text: "Setujui", color: "text-green-600" }
         : { text: "Minta re-eval", color: "text-amber-600" };
@@ -237,7 +642,7 @@ export default function Phase1ApprovalPage({
         <div className="flex items-start gap-3">
           <ShieldCheck className="h-6 w-6 text-ptba-navy mt-0.5 shrink-0" />
           <div>
-            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi Fase 1</h1>
+            <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi 1</h1>
             <p className="text-sm text-ptba-gray mt-1">
               Review dan setujui hasil shortlist Fase 1 untuk seluruh mitra sebelum melanjutkan ke Fase 2.
             </p>
@@ -245,31 +650,37 @@ export default function Phase1ApprovalPage({
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
           <SummaryBox label="Total Mitra" value={phase1Evals.length} />
-          <SummaryBox label="Lolos" value={phase1Evals.filter((e) => e.phase1Eval?.overallResult === "Lolos").length} color="green" />
-          <SummaryBox label="Tidak Lolos" value={phase1Evals.filter((e) => e.phase1Eval?.overallResult === "Tidak Lolos").length} color="red" />
-          <SummaryBox label="Passing Score" value={PHASE1_PASSING_SCORE.toFixed(1)} />
+          <SummaryBox label="Lolos" value={phase1Evals.filter((e) => e.overall_result === "Lolos").length} color="green" />
+          <SummaryBox label="Tidak Lolos" value={phase1Evals.filter((e) => e.overall_result === "Tidak Lolos").length} color="red" />
+          <SummaryBox label="Sistem" value="Lulus / Tidak Lulus" />
         </div>
       </div>
 
       {/* ---- Sidebar + Detail Layout ---- */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+      <div className={cn("grid grid-cols-1 gap-6", sidebarCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]")}>
         {/* Sidebar */}
         <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-ptba-navy">
-            <h3 className="text-sm font-semibold text-white">Daftar Mitra</h3>
-            <p className="text-[10px] text-white/60 mt-0.5">Pilih mitra untuk direview</p>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {phase1Evals.map((ev, idx) => {
-              const p1 = ev.phase1Eval!;
-              const passed = p1.overallResult === "Lolos";
-              const isSelected = ev.partnerId === selectedPartnerId;
-              const status = getSidebarStatus(ev.partnerId);
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full px-4 py-3 bg-ptba-navy flex items-center justify-between"
+          >
+            <div>
+              <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({phase1Evals.length})</h3>
+              {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk direview</p>}
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-white/60 transition-transform", !sidebarCollapsed && "rotate-180")} />
+          </button>
+          {!sidebarCollapsed && <div className="divide-y divide-gray-100">
+            {phase1Evals.map((ev) => {
+              const passed = ev.overall_result === "Lolos";
+              const isSelected = ev.partner_id === selectedPartnerId;
+              const status = getSidebarStatus(ev.partner_id);
 
               return (
                 <button
                   key={ev.id}
-                  onClick={() => navigateToMitra(ev.partnerId)}
+                  onClick={() => navigateToMitra(ev.partner_id)}
                   className={cn(
                     "w-full text-left px-4 py-3 transition-colors hover:bg-ptba-section-bg",
                     isSelected && "bg-ptba-section-bg border-l-3 border-l-ptba-navy"
@@ -287,7 +698,7 @@ export default function Phase1ApprovalPage({
                         "text-sm font-medium truncate",
                         isSelected ? "text-ptba-navy" : "text-ptba-charcoal"
                       )}>
-                        {p1.partnerName}
+                        {ev.partner_name}
                       </p>
                       <p className={cn("text-[10px]", status.color)}>{status.text}</p>
                     </div>
@@ -295,7 +706,7 @@ export default function Phase1ApprovalPage({
                 </button>
               );
             })}
-          </div>
+          </div>}
         </div>
 
         {/* Right Panel */}
@@ -311,7 +722,7 @@ export default function Phase1ApprovalPage({
               </p>
               {phase1Evals.length > 0 && (
                 <button
-                  onClick={() => navigateToMitra(phase1Evals[0].partnerId)}
+                  onClick={() => navigateToMitra(phase1Evals[0].partner_id)}
                   className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors"
                 >
                   Review Mitra Pertama <ChevronRight className="h-4 w-4" />
@@ -322,12 +733,12 @@ export default function Phase1ApprovalPage({
             <div className="space-y-5">
               {(() => {
                 const ev = selectedEval;
-                const p1 = ev.phase1Eval!;
-                const weightedAvg = computeWeightedAverage(p1.criteria);
-                const passed = p1.overallResult === "Lolos";
-                const app = selectedApp;
-                const mitraState = mitraStates.find((m) => m.partnerId === ev.partnerId);
-                const direksiMitraState = direksiMitraStates.find((m) => m.partnerId === ev.partnerId);
+                const passed = ev.overall_result === "Lolos";
+                const mitraState = mitraStates.find((m) => m.partnerId === ev.partner_id);
+                const ketuaTimMitraState = ketuaTimMitraStates.find((m) => m.partnerId === ev.partner_id);
+                const appDetail = selectedAppDetail;
+                const formData = appDetail?.form_data;
+                const phase1Docs = appDetail?.phase1Documents || [];
 
                 return (
                   <>
@@ -345,10 +756,10 @@ export default function Phase1ApprovalPage({
                             {passed ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                           </div>
                           <div>
-                            <h3 className="text-lg font-semibold text-ptba-charcoal">{p1.partnerName}</h3>
+                            <h3 className="text-lg font-semibold text-ptba-charcoal">{ev.partner_name}</h3>
                             <p className="text-xs text-ptba-gray">
                               Mitra {currentIndex + 1} dari {phase1Evals.length}
-                              {app && ` · Mendaftar: ${formatDate(app.appliedAt)}`}
+                              {appDetail?.applied_at && ` · Mendaftar: ${formatDate(appDetail.applied_at)}`}
                             </p>
                           </div>
                         </div>
@@ -356,14 +767,14 @@ export default function Phase1ApprovalPage({
                           "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
                           passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                         )}>
-                          {p1.overallResult}
+                          {ev.overall_result}
                         </span>
                       </div>
 
                       {/* Prev / Next */}
                       <div className="px-6 py-2.5 bg-gray-50 flex items-center justify-between text-sm border-b border-gray-100">
                         <button
-                          onClick={() => prevMitra && navigateToMitra(prevMitra.partnerId)}
+                          onClick={() => prevMitra && navigateToMitra(prevMitra.partner_id)}
                           disabled={!prevMitra}
                           className={cn(
                             "inline-flex items-center gap-1 transition-colors",
@@ -374,7 +785,7 @@ export default function Phase1ApprovalPage({
                         </button>
                         <span className="text-xs text-ptba-gray">{currentIndex + 1} / {phase1Evals.length}</span>
                         <button
-                          onClick={() => nextMitra && navigateToMitra(nextMitra.partnerId)}
+                          onClick={() => nextMitra && navigateToMitra(nextMitra.partner_id)}
                           disabled={!nextMitra}
                           className={cn(
                             "inline-flex items-center gap-1 transition-colors",
@@ -386,129 +797,164 @@ export default function Phase1ApprovalPage({
                       </div>
                     </div>
 
-                    {/* Tabs: Penilaian / Dokumen */}
+                    {/* Penilaian Panel — documents and form data inline */}
                     <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                      <div className="px-5 border-b border-ptba-light-gray">
-                        <nav className="flex gap-0 -mb-px">
-                          <button
-                            type="button"
-                            onClick={() => setPanelTab("penilaian")}
-                            className={cn(
-                              "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                              panelTab === "penilaian"
-                                ? "border-b-ptba-gold text-ptba-navy"
-                                : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                            )}
-                          >
-                            <ClipboardCheck className="h-4 w-4" /> Penilaian
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPanelTab("dokumen")}
-                            className={cn(
-                              "px-4 py-3 text-sm font-medium transition-all border-b-2 flex items-center gap-2",
-                              panelTab === "dokumen"
-                                ? "border-b-ptba-gold text-ptba-navy"
-                                : "border-b-transparent text-ptba-gray hover:text-ptba-navy"
-                            )}
-                          >
-                            <FileText className="h-4 w-4" /> Dokumen
-                            {app?.phase1Documents && app.phase1Documents.length > 0 && (
-                              <span className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-ptba-section-bg px-1.5 text-[10px] font-bold text-ptba-navy">
-                                {app.phase1Documents.length}
-                              </span>
-                            )}
-                          </button>
-                        </nav>
-                      </div>
 
                       {/* Tab: Penilaian */}
-                      {panelTab === "penilaian" && (
+                      {(
                         <div className="px-5 py-4">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b border-ptba-light-gray">
-                                  <th className="text-left py-2 pr-3 font-medium text-ptba-navy">Kriteria</th>
-                                  <th className="text-center py-2 px-3 font-medium text-ptba-navy w-20">Bobot</th>
-                                  <th className="text-center py-2 px-3 font-medium text-ptba-navy w-20">Skor</th>
-                                  <th className="text-center py-2 px-3 font-medium text-ptba-navy w-28">Skor Tertimbang</th>
-                                  <th className="text-left py-2 pl-3 font-medium text-ptba-navy">Catatan</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {p1.criteria.map((criterion, ci) => {
-                                  const def = PHASE1_CRITERIA.find((c) => c.name === criterion.name);
-                                  const weight = def?.weight ?? 0;
-                                  const weightedScore = (criterion.score * weight) / 100;
-                                  return (
-                                    <tr key={ci} className="border-b border-gray-50 last:border-0">
-                                      <td className="py-2.5 pr-3 text-ptba-charcoal">{criterion.name}</td>
-                                      <td className="py-2.5 px-3 text-center text-ptba-gray">{weight}%</td>
-                                      <td className="py-2.5 px-3 text-center font-semibold text-ptba-charcoal">{criterion.score}/{criterion.maxScore}</td>
-                                      <td className="py-2.5 px-3 text-center font-semibold text-ptba-navy">{weightedScore.toFixed(2)}</td>
-                                      <td className="py-2.5 pl-3 text-xs text-ptba-gray">{criterion.notes ?? "-"}</td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                              <tfoot>
-                                <tr className="border-t-2 border-ptba-light-gray">
-                                  <td className="py-3 pr-3 font-semibold text-ptba-navy">Rata-rata Tertimbang</td>
-                                  <td className="py-3 px-3 text-center font-semibold text-ptba-navy">100%</td>
-                                  <td />
-                                  <td className={cn("py-3 px-3 text-center font-bold text-base", weightedAvg >= PHASE1_PASSING_SCORE ? "text-green-700" : "text-red-700")}>
-                                    {weightedAvg.toFixed(2)}
-                                  </td>
-                                  <td className="py-3 pl-3 text-xs text-ptba-gray">Min. {PHASE1_PASSING_SCORE.toFixed(1)} untuk Lolos</td>
-                                </tr>
-                              </tfoot>
-                            </table>
-                          </div>
-                          {p1.notes && (
-                            <div className="mt-3 rounded-lg bg-ptba-section-bg px-4 py-3">
-                              <p className="text-xs font-medium text-ptba-navy mb-1">Catatan Evaluator</p>
-                              <p className="text-sm text-ptba-charcoal">{p1.notes}</p>
+                          {detailLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="h-6 w-6 text-ptba-navy animate-spin" />
+                              <span className="ml-2 text-sm text-ptba-gray">Memuat detail penilaian...</span>
+                            </div>
+                          ) : selectedDetail ? (
+                            <>
+                              {/* Unified sections — same layout as evaluation page */}
+                              {(() => {
+                                const DOC_SECTION_MAP: Record<string, string[]> = {
+                                  compro: ["compro", "nib_document", "org_structure"],
+                                  statement_eoi: ["statement_eoi"],
+                                  portfolio: ["portfolio", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+                                  financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+                                  requirements_fulfillment: ["requirements_fulfillment"],
+                                };
+                                const SECTIONS = [
+                                  { docId: "compro", formId: "section_compro", title: EVAL_FORM_DATA_MAP.compro?.title || "Informasi Perusahaan", formKey: "compro" },
+                                  { docId: "statement_eoi", formId: "section_statement_eoi", title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI", formKey: "statement_eoi" },
+                                  { docId: "portfolio", formId: "section_portfolio", title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek", formKey: "portfolio" },
+                                  { docId: "financial_overview", formId: "section_financial", title: EVAL_FORM_DATA_MAP.financial?.title || "Data Keuangan", formKey: "financial_overview" },
+                                  { docId: "requirements_fulfillment", formId: "section_requirements", title: EVAL_FORM_DATA_MAP.requirements?.title || "Pemenuhan Persyaratan", formKey: "requirements_fulfillment" },
+                                ];
+                                const allMappedDocIds = Object.values(DOC_SECTION_MAP).flat();
+                                const additionalDocs = phase1Docs.filter((d: any) => !allMappedDocIds.includes(d.document_type_id));
+
+                                return (
+                                  <div className="space-y-4">
+                                    {SECTIONS.map((section, sIdx) => {
+                                      const docScore = selectedDetail.scores.find((s) => s.criterion_id === section.docId);
+                                      const formScore = selectedDetail.scores.find((s) => s.criterion_id === section.formId);
+                                      const relatedDocIds = DOC_SECTION_MAP[section.docId] || [section.docId];
+                                      const matchedDocs = phase1Docs.filter((d: any) => relatedDocIds.includes(d.document_type_id));
+                                      const sectionKey = section.formId.replace("section_", "");
+                                      const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
+                                      const isOpen = expandedDocs[`section_${sIdx}`] ?? true;
+
+                                      return (
+                                        <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
+                                          <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`section_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                            <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
+                                            <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                                          </button>
+
+                                          {isOpen && (
+                                            <div className="p-4 space-y-3">
+                                              {formRenderer && formData && (
+                                                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                                                  {formRenderer.render(formData)}
+                                                </div>
+                                              )}
+                                              {matchedDocs.length > 0 && (
+                                                <div className="space-y-1.5">
+                                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
+                                                  {matchedDocs.map((doc: any) => (
+                                                    <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                      <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                      <div className="flex-1 min-w-0">
+                                                        <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                        <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                                                      </div>
+                                                      {doc.file_key && (
+                                                        <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                          <Download className="h-3 w-3" /> Unduh
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {/* Eval results — always visible, side by side */}
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border-t border-gray-200 bg-gray-50/30">
+                                            <div className={cn("rounded-lg border p-3", docScore?.passed ? "border-green-200 bg-green-50/30" : docScore?.passed === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                              <div className="flex items-center justify-between">
+                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
+                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docScore?.passed ? "bg-green-100 text-green-700" : docScore?.passed === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docScore?.passed ? "Lulus" : docScore?.passed === false ? "Tidak Lulus" : "Belum"}</span>
+                                              </div>
+                                              {docScore?.notes && <p className="mt-1 text-xs text-ptba-gray">{docScore.notes}</p>}
+                                            </div>
+                                            <div className={cn("rounded-lg border p-3", formScore?.passed ? "border-green-200 bg-green-50/30" : formScore?.passed === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
+                                              <div className="flex items-center justify-between">
+                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Data</p>
+                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formScore?.passed ? "bg-green-100 text-green-700" : formScore?.passed === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formScore?.passed ? "Lulus" : formScore?.passed === false ? "Tidak Lulus" : "Belum"}</span>
+                                              </div>
+                                              {formScore?.notes && <p className="mt-1 text-xs text-ptba-gray">{formScore.notes}</p>}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {/* Additional docs */}
+                                    {additionalDocs.length > 0 && (
+                                      <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-4 py-3 bg-ptba-section-bg">
+                                          <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
+                                        </div>
+                                        <div className="p-4 space-y-1.5">
+                                          {additionalDocs.map((doc: any) => (
+                                            <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                                <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
+                                              </div>
+                                              {doc.file_key && (
+                                                <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                  <Download className="h-3 w-3" /> Unduh
+                                                </button>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
+                              <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-ptba-gray">Hasil Evaluasi</p>
+                                  <p className={cn("text-lg font-bold", selectedDetail.overall_result === "Lolos" ? "text-green-600" : "text-ptba-red")}>
+                                    {selectedDetail.overall_result}
+                                  </p>
+                                </div>
+                                <p className="text-xs text-ptba-gray mt-1">
+                                  {selectedDetail.scores.filter((s) => s.passed).length} / {selectedDetail.scores.length} item Lulus
+                                </p>
+                              </div>
+                              {selectedDetail.notes && (
+                                <div className="mt-3 rounded-lg bg-ptba-section-bg px-4 py-3">
+                                  <p className="text-xs font-medium text-ptba-navy mb-1">Catatan Evaluator</p>
+                                  <p className="text-sm text-ptba-charcoal">{selectedDetail.notes}</p>
+                                </div>
+                              )}
+                              <div className="mt-3 flex flex-wrap gap-4 text-xs text-ptba-gray">
+                                <span>Tanggal: {formatDate(selectedDetail.evaluated_at)}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-center py-6">
+                              <AlertTriangle className="h-8 w-8 text-ptba-gold mx-auto mb-2" />
+                              <p className="text-sm text-ptba-gray">Gagal memuat detail penilaian.</p>
                             </div>
                           )}
-                          <div className="mt-3 flex flex-wrap gap-4 text-xs text-ptba-gray">
-                            <span>Evaluator: {p1.evaluatedBy}</span>
-                            <span>Tanggal: {formatDate(p1.evaluatedAt)}</span>
-                          </div>
                         </div>
                       )}
 
-                      {/* Tab: Dokumen */}
-                      {panelTab === "dokumen" && (
-                        <div className="px-5 py-4">
-                          {app?.phase1Documents && app.phase1Documents.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {app.phase1Documents.map((doc) => (
-                                <button
-                                  key={doc.id}
-                                  type="button"
-                                  onClick={() => alert(`Mengunduh: ${doc.name}\n\n(Fitur unduh tersedia setelah integrasi backend)`)}
-                                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-left hover:bg-ptba-section-bg hover:border-ptba-steel-blue/30 transition-colors group"
-                                >
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg shrink-0 group-hover:bg-ptba-steel-blue/10">
-                                    <FileText className="h-4 w-4 text-ptba-steel-blue" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-ptba-charcoal truncate">{doc.name}</p>
-                                    <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.uploadDate)}</p>
-                                  </div>
-                                  <Download className="h-4 w-4 text-ptba-gray shrink-0 group-hover:text-ptba-steel-blue transition-colors" />
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6">
-                              <FileText className="h-8 w-8 text-ptba-gray mx-auto mb-2" />
-                              <p className="text-sm text-ptba-gray">Tidak ada dokumen Fase 1 untuk mitra ini.</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
 
                     {/* PIC decision per mitra */}
@@ -517,13 +963,13 @@ export default function Phase1ApprovalPage({
                         <div className="px-5 py-4 bg-ptba-off-white">
                           <p className="text-xs font-semibold text-ptba-navy mb-3">Keputusan Anda untuk Mitra Ini</p>
                           <div className="flex flex-col sm:flex-row gap-3">
-                            <button type="button" onClick={() => updateMitraDecision(ev.partnerId, "approved")}
+                            <button type="button" onClick={() => updateMitraDecision(ev.partner_id, "approved")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                                 mitraState?.decision === "approved" ? "bg-green-600 text-white" : "bg-white border border-green-300 text-green-700 hover:bg-green-50"
                               )}>
                               <CheckCircle2 className="h-4 w-4" /> Setujui Hasil
                             </button>
-                            <button type="button" onClick={() => updateMitraDecision(ev.partnerId, "rejected")}
+                            <button type="button" onClick={() => updateMitraDecision(ev.partner_id, "rejected")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                                 mitraState?.decision === "rejected" ? "bg-red-600 text-white" : "bg-white border border-red-300 text-red-700 hover:bg-red-50"
                               )}>
@@ -532,7 +978,7 @@ export default function Phase1ApprovalPage({
                           </div>
                           <textarea
                             value={mitraState?.notes ?? ""}
-                            onChange={(e) => updateMitraNotes(ev.partnerId, e.target.value)}
+                            onChange={(e) => updateMitraNotes(ev.partner_id, e.target.value)}
                             placeholder="Catatan persetujuan (opsional)..."
                             rows={2}
                             className="mt-3 w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40"
@@ -551,31 +997,31 @@ export default function Phase1ApprovalPage({
                       </div>
                     )}
 
-                    {/* Direksi per-mitra decision */}
-                    {isDireksi && !direksiSubmitted && (
+                    {/* Ketua Tim per-mitra decision */}
+                    {isKetuaTim && !ketuaTimSubmitted && (
                       <div className="rounded-xl bg-white shadow-sm overflow-hidden">
                         <div className="px-5 py-4 bg-blue-50/50 border-t-2 border-ptba-navy/20">
                           <p className="text-xs font-semibold text-ptba-navy mb-3 flex items-center gap-1.5">
-                            <ShieldCheck className="h-3.5 w-3.5" /> Keputusan Direksi untuk Mitra Ini
+                            <ShieldCheck className="h-3.5 w-3.5" /> Keputusan Pimpinan untuk Mitra Ini
                           </p>
                           <div className="flex flex-col sm:flex-row gap-3">
-                            <button type="button" onClick={() => updateDireksiMitraDecision(ev.partnerId, "setujui")}
+                            <button type="button" onClick={() => updateKetuaTimMitraDecision(ev.partner_id, "setujui")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                                direksiMitraState?.decision === "setujui" ? "bg-green-600 text-white shadow-sm" : "bg-white border border-green-300 text-green-700 hover:bg-green-50"
+                                ketuaTimMitraState?.decision === "setujui" ? "bg-green-600 text-white shadow-sm" : "bg-white border border-green-300 text-green-700 hover:bg-green-50"
                               )}>
                               <CheckCircle2 className="h-4 w-4" /> Setujui Hasil
                             </button>
-                            <button type="button" onClick={() => updateDireksiMitraDecision(ev.partnerId, "re-evaluasi")}
+                            <button type="button" onClick={() => updateKetuaTimMitraDecision(ev.partner_id, "re-evaluasi")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                                direksiMitraState?.decision === "re-evaluasi" ? "bg-amber-500 text-white shadow-sm" : "bg-white border border-amber-300 text-amber-700 hover:bg-amber-50"
+                                ketuaTimMitraState?.decision === "re-evaluasi" ? "bg-amber-500 text-white shadow-sm" : "bg-white border border-amber-300 text-amber-700 hover:bg-amber-50"
                               )}>
                               <RotateCcw className="h-4 w-4" /> Minta Re-evaluasi oleh EBD
                             </button>
                           </div>
                           <textarea
-                            value={direksiMitraState?.notes ?? ""}
-                            onChange={(e) => updateDireksiMitraNotes(ev.partnerId, e.target.value)}
-                            placeholder={direksiMitraState?.decision === "re-evaluasi" ? "Jelaskan apa yang perlu di-review ulang oleh EBD..." : "Catatan Direksi (opsional)..."}
+                            value={ketuaTimMitraState?.notes ?? ""}
+                            onChange={(e) => updateKetuaTimMitraNotes(ev.partner_id, e.target.value)}
+                            placeholder={ketuaTimMitraState?.decision === "re-evaluasi" ? "Jelaskan apa yang perlu di-review ulang oleh EBD..." : "Catatan Ketua Tim (opsional)..."}
                             rows={2}
                             className="mt-3 w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40"
                           />
@@ -583,17 +1029,17 @@ export default function Phase1ApprovalPage({
                       </div>
                     )}
 
-                    {isDireksi && direksiSubmitted && direksiMitraState && (
+                    {isKetuaTim && ketuaTimSubmitted && ketuaTimMitraState && (
                       <div className={cn("rounded-xl p-4 flex items-center gap-2 text-sm",
-                        direksiMitraState.decision === "setujui" ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
+                        ketuaTimMitraState.decision === "setujui" ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"
                       )}>
-                        {direksiMitraState.decision === "setujui"
+                        {ketuaTimMitraState.decision === "setujui"
                           ? <CheckCircle2 className="h-4 w-4 text-green-600" />
                           : <RotateCcw className="h-4 w-4 text-amber-600" />}
-                        <span className={cn("font-medium", direksiMitraState.decision === "setujui" ? "text-green-700" : "text-amber-700")}>
-                          {direksiMitraState.decision === "setujui" ? "Hasil Disetujui" : "Dikembalikan ke EBD untuk Re-evaluasi"}
+                        <span className={cn("font-medium", ketuaTimMitraState.decision === "setujui" ? "text-green-700" : "text-amber-700")}>
+                          {ketuaTimMitraState.decision === "setujui" ? "Hasil Disetujui" : "Dikembalikan ke EBD untuk Re-evaluasi"}
                         </span>
-                        {direksiMitraState.notes && <span className="text-ptba-gray ml-2">— {direksiMitraState.notes}</span>}
+                        {ketuaTimMitraState.notes && <span className="text-ptba-gray ml-2">— {ketuaTimMitraState.notes}</span>}
                       </div>
                     )}
                   </>
@@ -630,18 +1076,18 @@ export default function Phase1ApprovalPage({
               <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-green-800">Keputusan Berhasil Dikirim</p>
-                <p className="text-xs text-green-700 mt-0.5">Keputusan Anda telah dikirim ke Direksi untuk persetujuan akhir.</p>
+                <p className="text-xs text-green-700 mt-0.5">Keputusan Anda telah dikirim untuk persetujuan akhir.</p>
               </div>
             </div>
           )}
 
-          {/* Direksi submit */}
-          {isDireksi && !direksiSubmitted && (
+          {/* Ketua Tim submit */}
+          {isKetuaTim && !ketuaTimSubmitted && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <div className="flex items-start gap-3 mb-5">
                 <ShieldCheck className="h-5 w-5 text-ptba-navy mt-0.5 shrink-0" />
                 <div>
-                  <h2 className="text-base font-semibold text-ptba-navy">Keputusan Akhir Direksi</h2>
+                  <h2 className="text-base font-semibold text-ptba-navy">Keputusan Akhir Ketua Tim</h2>
                   <p className="text-xs text-ptba-gray mt-0.5">
                     Pilih keputusan untuk setiap mitra di atas, lalu kirim keputusan akhir.
                   </p>
@@ -652,41 +1098,41 @@ export default function Phase1ApprovalPage({
                 <p className="text-xs font-semibold text-ptba-navy mb-3">Ringkasan Keputusan Per Mitra</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-lg bg-white p-3 text-center">
-                    <p className="text-2xl font-bold text-ptba-gray">{direksiMitraStates.filter((m) => m.decision === "pending").length}</p>
+                    <p className="text-2xl font-bold text-ptba-gray">{ketuaTimMitraStates.filter((m) => m.decision === "pending").length}</p>
                     <p className="text-xs text-ptba-gray">Belum Diputuskan</p>
                   </div>
                   <div className="rounded-lg bg-white p-3 text-center">
-                    <p className="text-2xl font-bold text-green-600">{direksiSetujuiCount}</p>
+                    <p className="text-2xl font-bold text-green-600">{ketuaTimSetujuiCount}</p>
                     <p className="text-xs text-green-700">Disetujui</p>
                   </div>
                   <div className="rounded-lg bg-white p-3 text-center">
-                    <p className="text-2xl font-bold text-amber-600">{direksiReEvalCount}</p>
+                    <p className="text-2xl font-bold text-amber-600">{ketuaTimReEvalCount}</p>
                     <p className="text-xs text-amber-700">Minta Re-evaluasi</p>
                   </div>
                 </div>
               </div>
 
               <textarea
-                value={direksiGlobalNotes}
-                onChange={(e) => setDireksiGlobalNotes(e.target.value)}
-                placeholder="Catatan umum Direksi (opsional)..."
+                value={ketuaTimGlobalNotes}
+                onChange={(e) => setketuaTimGlobalNotes(e.target.value)}
+                placeholder="Catatan umum Ketua Tim (opsional)..."
                 rows={3}
                 className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40 mb-4"
               />
 
-              <button type="button" onClick={handleDireksiSubmit} disabled={!allDireksiDecided}
+              <button type="button" onClick={handleKetuaTimSubmit} disabled={!allKetuaTimDecided}
                 className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors",
-                  allDireksiDecided ? "bg-ptba-navy text-white hover:bg-ptba-navy/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  allKetuaTimDecided ? "bg-ptba-navy text-white hover:bg-ptba-navy/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 )}>
                 <Send className="h-4 w-4" />
-                {!allDireksiDecided ? "Putuskan semua mitra terlebih dahulu"
-                  : hasReEvalRequests ? `Kirim Keputusan (${direksiSetujuiCount} Setujui, ${direksiReEvalCount} Re-evaluasi)`
+                {!allKetuaTimDecided ? "Putuskan semua mitra terlebih dahulu"
+                  : hasReEvalRequests ? `Kirim Keputusan (${ketuaTimSetujuiCount} Setujui, ${ketuaTimReEvalCount} Re-evaluasi)`
                   : `Setujui Semua & Lanjutkan ke Fase 2`}
               </button>
             </div>
           )}
 
-          {isDireksi && direksiSubmitted && (
+          {isKetuaTim && ketuaTimSubmitted && (
             <div className={cn("rounded-xl border p-5 shadow-sm flex items-start gap-3",
               hasReEvalRequests ? "bg-amber-50 border-amber-200" : "bg-green-50 border-green-200"
             )}>
@@ -697,7 +1143,7 @@ export default function Phase1ApprovalPage({
                 </p>
                 <p className={cn("text-xs mt-1", hasReEvalRequests ? "text-amber-700" : "text-green-700")}>
                   {hasReEvalRequests
-                    ? `${direksiReEvalCount} mitra dikembalikan ke EBD. ${direksiSetujuiCount} mitra disetujui.`
+                    ? `${ketuaTimReEvalCount} mitra dikembalikan ke EBD. ${ketuaTimSetujuiCount} mitra disetujui.`
                     : "Semua hasil evaluasi Fase 1 telah disetujui. Mitra yang lolos akan diundang ke Fase 2."}
                 </p>
                 <Link href="/approvals" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors">
@@ -717,26 +1163,26 @@ export default function Phase1ApprovalPage({
               <div className={cn("flex items-center justify-center w-10 h-10 rounded-full", hasReEvalRequests ? "bg-amber-100" : "bg-green-100")}>
                 {hasReEvalRequests ? <RotateCcw className="h-5 w-5 text-amber-600" /> : <CheckCircle2 className="h-5 w-5 text-green-600" />}
               </div>
-              <h3 className="text-lg font-bold text-ptba-navy">Konfirmasi Keputusan Direksi</h3>
+              <h3 className="text-lg font-bold text-ptba-navy">Konfirmasi Keputusan</h3>
             </div>
             <p className="text-sm text-ptba-charcoal mb-4">
               Anda akan mengirim keputusan untuk proyek <span className="font-semibold">{project.name}</span>:
             </p>
             <div className="space-y-2 mb-5">
-              {direksiSetujuiCount > 0 && (
+              {ketuaTimSetujuiCount > 0 && (
                 <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-3">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-green-800">{direksiSetujuiCount} mitra disetujui</p>
+                    <p className="text-sm font-medium text-green-800">{ketuaTimSetujuiCount} mitra disetujui</p>
                     <p className="text-xs text-green-700">Hasil evaluasi diterima, lanjut ke Fase 2</p>
                   </div>
                 </div>
               )}
-              {direksiReEvalCount > 0 && (
+              {ketuaTimReEvalCount > 0 && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-center gap-3">
                   <RotateCcw className="h-4 w-4 text-amber-600 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-amber-800">{direksiReEvalCount} mitra diminta re-evaluasi</p>
+                    <p className="text-sm font-medium text-amber-800">{ketuaTimReEvalCount} mitra diminta re-evaluasi</p>
                     <p className="text-xs text-amber-700">Dikembalikan ke EBD untuk dicek ulang</p>
                   </div>
                 </div>
@@ -745,12 +1191,12 @@ export default function Phase1ApprovalPage({
             <div className="rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-3 mb-5">
               <p className="text-xs font-medium text-ptba-navy mb-2">Detail per mitra:</p>
               <div className="space-y-1.5">
-                {direksiMitraStates.map((m) => {
-                  const mEv = phase1Evals.find((e) => e.partnerId === m.partnerId);
+                {ketuaTimMitraStates.map((m) => {
+                  const mEv = phase1Evals.find((e) => e.partner_id === m.partnerId);
                   return (
                     <div key={m.partnerId} className="flex items-center gap-2 text-xs">
                       {m.decision === "setujui" ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" /> : <RotateCcw className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
-                      <span className="text-ptba-charcoal font-medium">{mEv?.phase1Eval?.partnerName ?? m.partnerId}</span>
+                      <span className="text-ptba-charcoal font-medium">{mEv?.partner_name ?? m.partnerId}</span>
                       <span className={cn("ml-auto", m.decision === "setujui" ? "text-green-700" : "text-amber-700")}>
                         {m.decision === "setujui" ? "Disetujui" : "Re-evaluasi"}
                       </span>
@@ -760,15 +1206,17 @@ export default function Phase1ApprovalPage({
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setShowConfirm(false)}
+              <button type="button" onClick={() => setShowConfirm(false)} disabled={submitting}
                 className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-charcoal hover:bg-gray-50 transition-colors">
                 Batal
               </button>
-              <button type="button" onClick={handleConfirmFinal}
-                className={cn("flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors",
-                  hasReEvalRequests ? "bg-ptba-navy hover:bg-ptba-navy/90" : "bg-green-600 hover:bg-green-700"
+              <button type="button" onClick={handleConfirmFinal} disabled={submitting}
+                className={cn("flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors inline-flex items-center justify-center gap-2",
+                  hasReEvalRequests ? "bg-ptba-navy hover:bg-ptba-navy/90" : "bg-green-600 hover:bg-green-700",
+                  submitting && "opacity-70 cursor-not-allowed"
                 )}>
-                Ya, Kirim Keputusan
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? "Mengirim..." : "Ya, Kirim Keputusan"}
               </button>
             </div>
           </div>

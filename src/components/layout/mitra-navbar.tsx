@@ -1,21 +1,40 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
+import { partnerApi } from "@/lib/api/client";
 import { MITRA_NAVIGATION } from "@/lib/constants/navigation";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 
 export default function MitraNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, accessToken, logout } = useAuth();
+  const t = useTranslations("navigation");
+  const { locale, setLocale } = useLocale();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.partnerId || !accessToken) return;
+    partnerApi(accessToken).getById(user.partnerId).then((p) => {
+      setLogoUrl(p.logo_url || null);
+    }).catch(() => {});
+  }, [user?.partnerId, accessToken]);
 
   const handleLogout = () => {
     logout();
     router.push("/login");
+  };
+
+  const toggleLocale = () => {
+    setLocale(locale === "id" ? "en" : "id" as Locale);
   };
 
   return (
@@ -25,14 +44,14 @@ export default function MitraNavbar() {
         <div className="flex items-center gap-4">
           <Image
             src="/ptba-logo.svg"
-            alt="PT Bukit Asam Tbk"
+            alt="PT Bukit Asam Persero Tbk"
             width={140}
             height={25}
             priority
           />
           <div className="h-6 w-px bg-ptba-light-gray" />
           <span className="text-sm font-semibold text-ptba-navy">
-            Portal Mitra
+            {t("portalMitra")}
           </span>
         </div>
 
@@ -51,24 +70,52 @@ export default function MitraNavbar() {
                     : "text-ptba-gray hover:bg-ptba-section-bg hover:text-ptba-navy"
                 )}
               >
-                {item.label}
+                {item.labelKey ? t(item.labelKey) : item.label}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right: User + Logout */}
+        {/* Right: Language Toggle + User + Logout */}
         <div className="flex items-center gap-3">
+          {/* Language Switcher */}
+          <button
+            onClick={toggleLocale}
+            className="flex items-center rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-semibold transition-colors hover:bg-ptba-section-bg"
+            title={locale === "id" ? "Switch to English" : "Ganti ke Bahasa Indonesia"}
+          >
+            <span className={cn(
+              "px-1",
+              locale === "id" ? "text-ptba-navy" : "text-ptba-gray"
+            )}>
+              ID
+            </span>
+            <span className="text-ptba-light-gray">|</span>
+            <span className={cn(
+              "px-1",
+              locale === "en" ? "text-ptba-navy" : "text-ptba-gray"
+            )}>
+              EN
+            </span>
+          </button>
+
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="h-8 w-8 rounded-full object-contain border border-ptba-light-gray bg-white" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ptba-section-bg border border-ptba-light-gray">
+              <Building2 className="h-4 w-4 text-ptba-gray" />
+            </div>
+          )}
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-ptba-charcoal">
               {user?.name}
             </p>
-            <p className="text-xs text-ptba-gray">Mitra</p>
+            <p className="text-xs text-ptba-gray">{t("logout") === "Logout" ? "Partner" : "Mitra"}</p>
           </div>
           <button
             onClick={handleLogout}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-ptba-gray transition-colors hover:bg-ptba-section-bg hover:text-ptba-red"
-            title="Keluar"
+            title={t("logout")}
           >
             <LogOut className="h-4 w-4" />
           </button>

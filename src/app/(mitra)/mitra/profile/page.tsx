@@ -1,44 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { Building2, MapPin, Phone, Mail, Globe, FileText, User } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Building2, MapPin, Phone, Mail, Globe, FileText, User, Loader2, Lock, Eye, EyeOff, Upload, X, Camera } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
+import { authApi, partnerApi, ApiClientError, type PartnerProfile, type UpdatePartnerInput } from "@/lib/api/client";
+import { useTranslations } from "next-intl";
+import { useLocale } from "@/lib/i18n/locale-context";
 
-interface CompanyProfile {
+// ─── Types ───
+
+interface ProfileFormData {
   name: string;
+  businessOverview: string;
   address: string;
-  city: string;
-  province: string;
+  indonesiaOfficeAddress: string;
   phone: string;
-  email: string;
+  companyDomain: string;
   website: string;
   npwp: string;
-  siup: string;
+  nib: string;
   contactPerson: string;
   contactPhone: string;
   contactEmail: string;
-  shareholders: string;
-  established: string;
   industry: string;
 }
 
-const initialProfile: CompanyProfile = {
-  name: "PT Bara Energi Indonesia",
-  address: "Jl. Sudirman No. 123, Gedung Menara BEI Lt. 15",
-  city: "Jakarta Selatan",
-  province: "DKI Jakarta",
-  phone: "(021) 5555-1234",
-  email: "info@baraenergi.co.id",
-  website: "www.baraenergi.co.id",
-  npwp: "01.234.567.8-012.345",
-  siup: "1234/SIUP-B/PM/2023",
-  contactPerson: "Ir. Hendra Wijaya",
-  contactPhone: "0812-3456-7890",
-  contactEmail: "hendra.w@baraenergi.co.id",
-  shareholders: "PT Energi Nusantara (60%), PT Investasi Prima (40%)",
-  established: "15 Maret 2005",
-  industry: "Pertambangan & Energi",
-};
+function toFormData(p: PartnerProfile): ProfileFormData {
+  return {
+    name: p.name || "",
+    businessOverview: p.business_overview || "",
+    address: p.address || "",
+    indonesiaOfficeAddress: p.indonesia_office_address || "",
+    phone: p.phone || "",
+    companyDomain: p.company_domain || "",
+    website: p.website || "",
+    npwp: p.npwp || "",
+    nib: p.nib || "",
+    contactPerson: p.contact_person || "",
+    contactPhone: p.contact_phone || "",
+    contactEmail: p.contact_email || "",
+    industry: p.industry || "",
+  };
+}
+
+// ─── Shared Components ───
 
 function ProfileField({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -48,69 +54,197 @@ function ProfileField({ icon, label, value }: { icon: React.ReactNode; label: st
       </div>
       <div>
         <p className="text-xs text-ptba-gray">{label}</p>
-        <p className="text-sm font-medium text-ptba-charcoal">{value}</p>
+        <p className="text-sm font-medium text-ptba-charcoal">{value || "-"}</p>
       </div>
     </div>
   );
 }
 
-export default function MitraProfilePage() {
-  const { user } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(initialProfile);
-  const [editProfile, setEditProfile] = useState(initialProfile);
+// ─── Tab: Profil Perusahaan ───
 
-  const handleSave = () => {
-    setProfile(editProfile);
-    setIsEditing(false);
+function CompanyProfileTab() {
+  const { user, accessToken } = useAuth();
+  const t = useTranslations("profile");
+  const tc = useTranslations("common");
+  const { locale } = useLocale();
+  const [partner, setPartner] = useState<PartnerProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [editForm, setEditForm] = useState<ProfileFormData>({
+    name: "", businessOverview: "", address: "", indonesiaOfficeAddress: "",
+    phone: "", companyDomain: "", website: "", npwp: "", nib: "",
+    contactPerson: "", contactPhone: "", contactEmail: "", industry: "",
+  });
+
+  const fetchPartner = useCallback(async () => {
+    if (!user?.partnerId || !accessToken) return;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await partnerApi(accessToken).getById(user.partnerId);
+      setPartner(data);
+      setEditForm(toFormData(data));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("company.profileLoadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.partnerId, accessToken, t]);
+
+  useEffect(() => {
+    fetchPartner();
+  }, [fetchPartner]);
+
+  const handleSave = async () => {
+    if (!partner || !accessToken) return;
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const payload: UpdatePartnerInput = {
+        name: editForm.name,
+        business_overview: editForm.businessOverview || undefined,
+        address: editForm.address,
+        indonesia_office_address: editForm.indonesiaOfficeAddress || undefined,
+        phone: editForm.phone,
+        company_domain: editForm.companyDomain || undefined,
+        website: editForm.website || undefined,
+        npwp: editForm.npwp || undefined,
+        nib: editForm.nib || undefined,
+        contact_person: editForm.contactPerson,
+        contact_phone: editForm.contactPhone,
+        contact_email: editForm.contactEmail || undefined,
+      };
+      const updated = await partnerApi(accessToken).update(partner.id, payload);
+      setPartner(updated);
+      setEditForm(toFormData(updated));
+      setIsEditing(false);
+      setSaveMessage(t("company.profileSaved"));
+      setTimeout(() => setSaveMessage(""), 3000);
+    } catch (err: unknown) {
+      setSaveMessage(err instanceof Error ? err.message : t("company.profileSaveFailed"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
-    setEditProfile(profile);
+    if (partner) setEditForm(toFormData(partner));
     setIsEditing(false);
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !partner || !accessToken) return;
+    if (!file.type.startsWith("image/")) {
+      setSaveMessage(t("company.logoImageOnly"));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSaveMessage(t("company.logoMaxSize"));
+      return;
+    }
+    setUploadingLogo(true);
+    setSaveMessage("");
+    try {
+      const updated = await partnerApi(accessToken).uploadLogo(partner.id, file);
+      setPartner(updated);
+      setSaveMessage(t("company.logoSaved"));
+      setTimeout(() => setSaveMessage(""), 3000);
+    } catch {
+      setSaveMessage(t("company.logoFailed"));
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    if (!partner || !accessToken) return;
+    setUploadingLogo(true);
+    try {
+      const updated = await partnerApi(accessToken).deleteLogo(partner.id);
+      setPartner(updated);
+    } catch {
+      setSaveMessage(t("company.logoFailed"));
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+        <span className="ml-3 text-ptba-gray">{tc("loadingProfile")}</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl bg-red-50 border border-red-200 p-6 text-center">
+        <p className="text-red-700">{error}</p>
+        <button onClick={fetchPartner} className="mt-3 text-sm font-medium text-ptba-steel-blue hover:underline">
+          {tc("retry")}
+        </button>
+      </div>
+    );
+  }
+
+  if (!partner) return null;
+
+  const profile = toFormData(partner);
+
   if (isEditing) {
+    const fields: { key: keyof ProfileFormData; label: string; multiline?: boolean }[] = [
+      { key: "name", label: t("company.companyName") },
+      { key: "businessOverview", label: t("company.businessOverview"), multiline: true },
+      { key: "address", label: t("company.hqAddress"), multiline: true },
+      { key: "indonesiaOfficeAddress", label: t("company.indonesiaOffice"), multiline: true },
+      { key: "phone", label: t("company.companyPhone") },
+      { key: "companyDomain", label: t("company.companyDomain") },
+      { key: "nib", label: t("company.nib") },
+      { key: "contactPerson", label: t("company.cpName") },
+      { key: "contactPhone", label: t("company.cpPhone") },
+      { key: "contactEmail", label: t("company.cpEmail") },
+    ];
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-ptba-charcoal">Edit Profil Perusahaan</h1>
+          <h2 className="text-lg font-semibold text-ptba-charcoal">{t("company.editTitle")}</h2>
         </div>
-
         <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
-          {([
-            { key: "name", label: "Nama Perusahaan" },
-            { key: "address", label: "Alamat" },
-            { key: "city", label: "Kota" },
-            { key: "province", label: "Provinsi" },
-            { key: "phone", label: "Telepon" },
-            { key: "email", label: "Email" },
-            { key: "website", label: "Website" },
-            { key: "npwp", label: "NPWP" },
-            { key: "siup", label: "SIUP" },
-            { key: "contactPerson", label: "Kontak Person" },
-            { key: "contactPhone", label: "Telepon Kontak" },
-            { key: "contactEmail", label: "Email Kontak" },
-            { key: "shareholders", label: "Pemegang Saham" },
-            { key: "established", label: "Tanggal Berdiri" },
-            { key: "industry", label: "Industri" },
-          ] as { key: keyof CompanyProfile; label: string }[]).map((field) => (
+          {fields.map((field) => (
             <div key={field.key}>
               <label className="mb-1 block text-sm font-medium text-ptba-charcoal">{field.label}</label>
-              <input
-                type="text"
-                value={editProfile[field.key]}
-                onChange={(e) => setEditProfile((p) => ({ ...p, [field.key]: e.target.value }))}
-                className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20 outline-none"
-              />
+              {field.multiline ? (
+                <textarea
+                  value={editForm[field.key]}
+                  onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                  className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20 outline-none min-h-[70px] resize-y"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={editForm[field.key]}
+                  onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                  className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white px-4 py-2.5 text-sm text-ptba-charcoal focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20 outline-none"
+                />
+              )}
             </div>
           ))}
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={handleCancel} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
-              Batal
+            <button onClick={handleCancel} disabled={saving} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+              {tc("cancel")}
             </button>
-            <button onClick={handleSave} className="rounded-lg bg-ptba-gold px-6 py-2 text-sm font-bold text-ptba-charcoal shadow-md hover:bg-ptba-gold-light transition-colors">
-              Simpan
+            <button onClick={handleSave} disabled={saving} className="rounded-lg bg-ptba-gold px-6 py-2 text-sm font-bold text-ptba-charcoal shadow-md hover:bg-ptba-gold-light transition-colors disabled:opacity-50">
+              {saving ? tc("saving") : tc("save")}
             </button>
           </div>
         </div>
@@ -121,44 +255,253 @@ export default function MitraProfilePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ptba-charcoal">Profil Perusahaan</h1>
+        <h2 className="text-lg font-semibold text-ptba-charcoal">{t("company.title")}</h2>
         <button
-          onClick={() => { setEditProfile(profile); setIsEditing(true); }}
+          onClick={() => { setEditForm(toFormData(partner)); setIsEditing(true); }}
           className="rounded-lg border border-ptba-steel-blue px-4 py-2 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue hover:text-white transition-colors"
         >
-          Edit Profil
+          {t("company.editProfile")}
         </button>
       </div>
 
+      {saveMessage && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+          {saveMessage}
+        </div>
+      )}
+
+      {/* Logo */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.companyLogo")}</h3>
+        <div className="flex items-center gap-4">
+          {partner.logo_url ? (
+            <img src={partner.logo_url} alt="Logo" className="h-20 w-20 rounded-xl object-contain border border-ptba-light-gray bg-ptba-off-white p-1" />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-ptba-light-gray bg-ptba-off-white">
+              <Building2 className="h-8 w-8 text-ptba-light-gray" />
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => logoInputRef.current?.click()}
+              disabled={uploadingLogo}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue hover:text-white transition-colors disabled:opacity-50"
+            >
+              {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              {partner.logo_url ? t("company.changeLogo") : t("company.uploadLogo")}
+            </button>
+            {partner.logo_url && (
+              <button
+                onClick={handleLogoDelete}
+                disabled={uploadingLogo}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("company.removeLogo")}
+              </button>
+            )}
+            <p className="text-[10px] text-ptba-gray">{t("company.logoHint")}</p>
+          </div>
+          <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Company Information */}
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">Informasi Perusahaan</h2>
-          <ProfileField icon={<Building2 className="h-4 w-4" />} label="Nama Perusahaan" value={profile.name} />
-          <ProfileField icon={<MapPin className="h-4 w-4" />} label="Alamat" value={`${profile.address}, ${profile.city}, ${profile.province}`} />
-          <ProfileField icon={<Phone className="h-4 w-4" />} label="Telepon" value={profile.phone} />
-          <ProfileField icon={<Mail className="h-4 w-4" />} label="Email" value={profile.email} />
-          <ProfileField icon={<Globe className="h-4 w-4" />} label="Website" value={profile.website} />
-          <ProfileField icon={<FileText className="h-4 w-4" />} label="Industri" value={profile.industry} />
-          <ProfileField icon={<FileText className="h-4 w-4" />} label="Tanggal Berdiri" value={profile.established} />
+          <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.companyData")}</h3>
+          <ProfileField icon={<Building2 className="h-4 w-4" />} label={t("company.companyName")} value={profile.name} />
+          <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.businessOverview")} value={profile.businessOverview} />
+          <ProfileField icon={<MapPin className="h-4 w-4" />} label={t("company.hqAddress")} value={profile.address} />
+          <ProfileField icon={<MapPin className="h-4 w-4" />} label={t("company.indonesiaOffice")} value={profile.indonesiaOfficeAddress} />
+          <ProfileField icon={<Phone className="h-4 w-4" />} label={t("company.companyPhone")} value={profile.phone} />
+          <ProfileField icon={<Mail className="h-4 w-4" />} label={t("company.companyDomain")} value={profile.companyDomain ? `@${profile.companyDomain}` : "-"} />
+          <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.registrationDate")} value={partner.registration_date ? new Date(partner.registration_date).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"} />
         </div>
 
-        {/* Legal & Contact */}
         <div className="space-y-6">
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">Dokumen Legal</h2>
-            <ProfileField icon={<FileText className="h-4 w-4" />} label="NPWP" value={profile.npwp} />
-            <ProfileField icon={<FileText className="h-4 w-4" />} label="SIUP" value={profile.siup} />
-            <ProfileField icon={<User className="h-4 w-4" />} label="Pemegang Saham" value={profile.shareholders} />
+            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.identityDocs")}</h3>
+            <ProfileField icon={<FileText className="h-4 w-4" />} label={t("company.nib")} value={profile.nib} />
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">Kontak Person</h2>
-            <ProfileField icon={<User className="h-4 w-4" />} label="Nama" value={profile.contactPerson} />
-            <ProfileField icon={<Phone className="h-4 w-4" />} label="Telepon" value={profile.contactPhone} />
-            <ProfileField icon={<Mail className="h-4 w-4" />} label="Email" value={profile.contactEmail} />
+            <h3 className="mb-4 text-base font-semibold text-ptba-charcoal">{t("company.contactPerson")}</h3>
+            <ProfileField icon={<User className="h-4 w-4" />} label={t("company.cpName")} value={profile.contactPerson} />
+            <ProfileField icon={<Phone className="h-4 w-4" />} label={t("company.cpPhone")} value={profile.contactPhone} />
+            <ProfileField icon={<Mail className="h-4 w-4" />} label={t("company.cpEmail")} value={profile.contactEmail} />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Tab: Akun ───
+
+function AccountTab() {
+  const { user, accessToken } = useAuth();
+  const t = useTranslations("profile");
+  const tc = useTranslations("common");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
+
+  const handleChangePassword = async () => {
+    setMessage("");
+    if (!currentPassword) {
+      setMessage(t("account.errors.currentRequired"));
+      setMessageType("error");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setMessage(t("account.errors.newTooShort"));
+      setMessageType("error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage(t("account.errors.confirmMismatch"));
+      setMessageType("error");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await authApi().changePassword(currentPassword, newPassword, accessToken!);
+      setMessage(res.message);
+      setMessageType("success");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        setMessage(err.message);
+      } else {
+        setMessage(t("account.errors.changeFailed"));
+      }
+      setMessageType("error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const passwordInput = (
+    label: string,
+    value: string,
+    setter: (v: string) => void,
+    show: boolean,
+    toggleShow: () => void,
+    placeholder: string,
+  ) => (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-ptba-charcoal">{label}</label>
+      <div className="relative">
+        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ptba-gray" />
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => setter(e.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white py-2.5 pl-10 pr-10 text-sm text-ptba-charcoal outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
+        />
+        <button
+          type="button"
+          onClick={toggleShow}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-ptba-gray hover:text-ptba-charcoal"
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Account Info */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">{t("account.title")}</h2>
+        <ProfileField icon={<User className="h-4 w-4" />} label={t("account.name")} value={user?.name || "-"} />
+        <ProfileField icon={<Mail className="h-4 w-4" />} label={t("account.email")} value={user?.email || "-"} />
+        <ProfileField icon={<FileText className="h-4 w-4" />} label={t("account.role")} value={tc("mitra")} />
+      </div>
+
+      {/* Change Password */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-ptba-charcoal">{t("account.changePassword")}</h2>
+        <p className="mb-4 text-sm text-ptba-gray">{t("account.passwordHint")}</p>
+
+        {message && (
+          <div className={cn(
+            "mb-4 rounded-lg border px-4 py-3 text-sm",
+            messageType === "success"
+              ? "bg-green-50 border-green-200 text-green-700"
+              : "bg-red-50 border-red-200 text-red-700"
+          )}>
+            {message}
+          </div>
+        )}
+
+        <div className="space-y-4 max-w-md">
+          {passwordInput(t("account.currentPassword"), currentPassword, setCurrentPassword, showCurrent, () => setShowCurrent(!showCurrent), t("account.currentPasswordPlaceholder"))}
+          {passwordInput(t("account.newPassword"), newPassword, setNewPassword, showNew, () => setShowNew(!showNew), t("account.newPasswordPlaceholder"))}
+          {passwordInput(t("account.confirmPassword"), confirmPassword, setConfirmPassword, showConfirm, () => setShowConfirm(!showConfirm), t("account.confirmPasswordPlaceholder"))}
+
+          <button
+            onClick={handleChangePassword}
+            disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+            className="rounded-lg bg-ptba-gold px-6 py-2.5 text-sm font-bold text-ptba-charcoal shadow-md hover:bg-ptba-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? tc("saving") : t("account.changePasswordBtn")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ───
+
+type TabKey = "company" | "account";
+
+export default function MitraProfilePage() {
+  const t = useTranslations("profile");
+  const [activeTab, setActiveTab] = useState<TabKey>("company");
+
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+    { key: "company", label: t("tabs.company"), icon: <Building2 className="h-4 w-4" /> },
+    { key: "account", label: t("tabs.account"), icon: <User className="h-4 w-4" /> },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl bg-ptba-section-bg p-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+              activeTab === tab.key
+                ? "bg-white text-ptba-navy shadow-sm"
+                : "text-ptba-gray hover:text-ptba-charcoal"
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "company" && <CompanyProfileTab />}
+      {activeTab === "account" && <AccountTab />}
     </div>
   );
 }

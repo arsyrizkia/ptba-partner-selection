@@ -11,9 +11,9 @@ interface DisposisiFormProps {
 
 const decisionOptions = [
   { value: "", label: "-- Pilih Keputusan --" },
-  { value: "Setuju", label: "Setuju" },
-  { value: "Tolak", label: "Tolak" },
-  { value: "Kembalikan", label: "Kembalikan" },
+  { value: "Disetujui", label: "Setujui" },
+  { value: "Ditolak", label: "Tolak" },
+  { value: "Dikembalikan", label: "Kembalikan untuk Revisi" },
 ];
 
 export function DisposisiForm({ onSubmit }: DisposisiFormProps) {

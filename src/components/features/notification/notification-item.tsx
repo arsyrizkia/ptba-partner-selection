@@ -23,7 +23,7 @@ function getTypeConfig(type: Notification["type"]) {
 }
 
 function timeAgo(dateStr: string): string {
-  const now = new Date("2026-03-04T10:00:00Z");
+  const now = new Date();
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
