@@ -874,7 +874,37 @@ export default function ProjectForm({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Debt to Equity Ratio (DER)</label>
-                  <input type="text" placeholder="70:30" value={der} onChange={(e) => setDer(e.target.value)} className={inputClass} />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="70"
+                      value={der.split(":")[0] || ""}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^0-9]/g, "");
+                        const num = Math.min(100, Number(v) || 0);
+                        const debt = v === "" ? "" : String(num);
+                        const equity = debt === "" ? (der.split(":")[1] || "") : String(100 - num);
+                        setDer(debt || equity ? `${debt}:${equity}` : "");
+                      }}
+                      className={cn(inputClass, "text-center")}
+                    />
+                    <span className="text-sm font-bold text-ptba-charcoal shrink-0">:</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="30"
+                      value={der.split(":")[1] || ""}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^0-9]/g, "");
+                        const num = Math.min(100, Number(v) || 0);
+                        const equity = v === "" ? "" : String(num);
+                        const debt = equity === "" ? (der.split(":")[0] || "") : String(100 - num);
+                        setDer(debt || equity ? `${debt}:${equity}` : "");
+                      }}
+                      className={cn(inputClass, "text-center")}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Lifetime</label>
