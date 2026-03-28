@@ -58,6 +58,8 @@ interface FinancialYear {
   year: string;
   currency: string;
   totalAsset: string;
+  totalDebt: string;
+  totalEquity: string;
   ebitda: string;
   dscr: string;
 }
@@ -337,12 +339,12 @@ export default function MitraProjectApplyPage() {
 
   // Section: Kriteria Keuangan (financial_overview)
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>(
-    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", ebitda: "", dscr: "" }))
+    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", ebitda: "", dscr: "" }))
   );
   const selectedRangeKey = financialYears.map((f) => f.year).join("-");
   const handleYearRangeChange = (rangeIndex: number) => {
     const newYears = YEAR_RANGE_OPTIONS[rangeIndex];
-    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", ebitda: "", dscr: "" })));
+    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", ebitda: "", dscr: "" })));
   };
   const [creditRatingAgency, setCreditRatingAgency] = useState("");
   const [creditRatingValue, setCreditRatingValue] = useState("");
@@ -763,7 +765,7 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.year;
       return false;
     }),
-    financial_overview: financialYears.every((f) => f.totalAsset && f.ebitda)
+    financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && isDoc("credit_rating_evidence")
       && isDoc("ebitda_dscr_calculation"),
@@ -1560,8 +1562,63 @@ export default function MitraProjectApplyPage() {
                     </td>
                   ))}
                 </tr>
+                {/* Total Debt */}
+                <tr className="border-b border-ptba-light-gray/50">
+                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">Total Debt <span className="text-ptba-red">*</span></td>
+                  {financialYears.map((fy, i) => (
+                    <td key={fy.year} className="py-2 px-2">
+                      <input
+                        type="text"
+                        placeholder="0"
+                        value={fy.totalDebt}
+                        onChange={(e) => {
+                          const next = [...financialYears];
+                          next[i].totalDebt = e.target.value;
+                          const debt = parseFloat(e.target.value.replace(/,/g, "") || "0");
+                          const equity = parseFloat(next[i].totalEquity.replace(/,/g, "") || "0");
+                          next[i].totalAsset = String(debt + equity);
+                          setFinancialYears(next);
+                        }}
+                        className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
+                      />
+                    </td>
+                  ))}
+                </tr>
+                {/* Total Equity */}
+                <tr className="border-b border-ptba-light-gray/50">
+                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">Total Equity <span className="text-ptba-red">*</span></td>
+                  {financialYears.map((fy, i) => (
+                    <td key={fy.year} className="py-2 px-2">
+                      <input
+                        type="text"
+                        placeholder="0"
+                        value={fy.totalEquity}
+                        onChange={(e) => {
+                          const next = [...financialYears];
+                          next[i].totalEquity = e.target.value;
+                          const debt = parseFloat(next[i].totalDebt.replace(/,/g, "") || "0");
+                          const equity = parseFloat(e.target.value.replace(/,/g, "") || "0");
+                          next[i].totalAsset = String(debt + equity);
+                          setFinancialYears(next);
+                        }}
+                        className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
+                      />
+                    </td>
+                  ))}
+                </tr>
+                {/* Total Aset (auto-calculated) */}
+                <tr className="border-b border-ptba-light-gray/50 bg-ptba-section-bg">
+                  <td className="py-2 pr-3 text-xs font-semibold text-ptba-charcoal">{t("financialFields.totalAsset")}</td>
+                  {financialYears.map((fy) => (
+                    <td key={fy.year} className="py-2 px-2">
+                      <div className="w-full rounded bg-ptba-light-gray/30 px-2 py-1.5 text-xs text-right font-semibold text-ptba-charcoal">
+                        {fy.totalAsset && Number(fy.totalAsset) !== 0 ? Number(fy.totalAsset).toLocaleString("en-US") : "0"}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+                {/* EBITDA & DSCR */}
                 {[
-                  { key: "totalAsset" as const, label: t("financialFields.totalAsset") },
                   { key: "ebitda" as const, label: t("financialFields.ebitda") },
                   { key: "dscr" as const, label: t("financialFields.dscr") },
                 ].map((row) => (
