@@ -181,7 +181,7 @@ export default function MitraProjectsPage() {
                 </div>
 
                 {project.description && (
-                  <p className="mt-2 text-xs text-ptba-gray line-clamp-2">{project.description}</p>
+                  <p className="mt-2 text-xs text-ptba-gray line-clamp-2">{project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}</p>
                 )}
 
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ptba-gray">

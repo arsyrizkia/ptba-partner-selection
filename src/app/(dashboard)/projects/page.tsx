@@ -319,7 +319,7 @@ export default function ProjectsPage() {
 
                 {project.description && (
                   <p className="text-xs text-ptba-gray leading-relaxed line-clamp-2 mb-4">
-                    {project.description}
+                    {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
                   </p>
                 )}
 
