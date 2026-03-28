@@ -1230,34 +1230,94 @@ export default function MitraProjectApplyPage() {
           </div>
 
           {/* JV Equity & Cash on Hand — side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-lg border border-ptba-light-gray p-4">
-              <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
-              <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={minorityEquityPercent}
-                  onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.]/g, ""))}
-                  placeholder="49"
-                  className={cn(inputClass, "pr-10", minorityEquityPercent && Number(minorityEquityPercent) < 49 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
-              </div>
-              {minorityEquityPercent && Number(minorityEquityPercent) < 49 && (
-                <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Minimum equity percentage is 49%" : "Persentase ekuitas minimum adalah 49%"}</p>
-              )}
-            </div>
-            <div className="rounded-lg border border-ptba-light-gray p-4">
-              <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
-              <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
-              <div className="relative">
-                <input type="text" value={cashOnHand} onChange={(e) => setCashOnHand(e.target.value)} placeholder="350,000,000" className={cn(inputClass, "pr-14")} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
-              </div>
-            </div>
-          </div>
+          {(() => {
+            // Auto-calculate equity breakdown from project Capex + DER
+            const capexMn = parseFloat(String(project.indicativeCapex || project.indicative_capex || "0"));
+            const derStr = String(project.der || "");
+            const derParts = derStr.split(":");
+            const equityRatio = derParts.length === 2 ? parseFloat(derParts[1]) / 100 : 0;
+            const jvPercent = parseFloat(minorityEquityPercent || "0");
+            const hasProjectData = capexMn > 0 && equityRatio > 0;
+            const totalEquity = capexMn * equityRatio;
+            const mitraContribution = totalEquity * (jvPercent / 100);
+            const minCashOnHand = mitraContribution * 1.5;
+            const fmtUsd = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const cashNum = parseFloat(String(cashOnHand).replace(/,/g, "") || "0");
+
+            return (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg border border-ptba-light-gray p-4">
+                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
+                    <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={minorityEquityPercent}
+                        onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.]/g, ""))}
+                        placeholder="49"
+                        className={cn(inputClass, "pr-10", minorityEquityPercent && Number(minorityEquityPercent) < 49 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
+                    </div>
+                    {minorityEquityPercent && Number(minorityEquityPercent) < 49 && (
+                      <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Minimum equity percentage is 49%" : "Persentase ekuitas minimum adalah 49%"}</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-ptba-light-gray p-4">
+                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
+                    <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={cashOnHand}
+                        onChange={(e) => setCashOnHand(e.target.value.replace(/[^0-9.,]/g, ""))}
+                        placeholder={hasProjectData && jvPercent > 0 ? fmtUsd(minCashOnHand) : "350"}
+                        className={cn(inputClass, "pl-12 pr-12", hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
+                    </div>
+                    {hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && (
+                      <p className="text-[10px] text-ptba-red mt-1">
+                        {locale === "en"
+                          ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Mn (1.5x equity contribution)`
+                          : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Mn (1.5x kontribusi ekuitas)`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Equity Breakdown Card */}
+                {hasProjectData && jvPercent > 0 && (
+                  <div className="rounded-lg border border-ptba-steel-blue/30 bg-ptba-steel-blue/5 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-ptba-navy">
+                      {locale === "en" ? "Equity Contribution Breakdown" : "Rincian Kontribusi Ekuitas"}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-lg bg-white p-3 text-center border border-ptba-light-gray">
+                        <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Total Project Equity" : "Total Ekuitas Proyek"}</p>
+                        <p className="text-sm font-bold text-ptba-navy">USD {fmtUsd(totalEquity)} Mn</p>
+                        <p className="text-[9px] text-ptba-gray mt-0.5">Capex {fmtUsd(capexMn)} × {(equityRatio * 100).toFixed(0)}%</p>
+                      </div>
+                      <div className="rounded-lg bg-white p-3 text-center border border-ptba-light-gray">
+                        <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Your Equity Contribution" : "Kontribusi Ekuitas Anda"}</p>
+                        <p className="text-sm font-bold text-ptba-steel-blue">USD {fmtUsd(mitraContribution)} Mn</p>
+                        <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(totalEquity)} × {jvPercent}%</p>
+                      </div>
+                      <div className="rounded-lg bg-white p-3 text-center border border-ptba-gold/30">
+                        <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Min. Cash on Hand (1.5x)" : "Min. Cash on Hand (1.5x)"}</p>
+                        <p className="text-sm font-bold text-ptba-gold">USD {fmtUsd(minCashOnHand)} Mn</p>
+                        <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(mitraContribution)} × 1.5</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           <div className="rounded-lg bg-ptba-section-bg p-4 text-sm text-ptba-charcoal leading-relaxed">
             {t.rich("eoiFields.eoiDeclaration", { projectName: project.name, equityPercent: minorityEquityPercent || "-", strong: (chunks) => <strong>{chunks}</strong> })}
