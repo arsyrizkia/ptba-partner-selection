@@ -3,6 +3,7 @@ export interface DocumentTypeDef {
   name: string;
   description: string;
   required: boolean;
+  hidden?: boolean;
   category: 'legal' | 'keuangan' | 'teknis' | 'administrasi';
   phase?: 'phase1' | 'phase2' | 'phase3' | 'both';
 }
@@ -190,7 +191,8 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     id: 'requirements_fulfillment',
     name: 'Pemenuhan Persyaratan',
     description: 'Dokumen yang menunjukkan pemenuhan persyaratan dasar proyek',
-    required: true,
+    required: false,
+    hidden: true,
     category: 'administrasi',
     phase: 'phase1',
   },

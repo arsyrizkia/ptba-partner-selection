@@ -235,7 +235,7 @@ export default function ProjectForm({
   // Step 3
   const [requirements, setRequirements] = useState<string[]>([""]);
   const [selectedPhase1Docs, setSelectedPhase1Docs] = useState<string[]>(
-    PHASE1_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
+    PHASE1_DOCUMENT_TYPES.filter((d) => d.required && !d.hidden).map((d) => d.id)
   );
   const [selectedPhase2Docs, setSelectedPhase2Docs] = useState<string[]>(
     PHASE2_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
@@ -1027,7 +1027,7 @@ export default function ProjectForm({
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra pada tahap pendaftaran awal</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
-                  {PHASE1_DOCUMENT_TYPES.map((doc) => {
+                  {PHASE1_DOCUMENT_TYPES.filter((d) => !d.hidden).map((doc) => {
                     const isSelected = selectedPhase1Docs.includes(doc.id);
                     return (
                       <div
