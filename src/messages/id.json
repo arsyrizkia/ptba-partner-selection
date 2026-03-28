@@ -325,11 +325,11 @@
     "submitBar": {
       "sectionsCompleted": "{completed}/{total} bagian selesai",
       "readyToSubmit": "Formulir siap dikirim.",
-      "completeAllSections": "Lengkapi semua bagian untuk mengirim Expression of Interest.",
+      "completeAllSections": "Lengkapi semua bagian untuk mengirim dokumen evaluasi tahap 1.",
       "draftSaved": "Draft tersimpan!",
       "saveDraft": "Simpan Draft",
       "savingDraft": "Menyimpan...",
-      "submitEoi": "Kirim Expression of Interest",
+      "submitEoi": "Kirim Pendaftaran Fase 1",
       "submitting": "Mengirim..."
     },
     "errors": {
