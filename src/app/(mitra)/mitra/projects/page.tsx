@@ -155,7 +155,7 @@ export default function MitraProjectsPage() {
                 <div className="p-5 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-ptba-charcoal truncate">{project.name}</h3>
+                    <h3 className="font-semibold text-ptba-charcoal line-clamp-2">{project.name}</h3>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", typeBadge(project.type))}>
                         {tc(`typeLabels.${project.type}`)}
