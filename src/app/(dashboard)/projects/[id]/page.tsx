@@ -487,8 +487,8 @@ export default function ProjectDetailPage({
       .catch(() => {});
 
     // Fetch approvals for this project
-    api<{ approvals: any[] }>(`/approvals?project_id=${id}`, { token: accessToken })
-      .then((res) => setProjectApprovals(res.approvals || []))
+    api<{ approvals: any[] }>(`/approvals`, { token: accessToken })
+      .then((res) => setProjectApprovals((res.approvals || []).filter((a: any) => a.project_id === id)))
       .catch(() => {});
   }, [id, accessToken]);
 
