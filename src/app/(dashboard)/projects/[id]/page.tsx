@@ -318,6 +318,7 @@ export default function ProjectDetailPage({
   const [activeTab, setActiveTab] = useState<Tab>("mitra");
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // PIC edit state
   const [showPicEdit, setShowPicEdit] = useState(false);
@@ -865,8 +866,8 @@ export default function ProjectDetailPage({
         <div className={cn("flex flex-col", project.coverImageUrl ? "lg:flex-row" : "")}>
           {/* Cover Image — left side */}
           {project.coverImageUrl && (
-            <div className="lg:w-[400px] shrink-0">
-              <img src={project.coverImageUrl} alt={project.name} className="w-full h-48 lg:h-full object-cover" />
+            <div className="lg:w-[400px] shrink-0 cursor-pointer" onClick={() => setLightboxSrc(project.coverImageUrl)}>
+              <img src={project.coverImageUrl} alt={project.name} className="w-full h-48 lg:h-full object-cover hover:opacity-90 transition-opacity" />
             </div>
           )}
 
@@ -1722,7 +1723,16 @@ export default function ProjectDetailPage({
               {editMode ? (
                 <textarea value={editDraft.description} onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))} className={cn(inputCls, "min-h-[80px] resize-y")} />
               ) : project.description ? (
-                <div className="text-sm leading-relaxed text-ptba-gray prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: project.description }} />
+                <div
+                  className="text-sm leading-relaxed text-ptba-gray prose prose-sm max-w-none [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity"
+                  dangerouslySetInnerHTML={{ __html: project.description }}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.tagName === "IMG") {
+                      setLightboxSrc((target as HTMLImageElement).src);
+                    }
+                  }}
+                />
               ) : (
                 <p className="text-sm leading-relaxed text-ptba-gray">-</p>
               )}
@@ -2347,6 +2357,27 @@ export default function ProjectDetailPage({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={() => setLightboxSrc(null)}
+            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+          >
+            <span className="text-2xl leading-none">&times;</span>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
