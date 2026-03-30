@@ -34,6 +34,7 @@ import {
   ThumbsDown,
   XCircle,
   Download,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -173,6 +174,7 @@ function formatDocName(name: string): string {
 function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: string | null }) {
   const [partnerDocs, setPartnerDocs] = useState<Record<string, any[]>>({});
   const [loadingDocs, setLoadingDocs] = useState(true);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!accessToken || partners.length === 0) {
@@ -223,18 +225,26 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
         const docs = partnerDocs[partner.id] || [];
         const docComplete = docs.filter((d: any) => d.file_key).length;
         return (
-          <div key={partner.id} className="rounded-xl bg-white p-5 shadow-sm">
-            <h3 className="mb-4 font-semibold text-ptba-charcoal">
-              {partner.name}
-              <span className="ml-2 text-sm font-normal text-ptba-gray">
-                ({docComplete}/{docs.length} dokumen lengkap)
-              </span>
-              {partner.isShortlisted && (
-                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                  Shortlisted
+          <div key={partner.id} className="rounded-xl bg-white shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => ({ ...prev, [partner.id]: !prev[partner.id] }))}
+              className="w-full flex items-center justify-between p-5 text-left hover:bg-ptba-section-bg/50 transition-colors"
+            >
+              <h3 className="font-semibold text-ptba-charcoal">
+                {partner.name}
+                <span className="ml-2 text-sm font-normal text-ptba-gray">
+                  ({docComplete}/{docs.length} dokumen lengkap)
                 </span>
-              )}
-            </h3>
+                {partner.isShortlisted && (
+                  <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                    Shortlisted
+                  </span>
+                )}
+              </h3>
+              <ChevronDown className={cn("h-5 w-5 text-ptba-gray transition-transform", !collapsed[partner.id] && "rotate-180")} />
+            </button>
+            {!collapsed[partner.id] && <div className="px-5 pb-5">
             {docs.length === 0 ? (
               <p className="text-sm text-ptba-gray">Belum ada dokumen yang diunggah.</p>
             ) : (
@@ -283,6 +293,7 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
                 </table>
               </div>
             )}
+            </div>}
           </div>
         );
       })}
