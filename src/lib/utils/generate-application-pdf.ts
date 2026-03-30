@@ -8,7 +8,7 @@ function esc(s: string | undefined | null): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export function generateApplicationPdf(
+export async function generateApplicationPdf(
   partnerName: string,
   formData: Record<string, any>,
 ) {
@@ -22,7 +22,7 @@ export function generateApplicationPdf(
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Formulir EoI — ${esc(partnerName)}</title>
+<title>Formulir Pendaftaran Fase 1 — ${esc(partnerName)}</title>
 <style>
 @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
 @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-break { break-inside: avoid; } }
@@ -75,7 +75,7 @@ tr:nth-child(even) td { background: #fafbfc; }
 <!-- Header -->
 <div class="header">
   <div class="header-left">
-    <h1>Formulir Expression of Interest</h1>
+    <h1>Formulir Pendaftaran Fase 1</h1>
     <p>${esc(partnerName)}</p>
   </div>
   <div class="header-right">
@@ -182,17 +182,44 @@ tr:nth-child(even) td { background: #fafbfc; }
 </div>
 
 <div class="footer">
-  PT Bukit Asam (Persero) Tbk — Sistem Pemilihan Mitra Strategis (PRIMA PTBA)<br>
+  PT Bukit Asam (Persero) Tbk — PRIMA (Platform Registrasi, Informasi &amp; Manajemen Mitra) PTBA<br>
   Dokumen ini digenerate secara otomatis dan bersifat rahasia.
 </div>
 
 </body>
 </html>`;
 
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  // Auto-trigger print dialog after render
-  win.onload = () => win.print();
+  // Render HTML in offscreen container, convert to PDF, download directly
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "210mm";
+  container.style.background = "#fff";
+  const bodyStart = html.indexOf("<body>") + 6;
+  const bodyEnd = html.indexOf("</body>");
+  container.innerHTML = html.substring(bodyStart, bodyEnd);
+
+  // Inject styles into container
+  const styleEl = document.createElement("style");
+  const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+  if (styleMatch) styleEl.textContent = styleMatch[1];
+  container.prepend(styleEl);
+
+  document.body.appendChild(container);
+
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  await doc.html(container, {
+    margin: [15, 15, 15, 15],
+    width: 180,
+    windowWidth: 794, // A4 at 96dpi
+    autoPaging: "text",
+  });
+
+  document.body.removeChild(container);
+
+  const safeName = partnerName.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
+  doc.save(`Formulir_Pendaftaran_Fase1_${safeName}.pdf`);
 }
