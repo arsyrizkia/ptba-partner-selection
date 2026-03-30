@@ -174,6 +174,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
                   <thead>
                     <tr className="border-b border-ptba-light-gray">
                       <th className="py-1 text-left text-ptba-gray font-medium">Tahun</th>
+                      <th className="py-1 text-left text-ptba-gray font-medium">Mata Uang</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">Total Debt</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">Total Equity</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">Total Asset</th>
@@ -185,6 +186,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
                     {formData.financialYears.map((fy: any, i: number) => (
                       <tr key={i} className="border-b border-ptba-light-gray/30">
                         <td className="py-1 text-ptba-charcoal">{fy.year}</td>
+                        <td className="py-1 text-ptba-charcoal font-medium">{fy.currency || "-"}</td>
                         <td className="py-1 text-ptba-charcoal">{fy.totalDebt || "-"}</td>
                         <td className="py-1 text-ptba-charcoal">{fy.totalEquity || "-"}</td>
                         <td className="py-1 text-ptba-charcoal font-medium">{fy.totalAsset || "-"}</td>
