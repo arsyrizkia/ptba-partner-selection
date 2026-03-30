@@ -137,6 +137,30 @@ export async function api<T = unknown>(
   }
 }
 
+/**
+ * Fetch with auto token refresh on 401. Use for raw fetch() calls
+ * that bypass the api() wrapper (e.g. FormData uploads).
+ */
+export async function fetchWithAuth(
+  url: string,
+  options: RequestInit & { token: string }
+): Promise<Response> {
+  const { token, ...fetchOpts } = options;
+  const doFetch = (t: string) =>
+    fetch(url.startsWith("http") ? url : `${API_BASE}${url}`, {
+      ...fetchOpts,
+      headers: { ...fetchOpts.headers as Record<string, string>, Authorization: `Bearer ${t}` },
+    });
+
+  const res = await doFetch(token);
+  if (res.status === 401) {
+    const newToken = await tryRefreshToken();
+    if (newToken) return doFetch(newToken);
+    forceLogout();
+  }
+  return res;
+}
+
 // Auth-specific helpers
 
 export interface LoginResponse {

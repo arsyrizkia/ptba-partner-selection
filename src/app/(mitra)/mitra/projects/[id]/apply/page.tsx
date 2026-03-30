@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, ApiClientError } from "@/lib/api/client";
+import { api, projectApi, ApiClientError, fetchWithAuth } from "@/lib/api/client";
 import { partnerApi } from "@/lib/api/client";
 import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useTranslations } from "next-intl";
@@ -533,9 +533,9 @@ export default function MitraProjectApplyPage() {
 
       // Delete old document if replacing
       if (existingDoc?.dbId) {
-        await fetch(`${API_BASE}/applications/${appId}/documents/${existingDoc.dbId}`, {
+        await fetchWithAuth(`${API_BASE}/applications/${appId}/documents/${existingDoc.dbId}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${accessToken}` },
+          token: accessToken,
         });
       }
 
@@ -545,9 +545,9 @@ export default function MitraProjectApplyPage() {
       formData.append("name", autoName);
       formData.append("phase", phase);
 
-      const res = await fetch(`${API_BASE}/applications/${appId}/documents`, {
+      const res = await fetchWithAuth(`${API_BASE}/applications/${appId}/documents`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        token: accessToken,
         body: formData,
       });
 
@@ -579,9 +579,9 @@ export default function MitraProjectApplyPage() {
 
     setUploadedDocs((prev) => ({ ...prev, [docTypeId]: { ...prev[docTypeId], uploading: true } }));
     try {
-      const res = await fetch(`${API_BASE}/applications/${application.id}/documents/${doc.dbId}`, {
+      const res = await fetchWithAuth(`${API_BASE}/applications/${application.id}/documents/${doc.dbId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        token: accessToken,
       });
       if (!res.ok) {
         const data = await res.json();
@@ -680,12 +680,10 @@ export default function MitraProjectApplyPage() {
 
   const saveFormDataToServer = useCallback(async (appId: string) => {
     if (!accessToken) return;
-    await fetch(`${API_BASE}/applications/${appId}/form-data`, {
+    await fetchWithAuth(`${API_BASE}/applications/${appId}/form-data`, {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
+      token: accessToken,
       body: JSON.stringify({ formData: buildFormDataRef.current() }),
     });
   }, [accessToken]);
@@ -898,6 +896,17 @@ export default function MitraProjectApplyPage() {
   );
 
   // Error highlight: returns red border class when field is empty and showErrors is active
+  // Format number with thousand separators for display (10000 → 10,000)
+  const fmtThousand = (val: string) => {
+    const clean = val.replace(/,/g, "");
+    const num = parseFloat(clean);
+    if (!clean || isNaN(num)) return val;
+    // Preserve decimal part
+    const parts = clean.split(".");
+    const intPart = parseInt(parts[0]).toLocaleString("en-US");
+    return parts.length > 1 ? `${intPart}.${parts[1]}` : intPart;
+  };
+
   const errBorder = (value: string | boolean) => showErrors && !value ? "!border-ptba-red/60 !ring-2 !ring-ptba-red/10" : "";
   const errMsg = (value: string | boolean) => showErrors && !value;
   const ErrText = ({ show }: { show: boolean }) => show ? <p className="text-[10px] text-ptba-red mt-0.5">{locale === "en" ? "This field is required" : "Wajib diisi"}</p> : null;
@@ -1726,12 +1735,12 @@ export default function MitraProjectApplyPage() {
                       <input
                         type="text"
                         placeholder="0"
-                        value={fy.totalDebt}
+                        value={fmtThousand(fy.totalDebt)}
                         onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9.,-]/g, "");
+                          const val = e.target.value.replace(/[^0-9.,-]/g, "").replace(/,/g, "");
                           const next = [...financialYears];
                           next[i].totalDebt = val;
-                          const debt = parseFloat(val.replace(/,/g, "") || "0") || 0;
+                          const debt = parseFloat(val || "0") || 0;
                           const equity = parseFloat(next[i].totalEquity.replace(/,/g, "") || "0") || 0;
                           next[i].totalAsset = String(debt + equity);
                           setFinancialYears(next);
@@ -1749,9 +1758,9 @@ export default function MitraProjectApplyPage() {
                       <input
                         type="text"
                         placeholder="0"
-                        value={fy.totalEquity}
+                        value={fmtThousand(fy.totalEquity)}
                         onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9.,-]/g, "");
+                          const val = e.target.value.replace(/[^0-9.,-]/g, "").replace(/,/g, "");
                           const next = [...financialYears];
                           next[i].totalEquity = val;
                           const debt = parseFloat(next[i].totalDebt.replace(/,/g, "") || "0") || 0;
