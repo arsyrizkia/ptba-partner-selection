@@ -334,9 +334,10 @@ export default function Phase1EvaluationPage({
 
   const isAuthorized = role === "ebd" || role === "super_admin";
 
-  // View-only when the project has moved past phase1 evaluation
+  // View-only: before registration is closed OR after evaluation/approval is done
   const projectPhase = (project as any)?.phase as string | undefined;
-  const viewOnly = !!projectPhase && projectPhase !== "phase1_closed" && projectPhase !== "phase1_evaluation";
+  const isEvalPhase = projectPhase === "phase1_closed" || projectPhase === "phase1_evaluation";
+  const viewOnly = !!projectPhase && !isEvalPhase;
 
   // ── Fetch project + applicants + evaluations ─────────────────────────────
   const fetchData = useCallback(async () => {
