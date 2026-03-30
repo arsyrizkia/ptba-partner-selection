@@ -21,6 +21,8 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  LockKeyhole,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -295,6 +297,8 @@ export default function Phase1EvaluationPage({
   // ── Loading & data state ────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showCloseRegModal, setShowCloseRegModal] = useState(false);
+  const [closingReg, setClosingReg] = useState(false);
   const [project, setProject] = useState<ApiProject | null>(null);
   const [phase1Applicants, setPhase1Applicants] = useState<ApiApplication[]>([]);
   const [evalStates, setEvalStates] = useState<Record<string, MitraEvalState>>({});
@@ -337,6 +341,7 @@ export default function Phase1EvaluationPage({
   // View-only: before registration is closed OR after evaluation/approval is done
   const projectPhase = (project as any)?.phase as string | undefined;
   const isEvalPhase = projectPhase === "phase1_closed" || projectPhase === "phase1_evaluation";
+  const isRegistrationPhase = projectPhase === "phase1_registration";
   const viewOnly = !!projectPhase && !isEvalPhase;
 
   // ── Fetch project + applicants + evaluations ─────────────────────────────
@@ -739,6 +744,91 @@ export default function Phase1EvaluationPage({
       >
         <ArrowLeft className="h-4 w-4" /> Kembali ke Proyek
       </button>
+
+      {/* View-only banner during registration */}
+      {isRegistrationPhase && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 shrink-0">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Mode Lihat Saja — Pendaftaran Masih Dibuka</p>
+                <p className="text-xs text-amber-700 mt-0.5">Evaluasi hanya dapat dilakukan setelah pendaftaran Fase 1 ditutup. Saat ini Anda dapat melihat data dan mengunduh dokumen mitra.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCloseRegModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors shrink-0"
+            >
+              <LockKeyhole className="h-4 w-4" />
+              Tutup Pendaftaran
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Close Registration Confirmation Modal */}
+      {showCloseRegModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCloseRegModal(false)}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-ptba-charcoal">Tutup Pendaftaran Fase 1</h2>
+              <button onClick={() => setShowCloseRegModal(false)} className="rounded-lg p-1.5 hover:bg-ptba-section-bg transition-colors">
+                <X className="h-5 w-5 text-ptba-gray" />
+              </button>
+            </div>
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-4">
+              <p className="text-sm text-ptba-charcoal leading-relaxed">
+                Pendaftaran untuk proyek <strong>{project.name}</strong> akan ditutup. Mitra tidak akan bisa mendaftar lagi setelah ini.
+              </p>
+            </div>
+            <div className="space-y-2 mb-5 text-xs text-ptba-gray">
+              <div className="flex items-start gap-2">
+                <LockKeyhole className="h-3.5 w-3.5 text-ptba-red shrink-0 mt-0.5" />
+                <span>Mitra tidak bisa mendaftar lagi ke proyek ini</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                <span>Proyek akan masuk ke tahap evaluasi dokumen EoI</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <span>Pastikan semua mitra yang diharapkan sudah mendaftar</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCloseRegModal(false)}
+                className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                disabled={closingReg}
+                onClick={async () => {
+                  if (!accessToken) return;
+                  setClosingReg(true);
+                  try {
+                    await projectApi(accessToken).closeRegistration(id);
+                    await fetchData();
+                    setShowCloseRegModal(false);
+                  } catch (err: any) {
+                    alert(err.message || "Gagal menutup pendaftaran");
+                  } finally {
+                    setClosingReg(false);
+                  }
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {closingReg ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
+                Ya, Tutup Pendaftaran
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div>
