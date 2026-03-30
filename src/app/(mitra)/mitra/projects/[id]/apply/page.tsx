@@ -721,8 +721,15 @@ export default function MitraProjectApplyPage() {
       });
       router.push(`/mitra/projects/${projectId}/apply/success`);
     } catch (err) {
-      if (err instanceof ApiClientError) setError(err.message);
-      else setError(t("errors.submitFailed"));
+      const msg = err instanceof ApiClientError ? err.message : t("errors.submitFailed");
+      setError(msg);
+      setShowErrors(true);
+      setTimeout(() => {
+        scrollToFirstIncomplete();
+        // Also scroll to error banner if no incomplete section found
+        const errBanner = document.querySelector('[class*="bg-red-50"][class*="border-red"]');
+        if (errBanner) errBanner.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
     } finally {
       setSubmitting(false);
     }
