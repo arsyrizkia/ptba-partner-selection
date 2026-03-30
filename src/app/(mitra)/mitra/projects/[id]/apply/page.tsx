@@ -755,8 +755,8 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && isDoc("compro"),
-    statement_eoi: !!signerName && !!signerPosition && !!signerDate && eoiAgreed && isDoc("statement_eoi"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!minorityEquityPercent && !!cashOnHand && eoiAgreed && isDoc("statement_eoi"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
@@ -767,6 +767,7 @@ export default function MitraProjectApplyPage() {
     }),
     financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
+      && !!creditRatingAgency && !!creditRatingValue
       && isDoc("credit_rating_evidence")
       && isDoc("ebitda_dscr_calculation"),
     requirements_fulfillment: (projectRequirements.length
@@ -1073,11 +1074,12 @@ export default function MitraProjectApplyPage() {
               <ErrText show={errMsg(companyEmail) as boolean} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.website")}</label>
-              <input type="text" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className={inputClass} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.website")} <span className="text-ptba-red">*</span></label>
+              <input type="text" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} className={cn(inputClass, errBorder(companyWebsite))} />
+              <ErrText show={errMsg(companyWebsite) as boolean} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.nib")}</label>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.nib")} <span className="text-ptba-red">*</span></label>
               <p className="mb-1 text-[10px] text-ptba-gray italic">Upload NIB document (PDF)</p>
               <FileUploadButton
                 label="NIB Document"
@@ -1089,6 +1091,7 @@ export default function MitraProjectApplyPage() {
                 onDelete={() => deleteDoc("nib_document")}
                 readOnly={readOnly}
                 onDownload={docDownloadHandler("nib_document")}
+                error={showErrors && !isDoc("nib_document")}
               />
             </div>
             <div>
@@ -1109,7 +1112,7 @@ export default function MitraProjectApplyPage() {
 
           {/* Org Structure & Subsidiaries */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.orgStructure")}</label>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.orgStructure")} <span className="text-ptba-red">*</span></label>
             <p className="mb-1 text-[10px] text-ptba-gray italic">Upload company organizational structure (PDF or image)</p>
             <FileUploadButton
               label="Company Organizational Structure"
@@ -1121,6 +1124,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("org_structure")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("org_structure")}
+              error={showErrors && !isDoc("org_structure")}
             />
           </div>
           <div>
@@ -1261,7 +1265,7 @@ export default function MitraProjectApplyPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="rounded-lg border border-ptba-light-gray p-4">
-                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")}</label>
+                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")} <span className="text-ptba-red">*</span></label>
                     <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
                     <div className="relative">
                       <input
@@ -1270,7 +1274,7 @@ export default function MitraProjectApplyPage() {
                         value={minorityEquityPercent}
                         onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.]/g, ""))}
                         placeholder="49"
-                        className={cn(inputClass, "pr-10", minorityEquityPercent && Number(minorityEquityPercent) < 49 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                        className={cn(inputClass, "pr-10", errBorder(minorityEquityPercent), minorityEquityPercent && Number(minorityEquityPercent) < 49 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
                     </div>
@@ -1279,7 +1283,7 @@ export default function MitraProjectApplyPage() {
                     )}
                   </div>
                   <div className="rounded-lg border border-ptba-light-gray p-4">
-                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")}</label>
+                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")} <span className="text-ptba-red">*</span></label>
                     <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
@@ -1289,7 +1293,7 @@ export default function MitraProjectApplyPage() {
                         value={cashOnHand}
                         onChange={(e) => setCashOnHand(e.target.value.replace(/[^0-9.,]/g, ""))}
                         placeholder={hasProjectData && jvPercent > 0 ? fmtUsd(minCashOnHand) : "350"}
-                        className={cn(inputClass, "pl-12 pr-12", hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                        className={cn(inputClass, "pl-12 pr-12", errBorder(cashOnHand), hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
                     </div>
@@ -1656,7 +1660,7 @@ export default function MitraProjectApplyPage() {
 
           {/* Credit Rating */}
           <div className="space-y-3">
-            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")}</label>
+            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")} <span className="text-ptba-red">*</span></label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {[
                 { value: "DNDB", label: "DNDB" },
@@ -1678,7 +1682,7 @@ export default function MitraProjectApplyPage() {
             </div>
             {creditRatingAgency && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency})</label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency}) <span className="text-ptba-red">*</span></label>
                 <input
                   type="text"
                   placeholder={creditRatingAgency === "DNDB" ? "e.g. SA2" : creditRatingAgency === "S&P" ? "e.g. AA+" : creditRatingAgency === "Moodys" ? "e.g. Aaa" : creditRatingAgency === "Fitch" ? "e.g. AAA" : "e.g. A+"}
