@@ -17,7 +17,11 @@ const FIELD_LABELS: Record<string, string> = {
   businessOverview: "Overview Bidang Usaha",
   orgStructure: "Struktur Organisasi",
   subsidiaries: "Anak / Afiliasi Perusahaan",
+  shareholderType: "Tipe Pemegang Saham",
   minorityEquityPercent: "Persentase Ekuitas Joint Venture (%)",
+  equityNegotiable: "Dapat Dinegosiasikan",
+  equityMinPercent: "Ekuitas Minimum yang Diterima (%)",
+  canBecomeMinority: "Dapat Menjadi Minoritas",
   nib: "NIB",
   contactPerson: "Nama CP",
   contactPhone: "Nomor Telp CP",
@@ -72,7 +76,7 @@ const SECTIONS: { key: string; title: string; fields: string[] }[] = [
   {
     key: "eoi",
     title: "Surat Pernyataan EoI",
-    fields: ["signerName", "signerPosition", "signerDate", "minorityEquityPercent", "cashOnHand", "eoiAgreed"],
+    fields: ["signerName", "signerPosition", "signerDate", "shareholderType", "minorityEquityPercent", "equityNegotiable", "equityMinPercent", "canBecomeMinority", "cashOnHand", "eoiAgreed"],
   },
   {
     key: "financial",

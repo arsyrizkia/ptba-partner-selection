@@ -329,7 +329,11 @@ export default function MitraProjectApplyPage() {
   const [contactPerson, setContactPerson] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [shareholderType, setShareholderType] = useState<"majority" | "minority" | "">("");
   const [minorityEquityPercent, setMinorityEquityPercent] = useState("");
+  const [equityNegotiable, setEquityNegotiable] = useState<"yes" | "no" | "">("");
+  const [equityMinPercent, setEquityMinPercent] = useState("");
+  const [canBecomeMinority, setCanBecomeMinority] = useState<"yes" | "no" | "">("");
 
   // Section: Surat Pernyataan EoI (statement_eoi)
   const [signerName, setSignerName] = useState("");
@@ -449,7 +453,11 @@ export default function MitraProjectApplyPage() {
         if (fd.agreedFinal) setAgreedFinal(fd.agreedFinal);
         if (fd.orgStructure) setOrgStructure(fd.orgStructure);
         if (fd.subsidiaries) setSubsidiaries(fd.subsidiaries);
+        if (fd.shareholderType) setShareholderType(fd.shareholderType);
         if (fd.minorityEquityPercent) setMinorityEquityPercent(fd.minorityEquityPercent);
+        if (fd.equityNegotiable) setEquityNegotiable(fd.equityNegotiable);
+        if (fd.equityMinPercent) setEquityMinPercent(fd.equityMinPercent);
+        if (fd.canBecomeMinority) setCanBecomeMinority(fd.canBecomeMinority);
         // Note: businessOverview, contactPerson/Phone/Email, companyAddress, etc.
         // are merged with partner profile data below (draft takes priority)
       }
@@ -650,7 +658,11 @@ export default function MitraProjectApplyPage() {
     contactPerson,
     contactPhone,
     contactEmail,
+    shareholderType,
     minorityEquityPercent,
+    equityNegotiable,
+    equityMinPercent,
+    canBecomeMinority,
   });
 
   const buildFormDataRef = useRef(buildFormData);
@@ -684,7 +696,7 @@ export default function MitraProjectApplyPage() {
     autoSaveFormData();
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [
-    signerName, signerPosition, signerDate, eoiAgreed, minorityEquityPercent, cashOnHand,
+    signerName, signerPosition, signerDate, eoiAgreed, shareholderType, minorityEquityPercent, equityNegotiable, equityMinPercent, canBecomeMinority, cashOnHand,
     creditRatingAgency, creditRatingValue, financialYears, experiences,
     requirementAnswers, requirementNotes, agreedFinal,
     companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
@@ -756,7 +768,7 @@ export default function MitraProjectApplyPage() {
 
   const sectionComplete: Record<string, boolean> = {
     compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
-    statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!minorityEquityPercent && !!cashOnHand && eoiAgreed && isDoc("statement_eoi"),
+    statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
@@ -1263,7 +1275,25 @@ export default function MitraProjectApplyPage() {
 
             return (
               <>
+                {/* Shareholder Type + Equity Percentage */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* A. Shareholder Type */}
+                  <div className="rounded-lg border border-ptba-light-gray p-4">
+                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.shareholderType")} <span className="text-ptba-red">*</span></label>
+                    <select
+                      value={shareholderType}
+                      onChange={(e) => { setShareholderType(e.target.value as any); setMinorityEquityPercent(""); setEquityNegotiable(""); setEquityMinPercent(""); setCanBecomeMinority(""); }}
+                      className={cn(inputClass, errBorder(shareholderType))}
+                      disabled={readOnly}
+                    >
+                      <option value="">{locale === "en" ? "Select..." : "Pilih..."}</option>
+                      <option value="majority">{t("eoiFields.majority")}</option>
+                      <option value="minority">{t("eoiFields.minority")}</option>
+                    </select>
+                    <ErrText show={errMsg(shareholderType) as boolean} />
+                  </div>
+
+                  {/* B. Equity Percentage */}
                   <div className="rounded-lg border border-ptba-light-gray p-4">
                     <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.equityPercent")} <span className="text-ptba-red">*</span></label>
                     <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.equityPercentHint")}</p>
@@ -1273,38 +1303,122 @@ export default function MitraProjectApplyPage() {
                         inputMode="decimal"
                         value={minorityEquityPercent}
                         onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.]/g, ""))}
-                        placeholder="49"
-                        className={cn(inputClass, "pr-10", errBorder(minorityEquityPercent), minorityEquityPercent && Number(minorityEquityPercent) < 49 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                        placeholder={shareholderType === "majority" ? "51" : shareholderType === "minority" ? "49" : "49"}
+                        className={cn(inputClass, "pr-10", errBorder(minorityEquityPercent),
+                          shareholderType === "majority" && minorityEquityPercent && Number(minorityEquityPercent) <= 50 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                          shareholderType === "minority" && minorityEquityPercent && (Number(minorityEquityPercent) < 45 || Number(minorityEquityPercent) >= 50) && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                        )}
+                        disabled={readOnly}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
                     </div>
-                    {minorityEquityPercent && Number(minorityEquityPercent) < 49 && (
-                      <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Minimum equity percentage is 49%" : "Persentase ekuitas minimum adalah 49%"}</p>
+                    {shareholderType === "majority" && minorityEquityPercent && Number(minorityEquityPercent) <= 50 && (
+                      <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMajority")}</p>
+                    )}
+                    {shareholderType === "minority" && minorityEquityPercent && (Number(minorityEquityPercent) < 45 || Number(minorityEquityPercent) >= 50) && (
+                      <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinority")}</p>
                     )}
                   </div>
-                  <div className="rounded-lg border border-ptba-light-gray p-4">
-                    <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")} <span className="text-ptba-red">*</span></label>
-                    <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={cashOnHand}
-                        onChange={(e) => setCashOnHand(e.target.value.replace(/[^0-9.,]/g, ""))}
-                        placeholder={hasProjectData && jvPercent > 0 ? fmtUsd(minCashOnHand) : "350"}
-                        className={cn(inputClass, "pl-12 pr-12", errBorder(cashOnHand), hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
+                </div>
+
+                {/* C. Negotiable + D. Conditional fields */}
+                {shareholderType && (
+                  <div className="rounded-lg border border-ptba-light-gray p-4 space-y-4">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.negotiable")} <span className="text-ptba-red">*</span></label>
+                      <div className="flex gap-3">
+                        {(["yes", "no"] as const).map((val) => (
+                          <label key={val} className={cn("flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors text-xs font-medium", equityNegotiable === val ? "border-ptba-steel-blue bg-ptba-steel-blue/5 text-ptba-steel-blue" : "border-ptba-light-gray text-ptba-gray hover:border-ptba-steel-blue/50")}>
+                            <input type="radio" name="equityNegotiable" value={val} checked={equityNegotiable === val} onChange={() => { setEquityNegotiable(val); if (val === "no") { setEquityMinPercent(""); setCanBecomeMinority(""); } }} className="sr-only" disabled={readOnly} />
+                            {val === "yes" ? t("eoiFields.negotiableYes") : t("eoiFields.negotiableNo")}
+                          </label>
+                        ))}
+                      </div>
+                      {showErrors && !equityNegotiable && <ErrText show />}
                     </div>
-                    {hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && (
-                      <p className="text-[10px] text-ptba-red mt-1">
-                        {locale === "en"
-                          ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Mn (1.5x equity contribution)`
-                          : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Mn (1.5x kontribusi ekuitas)`}
-                      </p>
+
+                    {equityNegotiable === "yes" && (
+                      <>
+                        {/* Can become minority — only for majority */}
+                        {shareholderType === "majority" && (
+                          <div>
+                            <label className="mb-2 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.canBecomeMinority")} <span className="text-ptba-red">*</span></label>
+                            <div className="flex gap-3">
+                              {(["yes", "no"] as const).map((val) => (
+                                <label key={val} className={cn("flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors text-xs font-medium", canBecomeMinority === val ? "border-ptba-steel-blue bg-ptba-steel-blue/5 text-ptba-steel-blue" : "border-ptba-light-gray text-ptba-gray hover:border-ptba-steel-blue/50")}>
+                                  <input type="radio" name="canBecomeMinority" value={val} checked={canBecomeMinority === val} onChange={() => setCanBecomeMinority(val)} className="sr-only" disabled={readOnly} />
+                                  {val === "yes" ? (locale === "en" ? "Yes" : "Ya") : (locale === "en" ? "No" : "Tidak")}
+                                </label>
+                              ))}
+                            </div>
+                            {canBecomeMinority === "yes" && (
+                              <p className="mt-2 text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                {locale === "en" ? "Note: If the minimum equity falls below 50%, your shareholder status may become minority." : "Catatan: Jika ekuitas minimum di bawah 50%, status pemegang saham Anda dapat menjadi minoritas."}
+                              </p>
+                            )}
+                            {showErrors && !canBecomeMinority && <ErrText show />}
+                          </div>
+                        )}
+
+                        {/* Min equity percent */}
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.minEquityPercent")} <span className="text-ptba-red">*</span></label>
+                          <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.minEquityHint")}</p>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={equityMinPercent}
+                              onChange={(e) => setEquityMinPercent(e.target.value.replace(/[^0-9.]/g, ""))}
+                              placeholder={shareholderType === "majority" && canBecomeMinority !== "yes" ? "51" : "45"}
+                              className={cn(inputClass, "pr-10", errBorder(equityMinPercent),
+                                equityMinPercent && shareholderType === "majority" && canBecomeMinority !== "yes" && Number(equityMinPercent) < 51 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                                equityMinPercent && shareholderType === "majority" && canBecomeMinority === "yes" && Number(equityMinPercent) < 45 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                                equityMinPercent && shareholderType === "minority" && (Number(equityMinPercent) < 45 || Number(equityMinPercent) >= 50) && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                              )}
+                              disabled={readOnly}
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
+                          </div>
+                          {equityMinPercent && shareholderType === "majority" && canBecomeMinority !== "yes" && Number(equityMinPercent) < 51 && (
+                            <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajority")}</p>
+                          )}
+                          {equityMinPercent && shareholderType === "majority" && canBecomeMinority === "yes" && Number(equityMinPercent) < 45 && (
+                            <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajorityFlex")}</p>
+                          )}
+                          {equityMinPercent && shareholderType === "minority" && (Number(equityMinPercent) < 45 || Number(equityMinPercent) >= 50) && (
+                            <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMinority")}</p>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
+                )}
+
+                {/* Cash on Hand */}
+                <div className="rounded-lg border border-ptba-light-gray p-4">
+                  <label className="mb-1 block text-xs font-semibold text-ptba-charcoal">{t("eoiFields.cashOnHand")} <span className="text-ptba-red">*</span></label>
+                  <p className="mb-2 text-[10px] text-ptba-gray italic">{t("eoiFields.cashOnHandHint")}</p>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">USD</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={cashOnHand}
+                      onChange={(e) => setCashOnHand(e.target.value.replace(/[^0-9.,]/g, ""))}
+                      placeholder={hasProjectData && jvPercent > 0 ? fmtUsd(minCashOnHand) : "350"}
+                      className={cn(inputClass, "pl-12 pr-12", errBorder(cashOnHand), hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                      disabled={readOnly}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
+                  </div>
+                  {hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && (
+                    <p className="text-[10px] text-ptba-red mt-1">
+                      {locale === "en"
+                        ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Mn (1.5x equity contribution)`
+                        : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Mn (1.5x kontribusi ekuitas)`}
+                    </p>
+                  )}
                 </div>
 
                 {/* Equity Breakdown Card */}
