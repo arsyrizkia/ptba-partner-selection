@@ -8,7 +8,7 @@ function esc(s: string | undefined | null): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export async function generateApplicationPdf(
+export function generateApplicationPdf(
   partnerName: string,
   formData: Record<string, any>,
 ) {
@@ -80,6 +80,7 @@ tr:nth-child(even) td { background: #fafbfc; }
   </div>
   <div class="header-right">
     <div class="brand"><span>PRIMA</span> PTBA</div>
+    <div style="font-size:6pt;color:#94a3b8;margin-top:1px;">Platform Registrasi, Informasi &amp; Manajemen Mitra</div>
     <div class="date">Digenerate: ${today}</div>
   </div>
 </div>
@@ -189,62 +190,10 @@ tr:nth-child(even) td { background: #fafbfc; }
 </body>
 </html>`;
 
-  // Render HTML in offscreen container, capture as image, place in PDF
-  const container = document.createElement("div");
-  container.style.position = "absolute";
-  container.style.left = "-9999px";
-  container.style.top = "0";
-  container.style.width = "794px"; // A4 at 96dpi
-  container.style.background = "#fff";
-  container.style.padding = "40px";
-  const bodyStart = html.indexOf("<body>") + 6;
-  const bodyEnd = html.indexOf("</body>");
-  container.innerHTML = html.substring(bodyStart, bodyEnd);
-
-  // Inject styles
-  const styleEl = document.createElement("style");
-  const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
-  if (styleMatch) styleEl.textContent = styleMatch[1];
-  container.prepend(styleEl);
-
-  document.body.appendChild(container);
-
-  // Wait for rendering
-  await new Promise((r) => setTimeout(r, 100));
-
-  const html2canvas = (await import("html2canvas")).default;
-  const canvas = await html2canvas(container, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: "#ffffff",
-    logging: false,
-  });
-
-  document.body.removeChild(container);
-
-  const imgData = canvas.toDataURL("image/jpeg", 0.95);
-  const imgWidth = 210; // A4 width in mm
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  const pageHeight = 297; // A4 height in mm
-
-  const { jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-  let heightLeft = imgHeight;
-  let position = 0;
-
-  // First page
-  doc.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-
-  // Additional pages if content overflows
-  while (heightLeft > 0) {
-    position -= pageHeight;
-    doc.addPage();
-    doc.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-  }
-
-  const safeName = partnerName.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_");
-  doc.save(`Formulir_Pendaftaran_Fase1_${safeName}.pdf`);
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  // Auto-trigger print dialog after render
+  win.onload = () => setTimeout(() => win.print(), 300);
 }
