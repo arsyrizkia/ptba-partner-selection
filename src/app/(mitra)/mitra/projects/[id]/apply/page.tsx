@@ -1276,6 +1276,10 @@ export default function MitraProjectApplyPage() {
             return (
               <>
                 {/* Shareholder Type + Equity Percentage */}
+                <div className="border-t border-ptba-light-gray pt-4">
+                  <p className="text-xs font-semibold text-ptba-navy mb-1">{locale === "en" ? "Joint Venture Equity Proposal" : "Pengajuan Ekuitas Joint Venture"}</p>
+                  <p className="text-[10px] text-ptba-gray mb-3">{locale === "en" ? "Define your proposed equity stake and negotiation terms for the joint venture partnership." : "Tentukan ekuitas yang diajukan dan ketentuan negosiasi untuk kemitraan joint venture."}</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* A. Shareholder Type */}
                   <div className="rounded-lg border border-ptba-light-gray p-4">
