@@ -1724,8 +1724,8 @@ export default function ProjectDetailPage({
                 <textarea value={editDraft.description} onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))} className={cn(inputCls, "min-h-[80px] resize-y")} />
               ) : project.description ? (
                 <div
-                  className="text-sm leading-relaxed text-ptba-gray prose prose-sm max-w-none overflow-hidden [overflow-wrap:break-word] [word-break:normal] [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity [&_p]:whitespace-normal [&_table]:w-full [&_table]:table-fixed"
-                  dangerouslySetInnerHTML={{ __html: project.description }}
+                  className="text-sm leading-relaxed text-ptba-gray prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity [&_table]:w-full [&_table]:table-fixed"
+                  dangerouslySetInnerHTML={{ __html: project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ") }}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.tagName === "IMG") {
