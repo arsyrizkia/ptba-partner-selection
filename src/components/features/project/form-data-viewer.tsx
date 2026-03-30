@@ -104,14 +104,25 @@ const VALUE_LABELS: Record<string, string> = {
   no: "Tidak",
 };
 
-function formatValue(value: unknown): string {
+const FIELD_SUFFIX: Record<string, string> = {
+  minorityEquityPercent: "%",
+  equityMinPercent: "%",
+  cashOnHand: " USD Mn",
+  equityPercent: "%",
+  workPortionPercent: "%",
+};
+
+function formatValue(value: unknown, fieldKey?: string): string {
   if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "boolean") return value ? "Ya" : "Tidak";
   const str = String(value);
-  return VALUE_LABELS[str] || str;
+  const label = VALUE_LABELS[str];
+  if (label) return label;
+  const suffix = fieldKey ? FIELD_SUFFIX[fieldKey] : undefined;
+  return suffix ? `${str}${suffix}` : str;
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, fieldKey }: { label: string; value: string; fieldKey?: string }) {
   if (value === "-") return null;
   return (
     <div>
@@ -197,7 +208,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
               {visibleFields.length > 0 && (
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
                   {visibleFields.map((f) => (
-                    <Field key={f} label={getLabel(f)} value={formatValue(formData[f])} />
+                    <Field key={f} label={getLabel(f)} value={formatValue(formData[f], f)} fieldKey={f} />
                   ))}
                 </dl>
               )}
@@ -238,7 +249,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
                             {Object.entries(exp)
                               .filter(([k, v]) => !EXPERIENCE_SKIP_KEYS.has(k) && v !== undefined && v !== "" && v !== null)
                               .map(([k, v]) => (
-                                <Field key={k} label={getLabel(k)} value={formatValue(v)} />
+                                <Field key={k} label={getLabel(k)} value={formatValue(v, k)} fieldKey={k} />
                               ))}
                           </dl>
                         </div>
@@ -264,7 +275,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
                     {Object.entries(exp)
                       .filter(([, v]) => v !== undefined && v !== "" && v !== null)
                       .map(([k, v]) => (
-                        <Field key={k} label={getLabel(k)} value={formatValue(v)} />
+                        <Field key={k} label={getLabel(k)} value={formatValue(v, k)} fieldKey={k} />
                       ))}
                   </dl>
                 </div>
@@ -294,7 +305,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
             <div className="px-3 py-2.5">
               <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
                 {remaining.map(([k, v]) => (
-                  <Field key={k} label={getLabel(k)} value={formatValue(v)} />
+                  <Field key={k} label={getLabel(k)} value={formatValue(v, k)} fieldKey={k} />
                 ))}
               </dl>
             </div>
