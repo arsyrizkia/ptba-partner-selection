@@ -160,15 +160,36 @@ function formatDocTypeLabel(typeId: string): string {
   return typeId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const DOC_NAME_MAP: Record<string, string> = {
+  nib_document: "NIB Document",
+  org_structure: "Struktur Organisasi",
+  ebitda_dscr_calculation: "EBITDA & DSCR Calculation",
+  credit_rating_evidence: "Credit Rating Evidence",
+};
+
 function formatDocName(name: string): string {
-  // Clean up credential names like "credential_exp_8d4ba320-... - PT Test Mitra"
-  // to "Dokumen Kredensial - PT Test Mitra"
+  // Check for known doc type prefixes in the name
   if (name.startsWith("credential_exp_")) {
     const dashIdx = name.indexOf(" - ");
     if (dashIdx !== -1) return `Dokumen Kredensial${name.slice(dashIdx)}`;
     return "Dokumen Kredensial";
   }
-  return name;
+  if (name.startsWith("audited_financial_")) {
+    const dashIdx = name.indexOf(" - ");
+    const year = name.match(/audited_financial_(\d{4})/)?.[1] || "";
+    const suffix = dashIdx !== -1 ? name.slice(dashIdx) : "";
+    return `Laporan Keuangan Audit ${year}${suffix}`;
+  }
+  // Check mapped names (e.g. "nib_document - tess" → "NIB Document - tess")
+  for (const [key, label] of Object.entries(DOC_NAME_MAP)) {
+    if (name.startsWith(key)) {
+      const dashIdx = name.indexOf(" - ");
+      const suffix = dashIdx !== -1 ? name.slice(dashIdx) : "";
+      return `${label}${suffix}`;
+    }
+  }
+  // Generic: replace underscores with spaces and title-case
+  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: string | null }) {
