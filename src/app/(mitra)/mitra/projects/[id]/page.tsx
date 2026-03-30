@@ -208,7 +208,7 @@ export default function MitraProjectDetailPage() {
           <div className="rounded-xl bg-white p-6 shadow-sm overflow-hidden">
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("projectDescription")}</h2>
             {project.description ? (
-              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden break-words [&_*]:break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_p]:whitespace-normal [&_table]:w-full [&_table]:table-fixed [&_td]:break-words [&_th]:break-words" dangerouslySetInnerHTML={{ __html: project.description }} />
+              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden [overflow-wrap:break-word] [word-break:normal] [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_p]:whitespace-normal [&_table]:w-full [&_table]:table-fixed" dangerouslySetInnerHTML={{ __html: project.description }} />
             ) : (
               <p className="text-sm text-ptba-gray leading-relaxed">{t("noDescription")}</p>
             )}
