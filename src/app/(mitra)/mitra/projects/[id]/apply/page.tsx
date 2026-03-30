@@ -955,6 +955,9 @@ export default function MitraProjectApplyPage() {
               strong: (chunks) => <strong>{chunks}</strong>,
             })}
           </p>
+          <p className="text-sm text-ptba-charcoal leading-relaxed font-semibold">
+            {t("officialSourceDisclaimer", { projectName: project.name })}
+          </p>
           <div className="rounded-lg bg-ptba-section-bg p-4">
             <p className="text-xs font-semibold text-ptba-navy mb-2">{t("requiredDocs")}</p>
             <ol className="text-xs text-ptba-gray space-y-1.5 list-decimal list-inside">
