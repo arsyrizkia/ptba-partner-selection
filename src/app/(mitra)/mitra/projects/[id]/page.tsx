@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
@@ -226,6 +226,115 @@ export default function MitraProjectDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Project Summary (Indicative) — Financial */}
+          {(project.location || project.capacity_mw || project.indicative_capex || project.npv || project.der) && (() => {
+            const derParts = project.der ? project.der.split(":").map((s: string) => parseInt(s.trim(), 10)) : null;
+            const debtPct = derParts && derParts.length === 2 && !isNaN(derParts[0]) ? derParts[0] : null;
+            const equityPct = derParts && derParts.length === 2 && !isNaN(derParts[1]) ? derParts[1] : null;
+
+            const finItems = [
+              { label: t("npv"), value: project.npv, unit: "USD Mn" },
+              { label: t("lifetime"), value: project.lifetime, unit: locale === "en" ? "Years" : "Tahun" },
+              { label: t("projectIrr"), value: project.project_irr, unit: "%" },
+              { label: t("equityIrr"), value: project.equity_irr, unit: "%" },
+              { label: t("paybackPeriod"), value: project.payback_period, unit: locale === "en" ? "Years" : "Tahun" },
+              { label: t("wacc"), value: project.wacc, unit: "%" },
+            ].filter(i => i.value);
+
+            const tariffItems = [
+              { label: t("tariffLevelized"), value: project.tariff_levelized, unit: "cUSD/kWh" },
+              { label: `${t("bpp")}${project.bpp_location ? ` ${project.bpp_location}` : ""}`, value: project.bpp_value, unit: "cUSD/kWh" },
+            ].filter(i => i.value);
+
+            return (
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-ptba-charcoal mb-5 flex items-center gap-2.5">
+                  <TrendingUp className="h-5 w-5 text-ptba-steel-blue" />
+                  {t("projectSummary")}
+                </h2>
+
+                {/* Hero: Location, Capacity, CAPEX */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                  {project.location && (
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
+                      <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <MapPin className="h-3 w-3 opacity-70" />
+                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("location")}</span>
+                      </div>
+                      <p className="text-[15px] font-bold leading-snug">{project.location}</p>
+                    </div>
+                  )}
+                  {project.capacity_mw && (
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
+                      <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Zap className="h-3 w-3 opacity-70" />
+                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("powerCapacity")}</span>
+                      </div>
+                      <p className="text-[22px] font-extrabold">{project.capacity_mw} <span className="text-xs font-normal opacity-70">MW</span></p>
+                    </div>
+                  )}
+                  {project.indicative_capex && (
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
+                      <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <DollarSign className="h-3 w-3 opacity-70" />
+                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("indicativeCapex")}</span>
+                      </div>
+                      <p className="text-[22px] font-extrabold">{project.indicative_capex}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* DER Visual Bar */}
+                {project.der && debtPct !== null && equityPct !== null && (
+                  <div className="rounded-xl border border-ptba-light-gray bg-[#fafbfc] p-4 mb-5">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-ptba-gray">{t("der")}</span>
+                      <span className="text-sm font-bold text-ptba-navy">{project.der}</span>
+                    </div>
+                    <div className="h-3 rounded-full bg-ptba-light-gray overflow-hidden flex">
+                      <div className="h-full rounded-l-full bg-gradient-to-r from-ptba-navy to-ptba-steel-blue" style={{ width: `${debtPct}%` }} />
+                      <div className="h-full rounded-r-full bg-gradient-to-r from-ptba-gold to-[#f5c242]" style={{ width: `${equityPct}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-1.5">
+                      <span className="text-[11px] font-semibold text-ptba-steel-blue">{t("debt")} {debtPct}%</span>
+                      <span className="text-[11px] font-semibold text-ptba-gold">{t("equity")} {equityPct}%</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Financial Projection Grid — only for shortlisted mitra */}
+                {isShortlisted && finItems.length > 0 && (
+                  <>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-ptba-gray/60 mb-3 pb-2 border-b border-ptba-light-gray/60">{t("financialProjection")}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {finItems.map((item) => (
+                        <div key={item.label} className="rounded-xl border border-ptba-light-gray bg-[#fafbfc] px-4 py-3.5 transition-colors hover:border-ptba-steel-blue hover:bg-ptba-steel-blue/[0.03]">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-ptba-gray mb-1">{item.label}</p>
+                          <p className="text-base font-bold text-ptba-navy">{item.value} <span className="text-[11px] font-normal text-ptba-gray">{item.unit}</span></p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Tariff + BPP — only for shortlisted mitra */}
+                {isShortlisted && tariffItems.length > 0 && (
+                  <div className={cn("grid gap-3 mt-3", tariffItems.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
+                    {tariffItems.map((item) => (
+                      <div key={item.label} className="rounded-xl border border-ptba-light-gray bg-[#fafbfc] px-4 py-3.5 transition-colors hover:border-ptba-steel-blue hover:bg-ptba-steel-blue/[0.03]">
+                        <p className="text-[10px] font-medium uppercase tracking-wider text-ptba-gray mb-1">{item.label}</p>
+                        <p className="text-base font-bold text-ptba-navy">{item.value} <span className="text-[11px] font-normal text-ptba-gray">{item.unit}</span></p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Requirements */}
           {project.requirements && project.requirements.length > 0 && (
