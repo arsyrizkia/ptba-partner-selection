@@ -41,6 +41,7 @@ export default function MitraProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const dateLocale = locale === "en" ? "en-US" : "id-ID";
 
@@ -208,7 +209,11 @@ export default function MitraProjectDetailPage() {
           <div className="rounded-xl bg-white p-6 shadow-sm overflow-hidden">
             <h2 className="text-lg font-semibold text-ptba-charcoal mb-3">{t("projectDescription")}</h2>
             {project.description ? (
-              <div className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_table]:w-full [&_table]:table-fixed" dangerouslySetInnerHTML={{ __html: project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ") }} />
+              <div
+                className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity [&_table]:w-full [&_table]:table-fixed"
+                dangerouslySetInnerHTML={{ __html: project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ") }}
+                onClick={(e) => { const t = e.target as HTMLElement; if (t.tagName === "IMG") setLightboxSrc((t as HTMLImageElement).src); }}
+              />
             ) : (
               <p className="text-sm text-ptba-gray leading-relaxed">{t("noDescription")}</p>
             )}
@@ -220,7 +225,7 @@ export default function MitraProjectDetailPage() {
                     src={img.url}
                     alt={img.caption || ""}
                     className="w-full rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => window.open(img.url, "_blank")}
+                    onClick={() => setLightboxSrc(img.url)}
                   />
                 ))}
               </div>
@@ -558,6 +563,27 @@ export default function MitraProjectDetailPage() {
           })()}
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={() => setLightboxSrc(null)}
+            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+          >
+            <span className="text-2xl leading-none">&times;</span>
+          </button>
+          <img
+            src={lightboxSrc}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
