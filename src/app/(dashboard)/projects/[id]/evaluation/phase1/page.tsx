@@ -304,7 +304,7 @@ export default function Phase1EvaluationPage({
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { role, accessToken } = useAuth();
+  const { role, accessToken, user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
 
@@ -350,7 +350,10 @@ export default function Phase1EvaluationPage({
   const nextMitra = currentIndex >= 0 && currentIndex < phase1Applicants.length - 1
     ? phase1Applicants[currentIndex + 1] : null;
 
-  const isAuthorized = role === "ebd" || role === "super_admin";
+  // Check if user is EBD PIC for Phase 1 of this project, or super_admin
+  const phase1Pics = ((project as any)?.phasePics || []).filter((p: any) => p.phase === "phase1");
+  const isPhase1Pic = phase1Pics.some((p: any) => p.userId === user?.id);
+  const isAuthorized = role === "super_admin" || (role === "ebd" && isPhase1Pic);
 
   // View-only: before registration is closed OR after evaluation/approval is done
   const projectPhase = (project as any)?.phase as string | undefined;

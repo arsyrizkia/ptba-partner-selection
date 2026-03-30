@@ -294,7 +294,7 @@ export default function Phase1ApprovalPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { role, accessToken } = useAuth();
+  const { role, accessToken, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -605,8 +605,31 @@ export default function Phase1ApprovalPage({
     );
   }
 
-  const isKetuaTim = role === "ketua_tim" || role === "super_admin";
+  // Access control: only super_admin and ketua_tim PIC can access approval
+  const phase1KetuaPics = ((project as any)?.phasePics || []).filter((p: any) => p.phase === "phase1" && p.role === "ketua_tim");
+  const isKetuaTim = role === "super_admin" || (role === "ketua_tim" && phase1KetuaPics.some((p: any) => p.userId === user?.id));
   const isPIC = (role === "ebd" || role === "keuangan" || role === "hukum" || role === "risiko") && !isKetuaTim;
+
+  if (!isKetuaTim) {
+    return (
+      <div className="space-y-6">
+        <BackHeader projectId={id} projectName={project.name} />
+        <div className="rounded-xl bg-white p-6 shadow-sm border border-red-200">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+              <AlertTriangle className="h-5 w-5 text-ptba-red" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-ptba-red">Akses Ditolak</h2>
+              <p className="text-sm text-ptba-gray mt-1">
+                Halaman persetujuan hanya dapat diakses oleh Ketua Tim atau Super Admin.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const allPICDecided = mitraStates.every((m) => m.decision !== "pending");
   const approvedCount = mitraStates.filter((m) => m.decision === "approved").length;
   const rejectedCount = mitraStates.filter((m) => m.decision === "rejected").length;
