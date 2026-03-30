@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft, Upload, Download, CheckCircle2, FileText, AlertTriangle, Loader2, Send,
   Building2, DollarSign, Briefcase, ShieldCheck, ChevronDown, ChevronUp, Plus, Trash2,
-  PenLine, ClipboardCheck, Save,
+  PenLine, ClipboardCheck, Save, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -189,6 +189,16 @@ function FileUploadButton({
           <div className="flex items-center gap-1.5 shrink-0">
             {uploaded && onDelete && (
               <>
+                {onDownload && (
+                  <button
+                    onClick={onDownload}
+                    className="inline-flex items-center gap-1 rounded-lg border border-ptba-steel-blue/50 px-2 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+                    title={tc("view")}
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    {tc("view")}
+                  </button>
+                )}
                 <button
                   onClick={onDelete}
                   className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
