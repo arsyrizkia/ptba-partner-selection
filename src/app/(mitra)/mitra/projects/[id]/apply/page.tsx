@@ -1711,10 +1711,11 @@ export default function MitraProjectApplyPage() {
                         placeholder="0"
                         value={fy.totalDebt}
                         onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.,-]/g, "");
                           const next = [...financialYears];
-                          next[i].totalDebt = e.target.value;
-                          const debt = parseFloat(e.target.value.replace(/,/g, "") || "0");
-                          const equity = parseFloat(next[i].totalEquity.replace(/,/g, "") || "0");
+                          next[i].totalDebt = val;
+                          const debt = parseFloat(val.replace(/,/g, "") || "0") || 0;
+                          const equity = parseFloat(next[i].totalEquity.replace(/,/g, "") || "0") || 0;
                           next[i].totalAsset = String(debt + equity);
                           setFinancialYears(next);
                         }}
@@ -1733,10 +1734,11 @@ export default function MitraProjectApplyPage() {
                         placeholder="0"
                         value={fy.totalEquity}
                         onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.,-]/g, "");
                           const next = [...financialYears];
-                          next[i].totalEquity = e.target.value;
-                          const debt = parseFloat(next[i].totalDebt.replace(/,/g, "") || "0");
-                          const equity = parseFloat(e.target.value.replace(/,/g, "") || "0");
+                          next[i].totalEquity = val;
+                          const debt = parseFloat(next[i].totalDebt.replace(/,/g, "") || "0") || 0;
+                          const equity = parseFloat(val.replace(/,/g, "") || "0") || 0;
                           next[i].totalAsset = String(debt + equity);
                           setFinancialYears(next);
                         }}
@@ -1770,7 +1772,7 @@ export default function MitraProjectApplyPage() {
                           placeholder="0"
                           value={fy[row.key]}
                           onChange={(e) => {
-                            const next = [...financialYears]; next[i][row.key] = e.target.value; setFinancialYears(next);
+                            const next = [...financialYears]; next[i][row.key] = e.target.value.replace(/[^0-9.,-]/g, ""); setFinancialYears(next);
                           }}
                           className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
                         />
