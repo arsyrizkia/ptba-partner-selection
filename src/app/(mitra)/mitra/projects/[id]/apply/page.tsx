@@ -755,7 +755,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && eoiAgreed && isDoc("statement_eoi"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -765,7 +765,7 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.year;
       return false;
     }),
-    financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda)
+    financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && isDoc("credit_rating_evidence")
       && isDoc("ebitda_dscr_calculation"),
@@ -1043,7 +1043,8 @@ export default function MitraProjectApplyPage() {
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.businessOverview")} <span className="text-ptba-red">*</span></label>
             <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.businessOverviewHint")}</p>
-            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={t("companyFields.businessOverviewPlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y")} />
+            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={t("companyFields.businessOverviewPlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(businessOverview))} />
+            <ErrText show={errMsg(businessOverview) as boolean} />
           </div>
 
           {/* Addresses */}
@@ -1062,12 +1063,14 @@ export default function MitraProjectApplyPage() {
           {/* Contact & Legal */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyPhone")}</label>
-              <input type="text" value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} className={inputClass} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyPhone")} <span className="text-ptba-red">*</span></label>
+              <input type="text" value={companyPhone} onChange={(e) => setCompanyPhone(e.target.value)} className={cn(inputClass, errBorder(companyPhone))} />
+              <ErrText show={errMsg(companyPhone) as boolean} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyEmail")}</label>
-              <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} className={inputClass} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.companyEmail")} <span className="text-ptba-red">*</span></label>
+              <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)} className={cn(inputClass, errBorder(companyEmail))} />
+              <ErrText show={errMsg(companyEmail) as boolean} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.website")}</label>
@@ -1089,12 +1092,14 @@ export default function MitraProjectApplyPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.yearEstablished")}</label>
-              <input type="text" value={yearEstablished} onChange={(e) => setYearEstablished(e.target.value)} className={inputClass} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.yearEstablished")} <span className="text-ptba-red">*</span></label>
+              <input type="text" value={yearEstablished} onChange={(e) => setYearEstablished(e.target.value)} className={cn(inputClass, errBorder(yearEstablished))} />
+              <ErrText show={errMsg(yearEstablished) as boolean} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.country")}</label>
-              <input type="text" value={countryEstablished} onChange={(e) => setCountryEstablished(e.target.value)} className={inputClass} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.country")} <span className="text-ptba-red">*</span></label>
+              <input type="text" value={countryEstablished} onChange={(e) => setCountryEstablished(e.target.value)} className={cn(inputClass, errBorder(countryEstablished))} />
+              <ErrText show={errMsg(countryEstablished) as boolean} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.status")}</label>
@@ -1128,16 +1133,19 @@ export default function MitraProjectApplyPage() {
             <p className="text-xs font-semibold text-ptba-charcoal mb-2">{t("companyFields.contactPerson")}</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpName")}</label>
-                <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} className={inputClass} />
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpName")} <span className="text-ptba-red">*</span></label>
+                <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} className={cn(inputClass, errBorder(contactPerson))} />
+                <ErrText show={errMsg(contactPerson) as boolean} />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpPhone")}</label>
-                <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={inputClass} />
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpPhone")} <span className="text-ptba-red">*</span></label>
+                <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={cn(inputClass, errBorder(contactPhone))} />
+                <ErrText show={errMsg(contactPhone) as boolean} />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpEmail")}</label>
-                <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={inputClass} />
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.cpEmail")} <span className="text-ptba-red">*</span></label>
+                <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className={cn(inputClass, errBorder(contactEmail))} />
+                <ErrText show={errMsg(contactEmail) as boolean} />
               </div>
             </div>
           </div>
