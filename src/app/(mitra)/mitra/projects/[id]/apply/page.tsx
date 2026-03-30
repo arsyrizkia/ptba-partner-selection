@@ -1306,20 +1306,20 @@ export default function MitraProjectApplyPage() {
                         type="text"
                         inputMode="decimal"
                         value={minorityEquityPercent}
-                        onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.]/g, ""))}
+                        onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.,]/g, ""))}
                         placeholder={shareholderType === "majority" ? "51" : shareholderType === "minority" ? "49" : "49"}
                         className={cn(inputClass, "pr-10", errBorder(minorityEquityPercent),
-                          shareholderType === "majority" && minorityEquityPercent && Number(minorityEquityPercent) <= 50 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
-                          shareholderType === "minority" && minorityEquityPercent && (Number(minorityEquityPercent) < 45 || Number(minorityEquityPercent) >= 50) && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                          shareholderType === "majority" && minorityEquityPercent && parseFloat(minorityEquityPercent.replace(",", ".")) <= 50 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                          shareholderType === "minority" && minorityEquityPercent && (parseFloat(minorityEquityPercent.replace(",", ".")) < 45 || parseFloat(minorityEquityPercent.replace(",", ".")) >= 50) && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
                         )}
                         disabled={readOnly}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
                     </div>
-                    {shareholderType === "majority" && minorityEquityPercent && Number(minorityEquityPercent) <= 50 && (
+                    {shareholderType === "majority" && minorityEquityPercent && parseFloat(minorityEquityPercent.replace(",", ".")) <= 50 && (
                       <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMajority")}</p>
                     )}
-                    {shareholderType === "minority" && minorityEquityPercent && (Number(minorityEquityPercent) < 45 || Number(minorityEquityPercent) >= 50) && (
+                    {shareholderType === "minority" && minorityEquityPercent && (parseFloat(minorityEquityPercent.replace(",", ".")) < 45 || parseFloat(minorityEquityPercent.replace(",", ".")) >= 50) && (
                       <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinority")}</p>
                     )}
                   </div>
@@ -1373,26 +1373,32 @@ export default function MitraProjectApplyPage() {
                               type="text"
                               inputMode="decimal"
                               value={equityMinPercent}
-                              onChange={(e) => setEquityMinPercent(e.target.value.replace(/[^0-9.]/g, ""))}
+                              onChange={(e) => setEquityMinPercent(e.target.value.replace(/[^0-9.,]/g, ""))}
                               placeholder={shareholderType === "majority" && canBecomeMinority !== "yes" ? "51" : "45"}
-                              className={cn(inputClass, "pr-10", errBorder(equityMinPercent),
-                                equityMinPercent && shareholderType === "majority" && canBecomeMinority !== "yes" && Number(equityMinPercent) < 51 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
-                                equityMinPercent && shareholderType === "majority" && canBecomeMinority === "yes" && Number(equityMinPercent) < 45 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
-                                equityMinPercent && shareholderType === "minority" && (Number(equityMinPercent) < 45 || Number(equityMinPercent) >= 50) && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
-                              )}
+                              className={cn(inputClass, "pr-10", errBorder(equityMinPercent), (() => {
+                                const minVal = parseFloat(equityMinPercent.replace(",", "."));
+                                const propVal = parseFloat(minorityEquityPercent.replace(",", "."));
+                                if (!equityMinPercent || isNaN(minVal)) return "";
+                                if (shareholderType === "majority" && canBecomeMinority !== "yes" && minVal < 51) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
+                                if (shareholderType === "majority" && canBecomeMinority === "yes" && minVal < 45) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
+                                if (shareholderType === "minority" && (minVal < 45 || minVal >= 50)) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
+                                if (!isNaN(propVal) && minVal >= propVal) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
+                                return "";
+                              })())}
                               disabled={readOnly}
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
                           </div>
-                          {equityMinPercent && shareholderType === "majority" && canBecomeMinority !== "yes" && Number(equityMinPercent) < 51 && (
-                            <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajority")}</p>
-                          )}
-                          {equityMinPercent && shareholderType === "majority" && canBecomeMinority === "yes" && Number(equityMinPercent) < 45 && (
-                            <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajorityFlex")}</p>
-                          )}
-                          {equityMinPercent && shareholderType === "minority" && (Number(equityMinPercent) < 45 || Number(equityMinPercent) >= 50) && (
-                            <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMinority")}</p>
-                          )}
+                          {(() => {
+                            const minVal = parseFloat(equityMinPercent.replace(",", "."));
+                            const propVal = parseFloat(minorityEquityPercent.replace(",", "."));
+                            if (!equityMinPercent || isNaN(minVal)) return null;
+                            if (!isNaN(propVal) && minVal >= propVal) return <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Minimum equity must be lower than the proposed equity percentage" : "Ekuitas minimum harus lebih rendah dari persentase ekuitas yang diajukan"}</p>;
+                            if (shareholderType === "majority" && canBecomeMinority !== "yes" && minVal < 51) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajority")}</p>;
+                            if (shareholderType === "majority" && canBecomeMinority === "yes" && minVal < 45) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajorityFlex")}</p>;
+                            if (shareholderType === "minority" && (minVal < 45 || minVal >= 50)) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMinority")}</p>;
+                            return null;
+                          })()}
                         </div>
                       </>
                     )}
