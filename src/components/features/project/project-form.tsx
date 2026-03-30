@@ -1602,8 +1602,8 @@ export default function ProjectForm({
                 <div className="divide-y divide-ptba-light-gray/50 px-4">
                   {location && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Lokasi</span><span className="text-sm font-medium text-ptba-charcoal">{location}</span></div>}
                   {capacityMw && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Kapasitas</span><span className="text-sm font-medium text-ptba-charcoal">{capacityMw} MW</span></div>}
-                  {indicativeCapex && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Indicative Capex</span><span className="text-sm font-medium text-ptba-charcoal">{indicativeCapex}</span></div>}
-                  {npv && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Net Present Value (NPV)</span><span className="text-sm font-medium text-ptba-charcoal">{npv}</span></div>}
+                  {indicativeCapex && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Indicative Capex</span><span className="text-sm font-medium text-ptba-charcoal">{indicativeCapex} USD Mn</span></div>}
+                  {npv && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Net Present Value (NPV)</span><span className="text-sm font-medium text-ptba-charcoal">{npv} USD Mn</span></div>}
                   {der && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Debt to Equity Ratio (DER)</span><span className="text-sm font-medium text-ptba-charcoal">{der}</span></div>}
                   {lifetime && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Lifetime</span><span className="text-sm font-medium text-ptba-charcoal">{lifetime}</span></div>}
                   {projectIrr && <div className="flex justify-between py-2.5"><span className="text-sm text-ptba-gray">Project IRR</span><span className="text-sm font-medium text-ptba-charcoal">{projectIrr}</span></div>}

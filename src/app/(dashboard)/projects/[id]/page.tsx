@@ -1796,7 +1796,7 @@ export default function ProjectDetailPage({
                 <dl className="space-y-3 text-sm">
                   {project.location && <div className="flex justify-between"><dt className="text-ptba-gray">Lokasi</dt><dd className="font-medium text-ptba-charcoal">{project.location}</dd></div>}
                   {project.capacityMw && <div className="flex justify-between"><dt className="text-ptba-gray">Kapasitas</dt><dd className="font-medium text-ptba-charcoal">{project.capacityMw} MW</dd></div>}
-                  {project.indicativeCapex && <div className="flex justify-between"><dt className="text-ptba-gray">Indicative Capex</dt><dd className="font-medium text-ptba-charcoal">{project.indicativeCapex}</dd></div>}
+                  {project.indicativeCapex && <div className="flex justify-between"><dt className="text-ptba-gray">Indicative Capex</dt><dd className="font-medium text-ptba-charcoal">{project.indicativeCapex} USD Mn</dd></div>}
                 </dl>
               </div>
             )}

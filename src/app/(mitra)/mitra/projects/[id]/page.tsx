@@ -286,7 +286,7 @@ export default function MitraProjectDetailPage() {
                         <DollarSign className="h-3 w-3 opacity-70" />
                         <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("indicativeCapex")}</span>
                       </div>
-                      <p className="text-[22px] font-extrabold">{project.indicativeCapex}</p>
+                      <p className="text-[22px] font-extrabold">{project.indicativeCapex} <span className="text-xs font-normal opacity-70">USD Mn</span></p>
                     </div>
                   )}
                   {project.lifetime && (
