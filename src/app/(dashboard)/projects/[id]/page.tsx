@@ -1738,6 +1738,24 @@ export default function ProjectDetailPage({
               )}
             </div>
 
+            {/* Gambar Deskripsi */}
+            {!editMode && project.projectImages && project.projectImages.length > 0 && (
+              <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+                <h3 className="mb-3 font-semibold text-ptba-charcoal">Gambar Deskripsi</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {project.projectImages.map((img: any) => (
+                    <img
+                      key={img.id}
+                      src={img.url}
+                      alt={img.caption || ""}
+                      className="w-full rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity border border-ptba-light-gray"
+                      onClick={() => setLightboxSrc(img.url)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Informasi Umum */}
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h3 className="mb-4 font-semibold text-ptba-charcoal">Informasi Umum</h3>
@@ -1772,19 +1790,19 @@ export default function ProjectDetailPage({
             </div>
 
             {/* Project Viability */}
-            {(project.location || project.capacity_mw || project.indicative_capex) && (
+            {(project.location || project.capacityMw || project.indicativeCapex) && (
               <div className="rounded-xl bg-white p-6 shadow-sm">
                 <h3 className="mb-4 font-semibold text-ptba-charcoal">Project Viability</h3>
                 <dl className="space-y-3 text-sm">
                   {project.location && <div className="flex justify-between"><dt className="text-ptba-gray">Lokasi</dt><dd className="font-medium text-ptba-charcoal">{project.location}</dd></div>}
-                  {project.capacity_mw && <div className="flex justify-between"><dt className="text-ptba-gray">Kapasitas</dt><dd className="font-medium text-ptba-charcoal">{project.capacity_mw} MW</dd></div>}
-                  {project.indicative_capex && <div className="flex justify-between"><dt className="text-ptba-gray">Indicative Capex</dt><dd className="font-medium text-ptba-charcoal">{project.indicative_capex}</dd></div>}
+                  {project.capacityMw && <div className="flex justify-between"><dt className="text-ptba-gray">Kapasitas</dt><dd className="font-medium text-ptba-charcoal">{project.capacityMw} MW</dd></div>}
+                  {project.indicativeCapex && <div className="flex justify-between"><dt className="text-ptba-gray">Indicative Capex</dt><dd className="font-medium text-ptba-charcoal">{project.indicativeCapex}</dd></div>}
                 </dl>
               </div>
             )}
 
             {/* Indicative Financial Projection */}
-            {(project.npv || project.der || project.lifetime || project.project_irr || project.wacc) && (
+            {(project.npv || project.der || project.lifetime || project.projectIrr || project.wacc) && (
               <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
                 <h3 className="mb-4 font-semibold text-ptba-charcoal">Indicative Financial Projection</h3>
                 <div className="grid grid-cols-3 gap-3">
@@ -1792,12 +1810,12 @@ export default function ProjectDetailPage({
                     { label: "Net Present Value (NPV)", value: project.npv },
                     { label: "Debt to Equity Ratio (DER)", value: project.der },
                     { label: "Lifetime", value: project.lifetime },
-                    { label: "Project IRR", value: project.project_irr },
-                    { label: "Equity IRR", value: project.equity_irr },
-                    { label: "Payback Period", value: project.payback_period },
+                    { label: "Project IRR", value: project.projectIrr },
+                    { label: "Equity IRR", value: project.equityIrr },
+                    { label: "Payback Period", value: project.paybackPeriod },
                     { label: "WACC", value: project.wacc },
-                    { label: "Tariff (Levelized)", value: project.tariff_levelized },
-                    { label: `BPP${project.bpp_location ? ` ${project.bpp_location}` : ""}`, value: project.bpp_value },
+                    { label: "Tariff (Levelized)", value: project.tariffLevelized },
+                    { label: `BPP${project.bppLocation ? ` ${project.bppLocation}` : ""}`, value: project.bppValue },
                   ].map((item) => (
                     <div key={item.label} className="rounded-lg border border-ptba-light-gray p-3 text-center">
                       <p className="text-[10px] font-semibold text-ptba-navy mb-1">{item.label}</p>
