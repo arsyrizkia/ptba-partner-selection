@@ -97,10 +97,18 @@ function getLabel(key: string): string {
   return FIELD_LABELS[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
 }
 
+const VALUE_LABELS: Record<string, string> = {
+  majority: "Pemegang Saham Mayoritas (>50%)",
+  minority: "Pemegang Saham Minoritas (45–50%)",
+  yes: "Ya",
+  no: "Tidak",
+};
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "boolean") return value ? "Ya" : "Tidak";
-  return String(value);
+  const str = String(value);
+  return VALUE_LABELS[str] || str;
 }
 
 function Field({ label, value }: { label: string; value: string }) {
