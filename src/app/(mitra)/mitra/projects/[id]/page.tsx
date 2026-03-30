@@ -228,24 +228,27 @@ export default function MitraProjectDetailPage() {
           </div>
 
           {/* Project Summary (Indicative) — Financial */}
-          {(project.location || project.capacity_mw || project.indicative_capex || project.npv || project.der) && (() => {
+          {(project.location || project.capacityMw || project.indicativeCapex || project.npv || project.der) && (() => {
             const derParts = project.der ? project.der.split(":").map((s: string) => parseInt(s.trim(), 10)) : null;
             const debtPct = derParts && derParts.length === 2 && !isNaN(derParts[0]) ? derParts[0] : null;
             const equityPct = derParts && derParts.length === 2 && !isNaN(derParts[1]) ? derParts[1] : null;
 
             const finItems = [
               { label: t("npv"), value: project.npv, unit: "USD Mn" },
-              { label: t("lifetime"), value: project.lifetime, unit: locale === "en" ? "Years" : "Tahun" },
-              { label: t("projectIrr"), value: project.project_irr, unit: "%" },
-              { label: t("equityIrr"), value: project.equity_irr, unit: "%" },
-              { label: t("paybackPeriod"), value: project.payback_period, unit: locale === "en" ? "Years" : "Tahun" },
+              { label: t("projectIrr"), value: project.projectIrr, unit: "%" },
+              { label: t("equityIrr"), value: project.equityIrr, unit: "%" },
+              { label: t("paybackPeriod"), value: project.paybackPeriod, unit: locale === "en" ? "Years" : "Tahun" },
               { label: t("wacc"), value: project.wacc, unit: "%" },
             ].filter(i => i.value);
 
             const tariffItems = [
-              { label: t("tariffLevelized"), value: project.tariff_levelized, unit: "cUSD/kWh" },
-              { label: `${t("bpp")}${project.bpp_location ? ` ${project.bpp_location}` : ""}`, value: project.bpp_value, unit: "cUSD/kWh" },
+              { label: t("tariffLevelized"), value: project.tariffLevelized, unit: "cUSD/kWh" },
+              { label: `${t("bpp")}${project.bppLocation ? ` ${project.bppLocation}` : ""}`, value: project.bppValue, unit: "cUSD/kWh" },
             ].filter(i => i.value);
+
+            // Count hero cards to determine grid columns
+            const heroCount = [project.location, project.capacityMw, project.indicativeCapex, project.lifetime].filter(Boolean).length;
+            const heroGridCols = heroCount <= 2 ? "sm:grid-cols-2" : heroCount === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4";
 
             return (
               <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -254,8 +257,8 @@ export default function MitraProjectDetailPage() {
                   {t("projectSummary")}
                 </h2>
 
-                {/* Hero: Location, Capacity, CAPEX */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                {/* Hero: Location, Capacity, CAPEX, Lifetime */}
+                <div className={cn("grid grid-cols-1 gap-3 mb-5", heroGridCols)}>
                   {project.location && (
                     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
                       <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
@@ -266,24 +269,34 @@ export default function MitraProjectDetailPage() {
                       <p className="text-[15px] font-bold leading-snug">{project.location}</p>
                     </div>
                   )}
-                  {project.capacity_mw && (
+                  {project.capacityMw && (
                     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
                       <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <Zap className="h-3 w-3 opacity-70" />
                         <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("powerCapacity")}</span>
                       </div>
-                      <p className="text-[22px] font-extrabold">{project.capacity_mw} <span className="text-xs font-normal opacity-70">MW</span></p>
+                      <p className="text-[22px] font-extrabold">{project.capacityMw} <span className="text-xs font-normal opacity-70">MW</span></p>
                     </div>
                   )}
-                  {project.indicative_capex && (
+                  {project.indicativeCapex && (
                     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
                       <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <DollarSign className="h-3 w-3 opacity-70" />
                         <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("indicativeCapex")}</span>
                       </div>
-                      <p className="text-[22px] font-extrabold">{project.indicative_capex}</p>
+                      <p className="text-[22px] font-extrabold">{project.indicativeCapex}</p>
+                    </div>
+                  )}
+                  {project.lifetime && (
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ptba-navy to-ptba-steel-blue p-5 text-white">
+                      <div className="absolute -top-5 -right-5 h-20 w-20 rounded-full bg-white/[0.06]" />
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Calendar className="h-3 w-3 opacity-70" />
+                        <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{t("lifetime")}</span>
+                      </div>
+                      <p className="text-[22px] font-extrabold">{project.lifetime} <span className="text-xs font-normal opacity-70">{locale === "en" ? "Years" : "Tahun"}</span></p>
                     </div>
                   )}
                 </div>
