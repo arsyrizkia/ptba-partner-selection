@@ -97,8 +97,16 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
         <EvalField label="Nama Penandatangan" value={fd.signerName} />
         <EvalField label="Jabatan" value={fd.signerPosition} />
         <EvalField label="Tanggal" value={fd.signerDate} />
-        <EvalField label="Ekuitas Joint Venture (%)" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
-        <EvalField label="Cash on Hand (USD)" value={fd.cashOnHand} />
+        <EvalField label="Tipe Pemegang Saham" value={fd.shareholderType === "majority" ? "Pemegang Saham Mayoritas (>50%)" : fd.shareholderType === "minority" ? "Pemegang Saham Minoritas (45–50%)" : fd.shareholderType} />
+        <EvalField label="Ekuitas Joint Venture" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
+        <EvalField label="Dapat Dinegosiasikan" value={fd.equityNegotiable === "yes" ? "Ya" : fd.equityNegotiable === "no" ? "Tidak" : fd.equityNegotiable} />
+        {fd.equityNegotiable === "yes" && fd.shareholderType === "majority" && (
+          <EvalField label="Dapat Menjadi Minoritas" value={fd.canBecomeMinority === "yes" ? "Ya" : fd.canBecomeMinority === "no" ? "Tidak" : fd.canBecomeMinority} />
+        )}
+        {fd.equityNegotiable === "yes" && (
+          <EvalField label="Ekuitas Minimum yang Diterima" value={fd.equityMinPercent ? `${fd.equityMinPercent}%` : undefined} />
+        )}
+        <EvalField label="Cash on Hand" value={fd.cashOnHand ? `$ ${fd.cashOnHand} Mn` : undefined} />
         <EvalField label="Menyetujui EoI" value={fd.eoiAgreed ? "Ya" : "Tidak"} />
       </dl>
     ),
