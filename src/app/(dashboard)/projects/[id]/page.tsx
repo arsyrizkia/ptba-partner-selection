@@ -626,13 +626,13 @@ export default function ProjectDetailPage({
     }
     if (!registrationClosed) {
       return (
-        <button
-          type="button"
-          onClick={() => alert("Pendaftaran Fase 1 harus ditutup terlebih dahulu sebelum memulai evaluasi.")}
-          className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+        <Link
+          href={getEvalLink(partnerId)}
+          className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium bg-ptba-light-gray/80 text-ptba-gray hover:bg-ptba-light-gray transition-colors"
         >
-          Mulai Evaluasi
-        </button>
+          <Eye className="h-3 w-3" />
+          Lihat Detail
+        </Link>
       );
     }
     return (
@@ -1096,6 +1096,15 @@ export default function ProjectDetailPage({
               >
                 <ShieldCheck className="h-4 w-4" />
                 Mulai Evaluasi Fase 1
+              </Link>
+            )}
+            {isPhase1 && project.phase === "phase1_registration" && (
+              <Link
+                href={`/projects/${id}/evaluation/phase1`}
+                className="inline-flex items-center gap-2 rounded-lg border border-ptba-navy/30 px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+              >
+                <Eye className="h-4 w-4" />
+                Lihat Evaluasi
               </Link>
             )}
             {isPhase1 && project.phase === "phase1_approval" && (
