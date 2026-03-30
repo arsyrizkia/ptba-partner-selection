@@ -281,7 +281,7 @@
       "cashOnHandHint": "Minimum Cash on Hand sebesar 1.5x dari kontribusi ekuitas yang diajukan",
       "errMajority": "Ekuitas pemegang saham mayoritas harus lebih dari 50%",
       "errMinority": "Ekuitas pemegang saham minoritas harus antara 45% dan 50%",
-      "errMinMajority": "Ekuitas minimum harus minimal 51% (tidak dapat menjadi minoritas)",
+      "errMinMajority": "Ekuitas minimum harus lebih dari 50% (tidak dapat menjadi minoritas)",
       "errMinMajorityFlex": "Ekuitas minimum harus minimal 45%",
       "errMinMinority": "Ekuitas minimum harus antara 45% dan 50%",
       "eoiDoc": "Dokumen Expression of Interest (EoI)",

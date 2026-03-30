@@ -281,7 +281,7 @@
       "cashOnHandHint": "Minimum Cash on Hand of 1.5x the proposed equity contribution",
       "errMajority": "Majority shareholder equity must be greater than 50%",
       "errMinority": "Minority shareholder equity must be between 45% and 50%",
-      "errMinMajority": "Minimum equity must be at least 51% (non-negotiable to minority)",
+      "errMinMajority": "Minimum equity must be more than 50% (non-negotiable to minority)",
       "errMinMajorityFlex": "Minimum equity must be at least 45%",
       "errMinMinority": "Minimum equity must be between 45% and 50%",
       "eoiDoc": "Expression of Interest (EoI) Document",

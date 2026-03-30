@@ -1379,7 +1379,7 @@ export default function MitraProjectApplyPage() {
                                 const minVal = parseFloat(equityMinPercent.replace(",", "."));
                                 const propVal = parseFloat(minorityEquityPercent.replace(",", "."));
                                 if (!equityMinPercent || isNaN(minVal)) return "";
-                                if (shareholderType === "majority" && canBecomeMinority !== "yes" && minVal < 51) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
+                                if (shareholderType === "majority" && canBecomeMinority !== "yes" && minVal <= 50) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
                                 if (shareholderType === "majority" && canBecomeMinority === "yes" && minVal < 45) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
                                 if (shareholderType === "minority" && (minVal < 45 || minVal >= 50)) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
                                 if (!isNaN(propVal) && minVal >= propVal) return "!border-ptba-red/60 !ring-2 !ring-ptba-red/10";
@@ -1394,7 +1394,7 @@ export default function MitraProjectApplyPage() {
                             const propVal = parseFloat(minorityEquityPercent.replace(",", "."));
                             if (!equityMinPercent || isNaN(minVal)) return null;
                             if (!isNaN(propVal) && minVal >= propVal) return <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Minimum equity must be lower than the proposed equity percentage" : "Ekuitas minimum harus lebih rendah dari persentase ekuitas yang diajukan"}</p>;
-                            if (shareholderType === "majority" && canBecomeMinority !== "yes" && minVal < 51) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajority")}</p>;
+                            if (shareholderType === "majority" && canBecomeMinority !== "yes" && minVal <= 50) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajority")}</p>;
                             if (shareholderType === "majority" && canBecomeMinority === "yes" && minVal < 45) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMajorityFlex")}</p>;
                             if (shareholderType === "minority" && (minVal < 45 || minVal >= 50)) return <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinMinority")}</p>;
                             return null;
