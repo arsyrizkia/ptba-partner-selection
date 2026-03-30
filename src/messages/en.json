@@ -37,12 +37,14 @@
     "documents": "documents",
     "mitra": "Partner",
     "status": {
+      "label": "Status",
       "Dikirim": "Submitted",
       "Dalam Review": "Under Review",
       "Shortlisted": "Phase 1 Passed",
       "Terpilih": "Selected",
       "Ditolak": "Not Passed",
       "Diterima": "Accepted",
+      "Diunggah": "Uploaded",
       "Draft": "Draft"
     },
     "typeLabels": {
@@ -518,6 +520,7 @@
     "noDocumentsDesc": "You have not uploaded any documents for any application.",
     "project": "Project",
     "uploadedAt": "Uploaded: {date}",
+    "submittedAt": "Submitted: {date}",
     "formData": {
       "companyInfo": "Company Information",
       "eoiStatement": "Expression of Interest Declaration Letter",

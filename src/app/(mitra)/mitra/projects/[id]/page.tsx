@@ -432,7 +432,7 @@ export default function MitraProjectDetailPage() {
                   application.status === "Shortlisted" ? "text-green-700" :
                   application.status === "Ditolak" ? "text-ptba-red" : "text-ptba-steel-blue"
                 )}>
-                  {application.status}
+                  {tc(`status.${application.status}`)}
                 </p>
                 <p className="mt-1 text-xs text-ptba-gray">
                   {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(dateLocale)}

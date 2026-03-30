@@ -37,12 +37,14 @@
     "documents": "dokumen",
     "mitra": "Mitra",
     "status": {
+      "label": "Status",
       "Dikirim": "Dikirim",
       "Dalam Review": "Dalam Review",
       "Shortlisted": "Lolos Fase 1",
       "Terpilih": "Terpilih",
       "Ditolak": "Tidak Lolos",
       "Diterima": "Diterima",
+      "Diunggah": "Diunggah",
       "Draft": "Draft"
     },
     "typeLabels": {
@@ -518,6 +520,7 @@
     "noDocumentsDesc": "Anda belum mengunggah dokumen pada pendaftaran manapun.",
     "project": "Proyek",
     "uploadedAt": "Diunggah: {date}",
+    "submittedAt": "Diajukan: {date}",
     "formData": {
       "companyInfo": "Informasi Perusahaan",
       "eoiStatement": "Surat Pernyataan Expression of Interest",
