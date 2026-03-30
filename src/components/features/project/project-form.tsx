@@ -127,7 +127,9 @@ export interface ProjectFormData {
   supportingFiles: SupportingFile[];
   internalUsers: InternalUser[];
   coverImageFile?: File | null;
+  coverImageDeleted?: boolean;
   descriptionImageFiles?: File[];
+  deletedDescriptionImageIds?: string[];
   // Project Viability & Financial Projection
   location: string;
   capacityMw: string;
@@ -204,9 +206,11 @@ export default function ProjectForm({
   const [description, setDescription] = useState("");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [coverImageDeleted, setCoverImageDeleted] = useState(false);
   const [descriptionImageFiles, setDescriptionImageFiles] = useState<File[]>([]);
   const [descriptionImagePreviews, setDescriptionImagePreviews] = useState<string[]>([]);
   const [existingDescriptionImages, setExistingDescriptionImages] = useState<{ id: string; url: string }[]>([]);
+  const [initialDescriptionImageIds, setInitialDescriptionImageIds] = useState<string[]>([]);
 
   // Step 1 — Project Viability & Financial Projection
   const [location, setLocation] = useState("");
@@ -308,6 +312,8 @@ export default function ProjectForm({
       const images = project.projectImages
         .filter((img: any) => img.url)
         .map((img: any) => ({ id: img.id, url: img.url }));
+      const allIds = project.projectImages.map((img: any) => img.id);
+      setInitialDescriptionImageIds(allIds);
       if (images.length > 0) {
         setExistingDescriptionImages(images);
       } else if (accessToken) {
@@ -555,7 +561,11 @@ export default function ProjectForm({
         supportingFiles,
         internalUsers,
         coverImageFile,
+        coverImageDeleted: coverImageDeleted && !coverImageFile,
         descriptionImageFiles,
+        deletedDescriptionImageIds: initialDescriptionImageIds.filter(
+          (id) => !existingDescriptionImages.some((img) => img.id === id)
+        ),
         location,
         capacityMw,
         indicativeCapex,
@@ -709,7 +719,7 @@ export default function ProjectForm({
                   <img src={coverImagePreview} alt="Cover" className="h-32 rounded-lg object-cover border border-ptba-light-gray cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(coverImagePreview)} />
                   <button
                     type="button"
-                    onClick={() => { setCoverImageFile(null); setCoverImagePreview(null); }}
+                    onClick={() => { setCoverImageFile(null); setCoverImagePreview(null); setCoverImageDeleted(true); }}
                     className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow"
                   >
                     <X className="h-3.5 w-3.5" />

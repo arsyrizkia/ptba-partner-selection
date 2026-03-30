@@ -162,6 +162,14 @@ export default function EditProjectPage({
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
+      // Delete cover image if removed
+      if (formData.coverImageDeleted && !formData.coverImageFile) {
+        await fetch(`${API_BASE}/projects/${id}/cover-image`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
+
       // Upload cover image if new file selected
       if (formData.coverImageFile) {
         const fd = new FormData();
@@ -174,6 +182,16 @@ export default function EditProjectPage({
         if (!coverRes.ok) {
           const errData = await coverRes.json().catch(() => ({}));
           console.error("Cover image upload failed:", errData);
+        }
+      }
+
+      // Delete removed description images
+      if (formData.deletedDescriptionImageIds && formData.deletedDescriptionImageIds.length > 0) {
+        for (const imageId of formData.deletedDescriptionImageIds) {
+          await fetch(`${API_BASE}/projects/${id}/images/${imageId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
         }
       }
 
