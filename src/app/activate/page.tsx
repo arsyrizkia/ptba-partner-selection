@@ -273,7 +273,7 @@ export default function ActivatePage() {
         <div className="mb-6 flex flex-col items-center">
           <Image
             src="/ptba-logo.svg"
-            alt="PT Bukit Asam Persero Tbk"
+            alt="PT Bukit Asam (Persero) Tbk"
             width={200}
             height={36}
             priority
@@ -290,7 +290,7 @@ export default function ActivatePage() {
         </Suspense>
 
         <p className="mt-6 text-center text-xs text-ptba-gray">
-          &copy; 2026 PT Bukit Asam Persero Tbk. Hak Cipta Dilindungi.
+          &copy; 2026 PT Bukit Asam (Persero) Tbk. Hak Cipta Dilindungi.
         </p>
       </div>
     </div>

@@ -324,7 +324,7 @@ export default function RegisterPage() {
 
         {/* Branding */}
         <div className="mb-4 flex flex-col items-center">
-          <Image src="/ptba-logo.svg" alt="PT Bukit Asam Persero Tbk" width={200} height={36} priority />
+          <Image src="/ptba-logo.svg" alt="PT Bukit Asam (Persero) Tbk" width={200} height={36} priority />
           <p className="mt-3 text-sm text-ptba-gray">{t("subtitle")}</p>
         </div>
         <div className="mx-auto mb-6 h-[3px] w-16 rounded-full bg-ptba-gold" />

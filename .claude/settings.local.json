@@ -57,7 +57,25 @@
       "Bash(wc:*)",
       "mcp__plugin_playwright_playwright__browser_wait_for",
       "Bash(npm install:*)",
-      "mcp__plugin_playwright_playwright__browser_run_code"
+      "mcp__plugin_playwright_playwright__browser_run_code",
+      "Bash(ls -la /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id\\\\\\)/)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(cat:*)",
+      "Bash(grep -n \"type Tab\\\\|activeTab\\\\|setActiveTab\\\\|Tab =\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id]/page.tsx)",
+      "Bash(grep -n \"return \\(\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id]/page.tsx)",
+      "Bash(sed:*)",
+      "Bash(grep:*)",
+      "Bash(sed -n '500,650p' /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id]/page.tsx)",
+      "Bash(sed -n '1276,1680p' /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id]/page.tsx)",
+      "Bash(find /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id] -type f -name \"*.tsx\" -o -name \"*.ts\")",
+      "Bash(find /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id] -type d)",
+      "Bash(find:*)",
+      "Bash(grep -n \"submitted\\\\|FormDataViewer\\\\|read-only\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(mitra\\\\\\)/mitra/projects/[id]/apply/page.tsx)",
+      "Bash(grep -n \"submitted\\\\|Read-only\\\\|Status\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(mitra\\\\\\)/mitra/projects/[id]/phase2/page.tsx)",
+      "Bash(grep -n \"activeSections\\\\|SECTION_ORDER\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(mitra\\\\\\)/mitra/projects/[id]/apply/page.tsx)",
+      "Bash(grep -n \"hasDoc\\\\|uploadDoc\\\\|deleteDoc\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(mitra\\\\\\)/mitra/projects/[id]/apply/page.tsx)",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(grep -n \"informasi\\\\|Informasi\" /Users/arsyrizkia/Documents/GitHub/Project_PTBA/ptba-partner-selection/src/app/\\\\\\(dashboard\\\\\\)/projects/[id]/page.tsx)"
     ]
   }
 }

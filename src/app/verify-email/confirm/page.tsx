@@ -49,7 +49,7 @@ function VerifyEmailConfirmContent() {
 
       <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
         <div className="mb-6 flex flex-col items-center">
-          <Image src="/ptba-logo.svg" alt="PT Bukit Asam Persero Tbk" width={200} height={36} priority />
+          <Image src="/ptba-logo.svg" alt="PT Bukit Asam (Persero) Tbk" width={200} height={36} priority />
         </div>
         <div className="mx-auto mb-8 h-[3px] w-16 rounded-full bg-ptba-gold" />
 
@@ -97,7 +97,7 @@ function VerifyEmailConfirmContent() {
         </div>
 
         <p className="mt-6 text-center text-xs text-ptba-gray">
-          &copy; 2026 PT Bukit Asam Persero Tbk. Hak Cipta Dilindungi.
+          &copy; 2026 PT Bukit Asam (Persero) Tbk. Hak Cipta Dilindungi.
         </p>
       </div>
     </div>

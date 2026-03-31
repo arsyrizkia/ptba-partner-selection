@@ -72,7 +72,7 @@ export default function HomePage() {
       <header className="border-b border-ptba-light-gray bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <Image src="/ptba-logo.svg" alt="PT Bukit Asam Persero Tbk" width={140} height={25} priority />
+            <Image src="/ptba-logo.svg" alt="PT Bukit Asam (Persero) Tbk" width={140} height={25} priority />
             <div className="h-6 w-px bg-ptba-light-gray" />
             <div>
               <span className="text-sm font-semibold text-ptba-navy">PRIMA</span>
@@ -174,7 +174,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-ptba-light-gray bg-white py-8">
         <div className="mx-auto max-w-6xl px-6 text-center">
-          <Image src="/ptba-logo.svg" alt="PT Bukit Asam Persero Tbk" width={120} height={22} className="mx-auto" />
+          <Image src="/ptba-logo.svg" alt="PT Bukit Asam (Persero) Tbk" width={120} height={22} className="mx-auto" />
           <p className="mt-3 text-xs text-ptba-gray">PT Bukit Asam (Persero) Tbk — PRIMA (Platform Registrasi, Informasi & Manajemen Mitra)</p>
         </div>
       </footer>

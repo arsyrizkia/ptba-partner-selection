@@ -123,7 +123,7 @@
   },
   "dashboard": {
     "welcome": "Selamat Datang, {name}",
-    "subtitle": "Portal Mitra - Sistem Pemilihan Mitra PT Bukit Asam Persero Tbk",
+    "subtitle": "Portal Mitra - Sistem Pemilihan Mitra PT Bukit Asam (Persero) Tbk",
     "activeApplications": "Lamaran Aktif",
     "availableProjects": "Proyek Tersedia",
     "findProjects": "Cari Proyek",
@@ -200,7 +200,7 @@
     "projectNotFound": "Proyek tidak ditemukan",
     "registrationNotOpen": "Pendaftaran belum dibuka",
     "importantInfo": "INFORMASI PENTING — BACA SEBELUM MENGISI FORMULIR",
-    "eoiIntro": "Formulir Pendaftaran ini merupakan tahap awal (<strong>Fase 1</strong>) dari proses seleksi mitra strategis PT Bukit Asam Persero Tbk. Dengan mengisi formulir ini, perusahaan Anda menyatakan minat untuk berpartisipasi dalam proyek <strong>{projectName}</strong>.",
+    "eoiIntro": "Formulir Pendaftaran ini merupakan tahap awal (<strong>Fase 1</strong>) dari proses seleksi mitra strategis PT Bukit Asam (Persero) Tbk. Dengan mengisi formulir ini, perusahaan Anda menyatakan minat untuk berpartisipasi dalam proyek <strong>{projectName}</strong>.",
     "officialSourceDisclaimer": "Informasi dan data resmi untuk seleksi mitra strategis {projectName} hanya tersedia melalui website ini, sehingga informasi dari sumber lain dinyatakan tidak berlaku dan PT Bukit Asam (Persero) Tbk tidak bertanggung jawab atas segala konsekuensi yang timbul dari penggunaan informasi dan data selain dari website ini.",
     "requiredDocs": "Dokumen yang Diperlukan:",
     "checkFinalAgreement": "Centang Persetujuan Pernyataan Akhir sebelum mengirim formulir.",
@@ -266,7 +266,7 @@
       "signerPosition": "Jabatan",
       "signerPositionPlaceholder": "Contoh: Direktur Utama",
       "signerDate": "Tanggal Penandatanganan",
-      "eoiDeclaration": "Berdasarkan indicative CAPEX, DER, dan Business Scheme pada Deskripsi Proyek, dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam Persero Tbk untuk proyek <strong>{projectName}</strong> dengan mengajukan persentase ekuitas joint venture sebesar <strong>{equityPercent}%</strong>. Kami memahami bahwa pengajuan Expression of Interest ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.",
+      "eoiDeclaration": "Berdasarkan indicative CAPEX, DER, dan Business Scheme pada Deskripsi Proyek, dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam (Persero) Tbk untuk proyek <strong>{projectName}</strong> dengan mengajukan persentase ekuitas joint venture sebesar <strong>{equityPercent}%</strong>. Kami memahami bahwa pengajuan Expression of Interest ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa perusahaan kami berminat untuk berpartisipasi.",
       "shareholderType": "Tipe Pemegang Saham",
       "majority": "Pemegang Saham Mayoritas (>50%)",
@@ -352,7 +352,7 @@
       "requirementsDocLabel": "Dokumen Pemenuhan Persyaratan (PDF)"
     },
     "finalStatement": {
-      "declaration": "Kami dengan ini menyatakan bahwa informasi yang diberikan dalam formulir ini adalah benar, akurat, dan lengkap. Dokumen yang disampaikan bersama formulir ini adalah asli dan dapat dipertanggungjawabkan. Kami bersedia untuk memberikan informasi tambahan atau klarifikasi yang diperlukan oleh PT Bukit Asam Persero Tbk. Setiap perubahan informasi akan segera kami sampaikan secara tertulis.",
+      "declaration": "Kami dengan ini menyatakan bahwa informasi yang diberikan dalam formulir ini adalah benar, akurat, dan lengkap. Dokumen yang disampaikan bersama formulir ini adalah asli dan dapat dipertanggungjawabkan. Kami bersedia untuk memberikan informasi tambahan atau klarifikasi yang diperlukan oleh PT Bukit Asam (Persero) Tbk. Setiap perubahan informasi akan segera kami sampaikan secara tertulis.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa seluruh informasi yang diberikan adalah benar."
     },
     "submitBar": {
@@ -396,7 +396,7 @@
     "payment": {
       "title": "Pembayaran Commitment Fee",
       "feeLabel": "Commitment Fee Fase 2",
-      "transferInfo": "Transfer ke rekening PT Bukit Asam Persero Tbk — Bank Mandiri 123-456-789",
+      "transferInfo": "Transfer ke rekening PT Bukit Asam (Persero) Tbk — Bank Mandiri 123-456-789",
       "disclaimer": "Commitment fee bersifat non-refundable dan wajib dibayarkan untuk melanjutkan proses seleksi ke Fase 2.",
       "uploadProof": "Upload Bukti Pembayaran",
       "uploadProofDesc": "Lakukan transfer sesuai nominal di atas, lalu unggah bukti transfer (PDF/JPG/PNG)",
