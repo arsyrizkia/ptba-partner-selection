@@ -577,8 +577,13 @@ export default function ProjectDetailPage({
       docTotal: allDocs.length,
     };
   });
-  const isAdmin = role === "ebd" || role === "super_admin" || role === "ketua_tim";
+  // PIC check: is user assigned as PIC for the current phase of this project
+  const projectPhasePics = project.phasePics || [];
+  const isPhase1Pic = projectPhasePics.some((p: any) => p.phase === "phase1" && p.userId === authUser?.id);
+  const isAnyPhasePic = projectPhasePics.some((p: any) => p.userId === authUser?.id);
   const isCreator = !!authUser && !!project?.createdBy && authUser.id === project.createdBy;
+  // Can manage project: super_admin, project creator, or assigned PIC
+  const isAdmin = role === "super_admin" || isCreator || isAnyPhasePic;
   const canEditPic = role === "super_admin" || isCreator;
   const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement";
 
@@ -630,7 +635,9 @@ export default function ProjectDetailPage({
     return base;
   }
 
-  const canEvaluate = ["keuangan", "hukum", "risiko", "ebd", "super_admin"].includes(role ?? "");
+  // Can evaluate: super_admin, or user assigned as PIC for the relevant phase
+  const isPhase2Pic = projectPhasePics.some((p: any) => p.phase === "phase2" && p.userId === authUser?.id);
+  const canEvaluate = role === "super_admin" || isPhase1Pic || isPhase2Pic;
 
   function EvalActionButton({ partnerId, evalDone }: { partnerId: string; evalDone: boolean }) {
     if (!canEvaluate) return null;
