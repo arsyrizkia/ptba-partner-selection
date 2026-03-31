@@ -240,6 +240,16 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
     );
   }
 
+  if (partners.length === 0) {
+    return (
+      <div className="rounded-xl bg-white p-12 shadow-sm text-center">
+        <FileText className="h-12 w-12 text-ptba-light-gray mx-auto mb-3" />
+        <h3 className="text-sm font-semibold text-ptba-charcoal">Belum Ada Dokumen</h3>
+        <p className="text-xs text-ptba-gray mt-1">Belum ada mitra yang mendaftar untuk proyek ini.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {partners.map((partner) => {
