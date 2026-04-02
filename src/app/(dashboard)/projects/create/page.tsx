@@ -29,19 +29,17 @@ export default function CreateProjectPage() {
     setSubmitError("");
     try {
       const reqs = formData.requirements.filter((r) => r.trim());
-      const p1Docs = formData.selectedPhase1Docs.map((id) => ({ documentTypeId: id }));
-      const p2Docs = formData.selectedPhase2Docs.map((id) => ({ documentTypeId: id }));
-      const p3Docs = formData.selectedPhase3Docs.map((id) => ({ documentTypeId: id }));
-      const legacyDocs = Object.entries(formData.selectedLegacyDocs).map(([id, phase]) => ({
-        documentTypeId: id,
-        phase,
-      }));
+      const optSet = new Set(formData.optionalDocIds || []);
+      const p1Docs = formData.selectedPhase1Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
+      const p2Docs = formData.selectedPhase2Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
+      const p3Docs = formData.selectedPhase3Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
       // Custom documents added by admin
       const customDocs = formData.customDocuments
         .filter((d) => d.name.trim())
         .map((d) => ({
           documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`,
           phase: d.phase,
+          isRequired: d.required !== false,
         }));
       const pics = Object.entries(formData.picAssignments)
         .filter(([, userId]) => userId)
@@ -63,7 +61,7 @@ export default function CreateProjectPage() {
         phase1Documents: p1Docs,
         phase2Documents: p2Docs,
         phase3Documents: p3Docs,
-        requiredDocuments: [...legacyDocs, ...customDocs],
+        requiredDocuments: customDocs,
         picAssignments: pics,
         phasePics: formData.phasePics,
         ptbaDocuments: [],

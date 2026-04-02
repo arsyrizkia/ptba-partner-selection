@@ -152,13 +152,13 @@ export default function EditProjectPage({
       const reqs = formData.requirements.filter((r) => r.trim());
       await projectApi(accessToken).updateRequirements(id, reqs);
 
-      // Update required documents (phase1 + phase2 + phase3 + legacy + custom)
-      const allDocs: { documentTypeId: string; phase: string }[] = [
-        ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1" })),
-        ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2" })),
-        ...formData.selectedPhase3Docs.map((docId) => ({ documentTypeId: docId, phase: "phase3" })),
-        ...Object.entries(formData.selectedLegacyDocs).map(([docId, phase]) => ({ documentTypeId: docId, phase })),
-        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`, phase: d.phase })),
+      // Update required documents (phase1 + phase2 + phase3 + custom)
+      const optSet = new Set(formData.optionalDocIds || []);
+      const allDocs: { documentTypeId: string; phase: string; isRequired: boolean }[] = [
+        ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
+        ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
+        ...formData.selectedPhase3Docs.map((docId) => ({ documentTypeId: docId, phase: "phase3", isRequired: !optSet.has(docId) })),
+        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`, phase: d.phase, isRequired: d.required !== false })),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 

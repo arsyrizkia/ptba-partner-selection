@@ -399,13 +399,14 @@ export default function MitraProjectApplyPage() {
   const additionalPhase1Docs = useMemo(() => {
     if (!project?.requiredDocuments) return [];
     return project.requiredDocuments
-      .filter((d: any) => (d.phase === "phase1" || d.phase === "both") && !sectionDocIds.has(d.documentTypeId))
+      .filter((d: any) => (d.phase === "phase1" || d.phase === "both" || d.phase === "general") && !sectionDocIds.has(d.documentTypeId))
       .map((d: any) => {
         const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
         return {
           id: d.documentTypeId,
           name: meta?.name || (d.documentTypeId.startsWith("custom_") ? d.documentTypeId.slice(7) : d.documentTypeId).replace(/_/g, " "),
           description: meta?.description || "",
+          isRequired: d.isRequired !== false,
         };
       });
   }, [project]);
@@ -805,7 +806,7 @@ export default function MitraProjectApplyPage() {
 
   const activeSectionIds = activeSections.map((s) => s.docId);
   const hasAdditionalDocs = additionalPhase1Docs.length > 0;
-  const additionalDocsComplete = hasAdditionalDocs ? additionalPhase1Docs.every((d: { id: string }) => isDoc(d.id)) : true;
+  const additionalDocsComplete = hasAdditionalDocs ? additionalPhase1Docs.every((d: { id: string; isRequired?: boolean }) => !d.isRequired || isDoc(d.id)) : true;
   const completedCount = activeSectionIds.filter((id) => sectionComplete[id]).length
     + (hasAdditionalDocs && additionalDocsComplete ? 1 : 0)
     + (sectionComplete.final ? 1 : 0);
@@ -2037,21 +2038,25 @@ export default function MitraProjectApplyPage() {
         >
           <p className="text-xs text-ptba-gray">{t("sections.additionalDocsDesc")}</p>
           <div className="space-y-2">
-            {additionalPhase1Docs.map((doc: { id: string; name: string; description: string }) => (
-              <FileUploadButton
-                key={doc.id}
-                label={`${doc.name}${doc.description ? ` — ${doc.description}` : ""}`}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                uploaded={isDoc(doc.id)}
-                uploading={uploadedDocs[doc.id]?.uploading ?? false}
-                fileName={uploadedDocs[doc.id]?.name}
-                onSelect={(f) => uploadDoc(doc.id, doc.name, f)}
-                onDelete={() => deleteDoc(doc.id)}
-                templateFileName={getTemplateInfo(doc.id)?.fileName}
-                onDownloadTemplate={() => downloadTemplate(doc.id)}
-                readOnly={readOnly}
-                onDownload={docDownloadHandler(doc.id)}
-              />
+            {additionalPhase1Docs.map((doc: { id: string; name: string; description: string; isRequired?: boolean }) => (
+              <div key={doc.id}>
+                {doc.isRequired !== false && <p className="text-[10px] text-ptba-red font-semibold mb-1">*Wajib</p>}
+                {doc.isRequired === false && <p className="text-[10px] text-ptba-gray font-medium mb-1">Opsional</p>}
+                <FileUploadButton
+                  label={`${doc.name}${doc.description ? ` — ${doc.description}` : ""}`}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                  uploaded={isDoc(doc.id)}
+                  uploading={uploadedDocs[doc.id]?.uploading ?? false}
+                  fileName={uploadedDocs[doc.id]?.name}
+                  onSelect={(f) => uploadDoc(doc.id, doc.name, f)}
+                  onDelete={() => deleteDoc(doc.id)}
+                  templateFileName={getTemplateInfo(doc.id)?.fileName}
+                  onDownloadTemplate={() => downloadTemplate(doc.id)}
+                  readOnly={readOnly}
+                  onDownload={docDownloadHandler(doc.id)}
+                  error={doc.isRequired !== false && showErrors && !isDoc(doc.id)}
+                />
+              </div>
             ))}
           </div>
         </Section>
