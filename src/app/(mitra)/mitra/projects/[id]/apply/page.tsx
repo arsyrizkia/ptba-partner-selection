@@ -257,6 +257,7 @@ function Section({
   onToggle,
   children,
   readOnly,
+  isRequired,
 }: {
   id?: string;
   number: number;
@@ -267,6 +268,7 @@ function Section({
   onToggle: () => void;
   children: React.ReactNode;
   readOnly?: boolean;
+  isRequired?: boolean;
 }) {
   return (
     <div id={id} className="rounded-xl bg-white shadow-sm overflow-hidden">
@@ -282,7 +284,14 @@ function Section({
           {complete ? <CheckCircle2 className="h-4 w-4" /> : number}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-ptba-charcoal">{title}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-ptba-charcoal">{title}</p>
+            {isRequired !== undefined && (
+              isRequired
+                ? <span className="text-[9px] font-bold text-ptba-red bg-red-50 border border-red-200 rounded px-1.5 py-0.5">Wajib</span>
+                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">Preferable</span>
+            )}
+          </div>
         </div>
         <Icon className="h-4 w-4 text-ptba-gray shrink-0" />
         {open ? <ChevronUp className="h-4 w-4 text-ptba-gray" /> : <ChevronDown className="h-4 w-4 text-ptba-gray" />}
@@ -964,10 +973,7 @@ export default function MitraProjectApplyPage() {
   // Helper to get section title/description from translation key
   const getSectionTitle = (sectionKey: string) => t(`sections.${sectionKey}`);
   const getSectionDesc = (sectionKey: string) => t(`sections.${sectionKey}Desc`);
-  const sectionTitle = (docId: string, sectionKey: string) => {
-    const title = t(`sections.${sectionKey}`);
-    return optionalSectionIds.has(docId) ? `${title} (preferable)` : title;
-  };
+  const sectionTitle = (_docId: string, sectionKey: string) => t(`sections.${sectionKey}`);
 
   return (
     <div className="space-y-6">
@@ -1074,6 +1080,7 @@ export default function MitraProjectApplyPage() {
           title={sectionTitle("compro", "companyInfo")}
           icon={Building2}
           complete={sectionComplete.compro}
+          isRequired={!optionalSectionIds.has("compro")}
           open={readOnly || openSection === getSectionNumber("compro")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("compro") ? 0 : getSectionNumber("compro"))}
           readOnly={readOnly}
@@ -1235,6 +1242,7 @@ export default function MitraProjectApplyPage() {
           title={sectionTitle("statement_eoi", "eoiStatement")}
           icon={PenLine}
           complete={sectionComplete.statement_eoi}
+          isRequired={!optionalSectionIds.has("statement_eoi")}
           open={readOnly || openSection === getSectionNumber("statement_eoi")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("statement_eoi") ? 0 : getSectionNumber("statement_eoi"))}
           readOnly={readOnly}
@@ -1528,6 +1536,7 @@ export default function MitraProjectApplyPage() {
           title={sectionTitle("portfolio", "portfolio")}
           icon={Briefcase}
           complete={sectionComplete.portfolio}
+          isRequired={!optionalSectionIds.has("portfolio")}
           open={readOnly || openSection === getSectionNumber("portfolio")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("portfolio") ? 0 : getSectionNumber("portfolio"))}
           readOnly={readOnly}
@@ -1692,6 +1701,7 @@ export default function MitraProjectApplyPage() {
           title={sectionTitle("financial_overview", "financialOverview")}
           icon={DollarSign}
           complete={sectionComplete.financial_overview}
+          isRequired={!optionalSectionIds.has("financial_overview")}
           open={readOnly || openSection === getSectionNumber("financial_overview")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("financial_overview") ? 0 : getSectionNumber("financial_overview"))}
           readOnly={readOnly}
@@ -1943,6 +1953,7 @@ export default function MitraProjectApplyPage() {
           title={sectionTitle("requirements_fulfillment", "requirementsFulfillment")}
           icon={ClipboardCheck}
           complete={sectionComplete.requirements_fulfillment}
+          isRequired={!optionalSectionIds.has("requirements_fulfillment")}
           open={readOnly || openSection === getSectionNumber("requirements_fulfillment")}
           onToggle={() => setOpenSection(openSection === getSectionNumber("requirements_fulfillment") ? 0 : getSectionNumber("requirements_fulfillment"))}
           readOnly={readOnly}
