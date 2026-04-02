@@ -270,6 +270,7 @@ function Section({
   readOnly?: boolean;
   isRequired?: boolean;
 }) {
+  const { locale } = useLocale();
   return (
     <div id={id} className="rounded-xl bg-white shadow-sm overflow-hidden">
       <button
@@ -288,8 +289,8 @@ function Section({
             <p className="text-sm font-semibold text-ptba-charcoal">{title}</p>
             {isRequired !== undefined && (
               isRequired
-                ? <span className="text-[9px] font-bold text-ptba-red bg-red-50 border border-red-200 rounded px-1.5 py-0.5">Wajib</span>
-                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">Preferable</span>
+                ? <span className="text-[9px] font-bold text-ptba-red bg-red-50 border border-red-200 rounded px-1.5 py-0.5">{locale === "en" ? "Required" : "Wajib"}</span>
+                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">{locale === "en" ? "Preferable" : "Opsional"}</span>
             )}
           </div>
         </div>
