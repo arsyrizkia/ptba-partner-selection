@@ -500,8 +500,8 @@ export default function MitraProjectDetailPage() {
             </div>
           )}
 
-          {/* Status Pendaftaran - milestone timeline */}
-          {application && application.status !== "Draft" && (() => {
+          {/* Status Pendaftaran - milestone timeline (hidden for now) */}
+          {false && application && application.status !== "Draft" && (() => {
             const MILESTONES = locale === "en" ? [
               { id: 1, label: "Phase 1 Registration", stepRange: [2, 3] },
               { id: 2, label: "Phase 1 Evaluation", stepRange: [4, 5] },
