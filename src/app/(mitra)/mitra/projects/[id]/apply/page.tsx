@@ -394,6 +394,16 @@ export default function MitraProjectApplyPage() {
     return SECTION_ORDER.filter((s) => requiredPhase1Docs.includes(s.docId));
   }, [requiredPhase1Docs]);
 
+  // Track which sections are optional (isRequired === false from API)
+  const optionalSectionIds = useMemo(() => {
+    if (!project?.requiredDocuments) return new Set<string>();
+    const set = new Set<string>();
+    for (const d of project.requiredDocuments) {
+      if (d.isRequired === false && d.phase === "phase1") set.add(d.documentTypeId);
+    }
+    return set;
+  }, [project]);
+
   // Additional phase1 documents (docs assigned to phase1 that don't have a dedicated section)
   const sectionDocIds = new Set(SECTION_ORDER.map((s) => s.docId));
   const additionalPhase1Docs = useMemo(() => {
@@ -811,7 +821,7 @@ export default function MitraProjectApplyPage() {
     + (hasAdditionalDocs && additionalDocsComplete ? 1 : 0)
     + (sectionComplete.final ? 1 : 0);
   const totalSections = activeSections.length + (hasAdditionalDocs ? 1 : 0) + 1;
-  const allComplete = activeSectionIds.every((id) => sectionComplete[id]) && additionalDocsComplete && sectionComplete.final;
+  const allComplete = activeSectionIds.every((id) => optionalSectionIds.has(id) || sectionComplete[id]) && additionalDocsComplete && sectionComplete.final;
 
   const scrollToFirstIncomplete = () => {
     // Check main sections
@@ -954,6 +964,10 @@ export default function MitraProjectApplyPage() {
   // Helper to get section title/description from translation key
   const getSectionTitle = (sectionKey: string) => t(`sections.${sectionKey}`);
   const getSectionDesc = (sectionKey: string) => t(`sections.${sectionKey}Desc`);
+  const sectionTitle = (docId: string, sectionKey: string) => {
+    const title = t(`sections.${sectionKey}`);
+    return optionalSectionIds.has(docId) ? `${title} (preferable)` : title;
+  };
 
   return (
     <div className="space-y-6">
@@ -1057,7 +1071,7 @@ export default function MitraProjectApplyPage() {
         <Section
           id="section-compro"
           number={getSectionNumber("compro")}
-          title={t("sections.companyInfo")}
+          title={sectionTitle("compro", "companyInfo")}
           icon={Building2}
           complete={sectionComplete.compro}
           open={readOnly || openSection === getSectionNumber("compro")}
@@ -1218,7 +1232,7 @@ export default function MitraProjectApplyPage() {
         <Section
           id="section-statement_eoi"
           number={getSectionNumber("statement_eoi")}
-          title={t("sections.eoiStatement")}
+          title={sectionTitle("statement_eoi", "eoiStatement")}
           icon={PenLine}
           complete={sectionComplete.statement_eoi}
           open={readOnly || openSection === getSectionNumber("statement_eoi")}
@@ -1511,7 +1525,7 @@ export default function MitraProjectApplyPage() {
         <Section
           id="section-portfolio"
           number={getSectionNumber("portfolio")}
-          title={t("sections.portfolio")}
+          title={sectionTitle("portfolio", "portfolio")}
           icon={Briefcase}
           complete={sectionComplete.portfolio}
           open={readOnly || openSection === getSectionNumber("portfolio")}
@@ -1675,7 +1689,7 @@ export default function MitraProjectApplyPage() {
         <Section
           id="section-financial_overview"
           number={getSectionNumber("financial_overview")}
-          title={t("sections.financialOverview")}
+          title={sectionTitle("financial_overview", "financialOverview")}
           icon={DollarSign}
           complete={sectionComplete.financial_overview}
           open={readOnly || openSection === getSectionNumber("financial_overview")}
@@ -1926,7 +1940,7 @@ export default function MitraProjectApplyPage() {
         <Section
           id="section-requirements_fulfillment"
           number={getSectionNumber("requirements_fulfillment")}
-          title={t("sections.requirementsFulfillment")}
+          title={sectionTitle("requirements_fulfillment", "requirementsFulfillment")}
           icon={ClipboardCheck}
           complete={sectionComplete.requirements_fulfillment}
           open={readOnly || openSection === getSectionNumber("requirements_fulfillment")}
