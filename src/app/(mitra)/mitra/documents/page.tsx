@@ -141,6 +141,7 @@ export default function MitraDocumentsPage() {
   const { accessToken } = useAuth();
   const t = useTranslations("documents");
   const tc = useTranslations("common");
+  const { locale } = useLocale();
   const [loading, setLoading] = useState(true);
   const [application, setApplication] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -232,68 +233,116 @@ export default function MitraDocumentsPage() {
         <p className="text-xs text-white/60 mt-1">{t("submittedAt", { date: formatDate(application.applied_at) })} · {tc("status.label")}: {tc(`status.${application.status}`)}</p>
       </div>
 
-      {/* Documents list */}
-      <div className="space-y-3">
-        {documents.map((doc) => {
-          const meta = DOCUMENT_TYPES.find((dt) => dt.id === doc.document_type_id);
-          const docName = meta?.name || doc.name;
-          const phaseLabel = doc.phase === "phase1" ? tc("phase1") : doc.phase === "phase2" ? tc("phase2") : tc("general");
-          const formSection = formData ? FORM_DATA_MAP[doc.document_type_id] : null;
-          const hasForm = !!formSection;
-          const isOpen = expanded[doc.id] ?? false;
+      {/* Documents grouped by section */}
+      {(() => {
+        // Group documents by section type
+        const DOC_NAME_MAP: Record<string, string> = {
+          nib_document: "NIB Document",
+          org_structure: locale === "en" ? "Organizational Structure" : "Struktur Organisasi",
+          ebitda_dscr_calculation: "EBITDA & DSCR Calculation",
+          credit_rating_evidence: "Credit Rating Evidence",
+          requirements_fulfillment: locale === "en" ? "Requirements Fulfillment" : "Pemenuhan Persyaratan",
+        };
+        const fmtName = (name: string, typeId: string) => {
+          const meta = DOCUMENT_TYPES.find((dt) => dt.id === typeId);
+          if (meta?.name) return meta.name;
+          if (DOC_NAME_MAP[typeId]) return DOC_NAME_MAP[typeId];
+          if (typeId.startsWith("credential_exp_")) { const d = name.indexOf(" - "); return d !== -1 ? `${locale === "en" ? "Credential Document" : "Dokumen Kredensial"}${name.slice(d)}` : (locale === "en" ? "Credential Document" : "Dokumen Kredensial"); }
+          if (typeId.startsWith("audited_financial_")) { const yr = typeId.match(/\d{4}/)?.[0] || ""; const d = name.indexOf(" - "); return `${locale === "en" ? "Audited Financial" : "Laporan Keuangan Audit"} ${yr}${d !== -1 ? name.slice(d) : ""}`; }
+          if (typeId.startsWith("custom_")) return typeId.slice(7).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+          return name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        };
 
-          return (
-            <div key={doc.id} className="rounded-xl bg-white shadow-sm overflow-hidden">
-              {/* Row */}
-              <div className="flex items-center gap-4 px-5 py-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
-                  <FileText className="h-5 w-5 text-ptba-steel-blue" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ptba-charcoal truncate">{docName}</p>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-ptba-gray">{phaseLabel}</span>
-                    {doc.upload_date && (
-                      <span className="text-xs text-ptba-gray">{t("uploadedAt", { date: formatDate(doc.upload_date) })}</span>
-                    )}
+        const SECTION_ORDER = [
+          { id: "compro", label: locale === "en" ? "Company Information & Profile" : "Informasi & Profil Perusahaan", ids: ["compro", "nib_document", "org_structure"] },
+          { id: "eoi", label: locale === "en" ? "Expression of Interest (EoI)" : "Surat Pernyataan EoI", ids: ["statement_eoi"] },
+          { id: "portfolio", label: locale === "en" ? "Project Experience & Portfolio" : "Pengalaman & Portofolio Proyek", prefix: "credential_exp_" },
+          { id: "financial", label: locale === "en" ? "Financial Overview" : "Gambaran Umum Keuangan", ids: ["ebitda_dscr_calculation", "credit_rating_evidence"], prefix: "audited_financial_" },
+          { id: "requirements", label: locale === "en" ? "Requirements Fulfillment" : "Pemenuhan Persyaratan", ids: ["requirements_fulfillment"] },
+          { id: "additional", label: locale === "en" ? "Additional Documents" : "Dokumen Tambahan" },
+        ];
+
+        const classified = new Set<string>();
+        const sections = SECTION_ORDER.map(sec => {
+          const docs = documents.filter(doc => {
+            if (classified.has(doc.id)) return false;
+            const tid = doc.document_type_id;
+            if (sec.ids?.includes(tid)) { classified.add(doc.id); return true; }
+            if (sec.prefix && tid.startsWith(sec.prefix)) { classified.add(doc.id); return true; }
+            return false;
+          });
+          return { ...sec, docs };
+        });
+        // Remaining docs go to "additional"
+        const remaining = documents.filter(d => !classified.has(d.id));
+        const additionalSec = sections.find(s => s.id === "additional");
+        if (additionalSec) additionalSec.docs.push(...remaining);
+
+        return (
+          <div className="space-y-3">
+            {sections.filter(s => s.docs.length > 0).map(sec => (
+              <div key={sec.id} className="rounded-xl bg-white shadow-sm overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(prev => ({ ...prev, [`sec_${sec.id}`]: !prev[`sec_${sec.id}`] }))}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-ptba-section-bg/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-ptba-charcoal">{sec.label}</h3>
+                    <span className="text-[10px] text-ptba-gray bg-ptba-section-bg rounded-full px-2 py-0.5">{sec.docs.length}</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2.5 py-0.5 text-[11px] font-medium text-green-700">
-                    <CheckCircle2 className="h-3 w-3" />
-                    {tc(`status.${doc.status}`)}
-                  </span>
-                  {doc.file_key && (
-                    <button
-                      onClick={() => handleView(doc)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                    >
-                      <Eye className="h-3 w-3" /> {tc("view")}
-                    </button>
-                  )}
-                  {hasForm && (
-                    <button
-                      onClick={() => toggle(doc.id)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                    >
-                      {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      {t("data")}
-                    </button>
-                  )}
-                </div>
+                  <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expanded[`sec_${sec.id}`] !== false) && "rotate-180")} />
+                </button>
+                {expanded[`sec_${sec.id}`] !== false && (
+                  <div className="border-t border-ptba-light-gray/50 divide-y divide-ptba-light-gray/30">
+                    {sec.docs.map(doc => {
+                      const docName = fmtName(doc.name, doc.document_type_id);
+                      const formSection = formData ? FORM_DATA_MAP[doc.document_type_id] : null;
+                      const hasForm = !!formSection;
+                      const isFormOpen = expanded[doc.id] ?? false;
+                      return (
+                        <div key={doc.id}>
+                          <div className="flex items-center gap-4 px-5 py-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
+                              <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-ptba-charcoal truncate">{docName}</p>
+                              {doc.upload_date && <p className="text-[11px] text-ptba-gray mt-0.5">{t("uploadedAt", { date: formatDate(doc.upload_date) })}</p>}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                {tc(`status.${doc.status}`)}
+                              </span>
+                              {doc.file_key && (
+                                <button onClick={() => handleView(doc)} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                                  <Eye className="h-3 w-3" /> {tc("view")}
+                                </button>
+                              )}
+                              {hasForm && (
+                                <button onClick={() => toggle(doc.id)} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                                  {isFormOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />} {t("data")}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {hasForm && isFormOpen && (
+                            <div className="border-t border-ptba-light-gray/50 bg-ptba-section-bg/30 px-5 py-4">
+                              <p className="text-xs font-semibold text-ptba-charcoal mb-3">{t(formSection!.titleKey)}</p>
+                              {formSection!.render(formData)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-
-              {/* Accordion: form data */}
-              {hasForm && isOpen && (
-                <div className="border-t border-ptba-light-gray/50 bg-ptba-section-bg/30 px-5 py-4">
-                  <p className="text-xs font-semibold text-ptba-charcoal mb-3">{t(formSection!.titleKey)}</p>
-                  {formSection!.render(formData)}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
