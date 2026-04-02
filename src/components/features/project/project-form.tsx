@@ -1178,13 +1178,15 @@ export default function ProjectForm({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleOptional(doc.id); }}
-                                  className={cn("ml-2 text-[10px] font-semibold rounded-full px-2 py-0.5 transition-colors",
-                                    optionalDocIds.has(doc.id)
-                                      ? "bg-gray-100 text-ptba-gray hover:bg-gray-200"
-                                      : "bg-red-50 text-ptba-red hover:bg-red-100"
-                                  )}
+                                  className="ml-2 inline-flex items-center gap-1.5 cursor-pointer select-none"
+                                  title={optionalDocIds.has(doc.id) ? "Klik untuk jadikan Wajib" : "Klik untuk jadikan Opsional"}
                                 >
-                                  {optionalDocIds.has(doc.id) ? "Opsional" : "*Wajib"}
+                                  <div className={cn("relative w-7 h-4 rounded-full transition-colors", optionalDocIds.has(doc.id) ? "bg-gray-300" : "bg-ptba-red")}>
+                                    <div className={cn("absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-all", optionalDocIds.has(doc.id) ? "left-0.5" : "left-3.5")} />
+                                  </div>
+                                  <span className={cn("text-[10px] font-semibold", optionalDocIds.has(doc.id) ? "text-ptba-gray" : "text-ptba-red")}>
+                                    {optionalDocIds.has(doc.id) ? "Opsional" : "Wajib"}
+                                  </span>
                                 </button>
                               )}
                             </p>
@@ -1247,13 +1249,15 @@ export default function ProjectForm({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleOptional(doc.id); }}
-                                  className={cn("ml-2 text-[10px] font-semibold rounded-full px-2 py-0.5 transition-colors",
-                                    optionalDocIds.has(doc.id)
-                                      ? "bg-gray-100 text-ptba-gray hover:bg-gray-200"
-                                      : "bg-red-50 text-ptba-red hover:bg-red-100"
-                                  )}
+                                  className="ml-2 inline-flex items-center gap-1.5 cursor-pointer select-none"
+                                  title={optionalDocIds.has(doc.id) ? "Klik untuk jadikan Wajib" : "Klik untuk jadikan Opsional"}
                                 >
-                                  {optionalDocIds.has(doc.id) ? "Opsional" : "*Wajib"}
+                                  <div className={cn("relative w-7 h-4 rounded-full transition-colors", optionalDocIds.has(doc.id) ? "bg-gray-300" : "bg-ptba-red")}>
+                                    <div className={cn("absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-all", optionalDocIds.has(doc.id) ? "left-0.5" : "left-3.5")} />
+                                  </div>
+                                  <span className={cn("text-[10px] font-semibold", optionalDocIds.has(doc.id) ? "text-ptba-gray" : "text-ptba-red")}>
+                                    {optionalDocIds.has(doc.id) ? "Opsional" : "Wajib"}
+                                  </span>
                                 </button>
                               )}
                             </p>
@@ -1317,13 +1321,15 @@ export default function ProjectForm({
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleOptional(doc.id); }}
-                                  className={cn("ml-2 text-[10px] font-semibold rounded-full px-2 py-0.5 transition-colors",
-                                    optionalDocIds.has(doc.id)
-                                      ? "bg-gray-100 text-ptba-gray hover:bg-gray-200"
-                                      : "bg-red-50 text-ptba-red hover:bg-red-100"
-                                  )}
+                                  className="ml-2 inline-flex items-center gap-1.5 cursor-pointer select-none"
+                                  title={optionalDocIds.has(doc.id) ? "Klik untuk jadikan Wajib" : "Klik untuk jadikan Opsional"}
                                 >
-                                  {optionalDocIds.has(doc.id) ? "Opsional" : "*Wajib"}
+                                  <div className={cn("relative w-7 h-4 rounded-full transition-colors", optionalDocIds.has(doc.id) ? "bg-gray-300" : "bg-ptba-red")}>
+                                    <div className={cn("absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-all", optionalDocIds.has(doc.id) ? "left-0.5" : "left-3.5")} />
+                                  </div>
+                                  <span className={cn("text-[10px] font-semibold", optionalDocIds.has(doc.id) ? "text-ptba-gray" : "text-ptba-red")}>
+                                    {optionalDocIds.has(doc.id) ? "Opsional" : "Wajib"}
+                                  </span>
                                 </button>
                               )}
                             </p>
