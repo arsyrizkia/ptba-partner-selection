@@ -96,25 +96,40 @@ export default function HomePage() {
           <div className="absolute top-10 left-10 h-64 w-64 rounded-full bg-white blur-3xl" />
           <div className="absolute bottom-10 right-10 h-48 w-48 rounded-full bg-ptba-gold blur-3xl" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-6 py-20 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 mb-6">
-            <span className="text-xs font-semibold text-ptba-gold">PRIMA</span>
-            <span className="text-xs text-white/70">Platform Registrasi, Informasi & Manajemen Mitra</span>
+        <div className="relative mx-auto max-w-6xl px-6 py-24 text-center">
+          {/* PRIMA Badge */}
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 px-5 py-2 mb-8">
+            <div className="h-2 w-2 rounded-full bg-ptba-gold animate-pulse" />
+            <span className="text-xs font-bold text-ptba-gold tracking-wider">PRIMA</span>
+            <span className="text-[11px] text-white/60">Platform Registrasi, Informasi & Manajemen Mitra</span>
           </div>
-          <h1 className="text-4xl font-bold text-white sm:text-5xl">
-            Selamat Datang di Portal Mitra
+
+          {/* Title */}
+          <h1 className="text-5xl font-extrabold text-white sm:text-6xl tracking-tight">
+            Selamat Datang di
             <br />
-            <span className="text-ptba-gold">PT Bukit Asam</span>
+            <span className="bg-gradient-to-r from-ptba-gold via-yellow-300 to-ptba-gold bg-clip-text text-transparent">Portal Mitra</span>
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80">
+
+          {/* Subtitle — single line */}
+          <p className="mt-5 text-base sm:text-lg text-white/70 font-medium">
             Sistem pemilihan mitra terintegrasi untuk proyek-proyek strategis PT Bukit Asam (Persero) Tbk.
-            Daftarkan perusahaan Anda, unggah dokumen, dan ikuti proses seleksi secara transparan.
           </p>
+
+          {/* Decorative divider */}
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-ptba-gold/50" />
+            <div className="h-1.5 w-1.5 rounded-full bg-ptba-gold" />
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-ptba-gold/50" />
+          </div>
+
+          {/* CTA Buttons */}
           <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
-            <button onClick={() => router.push("/register")} className="flex items-center gap-2 rounded-xl bg-ptba-gold px-6 py-3 text-sm font-bold text-ptba-navy hover:bg-ptba-gold/90 transition-colors shadow-lg">
+            <button onClick={() => router.push("/register")} className="group flex items-center gap-2 rounded-xl bg-ptba-gold px-7 py-3.5 text-sm font-bold text-ptba-navy hover:bg-yellow-400 transition-all shadow-lg shadow-ptba-gold/20 hover:shadow-ptba-gold/40 hover:-translate-y-0.5">
               <UserPlus className="h-5 w-5" /> Daftar Sebagai Mitra
+              <ArrowRight className="h-4 w-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
             </button>
-            <button onClick={() => router.push("/login")} className="flex items-center gap-2 rounded-xl border-2 border-white/30 px-6 py-3 text-sm font-bold text-white hover:bg-white/10 transition-colors">
+            <button onClick={() => router.push("/login")} className="flex items-center gap-2 rounded-xl border-2 border-white/20 bg-white/5 backdrop-blur-sm px-7 py-3.5 text-sm font-bold text-white hover:bg-white/10 hover:border-white/30 transition-all">
               <LogIn className="h-5 w-5" /> Sudah Punya Akun
             </button>
           </div>
