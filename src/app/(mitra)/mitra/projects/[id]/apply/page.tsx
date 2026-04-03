@@ -843,7 +843,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -1293,8 +1293,14 @@ export default function MitraProjectApplyPage() {
               <ErrText show={errMsg(countryEstablished) as boolean} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.status")}</label>
-              <input type="text" value={companyStatus} readOnly className={cn(inputClass, "bg-ptba-light-gray/30")} />
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Company Status" : "Status Perusahaan"} <span className="text-ptba-red">*</span></label>
+              <select value={companyStatus} onChange={(e) => setCompanyStatus(e.target.value)} className={cn(inputClass, errBorder(companyStatus))}>
+                <option value="">{locale === "en" ? "Select..." : "Pilih..."}</option>
+                <option value="BUMN">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "BUMN (Badan Usaha Milik Negara)"}</option>
+                <option value="Private">{locale === "en" ? "Private Company" : "Perusahaan Swasta"}</option>
+                <option value="Public">{locale === "en" ? "Public Company (Tbk)" : "Perusahaan Publik (Tbk)"}</option>
+              </select>
+              <ErrText show={errMsg(companyStatus) as boolean} />
             </div>
           </div>
 
