@@ -125,6 +125,17 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
           <EvalField label="Nama Perusahaan" value={fd.companyName} />
           <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
         </dl>
+        {(fd.companyVision || fd.companyMission) && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <EvalField label="Visi" value={fd.companyVision} />
+            <EvalField label="Misi" value={fd.companyMission} />
+          </dl>
+        )}
+        {fd.companyHistory && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <EvalField label="Sejarah & Milestone" value={fd.companyHistory} />
+          </dl>
+        )}
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
           <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
@@ -139,6 +150,19 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
           <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
           <EvalField label="Negara" value={fd.countryEstablished} />
         </dl>
+        {(fd.ceoName || fd.cooName || fd.cfoName) && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <EvalField label="Direktur Utama (CEO)" value={fd.ceoName} />
+            {fd.cooName && <EvalField label="Direktur Operasi (COO)" value={fd.cooName} />}
+            {fd.cfoName && <EvalField label="Direktur Keuangan (CFO)" value={fd.cfoName} />}
+            {fd.otherDirectors && <EvalField label="Direksi Lainnya" value={fd.otherDirectors} />}
+          </dl>
+        )}
+        {fd.shareholderComposition && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <EvalField label="Komposisi Pemegang Saham" value={fd.shareholderComposition} />
+          </dl>
+        )}
         {(fd.orgStructure || fd.subsidiaries) && (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
             {fd.orgStructure && <EvalField label="Struktur Organisasi" value={fd.orgStructure} />}

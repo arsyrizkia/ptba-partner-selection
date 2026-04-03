@@ -92,6 +92,9 @@ tr:nth-child(even) td { background: #fafbfc; }
     <div class="field"><div class="field-label">Nama Perusahaan</div><div class="field-value highlight">${esc(fd.companyName)}</div></div>
     <div class="field"><div class="field-label">Kode Perusahaan</div><div class="field-value">${esc(fd.companyCode)}</div></div>
     <div class="field"><div class="field-label">Overview Bidang Usaha</div><div class="field-value">${esc(fd.businessOverview)}</div></div>
+    ${fd.companyVision ? `<div class="field"><div class="field-label">Visi</div><div class="field-value">${esc(fd.companyVision)}</div></div>` : ""}
+    ${fd.companyMission ? `<div class="field"><div class="field-label">Misi</div><div class="field-value">${esc(fd.companyMission)}</div></div>` : ""}
+    ${fd.companyHistory ? `<div class="field"><div class="field-label">Sejarah Perusahaan</div><div class="field-value">${esc(fd.companyHistory)}</div></div>` : ""}
     <div class="field"><div class="field-label">NIB</div><div class="field-value">${esc(fd.nib)}</div></div>
     <div class="field"><div class="field-label">Alamat Kantor Pusat</div><div class="field-value">${esc(fd.companyAddress)}</div></div>
     <div class="field"><div class="field-label">Alamat Rep. Indonesia</div><div class="field-value">${esc(fd.companyIndonesiaAddress)}</div></div>
@@ -107,6 +110,15 @@ tr:nth-child(even) td { background: #fafbfc; }
     <div class="field"><div class="field-label">Telepon CP</div><div class="field-value">${esc(fd.contactPhone)}</div></div>
     <div class="field"><div class="field-label">Email CP</div><div class="field-value">${esc(fd.contactEmail)}</div></div>
   </div>
+  ${(fd.ceoName || fd.cooName || fd.cfoName) ? `<div class="fields" style="margin-top:4px;">
+    <div class="field"><div class="field-label">Direktur Utama (CEO)</div><div class="field-value highlight">${esc(fd.ceoName)}</div></div>
+    ${fd.cooName ? `<div class="field"><div class="field-label">Direktur Operasi (COO)</div><div class="field-value">${esc(fd.cooName)}</div></div>` : ""}
+    ${fd.cfoName ? `<div class="field"><div class="field-label">Direktur Keuangan (CFO)</div><div class="field-value">${esc(fd.cfoName)}</div></div>` : ""}
+    ${fd.otherDirectors ? `<div class="field"><div class="field-label">Direksi Lainnya</div><div class="field-value">${esc(fd.otherDirectors)}</div></div>` : ""}
+  </div>` : ""}
+  ${fd.shareholderComposition ? `<div class="fields" style="margin-top:4px;">
+    <div class="field"><div class="field-label">Komposisi Pemegang Saham</div><div class="field-value">${esc(fd.shareholderComposition)}</div></div>
+  </div>` : ""}
 </div>
 
 <!-- 2. Surat Pernyataan EoI -->

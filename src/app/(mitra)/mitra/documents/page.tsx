@@ -35,12 +35,20 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <Field label={t("formData.companyName")} value={fd.companyName} />
           <Field label={t("formData.address")} value={fd.companyAddress} />
+          <Field label={locale === "en" ? "Vision" : "Visi"} value={fd.companyVision} />
+          <Field label={locale === "en" ? "Mission" : "Misi"} value={fd.companyMission} />
+          <Field label={locale === "en" ? "Company History" : "Sejarah Perusahaan"} value={fd.companyHistory} />
           <Field label={locale === "en" ? "Phone" : "Telepon"} value={fd.companyPhone} />
           <Field label="Email" value={fd.companyEmail} />
           <Field label={t("formData.website")} value={fd.companyWebsite} />
           <Field label="NIB" value={fd.nib} />
           <Field label={t("formData.yearEstablished")} value={fd.yearEstablished} />
           <Field label={t("formData.country")} value={fd.countryEstablished} />
+          <Field label={locale === "en" ? "CEO / President Director" : "Direktur Utama"} value={fd.ceoName} />
+          <Field label={locale === "en" ? "COO" : "Direktur Operasi"} value={fd.cooName} />
+          <Field label={locale === "en" ? "CFO" : "Direktur Keuangan"} value={fd.cfoName} />
+          <Field label={locale === "en" ? "Other Directors" : "Direksi Lainnya"} value={fd.otherDirectors} />
+          <Field label={locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} value={fd.shareholderComposition} />
           <Field label="Contact Person" value={fd.contactPerson} />
           <Field label={locale === "en" ? "CP Phone" : "Telp CP"} value={fd.contactPhone} />
           <Field label="CP Email" value={fd.contactEmail} />

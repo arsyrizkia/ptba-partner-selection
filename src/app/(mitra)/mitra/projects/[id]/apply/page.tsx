@@ -369,6 +369,14 @@ export default function MitraProjectApplyPage() {
   const [equityNegotiable, setEquityNegotiable] = useState<"yes" | "no" | "">("");
   const [equityMinPercent, setEquityMinPercent] = useState("");
   const [canBecomeMinority, setCanBecomeMinority] = useState<"yes" | "no" | "">("");
+  const [companyVision, setCompanyVision] = useState("");
+  const [companyMission, setCompanyMission] = useState("");
+  const [companyHistory, setCompanyHistory] = useState("");
+  const [ceoName, setCeoName] = useState("");
+  const [cooName, setCooName] = useState("");
+  const [cfoName, setCfoName] = useState("");
+  const [otherDirectors, setOtherDirectors] = useState("");
+  const [shareholderComposition, setShareholderComposition] = useState("");
 
   // Section: Surat Pernyataan EoI (statement_eoi)
   const [signerName, setSignerName] = useState("");
@@ -530,6 +538,14 @@ export default function MitraProjectApplyPage() {
         setContactPerson(fd?.contactPerson || p.contact_person || "");
         setContactPhone(fd?.contactPhone || p.contact_phone || "");
         setContactEmail(fd?.contactEmail || p.contact_email || "");
+        if (fd?.companyVision) setCompanyVision(fd.companyVision);
+        if (fd?.companyMission) setCompanyMission(fd.companyMission);
+        if (fd?.companyHistory) setCompanyHistory(fd.companyHistory);
+        if (fd?.ceoName) setCeoName(fd.ceoName);
+        if (fd?.cooName) setCooName(fd.cooName);
+        if (fd?.cfoName) setCfoName(fd.cfoName);
+        if (fd?.otherDirectors) setOtherDirectors(fd.otherDirectors);
+        if (fd?.shareholderComposition) setShareholderComposition(fd.shareholderComposition);
       }
     } catch {
       setProject(null);
@@ -704,6 +720,14 @@ export default function MitraProjectApplyPage() {
     contactPerson,
     contactPhone,
     contactEmail,
+    companyVision,
+    companyMission,
+    companyHistory,
+    ceoName,
+    cooName,
+    cfoName,
+    otherDirectors,
+    shareholderComposition,
     shareholderType,
     minorityEquityPercent,
     equityNegotiable,
@@ -746,6 +770,7 @@ export default function MitraProjectApplyPage() {
     companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
     companyWebsite, yearEstablished, countryEstablished, businessOverview,
     orgStructure, subsidiaries, nib, contactPerson, contactPhone, contactEmail,
+    companyVision, companyMission, companyHistory, ceoName, cooName, cfoName, otherDirectors, shareholderComposition,
     autoSaveFormData, application?.id,
   ]);
 
@@ -818,7 +843,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && !!companyHistory && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -1136,6 +1161,62 @@ export default function MitraProjectApplyPage() {
             <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.businessOverviewHint")}</p>
             <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={t("companyFields.businessOverviewPlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(businessOverview))} />
             <ErrText show={errMsg(businessOverview) as boolean} />
+          </div>
+
+          {/* Vision & Mission */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Vision" : "Visi"} <span className="text-ptba-red">*</span></label>
+              <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Company vision statement" : "Pernyataan visi perusahaan"}</p>
+              <textarea value={companyVision} onChange={(e) => setCompanyVision(e.target.value)} placeholder={locale === "en" ? "Company vision..." : "Visi perusahaan..."} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(companyVision))} />
+              <ErrText show={errMsg(companyVision) as boolean} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Mission" : "Misi"} <span className="text-ptba-red">*</span></label>
+              <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Company mission statement" : "Pernyataan misi perusahaan"}</p>
+              <textarea value={companyMission} onChange={(e) => setCompanyMission(e.target.value)} placeholder={locale === "en" ? "Company mission..." : "Misi perusahaan..."} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(companyMission))} />
+              <ErrText show={errMsg(companyMission) as boolean} />
+            </div>
+          </div>
+
+          {/* Company History */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Company History & Milestones" : "Sejarah & Milestone Perusahaan"} <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "History, timeline, and key milestones" : "Sejarah, timeline, dan pencapaian utama"}</p>
+            <textarea value={companyHistory} onChange={(e) => setCompanyHistory(e.target.value)} placeholder={locale === "en" ? "Company history and milestones..." : "Sejarah dan milestone perusahaan..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(companyHistory))} />
+            <ErrText show={errMsg(companyHistory) as boolean} />
+          </div>
+
+          {/* Top Management */}
+          <div className="border-t border-ptba-light-gray pt-3">
+            <p className="text-xs font-semibold text-ptba-charcoal mb-2">{locale === "en" ? "Top Management" : "Manajemen Puncak"}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "CEO / President Director" : "Direktur Utama"} <span className="text-ptba-red">*</span></label>
+                <input type="text" value={ceoName} onChange={(e) => setCeoName(e.target.value)} className={cn(inputClass, errBorder(ceoName))} />
+                <ErrText show={errMsg(ceoName) as boolean} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "COO / Operations Director" : "Direktur Operasi"}</label>
+                <input type="text" value={cooName} onChange={(e) => setCooName(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "CFO / Finance Director" : "Direktur Keuangan"}</label>
+                <input type="text" value={cfoName} onChange={(e) => setCfoName(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Other Directors" : "Direksi Lainnya"}</label>
+                <textarea value={otherDirectors} onChange={(e) => setOtherDirectors(e.target.value)} placeholder={locale === "en" ? "Other board members..." : "Anggota direksi lainnya..."} className={cn(inputClass, "min-h-[40px] resize-y")} />
+              </div>
+            </div>
+          </div>
+
+          {/* Shareholder Composition */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Percentage and holdings structure" : "Persentase dan struktur kepemilikan"}</p>
+            <textarea value={shareholderComposition} onChange={(e) => setShareholderComposition(e.target.value)} placeholder={locale === "en" ? "e.g. PT ABC 51%, PT XYZ 30%, Public 19%" : "Contoh: PT ABC 51%, PT XYZ 30%, Publik 19%"} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(shareholderComposition))} />
+            <ErrText show={errMsg(shareholderComposition) as boolean} />
           </div>
 
           {/* Addresses */}
