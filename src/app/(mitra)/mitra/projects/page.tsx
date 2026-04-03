@@ -170,7 +170,7 @@ export default function MitraProjectsPage() {
                       )}
                       {isDraft && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
-                          {locale === "en" ? "Draft" : "Proses Pendaftaran"}
+                          {locale === "en" ? "Draft Saved" : "Draft Tersimpan"}
                         </span>
                       )}
                       {canApply && (
