@@ -36,6 +36,7 @@ const FIELD_LABELS: Record<string, string> = {
   requirementNotes: "Catatan Persyaratan",
   agreedFinal: "Persetujuan Akhir",
   // Categorized experience fields
+  marketShare: "Pangsa Pasar (%)",
   companyVision: "Visi",
   companyMission: "Misi",
   companyHistory: "Sejarah Perusahaan",
@@ -75,7 +76,7 @@ const SECTIONS: { key: string; title: string; fields: string[] }[] = [
     key: "company",
     title: "Informasi Perusahaan",
     fields: [
-      "companyName", "companyCode", "businessOverview",
+      "companyName", "companyCode", "businessOverview", "marketShare",
       "companyVision", "companyMission", "companyHistory",
       "companyAddress", "companyIndonesiaAddress",
       "companyPhone", "companyEmail", "companyWebsite",

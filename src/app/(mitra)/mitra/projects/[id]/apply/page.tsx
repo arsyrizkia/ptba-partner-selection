@@ -358,6 +358,7 @@ export default function MitraProjectApplyPage() {
   const [yearEstablished, setYearEstablished] = useState("");
   const [countryEstablished, setCountryEstablished] = useState("Indonesia");
   const [businessOverview, setBusinessOverview] = useState("");
+  const [marketShare, setMarketShare] = useState("");
   const [orgStructure, setOrgStructure] = useState("");
   const [subsidiaries, setSubsidiaries] = useState("");
   const [nib, setNib] = useState("");
@@ -534,6 +535,7 @@ export default function MitraProjectApplyPage() {
         setCompanyEmail(fd?.companyEmail || (p.company_domain ? `info@${p.company_domain}` : "") || "");
         setCompanyWebsite(fd?.companyWebsite || p.website || "");
         setBusinessOverview(fd?.businessOverview || p.business_overview || "");
+        if (fd?.marketShare) setMarketShare(fd.marketShare);
         setNib(fd?.nib || p.nib || "");
         setContactPerson(fd?.contactPerson || p.contact_person || "");
         setContactPhone(fd?.contactPhone || p.contact_phone || "");
@@ -714,6 +716,7 @@ export default function MitraProjectApplyPage() {
     yearEstablished,
     countryEstablished,
     businessOverview,
+    marketShare,
     orgStructure,
     subsidiaries,
     nib,
@@ -768,7 +771,7 @@ export default function MitraProjectApplyPage() {
     creditRatingAgency, creditRatingValue, financialYears, experiences,
     requirementAnswers, requirementNotes, agreedFinal,
     companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
-    companyWebsite, yearEstablished, countryEstablished, businessOverview,
+    companyWebsite, yearEstablished, countryEstablished, businessOverview, marketShare,
     orgStructure, subsidiaries, nib, contactPerson, contactPhone, contactEmail,
     companyVision, companyMission, companyHistory, ceoName, cooName, cfoName, otherDirectors, shareholderComposition,
     autoSaveFormData, application?.id,
@@ -843,7 +846,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!marketShare && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -1155,12 +1158,30 @@ export default function MitraProjectApplyPage() {
             </div>
           </div>
 
-          {/* Business Overview */}
+          {/* Business Overview & Product/Service Description */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.businessOverview")} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{t("companyFields.businessOverviewHint")}</p>
-            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={t("companyFields.businessOverviewPlaceholder")} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(businessOverview))} />
+            <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2 mb-2">
+              <p className="text-[11px] text-ptba-gray leading-relaxed">
+                <span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span>{" "}
+                {locale === "en"
+                  ? "Include: main line of business, product and service description, business process overview, and key competitive advantages."
+                  : "Mencakup: bidang usaha utama, deskripsi produk dan jasa, gambaran proses bisnis, dan keunggulan kompetitif utama."}
+              </p>
+            </div>
+            <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={locale === "en" ? "Company business overview, products & services..." : "Overview bisnis perusahaan, produk & jasa..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(businessOverview))} />
             <ErrText show={errMsg(businessOverview) as boolean} />
+          </div>
+
+          {/* Market Share */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Market Share" : "Pangsa Pasar"} <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Estimated market share percentage in your industry" : "Estimasi persentase pangsa pasar di industri Anda"}</p>
+            <div className="relative">
+              <input type="text" inputMode="decimal" value={marketShare} onChange={(e) => setMarketShare(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder={locale === "en" ? "e.g. 15" : "Contoh: 15"} className={cn(inputClass, "pr-10", errBorder(marketShare))} />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
+            </div>
+            <ErrText show={errMsg(marketShare) as boolean} />
           </div>
 
           {/* Vision & Mission */}
