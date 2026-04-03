@@ -804,7 +804,7 @@ export default function MitraProjectApplyPage() {
 
   const sectionComplete: Record<string, boolean> = {
     compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
-    statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi"),
+    statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
@@ -1479,6 +1479,22 @@ export default function MitraProjectApplyPage() {
                         : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Mn (1.5x kontribusi ekuitas)`}
                     </p>
                   )}
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold text-ptba-charcoal mb-1">{locale === "en" ? "Cash on Hand Evidence" : "Bukti Cash on Hand"} <span className="text-ptba-red">*</span></p>
+                    <p className="text-[10px] text-ptba-gray italic mb-2">{locale === "en" ? "Upload proof of cash on hand (bank statement, financial report, etc.)" : "Unggah bukti cash on hand (rekening koran, laporan keuangan, dll.)"}</p>
+                    <FileUploadButton
+                      label={locale === "en" ? "Cash on Hand Evidence (PDF)" : "Bukti Cash on Hand (PDF)"}
+                      accept=".pdf"
+                      uploaded={isDoc("cash_on_hand_evidence")}
+                      uploading={uploadedDocs["cash_on_hand_evidence"]?.uploading ?? false}
+                      fileName={uploadedDocs["cash_on_hand_evidence"]?.name}
+                      onSelect={(f) => uploadDoc("cash_on_hand_evidence", "Cash on Hand Evidence", f)}
+                      onDelete={() => deleteDoc("cash_on_hand_evidence")}
+                      readOnly={readOnly}
+                      onDownload={docDownloadHandler("cash_on_hand_evidence")}
+                      error={showErrors && !isDoc("cash_on_hand_evidence")}
+                    />
+                  </div>
                 </div>
 
                 {/* Equity Breakdown Card */}

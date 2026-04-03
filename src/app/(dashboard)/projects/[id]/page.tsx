@@ -165,6 +165,7 @@ const DOC_NAME_MAP: Record<string, string> = {
   org_structure: "Struktur Organisasi",
   ebitda_dscr_calculation: "EBITDA & DSCR Calculation",
   credit_rating_evidence: "Credit Rating Evidence",
+  cash_on_hand_evidence: "Cash on Hand Evidence",
 };
 
 function formatDocName(name: string): string {
