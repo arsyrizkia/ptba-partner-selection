@@ -15,7 +15,7 @@ export function generateApplicationPdf(
   const fd = formData;
   const experiences = fd.experiences || [];
   const financialYears = fd.financialYears || [];
-  const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Project Financing" };
+  const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Project Financing", general: "General Project" };
   const today = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
   const html = `<!DOCTYPE html>
@@ -149,6 +149,12 @@ tr:nth-child(even) td { background: #fafbfc; }
         <div class="field"><div class="field-label">Tipe Pembiayaan</div><div class="field-value">${esc(exp.financingType)}</div></div>
         <div class="field"><div class="field-label">Jumlah (USD)</div><div class="field-value">${esc(exp.amountUSD)}</div></div>
         <div class="field"><div class="field-label">Tahun</div><div class="field-value">${esc(exp.year)}</div></div>
+      ` : exp.category === "general" ? `
+        <div class="field"><div class="field-label">Jenis Proyek</div><div class="field-value">${esc(exp.projectType)}</div></div>
+        <div class="field"><div class="field-label">Peran</div><div class="field-value">${esc(exp.role)}</div></div>
+        ${exp.contractValueUSD ? `<div class="field"><div class="field-label">Nilai Kontrak (USD)</div><div class="field-value">${esc(exp.contractValueUSD)}</div></div>` : ""}
+        <div class="field"><div class="field-label">Tahun</div><div class="field-value">${esc(exp.year)}</div></div>
+        ${exp.description ? `<div class="field"><div class="field-label">Deskripsi</div><div class="field-value">${esc(exp.description)}</div></div>` : ""}
       ` : ""}
     </div>
   </div>`).join("")}

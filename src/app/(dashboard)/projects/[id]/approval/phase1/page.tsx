@@ -182,16 +182,16 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
     render: (fd) => {
       const exps = fd.experiences || [];
       if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
-      const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan" };
+      const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan", general: "Proyek Umum" };
       return (
         <div className="space-y-2">
           {exps.map((exp: any, i: number) => (
             <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
               <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1} — {catLabels[exp.category] || exp.category}</p>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <EvalField label="Nama Pembangkit" value={exp.plantName} />
+                <EvalField label="Nama Proyek / Pembangkit" value={exp.plantName} />
                 <EvalField label="Lokasi" value={exp.location} />
-                <EvalField label="Kapasitas (MW)" value={exp.totalCapacityMW} />
+                {exp.totalCapacityMW && <EvalField label="Kapasitas (MW)" value={exp.totalCapacityMW} />}
                 {exp.category === "developer" && <>
                   <EvalField label="Ekuitas (%)" value={exp.equityPercent} />
                   <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
@@ -207,6 +207,13 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
                   <EvalField label="Tipe Pembiayaan" value={exp.financingType} />
                   <EvalField label="Jumlah (USD)" value={exp.amountUSD} />
                   <EvalField label="Tahun" value={exp.year} />
+                </>}
+                {exp.category === "general" && <>
+                  <EvalField label="Jenis Proyek" value={exp.projectType} />
+                  <EvalField label="Peran" value={exp.role} />
+                  {exp.contractValueUSD && <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />}
+                  <EvalField label="Tahun" value={exp.year} />
+                  {exp.description && <EvalField label="Deskripsi" value={exp.description} />}
                 </>}
               </dl>
             </div>

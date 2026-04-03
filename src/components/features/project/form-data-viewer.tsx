@@ -36,7 +36,9 @@ const FIELD_LABELS: Record<string, string> = {
   requirementNotes: "Catatan Persyaratan",
   agreedFinal: "Persetujuan Akhir",
   // Categorized experience fields
-  plantName: "Nama Pembangkit Listrik",
+  plantName: "Nama Proyek / Pembangkit",
+  projectType: "Jenis Proyek",
+  role: "Peran",
   totalCapacityMW: "Kapasitas Total (MW)",
   equityPercent: "Ekuitas (%)",
   ippOrCaptive: "IPP / Captive",
@@ -48,7 +50,6 @@ const FIELD_LABELS: Record<string, string> = {
   projectName: "Nama Proyek",
   projectCost: "Nilai Proyek",
   location: "Lokasi",
-  role: "Peran",
   description: "Deskripsi",
 };
 
@@ -56,6 +57,7 @@ const EXPERIENCE_CATEGORY_LABELS: Record<string, { label: string; labelEn: strin
   developer: { label: "Sebagai Developer", labelEn: "As a Successful Developer" },
   om_contractor: { label: "Sebagai Kontraktor O&M", labelEn: "As a Successful O&M Contractor" },
   financing: { label: "Sebagai Kontributor Pembiayaan Proyek", labelEn: "As a Successful Project Financing Contributor" },
+  general: { label: "Pengalaman Proyek Umum", labelEn: "General Project Experience" },
 };
 
 const EXPERIENCE_SKIP_KEYS = new Set(["uid", "category"]);

@@ -20,7 +20,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 // ─── Types ───
 
-type ExperienceCategory = 'developer' | 'om_contractor' | 'financing';
+type ExperienceCategory = 'developer' | 'om_contractor' | 'financing' | 'general';
 
 interface BaseExperience {
   uid: string;
@@ -52,7 +52,16 @@ interface FinancingExperience extends BaseExperience {
   year: string;
 }
 
-type CategorizedExperience = DeveloperExperience | OMContractorExperience | FinancingExperience;
+interface GeneralExperience extends BaseExperience {
+  category: 'general';
+  projectType: string;
+  role: string;
+  contractValueUSD: string;
+  year: string;
+  description: string;
+}
+
+type CategorizedExperience = DeveloperExperience | OMContractorExperience | FinancingExperience | GeneralExperience;
 
 interface FinancialYear {
   year: string;
@@ -76,6 +85,7 @@ const EXPERIENCE_CATEGORIES: { key: ExperienceCategory; label: string; labelEn: 
   { key: 'developer', label: 'Sebagai Developer', labelEn: 'As a Successful Developer' },
   { key: 'om_contractor', label: 'Sebagai Kontraktor O&M', labelEn: 'As a Successful O&M Contractor' },
   { key: 'financing', label: 'Sebagai Kontributor Pembiayaan Proyek', labelEn: 'As a Successful Project Financing Contributor' },
+  { key: 'general', label: 'Pengalaman Proyek Umum', labelEn: 'General Project Experience' },
 ];
 
 // ─── Document-to-Section mapping ───
@@ -807,6 +817,9 @@ export default function MitraProjectApplyPage() {
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
+      if (exp.category === 'general') {
+        return !!exp.plantName && !!exp.location && hasCred && !!(exp as any).projectType && !!(exp as any).role && !!(exp as any).year;
+      }
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
       if (exp.category === 'developer') return base && !!exp.equityPercent && !!exp.ippOrCaptive && !!exp.codYear;
       if (exp.category === 'om_contractor') return base && !!exp.contractValueUSD && !!exp.workPortionPercent && !!exp.ippOrCaptive && !!exp.codYear;
@@ -874,8 +887,10 @@ export default function MitraProjectApplyPage() {
       newExp = { ...base, category: 'developer', equityPercent: "", ippOrCaptive: "", codYear: "" };
     } else if (category === 'om_contractor') {
       newExp = { ...base, category: 'om_contractor', contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
-    } else {
+    } else if (category === 'financing') {
       newExp = { ...base, category: 'financing', financingType: "", amountUSD: "", year: "" };
+    } else {
+      newExp = { ...base, category: 'general', projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
     }
     setExperiences((prev) => [...prev, newExp]);
   };
@@ -892,6 +907,7 @@ export default function MitraProjectApplyPage() {
       const base = { uid: e.uid, plantName: e.plantName, location: e.location, totalCapacityMW: e.totalCapacityMW };
       if (newCategory === 'developer') return { ...base, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
       if (newCategory === 'om_contractor') return { ...base, category: 'om_contractor' as const, contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
+      if (newCategory === 'general') return { ...base, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
       return { ...base, category: 'financing' as const, financingType: "", amountUSD: "", year: "" };
     }));
   };
@@ -1588,7 +1604,7 @@ export default function MitraProjectApplyPage() {
                   <select value={exp.category} onChange={(e) => changeExperienceCategory(i, e.target.value as ExperienceCategory)} className={inputClass}>
                     {EXPERIENCE_CATEGORIES.map((cat) => (
                       <option key={cat.key} value={cat.key}>
-                        {t(`portfolioFields.category${cat.key === 'developer' ? 'Developer' : cat.key === 'om_contractor' ? 'OmContractor' : 'Financing'}`)}
+                        {cat.key === 'general' ? (locale === "en" ? cat.labelEn : cat.label) : t(`portfolioFields.category${cat.key === 'developer' ? 'Developer' : cat.key === 'om_contractor' ? 'OmContractor' : 'Financing'}`)}
                       </option>
                     ))}
                   </select>
@@ -1675,6 +1691,35 @@ export default function MitraProjectApplyPage() {
                       <input type="text" placeholder={t("portfolioFields.yearPlaceholder")} inputMode="numeric" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value.replace(/[^0-9]/g, ""))} className={inputClass} />
                     </div>
                   </>
+                )}
+
+                {/* General project experience fields */}
+                {exp.category === 'general' && (
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Project Type" : "Jenis Proyek"} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={locale === "en" ? "e.g. Coal Mining, Infrastructure" : "Contoh: Pertambangan Batubara, Infrastruktur"} value={(exp as any).projectType || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).projectType = e.target.value; setExperiences(next); }} className={cn(inputClass, errBorder((exp as any).projectType))} />
+                      <ErrText show={errMsg((exp as any).projectType) as boolean} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Role in Project" : "Peran dalam Proyek"} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={locale === "en" ? "e.g. Developer, EPC Contractor" : "Contoh: Developer, Kontraktor EPC"} value={(exp as any).role || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).role = e.target.value; setExperiences(next); }} className={cn(inputClass, errBorder((exp as any).role))} />
+                      <ErrText show={errMsg((exp as any).role) as boolean} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.contractValue")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" inputMode="decimal" placeholder={t("portfolioFields.contractValuePlaceholder")} value={(exp as any).contractValueUSD || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).contractValueUSD = e.target.value.replace(/[^0-9.,]/g, ""); setExperiences(next); }} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Project Year" : "Tahun Proyek"} <span className="text-ptba-red">*</span></label>
+                      <input type="text" inputMode="numeric" placeholder={t("portfolioFields.yearPlaceholder")} value={(exp as any).year || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).year = e.target.value.replace(/[^0-9]/g, ""); setExperiences(next); }} className={cn(inputClass, errBorder((exp as any).year))} />
+                      <ErrText show={errMsg((exp as any).year) as boolean} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Project Description" : "Deskripsi Proyek"}</label>
+                      <textarea placeholder={locale === "en" ? "Brief description of the project..." : "Deskripsi singkat proyek..."} value={(exp as any).description || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).description = e.target.value; setExperiences(next); }} className={cn(inputClass, "min-h-[60px] resize-y")} />
+                    </div>
+                  </div>
                 )}
               </div>
 
