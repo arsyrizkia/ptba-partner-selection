@@ -102,17 +102,11 @@ function phaseLabel(phase?: string): string {
     phase1_approval: "Fase 1 - Persetujuan",
     phase1_announcement: "Fase 1 - Pengumuman Shortlist",
     phase1_approved: "Fase 1 - Disetujui Ketua Tim",
-    phase2_registration: "Fase 2 - Pendaftaran",
-    phase2_evaluation: "Fase 2 - Evaluasi Detail",
+    phase2_registration: "Fase 2 - Pendaftaran FRP & Proposal",
+    phase2_evaluation: "Fase 2 - Evaluasi FRP & Proposal",
     phase2_approval: "Fase 2 - Persetujuan",
     phase2_announcement: "Fase 2 - Pengumuman",
     phase2_approved: "Fase 2 - Disetujui",
-    phase3_registration: "Fase 3 - Pendaftaran Proposal",
-    phase3_evaluation: "Fase 3 - Evaluasi & Peringkat",
-    phase3_ranking: "Fase 3 - Peringkat",
-    phase3_negotiation: "Fase 3 - Negosiasi",
-    phase3_approval: "Fase 3 - Persetujuan BoD",
-    phase3_announcement: "Fase 3 - Pengumuman Pemenang",
     completed: "Selesai",
     cancelled: "Dibatalkan",
   };
@@ -370,18 +364,11 @@ export default function ProjectDetailPage({
   const [picDraft, setPicDraft] = useState<PicEntry[]>([]);
   const [picUsers, setPicUsers] = useState<{ id: string; name: string; role: string }[]>([]);
   const [picSaving, setPicSaving] = useState(false);
-  const [picEditTab, setPicEditTab] = useState<"phase1" | "phase2" | "phase3">("phase1");
+  const [picEditTab, setPicEditTab] = useState<"phase1" | "phase2">("phase1");
 
   const PHASE_PIC_CONFIG = {
     phase1: {
-      label: "Fase 1",
-      roles: [
-        { role: "ebd", label: "Energy Business Development", multi: true },
-        { role: "ketua_tim", label: "Ketua Tim", multi: false },
-      ],
-    },
-    phase2: {
-      label: "Fase 2",
+      label: "Fase 1 (Pra-Kualifikasi)",
       roles: [
         { role: "ebd", label: "EBD — Pasar", multi: true, subcategory: "pasar" },
         { role: "ebd", label: "EBD — Teknis", multi: true, subcategory: "teknis" },
@@ -392,10 +379,15 @@ export default function ProjectDetailPage({
         { role: "ketua_tim", label: "Ketua Tim", multi: false },
       ],
     },
-    phase3: {
-      label: "Fase 3",
+    phase2: {
+      label: "Fase 2 (FRP & Proposal)",
       roles: [
-        { role: "ebd", label: "Energy Business Development", multi: true },
+        { role: "ebd", label: "EBD — Pasar", multi: true, subcategory: "pasar" },
+        { role: "ebd", label: "EBD — Teknis", multi: true, subcategory: "teknis" },
+        { role: "ebd", label: "EBD — Komersial", multi: true, subcategory: "komersial" },
+        { role: "keuangan", label: "Corporate Finance", multi: false },
+        { role: "hukum", label: "Legal & Regulatory Affairs", multi: false },
+        { role: "risiko", label: "Risk Management", multi: false },
         { role: "ketua_tim", label: "Ketua Tim", multi: false },
       ],
     },
@@ -1250,11 +1242,10 @@ export default function ProjectDetailPage({
             {/* Phase labels under bar */}
             <div className="flex mt-1.5">
               {[
-                { label: "Fase 1 (Evaluasi)", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
-                { label: "Fase 2 (PQ)", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
-                { label: "Fase 3 (Proposal & FRP)", steps: PHASE3_STEPS.length, color: "text-ptba-gold" },
+                { label: "Fase 1 (Pra-Kualifikasi)", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
+                { label: "Fase 2 (FRP & Proposal)", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
               ].map((p) => (
-                <div key={p.label} style={{ width: `${(p.steps / PROJECT_STEPS.length) * 100}%` }} className={cn("text-[10px] font-medium", p.color)}>
+                <div key={p.label} style={{ width: `${(p.steps / (PHASE1_STEPS.length + PHASE2_STEPS.length)) * 100}%` }} className={cn("text-[10px] font-medium", p.color)}>
                   {p.label}
                 </div>
               ))}
@@ -1995,9 +1986,8 @@ export default function ProjectDetailPage({
 
               return (
                 <div className="space-y-4">
-                  {renderDocList(phase1Docs, "steel-blue", "Fase 1 - Dokumen EoI")}
-                  {renderDocList(phase2Docs, "navy", "Fase 2 - Dokumen Assessment")}
-                  {renderDocList(phase3Docs, "gold", "Fase 3 - Dokumen Proposal & Ranking")}
+                  {renderDocList(phase1Docs, "steel-blue", "Fase 1 - Dokumen Pra-Kualifikasi")}
+                  {renderDocList(phase2Docs, "navy", "Fase 2 - Dokumen FRP & Proposal")}
                   {renderDocList(generalDocs, "gray", "Dokumen Umum")}
                 </div>
               );
@@ -2009,7 +1999,7 @@ export default function ProjectDetailPage({
             <h3 className="mb-4 font-semibold text-ptba-charcoal">Dokumen Pendukung Proyek</h3>
             {project.ptbaDocuments && project.ptbaDocuments.length > 0 ? (
               <div className="space-y-4">
-                {(["phase1", "phase2", "phase3"] as const).map((phase) => {
+                {(["phase1", "phase2"] as const).map((phase) => {
                   const phaseDocs = project.ptbaDocuments.filter((d: any) => (d.phase || "phase1") === phase);
                   if (phaseDocs.length === 0) return null;
                   const phaseLabels: Record<string, { label: string; color: string }> = {
@@ -2067,7 +2057,7 @@ export default function ProjectDetailPage({
             <h3 className="mb-4 font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
             {project.phasePics && project.phasePics.length > 0 ? (
               <div className="space-y-4">
-                {["phase1", "phase2", "phase3"].map((phase) => {
+                {["phase1", "phase2"].map((phase) => {
                   const pics = project.phasePics.filter((p: any) => p.phase === phase);
                   if (pics.length === 0) return null;
                   const phaseLabels: Record<string, string> = { phase1: "Fase 1", phase2: "Fase 2", phase3: "Fase 3" };
@@ -2129,7 +2119,7 @@ export default function ProjectDetailPage({
             {/* Phase Tabs */}
             <div className="px-6 pt-4 shrink-0">
               <div className="flex gap-1 rounded-lg bg-ptba-section-bg p-1">
-                {(["phase1", "phase2", "phase3"] as const).map((key) => (
+                {(["phase1", "phase2"] as const).map((key) => (
                   <button key={key} type="button" onClick={() => setPicEditTab(key)}
                     className={cn("flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all",
                       picEditTab === key ? "bg-white text-ptba-navy shadow-sm" : "text-ptba-gray hover:text-ptba-charcoal"
