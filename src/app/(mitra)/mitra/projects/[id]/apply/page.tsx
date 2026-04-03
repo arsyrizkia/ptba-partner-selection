@@ -20,10 +20,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 // ─── Types ───
 
+type ExperienceType = 'powerplant' | 'general';
 type ExperienceCategory = 'developer' | 'om_contractor' | 'financing' | 'general';
 
 interface BaseExperience {
   uid: string;
+  experienceType: ExperienceType;
   category: ExperienceCategory;
   plantName: string;
   location: string;
@@ -31,6 +33,7 @@ interface BaseExperience {
 }
 
 interface DeveloperExperience extends BaseExperience {
+  experienceType: 'powerplant';
   category: 'developer';
   equityPercent: string;
   ippOrCaptive: string;
@@ -38,6 +41,7 @@ interface DeveloperExperience extends BaseExperience {
 }
 
 interface OMContractorExperience extends BaseExperience {
+  experienceType: 'powerplant';
   category: 'om_contractor';
   contractValueUSD: string;
   workPortionPercent: string;
@@ -46,6 +50,7 @@ interface OMContractorExperience extends BaseExperience {
 }
 
 interface FinancingExperience extends BaseExperience {
+  experienceType: 'powerplant';
   category: 'financing';
   financingType: string;
   amountUSD: string;
@@ -53,6 +58,7 @@ interface FinancingExperience extends BaseExperience {
 }
 
 interface GeneralExperience extends BaseExperience {
+  experienceType: 'general';
   category: 'general';
   projectType: string;
   role: string;
@@ -81,11 +87,10 @@ const YEAR_RANGE_OPTIONS = [
 
 const IPP_CAPTIVE_OPTIONS = ['IPP', 'Captive'];
 const FINANCING_TYPE_OPTIONS = ['Non-Recourse', 'Limited Recourse', 'Corporate Financing', 'Direct Loan', 'Export Credit Facility'];
-const EXPERIENCE_CATEGORIES: { key: ExperienceCategory; label: string; labelEn: string }[] = [
+const POWERPLANT_CATEGORIES: { key: ExperienceCategory; label: string; labelEn: string }[] = [
   { key: 'developer', label: 'Sebagai Developer', labelEn: 'As a Successful Developer' },
   { key: 'om_contractor', label: 'Sebagai Kontraktor O&M', labelEn: 'As a Successful O&M Contractor' },
   { key: 'financing', label: 'Sebagai Kontributor Pembiayaan Proyek', labelEn: 'As a Successful Project Financing Contributor' },
-  { key: 'general', label: 'Pengalaman Proyek Umum', labelEn: 'General Project Experience' },
 ];
 
 // ─── Document-to-Section mapping ───
@@ -884,13 +889,13 @@ export default function MitraProjectApplyPage() {
     const base = { uid, plantName: "", location: "", totalCapacityMW: "" };
     let newExp: CategorizedExperience;
     if (category === 'developer') {
-      newExp = { ...base, category: 'developer', equityPercent: "", ippOrCaptive: "", codYear: "" };
+      newExp = { ...base, experienceType: 'powerplant' as const, category: 'developer', equityPercent: "", ippOrCaptive: "", codYear: "" };
     } else if (category === 'om_contractor') {
-      newExp = { ...base, category: 'om_contractor', contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
+      newExp = { ...base, experienceType: 'powerplant' as const, category: 'om_contractor', contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
     } else if (category === 'financing') {
-      newExp = { ...base, category: 'financing', financingType: "", amountUSD: "", year: "" };
+      newExp = { ...base, experienceType: 'powerplant' as const, category: 'financing', financingType: "", amountUSD: "", year: "" };
     } else {
-      newExp = { ...base, category: 'general', projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
+      newExp = { ...base, experienceType: 'general' as const, category: 'general', projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
     }
     setExperiences((prev) => [...prev, newExp]);
   };
@@ -901,14 +906,22 @@ export default function MitraProjectApplyPage() {
   };
   const updateExperience = (i: number, field: string, value: string) =>
     setExperiences((prev) => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e) as CategorizedExperience[]);
-  const changeExperienceCategory = (i: number, newCategory: ExperienceCategory) => {
+  const changeExperienceType = (i: number, newType: ExperienceType) => {
     setExperiences((prev) => prev.map((e, idx) => {
       if (idx !== i) return e;
       const base = { uid: e.uid, plantName: e.plantName, location: e.location, totalCapacityMW: e.totalCapacityMW };
-      if (newCategory === 'developer') return { ...base, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
-      if (newCategory === 'om_contractor') return { ...base, category: 'om_contractor' as const, contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
-      if (newCategory === 'general') return { ...base, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
-      return { ...base, category: 'financing' as const, financingType: "", amountUSD: "", year: "" };
+      if (newType === 'powerplant') return { ...base, experienceType: 'powerplant' as const, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
+      return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
+    }));
+  };
+  const changeExperienceCategory = (i: number, newCategory: ExperienceCategory) => {
+    setExperiences((prev) => prev.map((e, idx) => {
+      if (idx !== i) return e;
+      const base = { uid: e.uid, experienceType: e.experienceType || 'powerplant' as ExperienceType, plantName: e.plantName, location: e.location, totalCapacityMW: e.totalCapacityMW };
+      if (newCategory === 'developer') return { ...base, experienceType: 'powerplant' as const, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
+      if (newCategory === 'om_contractor') return { ...base, experienceType: 'powerplant' as const, category: 'om_contractor' as const, contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
+      if (newCategory === 'general') return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
+      return { ...base, experienceType: 'powerplant' as const, category: 'financing' as const, financingType: "", amountUSD: "", year: "" };
     }));
   };
 
@@ -1598,21 +1611,37 @@ export default function MitraProjectApplyPage() {
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Category selector */}
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.experienceCategory")} <span className="text-ptba-red">*</span></label>
-                  <select value={exp.category} onChange={(e) => changeExperienceCategory(i, e.target.value as ExperienceCategory)} className={inputClass}>
-                    {EXPERIENCE_CATEGORIES.map((cat) => (
-                      <option key={cat.key} value={cat.key}>
-                        {cat.key === 'general' ? (locale === "en" ? cat.labelEn : cat.label) : t(`portfolioFields.category${cat.key === 'developer' ? 'Developer' : cat.key === 'om_contractor' ? 'OmContractor' : 'Financing'}`)}
-                      </option>
-                    ))}
+                {/* Experience Type selector */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Experience Type" : "Tipe Pengalaman"} <span className="text-ptba-red">*</span></label>
+                  <select value={(exp as any).experienceType || 'powerplant'} onChange={(e) => changeExperienceType(i, e.target.value as ExperienceType)} className={inputClass}>
+                    <option value="powerplant">{locale === "en" ? "Power Plant" : "Pembangkit Listrik"}</option>
+                    <option value="general">{locale === "en" ? "General Project" : "Proyek Umum"}</option>
                   </select>
                 </div>
 
+                {/* Category selector (only for power plant) */}
+                {((exp as any).experienceType || 'powerplant') === 'powerplant' && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.experienceCategory")} <span className="text-ptba-red">*</span></label>
+                    <select value={exp.category} onChange={(e) => changeExperienceCategory(i, e.target.value as ExperienceCategory)} className={inputClass}>
+                      {POWERPLANT_CATEGORIES.map((cat) => (
+                        <option key={cat.key} value={cat.key}>
+                          {locale === "en" ? cat.labelEn : cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Common fields */}
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.plantName")} <span className="text-ptba-red">*</span></label>
+                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">
+                    {((exp as any).experienceType || 'powerplant') === 'powerplant'
+                      ? (locale === "en" ? "Power Plant Name" : "Nama Pembangkit Listrik")
+                      : (locale === "en" ? "Project Name" : "Nama Proyek")
+                    } <span className="text-ptba-red">*</span>
+                  </label>
                   <input type="text" value={exp.plantName} onChange={(e) => updateExperience(i, "plantName", e.target.value)} className={cn(inputClass, errBorder(exp.plantName))} />
                   <ErrText show={errMsg(exp.plantName) as boolean} />
                 </div>
@@ -1621,10 +1650,12 @@ export default function MitraProjectApplyPage() {
                   <input type="text" value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} className={cn(inputClass, errBorder(exp.location))} />
                   <ErrText show={errMsg(exp.location) as boolean} />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.totalCapacity")} <span className="text-ptba-red">*</span></label>
-                  <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} inputMode="decimal" value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
-                </div>
+                {((exp as any).experienceType || 'powerplant') === 'powerplant' && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.totalCapacity")} <span className="text-ptba-red">*</span></label>
+                    <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} inputMode="decimal" value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
+                  </div>
+                )}
 
                 {/* Developer-specific fields */}
                 {exp.category === 'developer' && (
