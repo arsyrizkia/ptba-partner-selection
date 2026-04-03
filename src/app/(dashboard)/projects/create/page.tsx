@@ -32,7 +32,7 @@ export default function CreateProjectPage() {
       const optSet = new Set(formData.optionalDocIds || []);
       const p1Docs = formData.selectedPhase1Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
       const p2Docs = formData.selectedPhase2Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
-      const p3Docs = formData.selectedPhase3Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
+      const p3Docs: { documentTypeId: string; isRequired: boolean }[] = []; // 2-phase system
       // Custom documents added by admin
       const customDocs = formData.customDocuments
         .filter((d) => d.name.trim())
@@ -57,7 +57,7 @@ export default function CreateProjectPage() {
         endDate: formData.endDate || undefined,
         phase1Deadline: formData.phase1Deadline || undefined,
         phase2Deadline: formData.phase2Deadline || undefined,
-        phase3Deadline: formData.phase3Deadline || undefined,
+        // phase3Deadline removed — 2-phase system
         requirements: reqs,
         phase1Documents: p1Docs,
         phase2Documents: p2Docs,

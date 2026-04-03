@@ -57,22 +57,22 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
   if (phase === "cancelled") return { label: "Dibatalkan", color: "bg-ptba-red/10 text-ptba-red border-ptba-red/20" };
   if (phase.startsWith("phase1")) {
     const sub: Record<string, string> = {
-      phase1_registration: "Evaluasi 1 · Pendaftaran",
-      phase1_closed: "Evaluasi 1 · Ditutup",
-      phase1_evaluation: "Evaluasi 1 · Penilaian",
-      phase1_approval: "Evaluasi 1 · Persetujuan",
+      phase1_registration: "PQ · Pendaftaran",
+      phase1_closed: "PQ · Ditutup",
+      phase1_evaluation: "PQ · Penilaian",
+      phase1_approval: "PQ · Persetujuan",
       phase1_approved: "Berjalan",
-      phase1_announcement: "Evaluasi 1 · Pengumuman",
+      phase1_announcement: "PQ · Pengumuman",
     };
     return { label: sub[phase] ?? "Berjalan", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
   }
   if (phase.startsWith("phase2")) {
     const sub2: Record<string, string> = {
-      phase2_registration: "PQ · Pendaftaran",
-      phase2_evaluation: "PQ · Evaluasi",
-      phase2_approval: "PQ · Persetujuan",
-      phase2_announcement: "PQ · Pengumuman",
-      phase2_approved: "PQ",
+      phase2_registration: "FRP · Pendaftaran",
+      phase2_evaluation: "FRP · Evaluasi",
+      phase2_approval: "FRP · Persetujuan",
+      phase2_announcement: "FRP · Pengumuman",
+      phase2_approved: "FRP",
     };
     return { label: sub2[phase] ?? "PQ", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
   }

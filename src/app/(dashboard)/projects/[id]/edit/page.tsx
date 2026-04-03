@@ -130,7 +130,7 @@ export default function EditProjectPage({
         endDate: formData.endDate || undefined,
         phase1Deadline: formData.phase1Deadline || undefined,
         phase2Deadline: formData.phase2Deadline || undefined,
-        phase3Deadline: formData.phase3Deadline || undefined,
+        // phase3Deadline removed — 2-phase system
         picAssignments: picAssignments.length > 0 ? picAssignments : undefined,
         phasePics: formData.phasePics.length > 0 ? formData.phasePics : undefined,
         location: formData.location || undefined,
@@ -158,7 +158,7 @@ export default function EditProjectPage({
       const allDocs: { documentTypeId: string; phase: string; isRequired: boolean }[] = [
         ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
         ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
-        ...formData.selectedPhase3Docs.map((docId) => ({ documentTypeId: docId, phase: "phase3", isRequired: !optSet.has(docId) })),
+        // Phase 3 docs removed — 2-phase system
         ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`, phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);

@@ -86,7 +86,7 @@ export default function MitraProjectDetailPage() {
   const hasPendingApplication = application && application.status !== "Draft";
   const canApply = project.isOpenForApplication && !phase1DeadlinePassed && !hasPendingApplication;
   const isPhase2 = project.phase?.startsWith("phase2");
-  const isPhase3 = project.phase?.startsWith("phase3");
+  const isPhase3 = false; // 2-phase system — Phase 3 removed
   const isShortlisted = application?.status === "Shortlisted";
   const isPassedPhase2 = application?.status === "Diterima" || application?.status === "Terpilih";
   const canAccessPhase2 = isShortlisted && isPhase2;

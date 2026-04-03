@@ -1940,7 +1940,7 @@ export default function ProjectDetailPage({
               const phase1Docs = requiredDocs.filter((d: any) => d.phase === "phase1");
               const phase2Docs = requiredDocs.filter((d: any) => d.phase === "phase2");
               const phase3Docs = requiredDocs.filter((d: any) => d.phase === "phase3");
-              const generalDocs = requiredDocs.filter((d: any) => !["phase1", "phase2", "phase3"].includes(d.phase));
+              const generalDocs = requiredDocs.filter((d: any) => !["phase1", "phase2"].includes(d.phase));
 
               const getDocName = (typeId: string) => {
                 const dt = DOCUMENT_TYPES.find((d) => d.id === typeId);
@@ -2005,7 +2005,7 @@ export default function ProjectDetailPage({
                   const phaseLabels: Record<string, { label: string; color: string }> = {
                     phase1: { label: "Fase 1 (Publik)", color: "steel-blue" },
                     phase2: { label: "Fase 2", color: "navy" },
-                    phase3: { label: "Fase 3", color: "gold" },
+                    // phase3 removed — 2-phase system
                   };
                   const { label, color } = phaseLabels[phase];
                   return (
@@ -2060,7 +2060,7 @@ export default function ProjectDetailPage({
                 {["phase1", "phase2"].map((phase) => {
                   const pics = project.phasePics.filter((p: any) => p.phase === phase);
                   if (pics.length === 0) return null;
-                  const phaseLabels: Record<string, string> = { phase1: "Fase 1", phase2: "Fase 2", phase3: "Fase 3" };
+                  const phaseLabels: Record<string, string> = { phase1: "Fase 1 (PQ)", phase2: "Fase 2 (FRP)" };
                   return (
                     <div key={phase}>
                       <p className="text-xs font-medium text-ptba-gray uppercase mb-2">{phaseLabels[phase]}</p>
