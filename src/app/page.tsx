@@ -13,6 +13,7 @@ import {
   LogIn,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import PopupBanner from "@/components/features/popup-banner";
 
 const features = [
   {
@@ -68,6 +69,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-ptba-off-white">
+      <PopupBanner />
       {/* Header */}
       <header className="border-b border-ptba-light-gray bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">

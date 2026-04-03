@@ -10,11 +10,10 @@ export default function PopupBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) return;
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
-    fetch(`${API_BASE}/banners/active`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
+    const headers: Record<string, string> = {};
+    if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+    fetch(`${API_BASE}/banners/active`, { headers })
       .then((res) => res.json())
       .then((data) => {
         if (!data.banner) return;
