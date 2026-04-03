@@ -846,7 +846,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!marketShare && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -1173,17 +1173,6 @@ export default function MitraProjectApplyPage() {
             <ErrText show={errMsg(businessOverview) as boolean} />
           </div>
 
-          {/* Market Share */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Market Share" : "Pangsa Pasar"} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Estimated market share percentage in your industry" : "Estimasi persentase pangsa pasar di industri Anda"}</p>
-            <div className="relative">
-              <input type="text" inputMode="decimal" value={marketShare} onChange={(e) => setMarketShare(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder={locale === "en" ? "e.g. 15" : "Contoh: 15"} className={cn(inputClass, "pr-10", errBorder(marketShare))} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
-            </div>
-            <ErrText show={errMsg(marketShare) as boolean} />
-          </div>
-
           {/* Vision & Mission */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -1223,30 +1212,6 @@ export default function MitraProjectApplyPage() {
               onDownload={docDownloadHandler("company_history")}
               error={showErrors && !isDoc("company_history")}
             />
-          </div>
-
-          {/* Top Management */}
-          <div className="border-t border-ptba-light-gray pt-3">
-            <p className="text-xs font-semibold text-ptba-charcoal mb-2">{locale === "en" ? "Top Management" : "Manajemen Puncak"}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "CEO / President Director" : "Direktur Utama"} <span className="text-ptba-red">*</span></label>
-                <input type="text" value={ceoName} onChange={(e) => setCeoName(e.target.value)} className={cn(inputClass, errBorder(ceoName))} />
-                <ErrText show={errMsg(ceoName) as boolean} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "COO / Operations Director" : "Direktur Operasi"}</label>
-                <input type="text" value={cooName} onChange={(e) => setCooName(e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "CFO / Finance Director" : "Direktur Keuangan"}</label>
-                <input type="text" value={cfoName} onChange={(e) => setCfoName(e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Other Directors" : "Direksi Lainnya"}</label>
-                <textarea value={otherDirectors} onChange={(e) => setOtherDirectors(e.target.value)} placeholder={locale === "en" ? "Other board members..." : "Anggota direksi lainnya..."} className={cn(inputClass, "min-h-[40px] resize-y")} />
-              </div>
-            </div>
           </div>
 
           {/* Shareholder Composition */}
@@ -1328,7 +1293,14 @@ export default function MitraProjectApplyPage() {
           {/* Org Structure & Subsidiaries */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.orgStructure")} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">Upload company organizational structure (PDF or image)</p>
+            <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2 mb-2">
+              <p className="text-[11px] text-ptba-gray leading-relaxed">
+                <span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span>{" "}
+                {locale === "en"
+                  ? "Upload organizational structure chart including names and positions of top management (CEO, COO, CFO, Directors, etc.). Accepted formats: PDF or image (JPG, PNG)."
+                  : "Unggah bagan struktur organisasi termasuk nama dan jabatan manajemen puncak (Direktur Utama, COO, CFO, Direksi, dll.). Format yang diterima: PDF atau gambar (JPG, PNG)."}
+              </p>
+            </div>
             <FileUploadButton
               label="Company Organizational Structure"
               accept=".pdf,.png,.jpg,.jpeg"
