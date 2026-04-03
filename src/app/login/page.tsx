@@ -7,6 +7,8 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiClientError } from "@/lib/api/client";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { Locale } from "@/lib/i18n/config";
 
 export default function LoginPage() {
   return (
@@ -23,6 +25,7 @@ function LoginContent() {
   const justVerified = searchParams.get("verified") === "1";
   const justReset = searchParams.get("reset") === "success";
   const { loginApi, user, role } = useAuth();
+  const { locale, setLocale } = useLocale();
 
   useEffect(() => {
     if (user) {
@@ -80,6 +83,16 @@ function LoginContent() {
 
       {/* Login Card */}
       <div className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+        {/* Language Switcher */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => setLocale(locale === "id" ? "en" : "id" as Locale)}
+            className="flex items-center rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-semibold transition-colors hover:bg-ptba-section-bg"
+          >
+            <span className={cn("px-1", locale === "id" ? "text-ptba-navy" : "text-ptba-gray")}>ID</span>
+            <span className={cn("px-1", locale === "en" ? "text-ptba-navy" : "text-ptba-gray")}>EN</span>
+          </button>
+        </div>
         {/* Branding */}
         <div className="mb-6 flex flex-col items-center">
           <Image
