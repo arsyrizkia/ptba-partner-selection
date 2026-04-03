@@ -223,7 +223,23 @@ export default function MitraDocumentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
-        <span className="text-sm text-ptba-gray">{documents.length} {tc("documents")}</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              const allCollapsed = Object.keys(expanded).filter(k => k.startsWith("sec_")).every(k => expanded[k] === false);
+              const next: Record<string, boolean> = { ...expanded };
+              ["compro", "eoi", "portfolio", "financial", "requirements", "additional"].forEach(id => { next[`sec_${id}`] = allCollapsed; });
+              setExpanded(next);
+            }}
+            className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors"
+          >
+            {Object.keys(expanded).filter(k => k.startsWith("sec_")).some(k => expanded[k] === false)
+              ? (locale === "en" ? "Expand All" : "Buka Semua")
+              : (locale === "en" ? "Collapse All" : "Tutup Semua")}
+          </button>
+          <span className="text-sm text-ptba-gray">{documents.length} {tc("documents")}</span>
+        </div>
       </div>
 
       {/* Project context */}
