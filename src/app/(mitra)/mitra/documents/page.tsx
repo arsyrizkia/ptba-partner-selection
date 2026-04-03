@@ -21,7 +21,13 @@ function Field({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function buildFormDataMap(t: (key: string, values?: Record<string, string>) => string): Record<string, { titleKey: string; render: (fd: any) => React.ReactNode }> {
+const SHAREHOLDER_LABELS: Record<string, Record<string, string>> = {
+  en: { majority: "Majority Shareholder (>50%)", minority: "Minority Shareholder (45-50%)" },
+  id: { majority: "Pemegang Saham Mayoritas (>50%)", minority: "Pemegang Saham Minoritas (45-50%)" },
+};
+const CAT_LABELS: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Project Financing" };
+
+function buildFormDataMap(t: (key: string, values?: Record<string, string>) => string, locale: string): Record<string, { titleKey: string; render: (fd: any) => React.ReactNode }> {
   return {
     compro: {
       titleKey: "formData.companyInfo",
@@ -29,9 +35,15 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <Field label={t("formData.companyName")} value={fd.companyName} />
           <Field label={t("formData.address")} value={fd.companyAddress} />
+          <Field label={locale === "en" ? "Phone" : "Telepon"} value={fd.companyPhone} />
+          <Field label="Email" value={fd.companyEmail} />
           <Field label={t("formData.website")} value={fd.companyWebsite} />
+          <Field label="NIB" value={fd.nib} />
           <Field label={t("formData.yearEstablished")} value={fd.yearEstablished} />
           <Field label={t("formData.country")} value={fd.countryEstablished} />
+          <Field label="Contact Person" value={fd.contactPerson} />
+          <Field label={locale === "en" ? "CP Phone" : "Telp CP"} value={fd.contactPhone} />
+          <Field label="CP Email" value={fd.contactEmail} />
         </dl>
       ),
     },
@@ -42,7 +54,17 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
           <Field label={t("formData.signerName")} value={fd.signerName} />
           <Field label={t("formData.signerPosition")} value={fd.signerPosition} />
           <Field label={t("formData.signerDate")} value={fd.signerDate} />
-          <Field label={t("formData.eoiAgreed")} value={fd.eoiAgreed ? t("formData.yes") : t("formData.no")} />
+          <Field label={locale === "en" ? "Shareholder Type" : "Tipe Pemegang Saham"} value={SHAREHOLDER_LABELS[locale]?.[fd.shareholderType] || fd.shareholderType} />
+          <Field label={locale === "en" ? "JV Equity" : "Ekuitas JV"} value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
+          <Field label={locale === "en" ? "Negotiable" : "Dapat Dinegosiasikan"} value={fd.equityNegotiable === "yes" ? (locale === "en" ? "Yes" : "Ya") : fd.equityNegotiable === "no" ? (locale === "en" ? "No" : "Tidak") : undefined} />
+          {fd.equityNegotiable === "yes" && fd.shareholderType === "majority" && (
+            <Field label={locale === "en" ? "Can Become Minority" : "Dapat Menjadi Minoritas"} value={fd.canBecomeMinority === "yes" ? (locale === "en" ? "Yes" : "Ya") : (locale === "en" ? "No" : "Tidak")} />
+          )}
+          {fd.equityNegotiable === "yes" && (
+            <Field label={locale === "en" ? "Min. Equity" : "Ekuitas Minimum"} value={fd.equityMinPercent ? `${fd.equityMinPercent}%` : undefined} />
+          )}
+          <Field label="Cash on Hand" value={fd.cashOnHand ? `$ ${fd.cashOnHand} Mn` : undefined} />
+          <Field label={t("formData.eoiAgreed")} value={fd.eoiAgreed ? (locale === "en" ? "Yes" : "Ya") : (locale === "en" ? "No" : "Tidak")} />
         </dl>
       ),
     },
@@ -54,22 +76,31 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
         return (
           <div className="space-y-3">
             {exps.map((exp: any, i: number) => (
-              <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-3">
-                <p className="text-xs font-semibold text-ptba-charcoal mb-1.5">{t("formData.experienceNumber", { number: String(i + 1) })}</p>
+              <div key={exp.uid || i} className="rounded-lg border border-ptba-light-gray/50 p-3">
+                <p className="text-xs font-semibold text-ptba-charcoal mb-1.5">
+                  {t("formData.experienceNumber", { number: String(i + 1) })} — {CAT_LABELS[exp.category] || exp.category}
+                </p>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                  <Field label={t("formData.projectName")} value={exp.projectName} />
+                  <Field label={locale === "en" ? "Power Plant" : "Pembangkit"} value={exp.plantName} />
                   <Field label={t("formData.location")} value={exp.location} />
-                  <Field label={t("formData.type")} value={exp.type} />
-                  <Field label={t("formData.role")} value={exp.role} />
-                  <Field label={t("formData.year")} value={exp.year} />
-                  <Field label={t("formData.projectCost")} value={exp.projectCost} />
+                  <Field label={locale === "en" ? "Capacity (MW)" : "Kapasitas (MW)"} value={exp.totalCapacityMW} />
+                  {exp.category === "developer" && <>
+                    <Field label={locale === "en" ? "Equity (%)" : "Ekuitas (%)"} value={exp.equityPercent} />
+                    <Field label="IPP / Captive" value={exp.ippOrCaptive} />
+                    <Field label="COD Year" value={exp.codYear} />
+                  </>}
+                  {exp.category === "om_contractor" && <>
+                    <Field label={locale === "en" ? "Contract Value (USD)" : "Nilai Kontrak (USD)"} value={exp.contractValueUSD} />
+                    <Field label={locale === "en" ? "Work Portion (%)" : "Porsi Kerja (%)"} value={exp.workPortionPercent} />
+                    <Field label="IPP / Captive" value={exp.ippOrCaptive} />
+                    <Field label="COD Year" value={exp.codYear} />
+                  </>}
+                  {exp.category === "financing" && <>
+                    <Field label={locale === "en" ? "Financing Type" : "Tipe Pembiayaan"} value={exp.financingType} />
+                    <Field label={locale === "en" ? "Amount (USD)" : "Jumlah (USD)"} value={exp.amountUSD} />
+                    <Field label={t("formData.year")} value={exp.year} />
+                  </>}
                 </dl>
-                {exp.description && (
-                  <div className="mt-1.5">
-                    <span className="text-[10px] text-ptba-gray">{t("formData.description")}:</span>
-                    <p className="text-xs text-ptba-charcoal">{exp.description}</p>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -88,6 +119,9 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
                   <thead>
                     <tr className="border-b border-ptba-light-gray">
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.year")}</th>
+                      <th className="py-1.5 text-left text-ptba-gray font-medium">{locale === "en" ? "Currency" : "Mata Uang"}</th>
+                      <th className="py-1.5 text-left text-ptba-gray font-medium">Total Debt</th>
+                      <th className="py-1.5 text-left text-ptba-gray font-medium">Total Equity</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.totalAsset")}</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.ebitda")}</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.dscr")}</th>
@@ -97,7 +131,10 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
                     {years.map((fy: any, i: number) => (
                       <tr key={i} className="border-b border-ptba-light-gray/30">
                         <td className="py-1.5 text-ptba-charcoal">{fy.year}</td>
-                        <td className="py-1.5 text-ptba-charcoal">{fy.totalAsset || "-"}</td>
+                        <td className="py-1.5 text-ptba-charcoal font-medium">{fy.currency || "-"}</td>
+                        <td className="py-1.5 text-ptba-charcoal">{fy.totalDebt || "-"}</td>
+                        <td className="py-1.5 text-ptba-charcoal">{fy.totalEquity || "-"}</td>
+                        <td className="py-1.5 text-ptba-charcoal font-medium">{fy.totalAsset || "-"}</td>
                         <td className="py-1.5 text-ptba-charcoal">{fy.ebitda || "-"}</td>
                         <td className="py-1.5 text-ptba-charcoal">{fy.dscr || "-"}</td>
                       </tr>
@@ -148,7 +185,7 @@ export default function MitraDocumentsPage() {
   const [formData, setFormData] = useState<any>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const FORM_DATA_MAP = useMemo(() => buildFormDataMap(t), [t]);
+  const FORM_DATA_MAP = useMemo(() => buildFormDataMap(t, locale), [t, locale]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -296,7 +333,14 @@ export default function MitraDocumentsPage() {
 
         return (
           <div className="space-y-3">
-            {sections.filter(s => s.docs.length > 0).map(sec => (
+            {/* Map section IDs to form data keys */}
+            {(() => {
+              const SEC_TO_FORM: Record<string, string> = { compro: "compro", eoi: "statement_eoi", portfolio: "portfolio", financial: "financial_overview", requirements: "requirements_fulfillment" };
+              return sections.filter(s => s.docs.length > 0).map(sec => {
+                const formKey = SEC_TO_FORM[sec.id];
+                const sectionFormData = formData && formKey ? FORM_DATA_MAP[formKey] : null;
+                const sectionFormOpen = expanded[`form_${sec.id}`] ?? false;
+                return (
               <div key={sec.id} className="rounded-xl bg-white shadow-sm overflow-hidden">
                 <button
                   type="button"
@@ -310,12 +354,28 @@ export default function MitraDocumentsPage() {
                   <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expanded[`sec_${sec.id}`] !== false) && "rotate-180")} />
                 </button>
                 {expanded[`sec_${sec.id}`] !== false && (
-                  <div className="border-t border-ptba-light-gray/50 divide-y divide-ptba-light-gray/30">
+                  <div className="border-t border-ptba-light-gray/50">
+                    {/* Section-level form data toggle */}
+                    {sectionFormData && (
+                      <div className="border-b border-ptba-light-gray/50">
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(prev => ({ ...prev, [`form_${sec.id}`]: !prev[`form_${sec.id}`] }))}
+                          className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-ptba-section-bg/30 transition-colors"
+                        >
+                          <span className="text-xs font-semibold text-ptba-steel-blue">{locale === "en" ? "Form Data" : "Data Formulir"}</span>
+                          {sectionFormOpen ? <ChevronUp className="h-3.5 w-3.5 text-ptba-steel-blue" /> : <ChevronDown className="h-3.5 w-3.5 text-ptba-steel-blue" />}
+                        </button>
+                        {sectionFormOpen && (
+                          <div className="bg-ptba-section-bg/30 px-5 py-4">
+                            {sectionFormData.render(formData)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="divide-y divide-ptba-light-gray/30">
                     {sec.docs.map(doc => {
                       const docName = fmtName(doc.name, doc.document_type_id);
-                      const formSection = formData ? FORM_DATA_MAP[doc.document_type_id] : null;
-                      const hasForm = !!formSection;
-                      const isFormOpen = expanded[doc.id] ?? false;
                       return (
                         <div key={doc.id}>
                           <div className="flex items-center gap-4 px-5 py-3">
@@ -336,26 +396,18 @@ export default function MitraDocumentsPage() {
                                   <Eye className="h-3 w-3" /> {tc("view")}
                                 </button>
                               )}
-                              {hasForm && (
-                                <button onClick={() => toggle(doc.id)} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
-                                  {isFormOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />} {t("data")}
-                                </button>
-                              )}
                             </div>
                           </div>
-                          {hasForm && isFormOpen && (
-                            <div className="border-t border-ptba-light-gray/50 bg-ptba-section-bg/30 px-5 py-4">
-                              <p className="text-xs font-semibold text-ptba-charcoal mb-3">{t(formSection!.titleKey)}</p>
-                              {formSection!.render(formData)}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 )}
               </div>
-            ))}
+                );
+              });
+            })()}
           </div>
         );
       })()}
