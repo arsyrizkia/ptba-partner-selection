@@ -33,14 +33,7 @@ const PROJECT_TYPES = [
 
 const PHASE_PIC_CONFIG = {
   phase1: {
-    label: "Fase 1 — Filter Evaluasi",
-    roles: [
-      { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 1 (boleh lebih dari 1)" },
-      { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: false, description: "Approver" },
-    ],
-  },
-  phase2: {
-    label: "Fase 2 — Pra-Kualifikasi (PQ)",
+    label: "Fase 1 — Pra-Kualifikasi",
     roles: [
       { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
       { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
@@ -51,10 +44,15 @@ const PHASE_PIC_CONFIG = {
       { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: false, description: "Approver" },
     ],
   },
-  phase3: {
-    label: "Fase 3 — RFP & Proposal",
+  phase2: {
+    label: "Fase 2 — FRP & Proposal",
     roles: [
-      { role: "ebd" as UserRole, label: "Energy Business Development", multi: true, description: "Evaluator Fase 3 (boleh lebih dari 1)" },
+      { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
+      { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
+      { role: "ebd" as UserRole, label: "EBD — Komersial", multi: true, subcategory: "komersial", description: "Evaluasi ESG/komersial" },
+      { role: "keuangan" as UserRole, label: "Corporate Finance", multi: false, description: "Evaluasi keuangan" },
+      { role: "hukum" as UserRole, label: "Legal & Regulatory Affairs", multi: false, description: "Evaluasi hukum" },
+      { role: "risiko" as UserRole, label: "Risk Management", multi: false, description: "Evaluasi risiko" },
       { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: false, description: "Approver" },
     ],
   },

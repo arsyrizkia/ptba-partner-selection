@@ -213,48 +213,14 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     phase: 'phase1',
   },
 
-  // === Fase 2: Detailed Assessment Document Types (sistem gugur) ===
-  {
-    id: 'confidential_guarantee_signed',
-    name: 'Confidential Guarantee (Signed)',
-    description: 'Jaminan kerahasiaan yang telah ditandatangani',
-    required: true,
-    category: 'legal',
-    phase: 'phase2',
-  },
-  {
-    id: 'loi_signed',
-    name: 'Letter of Intent (Signed)',
-    description: 'Surat pernyataan niat kerjasama yang telah ditandatangani',
-    required: true,
-    category: 'legal',
-    phase: 'phase2',
-  },
-  {
-    id: 'financial_detail',
-    name: 'Laporan Keuangan Detail',
-    description: 'Laporan keuangan audited lengkap 3 tahun terakhir dengan catatan',
-    required: true,
-    category: 'keuangan',
-    phase: 'phase2',
-  },
-  {
-    id: 'info_detail',
-    name: 'Informasi Detail Perusahaan',
-    description: 'Informasi lengkap perusahaan termasuk struktur kepemilikan, manajemen, dan operasi',
-    required: true,
-    category: 'administrasi',
-    phase: 'phase2',
-  },
-
-  // === Fase 3: Final Proposal & Ranking Document Types ===
+  // === Fase 2: FRP & Proposal Document Types ===
   {
     id: 'proposal_detail',
     name: 'Proposal Teknis & Komersial',
     description: 'Proposal teknis dan komersial secara detail termasuk nilai penawaran',
     required: true,
     category: 'teknis',
-    phase: 'phase3',
+    phase: 'phase2',
   },
   {
     id: 'rencana_kerja',
@@ -262,7 +228,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Rencana kerja detail dan jadwal pelaksanaan proyek',
     required: true,
     category: 'teknis',
-    phase: 'phase3',
+    phase: 'phase2',
   },
   {
     id: 'rab',
@@ -270,7 +236,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Rincian anggaran biaya proyek secara detail',
     required: true,
     category: 'keuangan',
-    phase: 'phase3',
+    phase: 'phase2',
   },
   {
     id: 'jaminan_pelaksanaan',
@@ -278,11 +244,11 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     description: 'Jaminan pelaksanaan dari bank atau lembaga keuangan',
     required: true,
     category: 'keuangan',
-    phase: 'phase3',
+    phase: 'phase2',
   },
 ];
 
 export const PHASE1_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase1');
 export const PHASE2_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase2');
-export const PHASE3_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'phase3');
+export const PHASE3_DOCUMENT_TYPES: typeof DOCUMENT_TYPES = []; // Removed — 2-phase system
 export const LEGACY_DOCUMENT_TYPES = DOCUMENT_TYPES.filter((d) => d.phase === 'both');
