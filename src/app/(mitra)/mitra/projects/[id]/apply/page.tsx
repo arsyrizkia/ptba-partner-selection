@@ -2082,8 +2082,8 @@ export default function MitraProjectApplyPage() {
           <div className="space-y-2">
             {additionalPhase1Docs.map((doc: { id: string; name: string; description: string; isRequired?: boolean }) => (
               <div key={doc.id}>
-                {doc.isRequired !== false && <p className="text-[10px] text-ptba-red font-semibold mb-1">*Wajib</p>}
-                {doc.isRequired === false && <p className="text-[10px] text-ptba-gray font-medium mb-1">Opsional</p>}
+                {doc.isRequired !== false && <p className="text-[10px] text-ptba-red font-semibold mb-1">*{locale === "en" ? "Required" : "Wajib"}</p>}
+                {doc.isRequired === false && <p className="text-[10px] text-ptba-gray font-medium mb-1">{locale === "en" ? "Optional" : "Opsional"}</p>}
                 <FileUploadButton
                   label={`${doc.name}${doc.description ? ` — ${doc.description}` : ""}`}
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
