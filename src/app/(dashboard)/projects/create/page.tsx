@@ -79,6 +79,7 @@ export default function CreateProjectPage() {
         tariffLevelized: formData.tariffLevelized || undefined,
         bppValue: formData.bppValue || undefined,
         bppLocation: formData.bppLocation || undefined,
+        indicativeDisclaimer: formData.indicativeDisclaimer || undefined,
       });
 
       const newProjectId = res.data?.id;

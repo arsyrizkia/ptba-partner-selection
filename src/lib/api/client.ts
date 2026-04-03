@@ -451,6 +451,7 @@ export interface CreateProjectInput {
   tariffLevelized?: string;
   bppValue?: string;
   bppLocation?: string;
+  indicativeDisclaimer?: string;
 }
 
 export interface ProjectResponse {

@@ -135,6 +135,7 @@ export interface ProjectFormData {
   tariffLevelized: string;
   bppValue: string;
   bppLocation: string;
+  indicativeDisclaimer: string;
 }
 
 export interface ProjectFormProps {
@@ -217,6 +218,7 @@ export default function ProjectForm({
   const [tariffLevelized, setTariffLevelized] = useState("");
   const [bppValue, setBppValue] = useState("");
   const [bppLocation, setBppLocation] = useState("");
+  const [indicativeDisclaimer, setIndicativeDisclaimer] = useState("");
 
   // Step 2
   const [startDate, setStartDate] = useState("");
@@ -275,6 +277,7 @@ export default function ProjectForm({
     setTariffLevelized(project.tariffLevelized || project.tariff_levelized || "");
     setBppValue(project.bppValue || project.bpp_value || "");
     setBppLocation(project.bppLocation || project.bpp_location || "");
+    setIndicativeDisclaimer(project.indicativeDisclaimer || project.indicative_disclaimer || "");
 
     // Step 2
     setStartDate(formatDateForInput(project.startDate as string));
@@ -585,6 +588,7 @@ export default function ProjectForm({
         tariffLevelized,
         bppValue,
         bppLocation,
+        indicativeDisclaimer,
       },
       templateFiles,
       andPublish
@@ -988,6 +992,17 @@ export default function ProjectForm({
                 </div>
               </div>
             </div>
+          {/* Indicative Disclaimer */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Disclaimer / Catatan Indikatif</label>
+            <p className="mb-1.5 text-[10px] text-ptba-gray italic">Teks disclaimer yang akan ditampilkan di bawah ringkasan proyek indikatif pada halaman mitra.</p>
+            <textarea
+              value={indicativeDisclaimer}
+              onChange={(e) => setIndicativeDisclaimer(e.target.value)}
+              placeholder="Contoh: Data bersifat indikatif dan dapat berubah sewaktu-waktu. Angka-angka yang tercantum merupakan estimasi awal..."
+              className={cn(inputClass, "min-h-[60px] resize-y")}
+            />
+          </div>
           </div>
         )}
 

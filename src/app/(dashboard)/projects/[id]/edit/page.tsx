@@ -146,6 +146,7 @@ export default function EditProjectPage({
         tariffLevelized: formData.tariffLevelized || undefined,
         bppValue: formData.bppValue || undefined,
         bppLocation: formData.bppLocation || undefined,
+        indicativeDisclaimer: formData.indicativeDisclaimer || undefined,
       });
 
       // Update requirements
