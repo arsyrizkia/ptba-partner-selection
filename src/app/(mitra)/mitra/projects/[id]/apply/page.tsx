@@ -843,7 +843,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && !!companyHistory && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!ceoName && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -1182,9 +1182,26 @@ export default function MitraProjectApplyPage() {
           {/* Company History */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Company History & Milestones" : "Sejarah & Milestone Perusahaan"} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "History, timeline, and key milestones" : "Sejarah, timeline, dan pencapaian utama"}</p>
-            <textarea value={companyHistory} onChange={(e) => setCompanyHistory(e.target.value)} placeholder={locale === "en" ? "Company history and milestones..." : "Sejarah dan milestone perusahaan..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(companyHistory))} />
-            <ErrText show={errMsg(companyHistory) as boolean} />
+            <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2 mb-2">
+              <p className="text-[11px] text-ptba-gray leading-relaxed">
+                <span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span>{" "}
+                {locale === "en"
+                  ? "Upload a document containing the company's history, timeline, and key milestones. Accepted formats: PDF or image (JPG, PNG). This should include founding date, major achievements, expansions, and significant corporate events."
+                  : "Unggah dokumen yang berisi sejarah perusahaan, timeline, dan pencapaian utama. Format yang diterima: PDF atau gambar (JPG, PNG). Dokumen harus mencakup tanggal pendirian, pencapaian besar, ekspansi, dan peristiwa korporat penting."}
+              </p>
+            </div>
+            <FileUploadButton
+              label={locale === "en" ? "Company History & Milestones Document" : "Dokumen Sejarah & Milestone Perusahaan"}
+              accept=".pdf,.jpg,.jpeg,.png"
+              uploaded={isDoc("company_history")}
+              uploading={uploadedDocs["company_history"]?.uploading ?? false}
+              fileName={uploadedDocs["company_history"]?.name}
+              onSelect={(f) => uploadDoc("company_history", "Company History & Milestones", f)}
+              onDelete={() => deleteDoc("company_history")}
+              readOnly={readOnly}
+              onDownload={docDownloadHandler("company_history")}
+              error={showErrors && !isDoc("company_history")}
+            />
           </div>
 
           {/* Top Management */}

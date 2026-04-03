@@ -303,6 +303,7 @@ export default function MitraDocumentsPage() {
           ebitda_dscr_calculation: "EBITDA & DSCR Calculation",
           credit_rating_evidence: "Credit Rating Evidence",
           cash_on_hand_evidence: locale === "en" ? "Cash on Hand Evidence" : "Bukti Cash on Hand",
+          company_history: locale === "en" ? "Company History & Milestones" : "Sejarah & Milestone Perusahaan",
           requirements_fulfillment: locale === "en" ? "Requirements Fulfillment" : "Pemenuhan Persyaratan",
         };
         const fmtName = (name: string, typeId: string) => {
@@ -316,7 +317,7 @@ export default function MitraDocumentsPage() {
         };
 
         const SECTION_ORDER = [
-          { id: "compro", label: locale === "en" ? "Company Information & Profile" : "Informasi & Profil Perusahaan", ids: ["compro", "nib_document", "org_structure"] },
+          { id: "compro", label: locale === "en" ? "Company Information & Profile" : "Informasi & Profil Perusahaan", ids: ["compro", "nib_document", "org_structure", "company_history"] },
           { id: "eoi", label: locale === "en" ? "Expression of Interest (EoI)" : "Surat Pernyataan EoI", ids: ["statement_eoi", "cash_on_hand_evidence"] },
           { id: "portfolio", label: locale === "en" ? "Project Experience & Portfolio" : "Pengalaman & Portofolio Proyek", prefix: "credential_exp_" },
           { id: "financial", label: locale === "en" ? "Financial Overview" : "Gambaran Umum Keuangan", ids: ["ebitda_dscr_calculation", "credit_rating_evidence"], prefix: "audited_financial_" },
