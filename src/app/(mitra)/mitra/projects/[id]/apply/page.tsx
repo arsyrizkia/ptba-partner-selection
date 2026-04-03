@@ -2090,7 +2090,7 @@ export default function MitraProjectApplyPage() {
                 </div>
                 {doc.description && (
                   <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2">
-                    <p className="text-[11px] text-ptba-gray leading-relaxed">{doc.description}</p>
+                    <p className="text-[11px] text-ptba-gray leading-relaxed"><span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span> {doc.description}</p>
                   </div>
                 )}
                 <FileUploadButton
