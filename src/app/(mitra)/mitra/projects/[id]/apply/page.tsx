@@ -2081,11 +2081,20 @@ export default function MitraProjectApplyPage() {
           <p className="text-xs text-ptba-gray">{t("sections.additionalDocsDesc")}</p>
           <div className="space-y-2">
             {additionalPhase1Docs.map((doc: { id: string; name: string; description: string; isRequired?: boolean }) => (
-              <div key={doc.id}>
-                {doc.isRequired !== false && <p className="text-[10px] text-ptba-red font-semibold mb-1">*{locale === "en" ? "Required" : "Wajib"}</p>}
-                {doc.isRequired === false && <p className="text-[10px] text-ptba-gray font-medium mb-1">{locale === "en" ? "Optional" : "Opsional"}</p>}
+              <div key={doc.id} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {doc.isRequired !== false
+                    ? <span className="text-[10px] text-ptba-red font-semibold">*{locale === "en" ? "Required" : "Wajib"}</span>
+                    : <span className="text-[10px] text-ptba-gray font-medium">{locale === "en" ? "Optional" : "Opsional"}</span>}
+                  <span className="text-xs font-semibold text-ptba-charcoal">{doc.name}</span>
+                </div>
+                {doc.description && (
+                  <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2">
+                    <p className="text-[11px] text-ptba-gray leading-relaxed">{doc.description}</p>
+                  </div>
+                )}
                 <FileUploadButton
-                  label={`${doc.name}${doc.description ? ` — ${doc.description}` : ""}`}
+                  label={doc.name}
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                   uploaded={isDoc(doc.id)}
                   uploading={uploadedDocs[doc.id]?.uploading ?? false}
