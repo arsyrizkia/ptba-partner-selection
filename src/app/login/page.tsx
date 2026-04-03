@@ -103,124 +103,76 @@ function LoginContent() {
             priority
           />
           <p className="mt-3 text-sm text-ptba-gray">
-            Sistem Pemilihan Mitra
+            {locale === "en" ? "Partner Selection System" : "Sistem Pemilihan Mitra"}
           </p>
         </div>
 
         {/* Gold Accent Line */}
         <div className="mx-auto mb-8 h-[3px] w-16 rounded-full bg-ptba-gold" />
 
-        {/* Success message after registration */}
+        {/* Success messages */}
         {justRegistered && (
           <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-            Pendaftaran berhasil! Silakan login dengan akun Anda.
+            {locale === "en" ? "Registration successful! Please log in with your account." : "Pendaftaran berhasil! Silakan login dengan akun Anda."}
           </div>
         )}
-
-        {/* Success message after email verification */}
         {justVerified && (
           <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-            Email berhasil diverifikasi! Silakan login.
+            {locale === "en" ? "Email verified successfully! Please log in." : "Email berhasil diverifikasi! Silakan login."}
           </div>
         )}
         {justReset && (
           <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-            Password berhasil direset! Silakan login dengan password baru.
+            {locale === "en" ? "Password reset successfully! Please log in with your new password." : "Password berhasil direset! Silakan login dengan password baru."}
           </div>
         )}
 
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* Email Field */}
           <div>
-            <label
-              htmlFor="email"
-              className="mb-1.5 block text-sm font-medium text-ptba-charcoal"
-            >
-              Email
-            </label>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-ptba-charcoal">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ptba-gray" />
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@bukitasam.co.id"
-                className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white py-3 pl-10 pr-4 text-sm text-ptba-charcoal placeholder-ptba-gray/60 outline-none transition-colors focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
-              />
+              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@bukitasam.co.id" className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white py-3 pl-10 pr-4 text-sm text-ptba-charcoal placeholder-ptba-gray/60 outline-none transition-colors focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20" />
             </div>
           </div>
 
-          {/* Password Field */}
           <div>
-            <label
-              htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-ptba-charcoal"
-            >
-              Kata Sandi
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-ptba-charcoal">
+              {locale === "en" ? "Password" : "Kata Sandi"}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ptba-gray" />
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan kata sandi"
-                className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white py-3 pl-10 pr-10 text-sm text-ptba-charcoal placeholder-ptba-gray/60 outline-none transition-colors focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-ptba-gray hover:text-ptba-charcoal"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
+              <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={locale === "en" ? "Enter your password" : "Masukkan kata sandi"} className="w-full rounded-lg border border-ptba-light-gray bg-ptba-off-white py-3 pl-10 pr-10 text-sm text-ptba-charcoal placeholder-ptba-gray/60 outline-none transition-colors focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/20" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-ptba-gray hover:text-ptba-charcoal">
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
           </div>
 
-          {/* Forgot Password + Error */}
           <div className="flex items-center justify-between">
             <div>{error && <p className="text-sm text-ptba-red">{error}</p>}</div>
             <a href="/forgot-password" className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors">
-              Lupa Password?
+              {locale === "en" ? "Forgot Password?" : "Lupa Password?"}
             </a>
           </div>
 
-          {/* Login Button */}
-          <button
-            type="submit"
-            disabled={isLoading || !email || !password}
-            className={cn(
-              "w-full rounded-lg bg-ptba-gold py-3 text-sm font-bold text-ptba-charcoal shadow-md transition-all hover:bg-ptba-gold-light hover:shadow-lg active:scale-[0.98]",
-              (isLoading || !email || !password) && "cursor-not-allowed opacity-70"
-            )}
-          >
-            {isLoading ? "Memproses..." : "Masuk"}
+          <button type="submit" disabled={isLoading || !email || !password} className={cn("w-full rounded-lg bg-ptba-gold py-3 text-sm font-bold text-ptba-charcoal shadow-md transition-all hover:bg-ptba-gold-light hover:shadow-lg active:scale-[0.98]", (isLoading || !email || !password) && "cursor-not-allowed opacity-70")}>
+            {isLoading ? (locale === "en" ? "Processing..." : "Memproses...") : (locale === "en" ? "Sign In" : "Masuk")}
           </button>
         </form>
 
-        {/* Registration Link */}
         <div className="mt-6 text-center">
           <p className="text-sm text-ptba-gray">
-            Belum punya akun?{" "}
-            <a
-              href="/register"
-              className="font-semibold text-ptba-steel-blue hover:text-ptba-navy transition-colors"
-            >
-              Daftar sebagai Mitra
+            {locale === "en" ? "Don't have an account?" : "Belum punya akun?"}{" "}
+            <a href="/register" className="font-semibold text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+              {locale === "en" ? "Register as Partner" : "Daftar sebagai Mitra"}
             </a>
           </p>
         </div>
 
-        {/* Footer */}
         <p className="mt-6 text-center text-xs text-ptba-gray">
-          &copy; 2026 PT Bukit Asam (Persero) Tbk. Hak Cipta Dilindungi.
+          &copy; 2026 PT Bukit Asam (Persero) Tbk. {locale === "en" ? "All Rights Reserved." : "Hak Cipta Dilindungi."}
         </p>
       </div>
     </div>
