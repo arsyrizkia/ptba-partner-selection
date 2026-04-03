@@ -425,7 +425,7 @@ export default function MitraProjectApplyPage() {
         return {
           id: d.documentTypeId,
           name: meta?.name || (d.documentTypeId.startsWith("custom_") ? d.documentTypeId.slice(7) : d.documentTypeId).replace(/_/g, " "),
-          description: meta?.description || "",
+          description: d.description || meta?.description || "",
           isRequired: d.isRequired !== false,
         };
       });

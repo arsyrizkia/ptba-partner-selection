@@ -40,6 +40,7 @@ export default function CreateProjectPage() {
           documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`,
           phase: d.phase,
           isRequired: d.required !== false,
+          description: d.description || "",
         }));
       const pics = Object.entries(formData.picAssignments)
         .filter(([, userId]) => userId)

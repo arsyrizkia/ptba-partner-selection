@@ -112,7 +112,7 @@ export interface ProjectFormData {
   selectedPhase2Docs: string[];
   selectedPhase3Docs: string[];
   optionalDocIds: string[];
-  customDocuments: { name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean }[];
+  customDocuments: { name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[];
   picAssignments: Record<string, string>;
   phasePics: PhasePicEntry[];
   supportingFiles: SupportingFile[];
@@ -239,7 +239,7 @@ export default function ProjectForm({
     PHASE3_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
   );
   const [optionalDocIds, setOptionalDocIds] = useState<Set<string>>(new Set());
-  const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean }[]>([]);
+  const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[]>([]);
 
   // Template files per document type ID
   const [templateFiles, setTemplateFiles] = useState<Record<string, File>>({});
@@ -347,7 +347,7 @@ export default function ProjectForm({
       const phase1Ids = new Set(PHASE1_DOCUMENT_TYPES.map((d) => d.id));
       const phase2Ids = new Set(PHASE2_DOCUMENT_TYPES.map((d) => d.id));
       const phase3Ids = new Set(PHASE3_DOCUMENT_TYPES.map((d) => d.id));
-      const customDocs: { name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean }[] = [];
+      const customDocs: { name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[] = [];
 
       for (const doc of project.requiredDocuments) {
         const docId = doc.documentTypeId;
@@ -373,7 +373,7 @@ export default function ProjectForm({
           const docPhase = phase === "general" ? "both" : (phase as "phase1" | "phase2" | "phase3" | "both") || "both";
           // Strip "custom_" prefix and convert underscores to spaces
           const displayName = docId.startsWith("custom_") ? docId.slice(7).replace(/_/g, " ") : docId.replace(/_/g, " ");
-          customDocs.push({ name: displayName, phase: docPhase, required: doc.isRequired !== false });
+          customDocs.push({ name: displayName, phase: docPhase, required: doc.isRequired !== false, description: doc.description || "" });
         }
       }
 
@@ -464,7 +464,7 @@ export default function ProjectForm({
   };
 
   // ── Custom document handlers ───────────────────────────────────
-  const addCustomDocument = () => setCustomDocuments((prev) => [...prev, { name: "", phase: "both", required: true }]);
+  const addCustomDocument = () => setCustomDocuments((prev) => [...prev, { name: "", phase: "both", required: true, description: "" }]);
   const removeCustomDocument = (index: number) => {
     setCustomDocuments((prev) => prev.filter((_, i) => i !== index));
   };
@@ -473,6 +473,9 @@ export default function ProjectForm({
   };
   const updateCustomDocPhase = (index: number, value: "phase1" | "phase2" | "phase3" | "both") => {
     setCustomDocuments((prev) => prev.map((d, i) => (i === index ? { ...d, phase: value } : d)));
+  };
+  const updateCustomDocDescription = (index: number, value: string) => {
+    setCustomDocuments((prev) => prev.map((d, i) => (i === index ? { ...d, description: value } : d)));
   };
 
   // ── Supporting files handlers ──────────────────────────────────
@@ -1418,6 +1421,15 @@ export default function ProjectForm({
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
+                      {doc.name.trim() && (
+                        <input
+                          type="text"
+                          placeholder="Keterangan / deskripsi dokumen (opsional)"
+                          value={doc.description}
+                          onChange={(e) => updateCustomDocDescription(index, e.target.value)}
+                          className={cn(inputClass, "text-xs !py-1.5")}
+                        />
+                      )}
                       {doc.name.trim() && (
                         <div className="ml-1">
                           {templateFiles[`custom_${index}`] ? (
