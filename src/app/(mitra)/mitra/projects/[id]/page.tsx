@@ -174,9 +174,8 @@ export default function MitraProjectDetailPage() {
               />
             </div>
             <div className="mt-1.5 flex text-[10px] text-white/50">
-              <span style={{ width: "37.5%" }}>{tc("phase1")}</span>
-              <span style={{ width: "31.25%" }}>{tc("phase2")}</span>
-              <span style={{ width: "31.25%" }} className="text-right">{tc("phase3")}</span>
+              <span style={{ width: "50%" }}>{tc("phase1")}</span>
+              <span style={{ width: "50%" }} className="text-right">{tc("phase2")}</span>
             </div>
           </div>
         )}

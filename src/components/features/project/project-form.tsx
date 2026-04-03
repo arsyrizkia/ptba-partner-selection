@@ -1031,10 +1031,6 @@ export default function ProjectForm({
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2 (Assessment)</label>
                   <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 3 (Proposal)</label>
-                  <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase3Deadline} onChange={(e) => setPhase3Deadline(e.target.value)} className={inputClass} />
-                </div>
               </div>
             </div>
 
@@ -1045,11 +1041,10 @@ export default function ProjectForm({
                 <p className="text-xs text-ptba-gray">Upload dokumen yang dapat dilihat oleh mitra. Dokumen Fase 1 bersifat publik.</p>
               </div>
 
-              {(["phase1", "phase2", "phase3"] as const).map((phase) => {
+              {(["phase1", "phase2"] as const).map((phase) => {
                 const cfg: Record<string, { label: string; desc: string; border: string; bg: string; text: string }> = {
                   phase1: { label: "Fase 1 — Publik", desc: "Dapat dilihat semua mitra yang melihat proyek ini.", border: "border-green-200", bg: "bg-green-50/50", text: "text-green-800" },
-                  phase2: { label: "Fase 2 — Assessment", desc: "Hanya mitra yang lolos Fase 1 dan sudah bayar.", border: "border-ptba-steel-blue/20", bg: "bg-ptba-steel-blue/5", text: "text-ptba-steel-blue" },
-                  phase3: { label: "Fase 3 — Proposal", desc: "Hanya mitra yang lolos Fase 2.", border: "border-ptba-gold/30", bg: "bg-ptba-gold/5", text: "text-ptba-gold" },
+                  phase2: { label: "Fase 2 — FRP & Proposal", desc: "Hanya mitra yang lolos Fase 1.", border: "border-ptba-steel-blue/20", bg: "bg-ptba-steel-blue/5", text: "text-ptba-steel-blue" },
                 };
                 const { label, desc, border, bg, text } = cfg[phase];
                 const phaseFiles = supportingFiles
@@ -1423,7 +1418,6 @@ export default function ProjectForm({
                         >
                           <option value="phase1">Fase 1</option>
                           <option value="phase2">Fase 2</option>
-                          <option value="phase3">Fase 3</option>
                           <option value="both">Semua Fase</option>
                         </select>
                         <button
@@ -1554,7 +1548,7 @@ export default function ProjectForm({
 
               <div className="mt-4 rounded-lg bg-blue-50 border border-blue-100 p-3">
                 <p className="text-xs text-blue-700">
-                  <span className="font-medium">Info:</span> Fase 1 (Filter Evaluasi) & Fase 3 (RFP & Proposal) hanya memerlukan EBD dan Ketua Tim. Fase 2 (PQ) memerlukan minimal 7 PIC dari 6 kategori evaluasi + Ketua Tim.
+                  <span className="font-medium">Info:</span> Kedua fase memerlukan minimal 7 PIC dari 6 kategori evaluasi (EBD Pasar, Teknis, Komersial + Finance + Legal + Risk) + Ketua Tim.
                 </p>
               </div>
             </div>
@@ -1625,10 +1619,6 @@ export default function ProjectForm({
                   <span className="text-sm font-medium text-ptba-charcoal">{phase2Deadline || "-"}</span>
                 </div>
                 <div className="flex justify-between py-2.5">
-                  <span className="text-sm text-ptba-gray">Deadline Fase 3</span>
-                  <span className="text-sm font-medium text-ptba-charcoal">{phase3Deadline || "-"}</span>
-                </div>
-                <div className="flex justify-between py-2.5">
                   <span className="text-sm text-ptba-gray">Pendaftaran Mitra</span>
                   <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", isOpenForApplication ? "bg-green-100 text-green-700" : "bg-ptba-gray/10 text-ptba-gray")}>
                     {isOpenForApplication ? "Dibuka" : "Ditutup"}
@@ -1645,7 +1635,7 @@ export default function ProjectForm({
               <div className="px-4 py-3 space-y-2">
                 <p className="text-xs font-medium text-ptba-steel-blue">Fase 1 EoI: {selectedPhase1Docs.length} dokumen</p>
                 <p className="text-xs font-medium text-ptba-navy">Fase 2 Assessment: {selectedPhase2Docs.length} dokumen</p>
-                {selectedPhase3Docs.length > 0 && (
+                {false && selectedPhase3Docs.length > 0 && (
                   <p className="text-xs font-medium text-ptba-gold-dark">Fase 3 Proposal: {selectedPhase3Docs.length} dokumen</p>
                 )}
               </div>
