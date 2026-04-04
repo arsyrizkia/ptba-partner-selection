@@ -1023,8 +1023,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         )}
                       </div>
 
-                      {/* Notes */}
-                      <div>
+                      {/* Notes — hidden, only comment used */}
+                      {false && <div>
                         <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Catatan Internal (opsional)</label>
                         {isEditable ? (
                           <textarea value={myNotes} onChange={(e) => setMyNotes(e.target.value)} placeholder="Catatan internal..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
