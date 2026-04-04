@@ -39,6 +39,15 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
+/** Normalize verdict: "layak" → "Layak", "tidak layak" → "Tidak Layak" */
+function normalizeVerdict(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const lower = v.toLowerCase();
+  if (lower === "layak") return "Layak";
+  if (lower === "tidak layak") return "Tidak Layak";
+  return v;
+}
+
 interface CatEvalRaw {
   id: string;
   application_id: string;
@@ -403,7 +412,7 @@ export default function Phase1ApprovalPage({
           }
           const entry = byPartner.get(ev.partner_id)!;
           entry.categories[ev.category] = {
-            verdict: ev.verdict,
+            verdict: normalizeVerdict(ev.verdict),
             isFinalized: ev.is_finalized,
             evaluatorName: ev.evaluator_name,
           };
@@ -493,7 +502,7 @@ export default function Phase1ApprovalPage({
         const evals = res.evaluations || [];
         setSelectedCatDetails(evals.map((e: any) => ({
           category: e.category,
-          verdict: e.verdict,
+          verdict: normalizeVerdict(e.verdict),
           comment: e.comment || "",
           notes: e.notes || "",
           isFinalized: e.isFinalized || e.is_finalized || false,
