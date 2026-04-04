@@ -33,7 +33,7 @@ const PROJECT_TYPES = [
 
 const PHASE_PIC_CONFIG = {
   phase1: {
-    label: "Fase 1 — Pra-Kualifikasi",
+    label: "Fase 1",
     roles: [
       { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
       { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
@@ -45,7 +45,7 @@ const PHASE_PIC_CONFIG = {
     ],
   },
   phase2: {
-    label: "Fase 2 — FRP & Proposal",
+    label: "Fase 2",
     roles: [
       { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
       { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
@@ -1044,7 +1044,7 @@ export default function ProjectForm({
               {(["phase1", "phase2"] as const).map((phase) => {
                 const cfg: Record<string, { label: string; desc: string; border: string; bg: string; text: string }> = {
                   phase1: { label: "Fase 1 — Publik", desc: "Dapat dilihat semua mitra yang melihat proyek ini.", border: "border-green-200", bg: "bg-green-50/50", text: "text-green-800" },
-                  phase2: { label: "Fase 2 — FRP & Proposal", desc: "Hanya mitra yang lolos Fase 1.", border: "border-ptba-steel-blue/20", bg: "bg-ptba-steel-blue/5", text: "text-ptba-steel-blue" },
+                  phase2: { label: "Fase 2", desc: "Hanya mitra yang lolos Fase 1.", border: "border-ptba-steel-blue/20", bg: "bg-ptba-steel-blue/5", text: "text-ptba-steel-blue" },
                 };
                 const { label, desc, border, bg, text } = cfg[phase];
                 const phaseFiles = supportingFiles

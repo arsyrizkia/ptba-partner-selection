@@ -27,8 +27,8 @@
     "select": "Pilih...",
     "required": "Wajib",
     "requiredMark": "*Wajib",
-    "phase1": "Fase 1 (Pra-Kualifikasi)",
-    "phase2": "Fase 2 (FRP & Proposal)",
+    "phase1": "Fase 1",
+    "phase2": "Fase 2",
     "phase3": "Fase 3",
     "general": "Umum",
     "submitted": "Diajukan",
@@ -149,7 +149,7 @@
   "projectDetail": {
     "step": "Langkah {current}/{total}",
     "shortlistCongrats": "Selamat! Perusahaan Anda Lolos Fase 1",
-    "shortlistDesc": "Anda telah lolos evaluasi Fase 1 dan diundang untuk melanjutkan ke Fase 2 (FRP & Proposal).",
+    "shortlistDesc": "Anda telah lolos evaluasi Fase 1 dan diundang untuk melanjutkan ke Fase 2.",
     "shortlistPhase2Ready": "Silakan lengkapi dokumen dan pembayaran commitment fee untuk melanjutkan ke Fase 2.",
     "shortlistPhase2Email": "Informasi Fase 2 akan dikomunikasikan melalui email.",
     "continueToPhase2": "Lanjut ke Fase 2",
@@ -210,7 +210,7 @@
     "deadlineDesc": "Formulir harus dikirim sebelum <strong>{date}</strong>.",
     "deadlineDescDefault": "Pastikan formulir dikirim sebelum periode pendaftaran ditutup.",
     "evaluationResult": "Hasil Evaluasi",
-    "evaluationResultDesc": "Mitra yang lolos Fase 1 akan diundang untuk melanjutkan ke <strong>Fase 2 (FRP & Proposal)</strong>.",
+    "evaluationResultDesc": "Mitra yang lolos Fase 1 akan diundang untuk melanjutkan ke <strong>Fase 2</strong>.",
     "formCompleteness": "Kelengkapan Formulir",
     "sectionsCount": "{completed}/{total} Bagian",
     "sections": {

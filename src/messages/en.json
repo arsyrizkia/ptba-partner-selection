@@ -28,7 +28,7 @@
     "required": "Required",
     "requiredMark": "*Required",
     "phase1": "Phase 1 (Pre-Qualification)",
-    "phase2": "Phase 2 (FRP & Proposal)",
+    "phase2": "Phase 2",
     "phase3": "Phase 3",
     "general": "General",
     "submitted": "Submitted",
@@ -149,7 +149,7 @@
   "projectDetail": {
     "step": "Step {current}/{total}",
     "shortlistCongrats": "Congratulations! Your Company Passed Phase 1",
-    "shortlistDesc": "You have passed the Phase 1 evaluation and are invited to proceed to Phase 2 (FRP & Proposal).",
+    "shortlistDesc": "You have passed the Phase 1 evaluation and are invited to proceed to Phase 2.",
     "shortlistPhase2Ready": "Please complete documents and commitment fee payment to proceed to Phase 2.",
     "shortlistPhase2Email": "Phase 2 information will be communicated via email.",
     "continueToPhase2": "Continue to Phase 2",
@@ -210,7 +210,7 @@
     "deadlineDesc": "The form must be submitted before <strong>{date}</strong>.",
     "deadlineDescDefault": "Ensure the form is submitted before the registration period closes.",
     "evaluationResult": "Evaluation Result",
-    "evaluationResultDesc": "Partners who pass Phase 1 will be invited to proceed to <strong>Phase 2 (FRP & Proposal)</strong>.",
+    "evaluationResultDesc": "Partners who pass Phase 1 will be invited to proceed to <strong>Phase 2</strong>.",
     "formCompleteness": "Form Completeness",
     "sectionsCount": "{completed}/{total} Sections",
     "sections": {

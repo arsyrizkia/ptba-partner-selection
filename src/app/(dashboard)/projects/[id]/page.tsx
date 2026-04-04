@@ -102,8 +102,8 @@ function phaseLabel(phase?: string): string {
     phase1_approval: "Fase 1 - Persetujuan",
     phase1_announcement: "Fase 1 - Pengumuman Shortlist",
     phase1_approved: "Fase 1 - Disetujui Ketua Tim",
-    phase2_registration: "Fase 2 - Pendaftaran FRP & Proposal",
-    phase2_evaluation: "Fase 2 - Evaluasi FRP & Proposal",
+    phase2_registration: "Fase 2 - Pendaftaran",
+    phase2_evaluation: "Fase 2 - Evaluasi Tahap 2",
     phase2_approval: "Fase 2 - Persetujuan",
     phase2_announcement: "Fase 2 - Pengumuman",
     phase2_approved: "Fase 2 - Disetujui",
@@ -368,7 +368,7 @@ export default function ProjectDetailPage({
 
   const PHASE_PIC_CONFIG = {
     phase1: {
-      label: "Fase 1 (Pra-Kualifikasi)",
+      label: "Fase 1",
       roles: [
         { role: "ebd", label: "EBD — Pasar", multi: true, subcategory: "pasar" },
         { role: "ebd", label: "EBD — Teknis", multi: true, subcategory: "teknis" },
@@ -380,7 +380,7 @@ export default function ProjectDetailPage({
       ],
     },
     phase2: {
-      label: "Fase 2 (FRP & Proposal)",
+      label: "Fase 2",
       roles: [
         { role: "ebd", label: "EBD — Pasar", multi: true, subcategory: "pasar" },
         { role: "ebd", label: "EBD — Teknis", multi: true, subcategory: "teknis" },
@@ -1245,8 +1245,8 @@ export default function ProjectDetailPage({
             {/* Phase labels under bar */}
             <div className="flex mt-1.5">
               {[
-                { label: "Fase 1 (Pra-Kualifikasi)", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
-                { label: "Fase 2 (FRP & Proposal)", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
+                { label: "Fase 1", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
+                { label: "Fase 2", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
               ].map((p) => (
                 <div key={p.label} style={{ width: `${(p.steps / (PHASE1_STEPS.length + PHASE2_STEPS.length)) * 100}%` }} className={cn("text-[10px] font-medium", p.color)}>
                   {p.label}
@@ -1989,8 +1989,8 @@ export default function ProjectDetailPage({
 
               return (
                 <div className="space-y-4">
-                  {renderDocList(phase1Docs, "steel-blue", "Fase 1 - Dokumen Pra-Kualifikasi")}
-                  {renderDocList(phase2Docs, "navy", "Fase 2 - Dokumen FRP & Proposal")}
+                  {renderDocList(phase1Docs, "steel-blue", "Dokumen Fase 1")}
+                  {renderDocList(phase2Docs, "navy", "Dokumen Fase 2")}
                   {renderDocList(generalDocs, "gray", "Dokumen Umum")}
                 </div>
               );
