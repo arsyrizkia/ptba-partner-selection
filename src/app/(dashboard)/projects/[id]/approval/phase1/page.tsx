@@ -149,15 +149,8 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
           <EvalField label="Negara" value={fd.countryEstablished} />
+          <EvalField label="Status Perusahaan" value={fd.companyStatus} />
         </dl>
-        {(fd.ceoName || fd.cooName || fd.cfoName) && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <EvalField label="Direktur Utama (CEO)" value={fd.ceoName} />
-            {fd.cooName && <EvalField label="Direktur Operasi (COO)" value={fd.cooName} />}
-            {fd.cfoName && <EvalField label="Direktur Keuangan (CFO)" value={fd.cfoName} />}
-            {fd.otherDirectors && <EvalField label="Direksi Lainnya" value={fd.otherDirectors} />}
-          </dl>
-        )}
         {fd.shareholderComposition && (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
             <EvalField label="Komposisi Pemegang Saham" value={fd.shareholderComposition} />

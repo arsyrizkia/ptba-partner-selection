@@ -12,10 +12,31 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 import { formatDate } from "@/lib/utils/format";
+import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+
+// ── Document name formatter ──────────────────────────────────────────────────
+const DOC_NAME_MAP: Record<string, string> = {
+  nib_document: "NIB Document",
+  org_structure: "Struktur Organisasi",
+  ebitda_dscr_calculation: "EBITDA & DSCR Calculation",
+  credit_rating_evidence: "Credit Rating Evidence",
+  cash_on_hand_evidence: "Cash on Hand Evidence",
+  company_history: "Sejarah & Milestone Perusahaan",
+  requirements_fulfillment: "Pemenuhan Persyaratan",
+};
+function fmtDocName(name: string, typeId?: string): string {
+  if (typeId && DOC_NAME_MAP[typeId]) return DOC_NAME_MAP[typeId];
+  if (name.startsWith("credential_exp_")) { const d = name.indexOf(" - "); return d !== -1 ? `Dokumen Kredensial${name.slice(d)}` : "Dokumen Kredensial"; }
+  if (name.startsWith("audited_financial_")) { const yr = name.match(/\d{4}/)?.[0] || ""; const d = name.indexOf(" - "); return `Laporan Keuangan Audit ${yr}${d !== -1 ? name.slice(d) : ""}`; }
+  if (typeId && DOC_NAME_MAP[typeId]) return DOC_NAME_MAP[typeId];
+  const meta = DOCUMENT_TYPES.find((dt) => dt.id === (typeId || ""));
+  if (meta?.name) return meta.name;
+  return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 // ── Category config ──────────────────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, { label: string; labelId: string; color: string }> = {
@@ -83,15 +104,8 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
           <EvalField label="Negara" value={fd.countryEstablished} />
+          <EvalField label="Status Perusahaan" value={fd.companyStatus} />
         </dl>
-        {(fd.ceoName || fd.cooName || fd.cfoName) && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <EvalField label="Direktur Utama (CEO)" value={fd.ceoName} />
-            {fd.cooName && <EvalField label="Direktur Operasi (COO)" value={fd.cooName} />}
-            {fd.cfoName && <EvalField label="Direktur Keuangan (CFO)" value={fd.cfoName} />}
-            {fd.otherDirectors && <EvalField label="Direksi Lainnya" value={fd.otherDirectors} />}
-          </dl>
-        )}
         {fd.shareholderComposition && (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
             <EvalField label="Komposisi Pemegang Saham" value={fd.shareholderComposition} />
@@ -952,7 +966,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                                         <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
                                           <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
                                           <div className="flex-1 min-w-0">
-                                            <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                            <p className="text-xs text-ptba-charcoal truncate">{fmtDocName(doc.name, doc.document_type_id)}</p>
                                             <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
                                           </div>
                                           {doc.file_key && (
