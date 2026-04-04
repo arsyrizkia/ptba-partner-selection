@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument } from "@/lib/api/client";
-import { ALL_FILTRATION_ITEMS } from "@/lib/constants/phase1-criteria";
+// import { ALL_FILTRATION_ITEMS } from "@/lib/constants/phase1-criteria";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
 import FormDataViewer from "@/components/features/project/form-data-viewer";
@@ -33,34 +33,43 @@ import FormDataViewer from "@/components/features/project/form-data-viewer";
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface Phase1EvalSummary {
+const CATEGORY_LABELS: Record<string, string> = {
+  pasar: "Pasar", teknis: "Teknis", komersial: "Komersial",
+  keuangan: "Keuangan", hukum: "Hukum", risiko: "Risiko",
+};
+const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
+
+interface CatEvalRaw {
   id: string;
   application_id: string;
   evaluator_id: string;
-  overall_result: string;
-  weighted_score: number | null;
-  notes: string | null;
+  category: string;
+  verdict: string | null;
+  is_finalized: boolean;
   evaluated_at: string;
   partner_id: string;
   partner_name: string;
+  evaluator_name: string;
+  application_status: string;
 }
 
-interface Phase1ScoreDetail {
-  criterion_id: string;
-  score: number | null;
-  passed: boolean | null;
-  item_type: string;
-  notes: string | null;
-}
-
-interface Phase1EvalDetail {
-  id: string;
-  weighted_score: number | null;
-  overall_result: string;
-  notes: string | null;
-  evaluated_at: string;
+interface MitraCatSummary {
+  partner_id: string;
   partner_name: string;
-  scores: Phase1ScoreDetail[];
+  application_id: string;
+  categories: Record<string, { verdict: string | null; isFinalized: boolean; evaluatorName: string; comment?: string; evidence?: any[] }>;
+  overall_result: string; // "Layak" if all 6 finalized & Layak, else "Tidak Layak"
+  allFinalized: boolean;
+}
+
+interface CatEvalDetail {
+  category: string;
+  verdict: string | null;
+  comment: string;
+  notes: string;
+  isFinalized: boolean;
+  evaluatorName: string;
+  evidence: { id: string; fileName: string; fileKey: string }[];
 }
 
 interface AppDocument {
@@ -326,11 +335,11 @@ export default function Phase1ApprovalPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [project, setProject] = useState<{ id: string; name: string; [key: string]: unknown } | null>(null);
-  const [phase1Evals, setPhase1Evals] = useState<Phase1EvalSummary[]>([]);
+  const [mitraSummaries, setMitraSummaries] = useState<MitraCatSummary[]>([]);
   const [approvalRecord, setApprovalRecord] = useState<ApprovalRecord | null>(null);
 
   /* ---- detail loading for selected mitra ---- */
-  const [selectedDetail, setSelectedDetail] = useState<Phase1EvalDetail | null>(null);
+  const [selectedCatDetails, setSelectedCatDetails] = useState<CatEvalDetail[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [selectedAppDetail, setSelectedAppDetail] = useState<ApplicationDetail | null>(null);
   const [appDetailLoading, setAppDetailLoading] = useState(false);
@@ -368,16 +377,45 @@ export default function Phase1ApprovalPage({
       setLoading(true);
       setError(null);
       try {
-        const [projectRes, evalsRes, approvalsRes] = await Promise.all([
+        const [projectRes, catEvalsRes, approvalsRes] = await Promise.all([
           projectApi(accessToken!).getById(id),
-          api<{ evaluations: Phase1EvalSummary[] }>(`/evaluations/phase1/${id}`, { token: accessToken! }),
+          api<CatEvalRaw[]>(`/evaluations/phase1-cat/${id}`, { token: accessToken! }),
           api<{ approvals: ApprovalRecord[] }>(`/approvals?project_id=${id}&type=phase1_evaluation`, { token: accessToken! }),
         ]);
 
         if (cancelled) return;
 
         setProject(projectRes.data);
-        setPhase1Evals(evalsRes.evaluations || []);
+
+        // Group category evals by partner
+        const rawEvals = Array.isArray(catEvalsRes) ? catEvalsRes : (catEvalsRes as any).evaluations || [];
+        const byPartner = new Map<string, MitraCatSummary>();
+        for (const ev of rawEvals) {
+          if (!byPartner.has(ev.partner_id)) {
+            byPartner.set(ev.partner_id, {
+              partner_id: ev.partner_id,
+              partner_name: ev.partner_name,
+              application_id: ev.application_id,
+              categories: {},
+              overall_result: "Tidak Layak",
+              allFinalized: false,
+            });
+          }
+          const entry = byPartner.get(ev.partner_id)!;
+          entry.categories[ev.category] = {
+            verdict: ev.verdict,
+            isFinalized: ev.is_finalized,
+            evaluatorName: ev.evaluator_name,
+          };
+        }
+        // Compute overall result
+        const summaries = Array.from(byPartner.values()).map((s) => {
+          const cats = Object.values(s.categories);
+          s.allFinalized = ALL_CATEGORIES.every((c) => s.categories[c]?.isFinalized);
+          s.overall_result = s.allFinalized && ALL_CATEGORIES.every((c) => s.categories[c]?.verdict === "Layak") ? "Layak" : "Tidak Layak";
+          return s;
+        });
+        setMitraSummaries(summaries);
 
         // Find the approval record for this project
         const approvals = approvalsRes.approvals || [];
@@ -386,7 +424,6 @@ export default function Phase1ApprovalPage({
         ) || null;
         setApprovalRecord(approval);
 
-        const evals = evalsRes.evaluations || [];
         const alreadyDecided = approval && approval.status !== "Menunggu";
 
         // If already decided, set states based on approval outcome
@@ -396,15 +433,15 @@ export default function Phase1ApprovalPage({
 
           const isApproved = approval.status === "Disetujui";
           setMitraStates(
-            evals.map((ev) => ({
-              partnerId: ev.partner_id,
+            summaries.map((s) => ({
+              partnerId: s.partner_id,
               decision: "approved" as const,
               notes: "",
             }))
           );
           setKetuaTimMitraStates(
-            evals.map((ev) => ({
-              partnerId: ev.partner_id,
+            summaries.map((s) => ({
+              partnerId: s.partner_id,
               decision: isApproved ? "setujui" as const : "re-evaluasi" as const,
               notes: (approval.notes as string) || "",
             }))
@@ -412,15 +449,15 @@ export default function Phase1ApprovalPage({
         } else {
           // Initialize as pending
           setMitraStates(
-            evals.map((ev) => ({
-              partnerId: ev.partner_id,
+            summaries.map((s) => ({
+              partnerId: s.partner_id,
               decision: "pending" as const,
               notes: "",
             }))
           );
           setKetuaTimMitraStates(
-            evals.map((ev) => ({
-              partnerId: ev.partner_id,
+            summaries.map((s) => ({
+              partnerId: s.partner_id,
               decision: "pending" as const,
               notes: "",
             }))
@@ -439,42 +476,55 @@ export default function Phase1ApprovalPage({
     return () => { cancelled = true; };
   }, [id, accessToken]);
 
-  /* ---- Fetch detail scores when a mitra is selected ---- */
+  /* ---- Fetch detail evaluations when a mitra is selected ---- */
   const fetchEvalDetail = useCallback(
     async (partnerId: string) => {
       if (!accessToken) return;
-      const ev = phase1Evals.find((e) => e.partner_id === partnerId);
-      if (!ev) return;
+      const s = mitraSummaries.find((m) => m.partner_id === partnerId);
+      if (!s) return;
 
       setDetailLoading(true);
-      setSelectedDetail(null);
+      setSelectedCatDetails([]);
       try {
-        const res = await api<{ evaluation: Phase1EvalDetail }>(
-          `/evaluations/phase1/${id}/${ev.application_id}`,
+        const res = await api<{ evaluations: any[] }>(
+          `/evaluations/phase1-cat/${id}/${s.application_id}`,
           { token: accessToken }
         );
-        setSelectedDetail(res.evaluation);
+        const evals = res.evaluations || [];
+        setSelectedCatDetails(evals.map((e: any) => ({
+          category: e.category,
+          verdict: e.verdict,
+          comment: e.comment || "",
+          notes: e.notes || "",
+          isFinalized: e.isFinalized || e.is_finalized || false,
+          evaluatorName: e.evaluatorName || e.evaluator_name || "",
+          evidence: (e.evidence || e.evidenceFiles || []).map((f: any) => ({
+            id: f.id,
+            fileName: f.fileName || f.file_name || f.name,
+            fileKey: f.fileKey || f.file_key,
+          })),
+        })));
       } catch {
-        setSelectedDetail(null);
+        setSelectedCatDetails([]);
       } finally {
         setDetailLoading(false);
       }
     },
-    [accessToken, id, phase1Evals]
+    [accessToken, id, mitraSummaries]
   );
 
   /* ---- Fetch application detail for document tab ---- */
   const fetchAppDetail = useCallback(
     async (partnerId: string) => {
       if (!accessToken) return;
-      const ev = phase1Evals.find((e) => e.partner_id === partnerId);
-      if (!ev) return;
+      const s = mitraSummaries.find((m) => m.partner_id === partnerId);
+      if (!s) return;
 
       setAppDetailLoading(true);
       setSelectedAppDetail(null);
       try {
         const res = await api<{ application: ApplicationDetail }>(
-          `/applications/${ev.application_id}`,
+          `/applications/${s.application_id}`,
           { token: accessToken }
         );
         setSelectedAppDetail(res.application);
@@ -484,7 +534,7 @@ export default function Phase1ApprovalPage({
         setAppDetailLoading(false);
       }
     },
-    [accessToken, phase1Evals]
+    [accessToken, mitraSummaries]
   );
 
   /* ---- Fetch detail when selectedPartnerId changes ---- */
@@ -496,7 +546,7 @@ export default function Phase1ApprovalPage({
   }, [selectedPartnerId, fetchEvalDetail, fetchAppDetail]);
 
   const selectedEval = selectedPartnerId
-    ? phase1Evals.find((ev) => ev.partner_id === selectedPartnerId)
+    ? mitraSummaries.find((s) => s.partner_id === selectedPartnerId)
     : null;
 
   const navigateToMitra = (partnerId: string) => {
@@ -506,11 +556,11 @@ export default function Phase1ApprovalPage({
   };
 
   const currentIndex = selectedEval
-    ? phase1Evals.findIndex((ev) => ev.partner_id === selectedPartnerId)
+    ? mitraSummaries.findIndex((s) => s.partner_id === selectedPartnerId)
     : -1;
-  const prevMitra = currentIndex > 0 ? phase1Evals[currentIndex - 1] : null;
-  const nextMitra = currentIndex >= 0 && currentIndex < phase1Evals.length - 1
-    ? phase1Evals[currentIndex + 1] : null;
+  const prevMitra = currentIndex > 0 ? mitraSummaries[currentIndex - 1] : null;
+  const nextMitra = currentIndex >= 0 && currentIndex < mitraSummaries.length - 1
+    ? mitraSummaries[currentIndex + 1] : null;
 
   /* ---- PIC handlers ---- */
   const updateMitraDecision = (partnerId: string, decision: "approved" | "rejected") => {
@@ -555,8 +605,8 @@ export default function Phase1ApprovalPage({
         status = "Dikembalikan";
         // Build notes listing which mitra need re-evaluation
         const reEvalNames = reEvalMitra.map((m) => {
-          const ev = phase1Evals.find((e) => e.partner_id === m.partnerId);
-          return ev?.partner_name || m.partnerId;
+          const s = mitraSummaries.find((ms) => ms.partner_id === m.partnerId);
+          return s?.partner_name || m.partnerId;
         });
         const reEvalNote = `Mitra yang perlu re-evaluasi: ${reEvalNames.join(", ")}`;
         notes = notes ? `${notes}\n\n${reEvalNote}` : reEvalNote;
@@ -564,8 +614,8 @@ export default function Phase1ApprovalPage({
         // Append per-mitra notes if any
         for (const m of reEvalMitra) {
           if (m.notes) {
-            const ev = phase1Evals.find((e) => e.partner_id === m.partnerId);
-            const name = ev?.partner_name || m.partnerId;
+            const s = mitraSummaries.find((ms) => ms.partner_id === m.partnerId);
+            const name = s?.partner_name || m.partnerId;
             notes += `\n- ${name}: ${m.notes}`;
           }
         }
@@ -616,7 +666,7 @@ export default function Phase1ApprovalPage({
     );
   }
 
-  if (phase1Evals.length === 0) {
+  if (mitraSummaries.length === 0) {
     return (
       <div className="space-y-6">
         <BackHeader projectId={id} projectName={project.name} />
@@ -665,8 +715,8 @@ export default function Phase1ApprovalPage({
 
   /* ---- sidebar helpers ---- */
   const getSidebarStatus = (partnerId: string) => {
-    const ev = phase1Evals.find((e) => e.partner_id === partnerId);
-    const passed = ev?.overall_result === "Lolos";
+    const s = mitraSummaries.find((m) => m.partner_id === partnerId);
+    const passed = s?.overall_result === "Layak";
     const picState = mitraStates.find((m) => m.partnerId === partnerId);
     const dirState = ketuaTimMitraStates.find((m) => m.partnerId === partnerId);
 
@@ -686,8 +736,8 @@ export default function Phase1ApprovalPage({
         : { text: "Tidak Disetujui", color: "text-ptba-red" };
     }
     return passed
-      ? { text: "Lolos", color: "text-green-600" }
-      : { text: "Tidak Lolos", color: "text-ptba-red" };
+      ? { text: "Layak", color: "text-green-600" }
+      : { text: "Tidak Layak", color: "text-ptba-red" };
   };
 
   /* ================================================================ */
@@ -710,10 +760,10 @@ export default function Phase1ApprovalPage({
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
-          <SummaryBox label="Total Mitra" value={phase1Evals.length} />
-          <SummaryBox label="Lolos" value={phase1Evals.filter((e) => e.overall_result === "Lolos").length} color="green" />
-          <SummaryBox label="Tidak Lolos" value={phase1Evals.filter((e) => e.overall_result === "Tidak Lolos").length} color="red" />
-          <SummaryBox label="Sistem" value="Lulus / Tidak Lulus" />
+          <SummaryBox label="Total Mitra" value={mitraSummaries.length} />
+          <SummaryBox label="Layak" value={mitraSummaries.filter((s) => s.overall_result === "Layak").length} color="green" />
+          <SummaryBox label="Tidak Layak" value={mitraSummaries.filter((s) => s.overall_result !== "Layak").length} color="red" />
+          <SummaryBox label="Sistem" value="Layak / Tidak Layak" />
         </div>
       </div>
 
@@ -727,21 +777,21 @@ export default function Phase1ApprovalPage({
             className="w-full px-4 py-3 bg-ptba-navy flex items-center justify-between"
           >
             <div>
-              <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({phase1Evals.length})</h3>
+              <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({mitraSummaries.length})</h3>
               {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk direview</p>}
             </div>
             <ChevronDown className={cn("h-4 w-4 text-white/60 transition-transform", !sidebarCollapsed && "rotate-180")} />
           </button>
           {!sidebarCollapsed && <div className="divide-y divide-gray-100">
-            {phase1Evals.map((ev) => {
-              const passed = ev.overall_result === "Lolos";
-              const isSelected = ev.partner_id === selectedPartnerId;
-              const status = getSidebarStatus(ev.partner_id);
+            {mitraSummaries.map((s) => {
+              const passed = s.overall_result === "Layak";
+              const isSelected = s.partner_id === selectedPartnerId;
+              const status = getSidebarStatus(s.partner_id);
 
               return (
                 <button
-                  key={ev.id}
-                  onClick={() => navigateToMitra(ev.partner_id)}
+                  key={s.partner_id}
+                  onClick={() => navigateToMitra(s.partner_id)}
                   className={cn(
                     "w-full text-left px-4 py-3 transition-colors hover:bg-ptba-section-bg",
                     isSelected && "bg-ptba-section-bg border-l-3 border-l-ptba-navy"
@@ -759,7 +809,7 @@ export default function Phase1ApprovalPage({
                         "text-sm font-medium truncate",
                         isSelected ? "text-ptba-navy" : "text-ptba-charcoal"
                       )}>
-                        {ev.partner_name}
+                        {s.partner_name}
                       </p>
                       <p className={cn("text-[10px]", status.color)}>{status.text}</p>
                     </div>
@@ -781,9 +831,9 @@ export default function Phase1ApprovalPage({
               <p className="text-sm text-ptba-gray max-w-md mx-auto">
                 Klik salah satu mitra di panel kiri untuk melihat detail evaluasi dan memberikan keputusan.
               </p>
-              {phase1Evals.length > 0 && (
+              {mitraSummaries.length > 0 && (
                 <button
-                  onClick={() => navigateToMitra(phase1Evals[0].partner_id)}
+                  onClick={() => navigateToMitra(mitraSummaries[0].partner_id)}
                   className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors"
                 >
                   Review Mitra Pertama <ChevronRight className="h-4 w-4" />
@@ -794,12 +844,10 @@ export default function Phase1ApprovalPage({
             <div className="space-y-5">
               {(() => {
                 const ev = selectedEval;
-                const passed = ev.overall_result === "Lolos";
+                const passed = ev.overall_result === "Layak";
                 const mitraState = mitraStates.find((m) => m.partnerId === ev.partner_id);
                 const ketuaTimMitraState = ketuaTimMitraStates.find((m) => m.partnerId === ev.partner_id);
                 const appDetail = selectedAppDetail;
-                const formData = appDetail?.form_data;
-                const phase1Docs = appDetail?.phase1Documents || [];
 
                 return (
                   <>
@@ -819,7 +867,7 @@ export default function Phase1ApprovalPage({
                           <div>
                             <h3 className="text-lg font-semibold text-ptba-charcoal">{ev.partner_name}</h3>
                             <p className="text-xs text-ptba-gray">
-                              Mitra {currentIndex + 1} dari {phase1Evals.length}
+                              Mitra {currentIndex + 1} dari {mitraSummaries.length}
                               {appDetail?.applied_at && ` · Mendaftar: ${formatDate(appDetail.applied_at)}`}
                             </p>
                           </div>
@@ -844,7 +892,7 @@ export default function Phase1ApprovalPage({
                         >
                           <ChevronLeft className="h-4 w-4" /> Sebelumnya
                         </button>
-                        <span className="text-xs text-ptba-gray">{currentIndex + 1} / {phase1Evals.length}</span>
+                        <span className="text-xs text-ptba-gray">{currentIndex + 1} / {mitraSummaries.length}</span>
                         <button
                           onClick={() => nextMitra && navigateToMitra(nextMitra.partner_id)}
                           disabled={!nextMitra}
@@ -858,164 +906,104 @@ export default function Phase1ApprovalPage({
                       </div>
                     </div>
 
-                    {/* Penilaian Panel — documents and form data inline */}
+                    {/* Category Evaluations Panel */}
                     <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-
-                      {/* Tab: Penilaian */}
-                      {(
-                        <div className="px-5 py-4">
-                          {detailLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                              <Loader2 className="h-6 w-6 text-ptba-navy animate-spin" />
-                              <span className="ml-2 text-sm text-ptba-gray">Memuat detail penilaian...</span>
-                            </div>
-                          ) : selectedDetail ? (
-                            <>
-                              {/* Unified sections — same layout as evaluation page */}
-                              {(() => {
-                                const DOC_SECTION_MAP: Record<string, string[]> = {
-                                  compro: ["compro", "nib_document", "org_structure"],
-                                  statement_eoi: ["statement_eoi"],
-                                  portfolio: ["portfolio", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
-                                  financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...phase1Docs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
-                                  requirements_fulfillment: ["requirements_fulfillment"],
-                                };
-                                const SECTIONS = [
-                                  { docId: "compro", formId: "section_compro", title: EVAL_FORM_DATA_MAP.compro?.title || "Informasi Perusahaan", formKey: "compro" },
-                                  { docId: "statement_eoi", formId: "section_statement_eoi", title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI", formKey: "statement_eoi" },
-                                  { docId: "portfolio", formId: "section_portfolio", title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek", formKey: "portfolio" },
-                                  { docId: "financial_overview", formId: "section_financial", title: EVAL_FORM_DATA_MAP.financial?.title || "Data Keuangan", formKey: "financial_overview" },
-                                  { docId: "requirements_fulfillment", formId: "section_requirements", title: EVAL_FORM_DATA_MAP.requirements?.title || "Pemenuhan Persyaratan", formKey: "requirements_fulfillment" },
-                                ];
-                                const allMappedDocIds = Object.values(DOC_SECTION_MAP).flat();
-                                const additionalDocs = phase1Docs.filter((d: any) => !allMappedDocIds.includes(d.document_type_id));
-
+                      <div className="px-5 py-4">
+                        {detailLoading ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 text-ptba-navy animate-spin" />
+                            <span className="ml-2 text-sm text-ptba-gray">Memuat detail penilaian...</span>
+                          </div>
+                        ) : selectedCatDetails.length > 0 ? (
+                          <>
+                            {/* 6-category grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                              {ALL_CATEGORIES.map((cat) => {
+                                const detail = selectedCatDetails.find((d) => d.category === cat);
+                                const verdict = detail?.verdict;
+                                const finalized = detail?.isFinalized;
                                 return (
-                                  <div className="space-y-4">
-                                    {SECTIONS.map((section, sIdx) => {
-                                      const docScore = selectedDetail.scores.find((s) => s.criterion_id === section.docId);
-                                      const formScore = selectedDetail.scores.find((s) => s.criterion_id === section.formId);
-                                      const relatedDocIds = DOC_SECTION_MAP[section.docId] || [section.docId];
-                                      const matchedDocs = phase1Docs.filter((d: any) => relatedDocIds.includes(d.document_type_id));
-                                      const sectionKey = section.formId.replace("section_", "");
-                                      const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
-                                      const isOpen = expandedDocs[`section_${sIdx}`] ?? true;
+                                  <div key={cat} className={cn(
+                                    "rounded-lg border p-3",
+                                    !finalized ? "border-gray-200 bg-gray-50" :
+                                    verdict === "Layak" ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"
+                                  )}>
+                                    <p className="text-[10px] text-ptba-gray uppercase font-semibold mb-1">{CATEGORY_LABELS[cat]}</p>
+                                    <span className={cn(
+                                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                                      !finalized ? "bg-gray-100 text-gray-500" :
+                                      verdict === "Layak" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                    )}>
+                                      {!finalized ? "Belum" : verdict}
+                                    </span>
+                                    {detail?.evaluatorName && <p className="text-[10px] text-ptba-gray mt-1">{detail.evaluatorName}</p>}
+                                  </div>
+                                );
+                              })}
+                            </div>
 
-                                      return (
-                                        <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
-                                          <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`section_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
-                                            <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
-                                            <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
-                                          </button>
-
-                                          {isOpen && (
-                                            <div className="p-4 space-y-3">
-                                              {formRenderer && formData && (
-                                                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                                                  {formRenderer.render(formData)}
-                                                </div>
-                                              )}
-                                              {matchedDocs.length > 0 && (
-                                                <div className="space-y-1.5">
-                                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
-                                                  {matchedDocs.map((doc: any) => (
-                                                    <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                                      <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                                      <div className="flex-1 min-w-0">
-                                                        <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                                        <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
-                                                      </div>
-                                                      {doc.file_key && (
-                                                        <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                          <Download className="h-3 w-3" /> Unduh
-                                                        </button>
-                                                      )}
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                          )}
-
-                                          {/* Eval results — always visible, side by side */}
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border-t border-gray-200 bg-gray-50/30">
-                                            <div className={cn("rounded-lg border p-3", docScore?.passed ? "border-green-200 bg-green-50/30" : docScore?.passed === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
-                                              <div className="flex items-center justify-between">
-                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
-                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docScore?.passed ? "bg-green-100 text-green-700" : docScore?.passed === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docScore?.passed ? "Lulus" : docScore?.passed === false ? "Tidak Lulus" : "Belum"}</span>
+                            {/* Detailed per-category with comments & evidence */}
+                            <div className="space-y-3">
+                              {selectedCatDetails.filter((d) => d.isFinalized).map((detail) => {
+                                const isOpen = expandedDocs[`cat_${detail.category}`] ?? false;
+                                return (
+                                  <div key={detail.category} className="rounded-lg border border-gray-200 overflow-hidden">
+                                    <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`cat_${detail.category}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-2.5 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-ptba-navy">{CATEGORY_LABELS[detail.category]}</span>
+                                        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", detail.verdict === "Layak" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>{detail.verdict}</span>
+                                      </div>
+                                      <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                                    </button>
+                                    {isOpen && (
+                                      <div className="p-4 space-y-2">
+                                        {detail.evaluatorName && <p className="text-[10px] text-ptba-gray">Evaluator: {detail.evaluatorName}</p>}
+                                        {detail.comment && (
+                                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: detail.comment }} />
+                                        )}
+                                        {detail.evidence.length > 0 && (
+                                          <div className="space-y-1">
+                                            <p className="text-[10px] font-semibold text-ptba-gray uppercase">Bukti Pendukung</p>
+                                            {detail.evidence.map((f) => (
+                                              <div key={f.id} className="flex items-center gap-2 text-xs">
+                                                <FileText className="h-3.5 w-3.5 text-ptba-steel-blue" />
+                                                <span className="truncate flex-1">{f.fileName}</span>
+                                                {f.fileKey && accessToken && (
+                                                  <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy">
+                                                    <Download className="h-3 w-3" />
+                                                  </button>
+                                                )}
                                               </div>
-                                              {docScore?.notes && <p className="mt-1 text-xs text-ptba-gray">{docScore.notes}</p>}
-                                            </div>
-                                            <div className={cn("rounded-lg border p-3", formScore?.passed ? "border-green-200 bg-green-50/30" : formScore?.passed === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
-                                              <div className="flex items-center justify-between">
-                                                <p className="text-xs font-medium text-ptba-gray">Penilaian Data</p>
-                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formScore?.passed ? "bg-green-100 text-green-700" : formScore?.passed === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formScore?.passed ? "Lulus" : formScore?.passed === false ? "Tidak Lulus" : "Belum"}</span>
-                                              </div>
-                                              {formScore?.notes && <p className="mt-1 text-xs text-ptba-gray">{formScore.notes}</p>}
-                                            </div>
+                                            ))}
                                           </div>
-                                        </div>
-                                      );
-                                    })}
-
-                                    {/* Additional docs */}
-                                    {additionalDocs.length > 0 && (
-                                      <div className="rounded-xl border border-gray-200 overflow-hidden">
-                                        <div className="px-4 py-3 bg-ptba-section-bg">
-                                          <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
-                                        </div>
-                                        <div className="p-4 space-y-1.5">
-                                          {additionalDocs.map((doc: any) => (
-                                            <div key={doc.document_type_id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                                <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date)}</p>
-                                              </div>
-                                              {doc.file_key && (
-                                                <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                  <Download className="h-3 w-3" /> Unduh
-                                                </button>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
                                 );
-                              })()}
+                              })}
+                            </div>
 
-                              <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-sm font-medium text-ptba-gray">Hasil Evaluasi</p>
-                                  <p className={cn("text-lg font-bold", selectedDetail.overall_result === "Lolos" ? "text-green-600" : "text-ptba-red")}>
-                                    {selectedDetail.overall_result}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-ptba-gray mt-1">
-                                  {selectedDetail.scores.filter((s) => s.passed).length} / {selectedDetail.scores.length} item Lulus
+                            {/* Overall result */}
+                            <div className="mt-4 rounded-lg bg-ptba-section-bg p-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-ptba-gray">Hasil Evaluasi</p>
+                                <p className={cn("text-lg font-bold", passed ? "text-green-600" : "text-ptba-red")}>
+                                  {ev.overall_result}
                                 </p>
                               </div>
-                              {selectedDetail.notes && (
-                                <div className="mt-3 rounded-lg bg-ptba-section-bg px-4 py-3">
-                                  <p className="text-xs font-medium text-ptba-navy mb-1">Catatan Evaluator</p>
-                                  <p className="text-sm text-ptba-charcoal">{selectedDetail.notes}</p>
-                                </div>
-                              )}
-                              <div className="mt-3 flex flex-wrap gap-4 text-xs text-ptba-gray">
-                                <span>Tanggal: {formatDate(selectedDetail.evaluated_at)}</span>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="text-center py-6">
-                              <AlertTriangle className="h-8 w-8 text-ptba-gold mx-auto mb-2" />
-                              <p className="text-sm text-ptba-gray">Gagal memuat detail penilaian.</p>
+                              <p className="text-xs text-ptba-gray mt-1">
+                                {selectedCatDetails.filter((d) => d.verdict === "Layak").length} / {ALL_CATEGORIES.length} kategori Layak
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      )}
-
+                          </>
+                        ) : (
+                          <div className="text-center py-6">
+                            <AlertTriangle className="h-8 w-8 text-ptba-gold mx-auto mb-2" />
+                            <p className="text-sm text-ptba-gray">Belum ada evaluasi kategori untuk mitra ini.</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* PIC decision per mitra */}
@@ -1253,7 +1241,7 @@ export default function Phase1ApprovalPage({
               <p className="text-xs font-medium text-ptba-navy mb-2">Detail per mitra:</p>
               <div className="space-y-1.5">
                 {ketuaTimMitraStates.map((m) => {
-                  const mEv = phase1Evals.find((e) => e.partner_id === m.partnerId);
+                  const mEv = mitraSummaries.find((s) => s.partner_id === m.partnerId);
                   return (
                     <div key={m.partnerId} className="flex items-center gap-2 text-xs">
                       {m.decision === "setujui" ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" /> : <RotateCcw className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
