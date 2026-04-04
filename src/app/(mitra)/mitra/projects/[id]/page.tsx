@@ -446,7 +446,7 @@ export default function MitraProjectDetailPage() {
                   {tc(`status.${application.status}`)}
                 </p>
                 <p className="mt-1 text-xs text-ptba-gray">
-                  {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(dateLocale)}
+                  {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(dateLocale)} {new Date(application.applied_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
 

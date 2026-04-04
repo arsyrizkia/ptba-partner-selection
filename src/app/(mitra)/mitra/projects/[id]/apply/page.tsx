@@ -1056,7 +1056,7 @@ export default function MitraProjectApplyPage() {
             <div>
               <p className="text-sm font-bold text-green-800">{t("alreadyRegistered")}</p>
               <p className="text-xs text-green-700 mt-0.5">
-                {t("statusLabel", { status: application.status })} · {tc("submitted")}: {application.applied_at ? new Date(application.applied_at).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""}
+                {t("statusLabel", { status: application.status })} · {tc("submitted")}: {application.applied_at ? `${new Date(application.applied_at).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "long", year: "numeric" })} ${new Date(application.applied_at).toLocaleTimeString(locale === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit" })}` : ""}
               </p>
             </div>
           </div>
