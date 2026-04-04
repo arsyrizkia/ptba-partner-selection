@@ -4,43 +4,43 @@ import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowLeft,
-  ChevronRight,
-  CheckCircle2,
-  Clock,
-  FileText,
-  Download,
-  Save,
-  Send,
-  ChevronLeft,
-  User,
-  Lock,
-  AlertTriangle,
-  RotateCcw,
-  ClipboardCheck,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  LockKeyhole,
-  X,
+  ArrowLeft, ChevronRight, CheckCircle2, Clock, FileText, Download,
+  Save, Send, ChevronLeft, User, Lock, AlertTriangle, RotateCcw,
+  Loader2, ChevronDown, LockKeyhole, X, Upload, Trash2, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, downloadDocument } from "@/lib/api/client";
-import {
-  PHASE1_DOCUMENT_ITEMS,
-  PHASE1_FORM_SECTION_ITEMS,
-  ALL_FILTRATION_ITEMS,
-} from "@/lib/constants/phase1-criteria";
+import { api, projectApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 import { formatDate } from "@/lib/utils/format";
-import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
-import FormDataViewer from "@/components/features/project/form-data-viewer";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
-// ── Form Data Rendering for Evaluator ─────────────────────────────────────────
+// ── Category config ──────────────────────────────────────────────────────────
+const CATEGORY_LABELS: Record<string, { label: string; labelId: string; color: string }> = {
+  pasar: { label: "EBD — Market", labelId: "EBD — Pasar", color: "bg-blue-100 text-blue-800" },
+  teknis: { label: "EBD — Technical", labelId: "EBD — Teknis", color: "bg-purple-100 text-purple-800" },
+  komersial: { label: "EBD — Commercial/ESG", labelId: "EBD — Komersial/ESG", color: "bg-teal-100 text-teal-800" },
+  keuangan: { label: "Corporate Finance", labelId: "Corporate Finance", color: "bg-amber-100 text-amber-800" },
+  hukum: { label: "Legal & Regulatory", labelId: "Hukum & Regulasi", color: "bg-red-100 text-red-800" },
+  risiko: { label: "Risk Management", labelId: "Manajemen Risiko", color: "bg-orange-100 text-orange-800" },
+};
+const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
+function getUserCategory(project: any, userId: string, role: string): string | null {
+  if (role === "super_admin") return null; // can view/evaluate any
+  const pics = project.phasePics || [];
+  const myPic = pics.find((p: any) => p.userId === userId && p.phase === "phase1");
+  if (!myPic) return null;
+  if (role === "keuangan") return "keuangan";
+  if (role === "hukum") return "hukum";
+  if (role === "risiko") return "risiko";
+  if (role === "ebd" && myPic.subcategory) return myPic.subcategory;
+  return null;
+}
+
+// ── Form Data Rendering ──────────────────────────────────────────────────────
 function EvalField({ label, value }: { label: string; value?: string }) {
   return (
     <div>
@@ -121,7 +121,7 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
         <EvalField label="Nama Penandatangan" value={fd.signerName} />
         <EvalField label="Jabatan" value={fd.signerPosition} />
         <EvalField label="Tanggal" value={fd.signerDate} />
-        <EvalField label="Tipe Pemegang Saham" value={fd.shareholderType === "majority" ? "Pemegang Saham Mayoritas (>50%)" : fd.shareholderType === "minority" ? "Pemegang Saham Minoritas (45–50%)" : fd.shareholderType} />
+        <EvalField label="Tipe Pemegang Saham" value={fd.shareholderType === "majority" ? "Pemegang Saham Mayoritas (>50%)" : fd.shareholderType === "minority" ? "Pemegang Saham Minoritas (45\u201350%)" : fd.shareholderType} />
         <EvalField label="Ekuitas Joint Venture" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
         <EvalField label="Dapat Dinegosiasikan" value={fd.equityNegotiable === "yes" ? "Ya" : fd.equityNegotiable === "no" ? "Tidak" : fd.equityNegotiable} />
         {fd.equityNegotiable === "yes" && fd.shareholderType === "majority" && (
@@ -242,32 +242,30 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
       </div>
     ),
   },
-  // Aliases for section_financial → financial, section_requirements → requirements
   financial: undefined as any,
   requirements: undefined as any,
 };
-// Map aliases
 EVAL_FORM_DATA_MAP.financial = EVAL_FORM_DATA_MAP.financial_overview;
 EVAL_FORM_DATA_MAP.requirements = EVAL_FORM_DATA_MAP.requirements_fulfillment;
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-interface MitraChecks {
-  [itemId: string]: boolean | null; // null = not yet assessed
-}
-
-interface MitraComments {
-  [itemId: string]: string;
-}
-
-type MitraStatus = "draft" | "finalized" | "returned";
-
-interface MitraEvalState {
-  checks: MitraChecks;
-  comments: MitraComments;
-  saved: boolean;
-  status: MitraStatus;
+// ── Types ────────────────────────────────────────────────────────────────────
+interface CatEval {
+  id?: string;
+  category: string;
+  verdict: "layak" | "tidak_layak" | null;
+  comment: string;
+  notes: string;
+  isFinalized: boolean;
   finalizedAt?: string;
-  returnedReason?: string;
+  evaluatorId?: string;
+  evaluatorName?: string;
+  evidenceFiles: { id: string; fileName: string; fileKey: string }[];
+}
+
+interface AppCatStatus {
+  evaluations: CatEval[];
+  allFinalized: boolean;
+  overallResult: string | null;
 }
 
 interface ApiApplication {
@@ -284,189 +282,106 @@ interface ApiApplication {
 }
 
 interface ApiApplicationDetail extends ApiApplication {
-  phase1Documents: ApiDocument[];
-  phase2Documents: ApiDocument[];
-  generalDocuments: ApiDocument[];
+  phase1Documents: any[];
+  phase2Documents: any[];
+  generalDocuments: any[];
 }
 
-interface ApiDocument {
-  id: string;
-  name: string;
-  status: string;
-  uploadDate: string;
-  upload_date?: string;
-  file_url?: string;
-  fileUrl?: string;
-}
-
-interface ApiEvaluation {
-  id: string;
-  application_id: string;
-  evaluator_id: string;
-  overall_result: string | null;
-  weighted_score: number | null;
-  notes: string | null;
-  evaluated_at: string | null;
-  is_finalized: boolean;
-  partner_id: string;
-  partner_name: string;
-  application_status: string;
-  phase1_result: string | null;
-}
-
-interface ApiEvalDetail extends ApiEvaluation {
-  scores: { criterion_id: string; score: number | null; passed: boolean | null; item_type: string; notes: string | null }[];
-}
-
-interface ApiProject {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  [key: string]: unknown;
-}
-
-// ── Page Component ─────────────────────────────────────────────────────────────
-export default function Phase1EvaluationPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+// ── Page Component ───────────────────────────────────────────────────────────
+export default function Phase1EvaluationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { role, accessToken, user } = useAuth();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [downloadingZip, setDownloadingZip] = useState(false);
 
-  // ── Loading & data state ────────────────────────────────────────────────────
+  // State
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [project, setProject] = useState<any>(null);
+  const [applicants, setApplicants] = useState<ApiApplication[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCloseRegModal, setShowCloseRegModal] = useState(false);
   const [closingReg, setClosingReg] = useState(false);
-  const [project, setProject] = useState<ApiProject | null>(null);
-  const [phase1Applicants, setPhase1Applicants] = useState<ApiApplication[]>([]);
-  const [evalStates, setEvalStates] = useState<Record<string, MitraEvalState>>({});
-  const [submittedForApproval, setSubmittedForApproval] = useState(false);
-  const [confirmFinalize, setConfirmFinalize] = useState<string | null>(null);
-  const [ebdPanelTab, setEbdPanelTab] = useState<"penilaian" | "dokumen_formulir">("penilaian");
-  const [evalDocSectionOpen, setEvalDocSectionOpen] = useState(true);
-  const [evalFormSectionOpen, setEvalFormSectionOpen] = useState(true);
-  const [selectedAppDocuments, setSelectedAppDocuments] = useState<ApiDocument[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Per-application category evaluations
+  const [catEvals, setCatEvals] = useState<Record<string, AppCatStatus>>({});
+  // My draft form state (per appId)
+  const [myComment, setMyComment] = useState("");
+  const [myNotes, setMyNotes] = useState("");
+  const [myVerdict, setMyVerdict] = useState<"layak" | "tidak_layak" | null>(null);
+  const [myEvidence, setMyEvidence] = useState<{ id: string; fileName: string; fileKey: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [confirmFinalize, setConfirmFinalize] = useState(false);
+  const [submittedForApproval, setSubmittedForApproval] = useState(false);
+
+  // Applicant detail
+  const [appDocs, setAppDocs] = useState<any[]>([]);
+  const [appFormData, setAppFormData] = useState<any>(null);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
+  // For super_admin: pick which category to evaluate
+  const [superAdminCat, setSuperAdminCat] = useState<string>("pasar");
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
-  const [selectedAppFormData, setSelectedAppFormData] = useState<any>(null);
-  const [loadingDocs, setLoadingDocs] = useState(false);
-  const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
-  const [evalNotes, setEvalNotes] = useState<Record<string, string | null>>({});
 
-  // ── Selected mitra ─────────────────────────────────────────────────────────
+  // Selected mitra
   const selectedPartnerId = searchParams.get("partnerId");
-  const selectedApp = selectedPartnerId
-    ? phase1Applicants.find((app) => app.partner_id === selectedPartnerId)
-    : null;
+  const selectedApp = selectedPartnerId ? applicants.find((a) => a.partner_id === selectedPartnerId) : null;
+  const currentIndex = selectedApp ? applicants.findIndex((a) => a.partner_id === selectedPartnerId) : -1;
+  const prevMitra = currentIndex > 0 ? applicants[currentIndex - 1] : null;
+  const nextMitra = currentIndex >= 0 && currentIndex < applicants.length - 1 ? applicants[currentIndex + 1] : null;
 
   const navigateToMitra = (partnerId: string) => {
     router.push(`/projects/${id}/evaluation/phase1?partnerId=${partnerId}`);
   };
 
-  const currentIndex = selectedApp
-    ? phase1Applicants.findIndex((app) => app.partner_id === selectedPartnerId)
-    : -1;
-  const prevMitra = currentIndex > 0 ? phase1Applicants[currentIndex - 1] : null;
-  const nextMitra = currentIndex >= 0 && currentIndex < phase1Applicants.length - 1
-    ? phase1Applicants[currentIndex + 1] : null;
-
-  // Check if user is EBD PIC for Phase 1 of this project, or super_admin
-  const phase1Pics = ((project as any)?.phasePics || []).filter((p: any) => p.phase === "phase1");
+  // Access control
+  const myCategory = project && user ? getUserCategory(project, user.id, role || "") : undefined;
+  const phase1Pics = (project?.phasePics || []).filter((p: any) => p.phase === "phase1");
   const isPhase1Pic = phase1Pics.some((p: any) => p.userId === user?.id);
-  const isAuthorized = role === "super_admin" || (role === "ebd" && isPhase1Pic);
+  const isAuthorized = role === "super_admin" || isPhase1Pic;
+  const activeCategory = role === "super_admin" ? superAdminCat : myCategory;
 
-  // View-only: before registration is closed OR after evaluation/approval is done
-  const projectPhase = (project as any)?.phase as string | undefined;
+  // Phase checks
+  const projectPhase = project?.phase as string | undefined;
   const isEvalPhase = projectPhase === "phase1_closed" || projectPhase === "phase1_evaluation";
   const isRegistrationPhase = projectPhase === "phase1_registration";
   const viewOnly = !!projectPhase && !isEvalPhase;
 
-  // ── Fetch project + applicants + evaluations ─────────────────────────────
+  // ── Fetch project + applicants ─────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!accessToken) return;
     setLoading(true);
     try {
-      // Fetch project
       const projectRes = await projectApi(accessToken).getById(id);
-      setProject(projectRes.data as ApiProject);
+      setProject(projectRes.data);
 
-      // Fetch applications for this project
-      const appsRes = await api<{ applications: ApiApplication[] }>("/applications", {
-        token: accessToken,
-      });
-      const projectApps = appsRes.applications.filter(
-        (app) => app.project_id === id && app.status !== "Draft"
-      );
-      setPhase1Applicants(projectApps);
+      const appsRes = await api<{ applications: ApiApplication[] }>("/applications", { token: accessToken });
+      const projectApps = appsRes.applications.filter((a) => a.project_id === id && a.status !== "Draft");
+      setApplicants(projectApps);
 
-      // Fetch existing evaluations
-      let existingEvals: ApiEvaluation[] = [];
+      // Fetch all category evals summary
       try {
-        const evalsRes = await api<{ evaluations: ApiEvaluation[] }>(
-          `/evaluations/phase1/${id}`,
-          { token: accessToken }
-        );
-        existingEvals = evalsRes.evaluations;
-      } catch {
-        // No evaluations yet — that's OK
-      }
-
-      // Build initial eval state from existing evaluations
-      const state: Record<string, MitraEvalState> = {};
-      const notes: Record<string, string | null> = {};
-
-      for (const app of projectApps) {
-        const existingEval = existingEvals.find(
-          (ev) => ev.partner_id === app.partner_id || ev.application_id === app.id
-        );
-
-        if (existingEval && existingEval.evaluated_at) {
-          // Fetch detailed scores for this evaluation
-          try {
-            const detailRes = await api<{ evaluation: ApiEvalDetail }>(
-              `/evaluations/phase1/${id}/${app.id}`,
-              { token: accessToken }
-            );
-            const checks: MitraChecks = {};
-            const itemComments: MitraComments = {};
-            detailRes.evaluation.scores.forEach((s) => {
-              checks[s.criterion_id] = s.passed ?? null;
-              if (s.notes) itemComments[s.criterion_id] = s.notes;
-            });
-            notes[app.partner_id] = detailRes.evaluation.notes;
-            const isFinalized = !!existingEval.is_finalized;
-            state[app.partner_id] = {
-              checks,
-              comments: itemComments,
-              saved: true,
-              status: isFinalized ? "finalized" : "draft",
-              finalizedAt: isFinalized ? existingEval.evaluated_at ?? undefined : undefined,
-            };
-          } catch {
-            const checks: MitraChecks = {};
-            ALL_FILTRATION_ITEMS.forEach((c) => { checks[c.id] = null; });
-            state[app.partner_id] = { checks, comments: {}, saved: false, status: "draft" };
-          }
-        } else {
-          const checks: MitraChecks = {};
-          ALL_FILTRATION_ITEMS.forEach((c) => { checks[c.id] = null; });
-          state[app.partner_id] = { checks, comments: {}, saved: false, status: "draft" };
+        const catRes = await api<{ evaluations: any[] }>(`/evaluations/phase1-cat/${id}`, { token: accessToken });
+        const statusMap: Record<string, AppCatStatus> = {};
+        for (const app of projectApps) {
+          const appEvals = (catRes.evaluations || []).filter((e: any) => e.applicationId === app.id || e.application_id === app.id);
+          statusMap[app.id] = {
+            evaluations: appEvals.map(mapCatEval),
+            allFinalized: ALL_CATEGORIES.every((cat) => appEvals.some((e: any) => (e.category === cat) && (e.isFinalized || e.is_finalized))),
+            overallResult: null,
+          };
         }
+        setCatEvals(statusMap);
+      } catch {
+        // No evals yet
       }
-
-      setEvalStates(state);
-      setEvalNotes(notes);
     } catch (err) {
       console.error("Failed to load evaluation data:", err);
     } finally {
@@ -474,260 +389,236 @@ export default function Phase1EvaluationPage({
     }
   }, [id, accessToken]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Fetch documents when a mitra is selected and dokumen tab is active ────
+  // ── Fetch detail for selected app ──────────────────────────────────────────
   useEffect(() => {
     if (!selectedApp || !accessToken) {
-      setSelectedAppDocuments([]);
-      setSelectedAppFormData(null);
-      setExpandedDocs({});
+      setAppDocs([]);
+      setAppFormData(null);
       return;
     }
-
-    const fetchDocs = async () => {
+    const fetchDetail = async () => {
       setLoadingDocs(true);
       try {
-        const res = await api<{ application: ApiApplicationDetail }>(
-          `/applications/${selectedApp.id}`,
-          { token: accessToken }
-        );
-        setSelectedAppDocuments(res.application.phase1Documents || []);
+        const res = await api<{ application: ApiApplicationDetail }>(`/applications/${selectedApp.id}`, { token: accessToken });
+        setAppDocs(res.application.phase1Documents || []);
         const fd = (res.application as any).form_data;
-        setSelectedAppFormData(fd ? (typeof fd === "string" ? JSON.parse(fd) : fd) : null);
+        setAppFormData(fd ? (typeof fd === "string" ? JSON.parse(fd) : fd) : null);
       } catch {
-        setSelectedAppDocuments([]);
-        setSelectedAppFormData(null);
+        setAppDocs([]);
+        setAppFormData(null);
       } finally {
         setLoadingDocs(false);
-        setExpandedDocs({});
+        setExpandedSections({});
       }
     };
-
-    fetchDocs();
+    fetchDetail();
   }, [selectedApp?.id, accessToken]);
 
-  // ── Fetch detailed scores when a mitra is selected ────────────────────────
+  // ── Fetch category evals for selected app ──────────────────────────────────
   useEffect(() => {
     if (!selectedApp || !accessToken) return;
-
-    const partnerId = selectedApp.partner_id;
-    const state = evalStates[partnerId];
-    // Only fetch if we have a saved state but maybe haven't loaded scores yet
-    if (!state || !state.saved) return;
-
-    const fetchScores = async () => {
+    const fetchCatEvals = async () => {
       try {
-        const detailRes = await api<{ evaluation: ApiEvalDetail }>(
-          `/evaluations/phase1/${id}/${selectedApp.id}`,
-          { token: accessToken }
-        );
-        const checks: MitraChecks = {};
-        const itemComments: MitraComments = {};
-        detailRes.evaluation.scores.forEach((s) => {
-          checks[s.criterion_id] = s.passed ?? null;
-          if (s.notes) itemComments[s.criterion_id] = s.notes;
-        });
-        setEvalStates((prev) => ({
+        const res = await api<{ evaluations: any[]; allFinalized: boolean }>(`/evaluations/phase1-cat/${id}/${selectedApp.id}`, { token: accessToken });
+        const evals = (res.evaluations || []).map(mapCatEval);
+        setCatEvals((prev) => ({
           ...prev,
-          [partnerId]: {
-            ...prev[partnerId],
-            checks: { ...prev[partnerId].checks, ...checks },
-            comments: { ...prev[partnerId].comments, ...itemComments },
+          [selectedApp.id]: {
+            evaluations: evals,
+            allFinalized: res.allFinalized ?? ALL_CATEGORIES.every((c) => evals.some((e) => e.category === c && e.isFinalized)),
+            overallResult: null,
           },
         }));
-        setEvalNotes((prev) => ({
-          ...prev,
-          [partnerId]: detailRes.evaluation.notes,
-        }));
+        // Populate my form from my category
+        const mine = evals.find((e) => e.category === activeCategory);
+        if (mine) {
+          setMyComment(mine.comment || "");
+          setMyNotes(mine.notes || "");
+          setMyVerdict(mine.verdict);
+          setMyEvidence(mine.evidenceFiles || []);
+        } else {
+          setMyComment("");
+          setMyNotes("");
+          setMyVerdict(null);
+          setMyEvidence([]);
+        }
       } catch {
-        // Ignore — checks already in state from initial load
+        setMyComment("");
+        setMyNotes("");
+        setMyVerdict(null);
+        setMyEvidence([]);
       }
     };
-
-    fetchScores();
+    fetchCatEvals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedApp?.id]);
+  }, [selectedApp?.id, activeCategory, accessToken]);
 
-  // ── Check helpers ──────────────────────────────────────────────────────────
-  const updateCheck = (partnerId: string, itemId: string, passed: boolean) => {
-    const state = evalStates[partnerId];
-    if (state?.status === "finalized") return;
-    setEvalStates((prev) => ({
-      ...prev,
-      [partnerId]: {
-        ...prev[partnerId],
-        checks: { ...prev[partnerId].checks, [itemId]: passed },
-        saved: false,
-      },
-    }));
-  };
+  function mapCatEval(e: any): CatEval {
+    return {
+      id: e.id,
+      category: e.category,
+      verdict: e.verdict || null,
+      comment: e.comment || "",
+      notes: e.notes || "",
+      isFinalized: e.isFinalized || e.is_finalized || false,
+      finalizedAt: e.finalizedAt || e.finalized_at,
+      evaluatorId: e.evaluatorId || e.evaluator_id,
+      evaluatorName: e.evaluatorName || e.evaluator_name,
+      evidenceFiles: (e.evidenceFiles || e.evidence_files || []).map((f: any) => ({
+        id: f.id,
+        fileName: f.fileName || f.file_name || f.name,
+        fileKey: f.fileKey || f.file_key,
+      })),
+    };
+  }
 
-  const updateComment = (partnerId: string, itemId: string, comment: string) => {
-    const state = evalStates[partnerId];
-    if (state?.status === "finalized") return;
-    setEvalStates((prev) => ({
-      ...prev,
-      [partnerId]: {
-        ...prev[partnerId],
-        comments: { ...prev[partnerId].comments, [itemId]: comment },
-        saved: false,
-      },
-    }));
-  };
+  // ── My evaluation helpers ──────────────────────────────────────────────────
+  const myEval = selectedApp ? (catEvals[selectedApp.id]?.evaluations || []).find((e) => e.category === activeCategory) : null;
+  const isMyFinalized = myEval?.isFinalized ?? false;
+  const isEditable = !isMyFinalized && !viewOnly;
 
-  const getPassedCount = (partnerId: string): { passed: number; total: number } => {
-    const state = evalStates[partnerId];
-    if (!state) return { passed: 0, total: ALL_FILTRATION_ITEMS.length };
-    const passed = ALL_FILTRATION_ITEMS.filter((c) => state.checks[c.id] === true).length;
-    return { passed, total: ALL_FILTRATION_ITEMS.length };
-  };
-
-  const getResult = (partnerId: string): "Lolos" | "Tidak Lolos" | "Belum Dinilai" => {
-    const state = evalStates[partnerId];
-    if (!state) return "Belum Dinilai";
-    const allAssessed = ALL_FILTRATION_ITEMS.every((c) => state.checks[c.id] !== null && state.checks[c.id] !== undefined);
-    if (!allAssessed) return "Belum Dinilai";
-    return ALL_FILTRATION_ITEMS.every((c) => state.checks[c.id] === true) ? "Lolos" : "Tidak Lolos";
-  };
-
-  const isAllScored = (partnerId: string): boolean => {
-    const state = evalStates[partnerId];
-    if (!state) return false;
-    return ALL_FILTRATION_ITEMS.every((c) => state.checks[c.id] !== null && state.checks[c.id] !== undefined);
-  };
-
-  // Build items payload from current state
-  const buildItemsPayload = (partnerId: string) => {
-    const state = evalStates[partnerId];
-    if (!state) return [];
-    return ALL_FILTRATION_ITEMS.map((item) => ({
-      itemId: item.id,
-      itemType: item.type,
-      passed: state.checks[item.id] === true,
-      notes: state.comments[item.id] || undefined,
-    }));
-  };
-
-  // Save as draft (editable) — POST to API
-  const handleSaveNilai = async (partnerId: string) => {
-    const app = phase1Applicants.find((a) => a.partner_id === partnerId);
-    if (!app || !accessToken) return;
-
+  const handleSaveDraft = async () => {
+    if (!selectedApp || !accessToken || !activeCategory) return;
     setSaving(true);
     try {
-      await api(`/evaluations/phase1/${id}/${app.id}`, {
+      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}`, {
         method: "POST",
         token: accessToken,
-        body: { items: buildItemsPayload(partnerId) },
+        body: { verdict: myVerdict, comment: myComment, notes: myNotes },
       });
-
-      setEvalStates((prev) => ({
+      showToast("Draft evaluasi berhasil disimpan.");
+      // Re-fetch
+      const res = await api<{ evaluations: any[]; allFinalized: boolean }>(`/evaluations/phase1-cat/${id}/${selectedApp.id}`, { token: accessToken });
+      setCatEvals((prev) => ({
         ...prev,
-        [partnerId]: { ...prev[partnerId], saved: true },
-      }));
-      showToast("Filtrasi berhasil disimpan. Anda masih dapat mengubah penilaian ini.");
-    } catch (err) {
-      console.error("Failed to save filtration:", err);
-      showToast("Gagal menyimpan evaluasi. Silakan coba lagi.", "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Finalize (locked) — save then mark as finalized
-  const handleFinalize = async (partnerId: string) => {
-    const app = phase1Applicants.find((a) => a.partner_id === partnerId);
-    if (!app || !accessToken) return;
-
-    setSaving(true);
-    try {
-      // Save items first
-      await api(`/evaluations/phase1/${id}/${app.id}`, {
-        method: "POST",
-        token: accessToken,
-        body: { items: buildItemsPayload(partnerId) },
-      });
-
-      // Then lock the evaluation
-      await api(`/evaluations/phase1/${id}/${app.id}/finalize`, {
-        method: "POST",
-        token: accessToken,
-      });
-
-      setEvalStates((prev) => ({
-        ...prev,
-        [partnerId]: {
-          ...prev[partnerId],
-          saved: true,
-          status: "finalized",
-          finalizedAt: new Date().toISOString(),
+        [selectedApp.id]: {
+          evaluations: (res.evaluations || []).map(mapCatEval),
+          allFinalized: res.allFinalized ?? false,
+          overallResult: null,
         },
       }));
-      setConfirmFinalize(null);
-      showToast("Nilai berhasil difinalisasi dan dikunci.");
-
-      // Auto-navigate to next unfinalized mitra
-      const nextUnfinalized = phase1Applicants.find(
-        (a) => a.partner_id !== partnerId && evalStates[a.partner_id]?.status !== "finalized"
-      );
-      if (nextUnfinalized) {
-        navigateToMitra(nextUnfinalized.partner_id);
-      }
-    } catch (err) {
-      console.error("Failed to finalize evaluation:", err);
-      showToast("Gagal memfinalisasi nilai. Silakan coba lagi.", "error");
+    } catch (err: any) {
+      showToast(err.message || "Gagal menyimpan draft.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  // Submit all evaluations for approval — POST finalize endpoint
+  const handleFinalize = async () => {
+    if (!selectedApp || !accessToken || !activeCategory) return;
+    setSaving(true);
+    try {
+      // Save first
+      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}`, {
+        method: "POST",
+        token: accessToken,
+        body: { verdict: myVerdict, comment: myComment, notes: myNotes },
+      });
+      // Finalize
+      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/finalize`, {
+        method: "POST",
+        token: accessToken,
+      });
+      showToast("Evaluasi berhasil difinalisasi.");
+      setConfirmFinalize(false);
+      // Re-fetch evals
+      const res = await api<{ evaluations: any[]; allFinalized: boolean }>(`/evaluations/phase1-cat/${id}/${selectedApp.id}`, { token: accessToken });
+      setCatEvals((prev) => ({
+        ...prev,
+        [selectedApp.id]: {
+          evaluations: (res.evaluations || []).map(mapCatEval),
+          allFinalized: res.allFinalized ?? false,
+          overallResult: null,
+        },
+      }));
+      // Auto-navigate to next
+      const nextUneval = applicants.find((a) => {
+        if (a.id === selectedApp.id) return false;
+        const status = catEvals[a.id];
+        if (!status) return true;
+        return !status.evaluations.some((e) => e.category === activeCategory && e.isFinalized);
+      });
+      if (nextUneval) navigateToMitra(nextUneval.partner_id);
+    } catch (err: any) {
+      showToast(err.message || "Gagal memfinalisasi evaluasi.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUploadEvidence = async (file: File) => {
+    if (!selectedApp || !accessToken || !activeCategory) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetchWithAuth(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/evidence`, {
+        method: "POST",
+        token: accessToken,
+        body: formData,
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error((d as any).error || "Upload gagal"); }
+      const data = await res.json();
+      const newFile = { id: data.file?.id || data.id, fileName: file.name, fileKey: data.file?.fileKey || data.file?.file_key || data.fileKey || "" };
+      setMyEvidence((prev) => [...prev, newFile]);
+      showToast("File bukti berhasil diunggah.");
+    } catch (err: any) {
+      showToast(err.message || "Gagal mengunggah file.", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteEvidence = async (fileId: string) => {
+    if (!selectedApp || !accessToken || !activeCategory) return;
+    try {
+      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/evidence/${fileId}`, {
+        method: "DELETE",
+        token: accessToken,
+      });
+      setMyEvidence((prev) => prev.filter((f) => f.id !== fileId));
+      showToast("File bukti berhasil dihapus.");
+    } catch (err: any) {
+      showToast(err.message || "Gagal menghapus file.", "error");
+    }
+  };
+
   const handleSubmitForApproval = async () => {
     if (!accessToken) return;
     setSaving(true);
     try {
-      await api(`/approvals/phase1/${id}/submit`, {
-        method: "POST",
-        token: accessToken,
-      });
+      await api(`/approvals/phase1/${id}/submit`, { method: "POST", token: accessToken });
       setSubmittedForApproval(true);
-    } catch (err) {
-      console.error("Failed to submit for approval:", err);
-      showToast("Gagal mengirim evaluasi. Silakan coba lagi.", "error");
+      showToast("Hasil evaluasi berhasil dikirim untuk persetujuan.");
+    } catch (err: any) {
+      showToast(err.message || "Gagal mengirim untuk persetujuan.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const allFinalized = phase1Applicants.length > 0 && phase1Applicants.every(
-    (app) => evalStates[app.partner_id]?.status === "finalized"
-  );
-
-  const finalizedCount = phase1Applicants.filter(
-    (app) => evalStates[app.partner_id]?.status === "finalized"
-  ).length;
-
-  // ── Status helpers for sidebar ─────────────────────────────────────────────
-  const getMitraStatusLabel = (partnerId: string): { text: string; color: string } => {
-    const state = evalStates[partnerId];
-    if (!state) return { text: "Belum dinilai", color: "text-ptba-gray" };
-    if (state.status === "finalized") {
-      const r = getResult(partnerId);
-      return r === "Lolos"
-        ? { text: "Final \u00B7 Lolos", color: "text-green-600" }
-        : { text: "Final \u00B7 Tidak Lolos", color: "text-ptba-red" };
+  // ── Sidebar status helpers ─────────────────────────────────────────────────
+  const getMitraStatus = (appId: string): { text: string; color: string; icon: "finalized" | "partial" | "none" } => {
+    const status = catEvals[appId];
+    if (!status) return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" };
+    const finCount = status.evaluations.filter((e) => e.isFinalized).length;
+    if (status.allFinalized) {
+      const allLayak = status.evaluations.every((e) => e.verdict === "layak");
+      return allLayak
+        ? { text: "Layak (6/6)", color: "text-green-600", icon: "finalized" }
+        : { text: "Tidak Layak", color: "text-ptba-red", icon: "finalized" };
     }
-    if (state.status === "returned") return { text: "Dikembalikan", color: "text-amber-600" };
-    if (state.saved) return { text: "Draft tersimpan", color: "text-ptba-steel-blue" };
-    const allScored = isAllScored(partnerId);
-    if (allScored) return { text: "Siap disimpan", color: "text-ptba-navy" };
-    return { text: "Belum dinilai", color: "text-ptba-gray" };
+    if (finCount > 0) return { text: `${finCount}/6 selesai`, color: "text-ptba-steel-blue", icon: "partial" };
+    return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" };
   };
 
-  // ── Render: Loading state ─────────────────────────────────────────────────
+  // Check if all apps have all 6 finalized
+  const allAppsAllFinalized = applicants.length > 0 && applicants.every((a) => catEvals[a.id]?.allFinalized);
+  const isEbdOrAdmin = role === "super_admin" || role === "ebd";
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -765,8 +656,8 @@ export default function Phase1EvaluationPage({
             <div>
               <h2 className="text-lg font-semibold text-ptba-red">Akses Ditolak</h2>
               <p className="text-sm text-ptba-gray mt-1">
-                Halaman ini hanya dapat diakses oleh Divisi EBD atau Super Admin. Role Anda:{" "}
-                <span className="font-medium text-ptba-charcoal">{role ?? "Tidak teridentifikasi"}</span>
+                Anda tidak memiliki akses ke halaman evaluasi Fase 1 proyek ini.
+                Role: <span className="font-medium text-ptba-charcoal">{role ?? "Tidak teridentifikasi"}</span>
               </p>
             </div>
           </div>
@@ -774,6 +665,22 @@ export default function Phase1EvaluationPage({
       </div>
     );
   }
+
+  // Applicant data sections
+  const DOC_SECTION_MAP: Record<string, string[]> = {
+    compro: ["compro", "nib_document", "org_structure"],
+    statement_eoi: ["statement_eoi"],
+    portfolio: ["portfolio", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+    financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+    requirements_fulfillment: ["requirements_fulfillment"],
+  };
+  const SECTIONS = [
+    { key: "compro", title: EVAL_FORM_DATA_MAP.compro?.title || "Company Profile" },
+    { key: "statement_eoi", title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI" },
+    { key: "portfolio", title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek" },
+    { key: "financial_overview", title: EVAL_FORM_DATA_MAP.financial_overview?.title || "Data Keuangan" },
+    { key: "requirements_fulfillment", title: EVAL_FORM_DATA_MAP.requirements_fulfillment?.title || "Pemenuhan Persyaratan" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -786,14 +693,11 @@ export default function Phase1EvaluationPage({
         <span className="text-ptba-charcoal font-medium">Evaluasi 1</span>
       </nav>
 
-      <button
-        onClick={() => router.push(`/projects/${id}`)}
-        className="inline-flex items-center gap-1.5 text-sm text-ptba-gray hover:text-ptba-navy transition-colors"
-      >
+      <button onClick={() => router.push(`/projects/${id}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-gray hover:text-ptba-navy transition-colors">
         <ArrowLeft className="h-4 w-4" /> Kembali ke Proyek
       </button>
 
-      {/* View-only banner during registration */}
+      {/* Registration-open banner */}
       {isRegistrationPhase && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center justify-between gap-4">
@@ -803,21 +707,19 @@ export default function Phase1EvaluationPage({
               </div>
               <div>
                 <p className="text-sm font-semibold text-amber-800">Mode Lihat Saja — Pendaftaran Masih Dibuka</p>
-                <p className="text-xs text-amber-700 mt-0.5">Evaluasi hanya dapat dilakukan setelah pendaftaran Fase 1 ditutup. Saat ini Anda dapat melihat data dan mengunduh dokumen mitra.</p>
+                <p className="text-xs text-amber-700 mt-0.5">Evaluasi hanya dapat dilakukan setelah pendaftaran Fase 1 ditutup.</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowCloseRegModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors shrink-0"
-            >
-              <LockKeyhole className="h-4 w-4" />
-              Tutup Pendaftaran
-            </button>
+            {(role === "super_admin" || role === "ebd") && (
+              <button onClick={() => setShowCloseRegModal(true)} className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors shrink-0">
+                <LockKeyhole className="h-4 w-4" /> Tutup Pendaftaran
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Close Registration Confirmation Modal */}
+      {/* Close Registration Modal */}
       {showCloseRegModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCloseRegModal(false)}>
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
@@ -833,45 +735,18 @@ export default function Phase1EvaluationPage({
               </p>
             </div>
             <div className="space-y-2 mb-5 text-xs text-ptba-gray">
-              <div className="flex items-start gap-2">
-                <LockKeyhole className="h-3.5 w-3.5 text-ptba-red shrink-0 mt-0.5" />
-                <span>Mitra tidak bisa mendaftar lagi ke proyek ini</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
-                <span>Proyek akan masuk ke tahap evaluasi dokumen EoI</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <span>Pastikan semua mitra yang diharapkan sudah mendaftar</span>
-              </div>
+              <div className="flex items-start gap-2"><LockKeyhole className="h-3.5 w-3.5 text-ptba-red shrink-0 mt-0.5" /><span>Mitra tidak bisa mendaftar lagi</span></div>
+              <div className="flex items-start gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" /><span>Proyek masuk tahap evaluasi</span></div>
+              <div className="flex items-start gap-2"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" /><span>Pastikan semua mitra yang diharapkan sudah mendaftar</span></div>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowCloseRegModal(false)}
-                className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                disabled={closingReg}
-                onClick={async () => {
-                  if (!accessToken) return;
-                  setClosingReg(true);
-                  try {
-                    await projectApi(accessToken).closeRegistration(id);
-                    await fetchData();
-                    setShowCloseRegModal(false);
-                  } catch (err: any) {
-                    alert(err.message || "Gagal menutup pendaftaran");
-                  } finally {
-                    setClosingReg(false);
-                  }
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {closingReg ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />}
-                Ya, Tutup Pendaftaran
+              <button onClick={() => setShowCloseRegModal(false)} className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">Batal</button>
+              <button disabled={closingReg} onClick={async () => {
+                if (!accessToken) return;
+                setClosingReg(true);
+                try { await projectApi(accessToken).closeRegistration(id); await fetchData(); setShowCloseRegModal(false); } catch (err: any) { alert(err.message || "Gagal menutup pendaftaran"); } finally { setClosingReg(false); }
+              }} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-red px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50">
+                {closingReg ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockKeyhole className="h-4 w-4" />} Ya, Tutup Pendaftaran
               </button>
             </div>
           </div>
@@ -880,54 +755,52 @@ export default function Phase1EvaluationPage({
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 (EBD)</h1>
+        <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 — Pra-kualifikasi</h1>
         <p className="text-sm text-ptba-gray mt-1">
-          Evaluasi kelayakan mitra berdasarkan dokumen dan data Expression of Interest (EoI).
+          Evaluasi kelayakan mitra oleh 6 kategori evaluator. Setiap kategori memberikan verdict Layak/Tidak Layak.
         </p>
+        {activeCategory && CATEGORY_LABELS[activeCategory] && (
+          <div className="mt-2">
+            <span className={cn("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory].color)}>
+              Evaluator: {CATEGORY_LABELS[activeCategory].labelId}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Summary Strip */}
+      {/* Super admin: category picker */}
+      {role === "super_admin" && (
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-ptba-gray mb-2">Evaluasi sebagai kategori:</p>
+          <div className="flex flex-wrap gap-2">
+            {ALL_CATEGORIES.map((cat) => (
+              <button key={cat} onClick={() => setSuperAdminCat(cat)} className={cn("rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", superAdminCat === cat ? CATEGORY_LABELS[cat].color + " ring-2 ring-offset-1 ring-gray-400" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}>
+                {CATEGORY_LABELS[cat].labelId}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Summary strip */}
       <div className="rounded-xl bg-white p-4 shadow-sm">
         <div className="flex items-center gap-6 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ptba-navy">
-              <User className="h-4 w-4 text-white" />
-            </div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ptba-navy"><User className="h-4 w-4 text-white" /></div>
             <div>
               <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Total Mitra</p>
-              <p className="text-lg font-bold text-ptba-navy">{phase1Applicants.length}</p>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-gray-200" />
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500">
-              <Lock className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Difinalisasi</p>
-              <p className="text-lg font-bold text-green-600">{finalizedCount}</p>
+              <p className="text-lg font-bold text-ptba-navy">{applicants.length}</p>
             </div>
           </div>
           <div className="h-8 w-px bg-gray-200" />
           <div>
             <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Sistem</p>
-            <p className="text-sm font-bold text-ptba-navy">Lulus / Tidak Lulus</p>
-          </div>
-          <div className="ml-auto">
-            <div className="h-2 w-32 rounded-full bg-gray-200 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-green-500 transition-all"
-                style={{ width: `${phase1Applicants.length > 0 ? (finalizedCount / phase1Applicants.length) * 100 : 0}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-ptba-gray text-right mt-0.5">
-              {finalizedCount}/{phase1Applicants.length} final
-            </p>
+            <p className="text-sm font-bold text-ptba-navy">Layak / Tidak Layak (6 Kategori)</p>
           </div>
         </div>
       </div>
 
-      {phase1Applicants.length === 0 && (
+      {applicants.length === 0 && (
         <div className="rounded-xl bg-white p-6 shadow-sm text-center">
           <Clock className="h-10 w-10 text-ptba-gray mx-auto mb-3" />
           <p className="text-ptba-gray">Belum ada mitra yang mendaftar untuk Fase 1.</p>
@@ -935,68 +808,38 @@ export default function Phase1EvaluationPage({
       )}
 
       {/* Main Layout */}
-      {phase1Applicants.length > 0 && (
+      {applicants.length > 0 && (
         <div className={cn("grid grid-cols-1 gap-6", sidebarCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[280px_1fr]")}>
           {/* Sidebar */}
           <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-full px-4 py-3 bg-ptba-navy flex items-center justify-between"
-            >
+            <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="w-full px-4 py-3 bg-ptba-navy flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({phase1Applicants.length})</h3>
+                <h3 className="text-sm font-semibold text-white text-left">Daftar Mitra ({applicants.length})</h3>
                 {!sidebarCollapsed && <p className="text-[10px] text-white/60 mt-0.5 text-left">Pilih mitra untuk dievaluasi</p>}
               </div>
               <ChevronDown className={cn("h-4 w-4 text-white/60 transition-transform", !sidebarCollapsed && "rotate-180")} />
             </button>
-            {!sidebarCollapsed && <div className="divide-y divide-gray-100">
-              {phase1Applicants.map((app, idx) => {
-                const state = evalStates[app.partner_id];
-                const isSelected = app.partner_id === selectedPartnerId;
-                const statusLabel = getMitraStatusLabel(app.partner_id);
-
-                return (
-                  <button
-                    key={app.id}
-                    onClick={() => navigateToMitra(app.partner_id)}
-                    className={cn(
-                      "w-full text-left px-4 py-3 transition-colors hover:bg-ptba-section-bg",
-                      isSelected && "bg-ptba-section-bg border-l-3 border-l-ptba-navy"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0",
-                        state?.status === "finalized" ? "bg-green-500" :
-                        state?.status === "returned" ? "bg-amber-500" :
-                        state?.saved ? "bg-ptba-steel-blue" : "bg-gray-300"
-                      )}>
-                        {state?.status === "finalized" ? (
-                          <Lock className="h-3 w-3" />
-                        ) : (
-                          idx + 1
-                        )}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "text-sm font-medium truncate",
-                          isSelected ? "text-ptba-navy" : "text-ptba-charcoal"
-                        )}>
-                          {app.partner_name}
-                        </p>
-                        <p className={cn("text-[10px]", statusLabel.color)}>
-                          {statusLabel.text}
-                        </p>
+            {!sidebarCollapsed && (
+              <div className="divide-y divide-gray-100">
+                {applicants.map((app, idx) => {
+                  const isSelected = app.partner_id === selectedPartnerId;
+                  const status = getMitraStatus(app.id);
+                  return (
+                    <button key={app.id} onClick={() => navigateToMitra(app.partner_id)} className={cn("w-full text-left px-4 py-3 transition-colors hover:bg-ptba-section-bg", isSelected && "bg-ptba-section-bg border-l-3 border-l-ptba-navy")}>
+                      <div className="flex items-center gap-3">
+                        <span className={cn("flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0", status.icon === "finalized" ? "bg-green-500" : status.icon === "partial" ? "bg-ptba-steel-blue" : "bg-gray-300")}>
+                          {status.icon === "finalized" ? <Lock className="h-3 w-3" /> : idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-sm font-medium truncate", isSelected ? "text-ptba-navy" : "text-ptba-charcoal")}>{app.partner_name}</p>
+                          <p className={cn("text-[10px]", status.color)}>{status.text}</p>
+                        </div>
                       </div>
-                      {state?.status === "returned" && (
-                        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Right Panel */}
@@ -1007,599 +850,380 @@ export default function Phase1EvaluationPage({
                   <User className="h-8 w-8 text-ptba-gray" />
                 </div>
                 <h3 className="text-lg font-semibold text-ptba-charcoal mb-2">Pilih Mitra untuk Dievaluasi</h3>
-                <p className="text-sm text-ptba-gray max-w-md mx-auto">
-                  Klik salah satu mitra di panel kiri untuk memulai atau melanjutkan evaluasi.
-                </p>
-                {phase1Applicants.length > 0 && (
-                  <button
-                    onClick={() => navigateToMitra(phase1Applicants[0].partner_id)}
-                    className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors"
-                  >
-                    Mulai Filtrasi Mitra Pertama <ChevronRight className="h-4 w-4" />
+                <p className="text-sm text-ptba-gray max-w-md mx-auto">Klik salah satu mitra di panel kiri untuk memulai evaluasi.</p>
+                {applicants.length > 0 && (
+                  <button onClick={() => navigateToMitra(applicants[0].partner_id)} className="mt-6 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors">
+                    Mulai Evaluasi Mitra Pertama <ChevronRight className="h-4 w-4" />
                   </button>
                 )}
               </div>
             ) : (
               <div className="space-y-5">
-                {(() => {
-                  const app = selectedApp;
-                  const state = evalStates[app.partner_id];
-                  const passedCount = getPassedCount(app.partner_id);
-                  const result = getResult(app.partner_id);
-                  const allScored = isAllScored(app.partner_id);
-                  const isFinalized = state?.status === "finalized";
-                  const isReturned = state?.status === "returned";
-                  const isEditable = !isFinalized && !viewOnly;
-                  const existingNotes = evalNotes[app.partner_id];
+                {/* Mitra Header */}
+                <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-ptba-navy text-sm font-bold text-white">
+                        {selectedApp.partner_name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-ptba-charcoal">{selectedApp.partner_name}</h3>
+                        <p className="text-xs text-ptba-gray">Mitra {currentIndex + 1} dari {applicants.length} · Mendaftar: {formatDate(selectedApp.applied_at)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(() => {
+                        const status = catEvals[selectedApp.id];
+                        if (!status) return null;
+                        const finCount = status.evaluations.filter((e) => e.isFinalized).length;
+                        return (
+                          <>
+                            {finCount > 0 && <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">{finCount}/6 Kategori Final</span>}
+                            {status.allFinalized && status.evaluations.every((e) => e.verdict === "layak") && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Layak</span>}
+                            {status.allFinalized && !status.evaluations.every((e) => e.verdict === "layak") && <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-ptba-red">Tidak Layak</span>}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                  {/* PDF/Download/Nav bar */}
+                  <div className="px-6 py-2 bg-ptba-section-bg border-b border-gray-100 flex items-center gap-2 flex-wrap">
+                    {appFormData && (
+                      <button type="button" onClick={() => { try { generateApplicationPdf(selectedApp.partner_name || "Mitra", appFormData); } catch (err) { alert("Gagal membuat PDF: " + (err instanceof Error ? err.message : String(err))); } }} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors">
+                        <Download className="h-3.5 w-3.5" /> Unduh PDF Formulir
+                      </button>
+                    )}
+                    {appDocs.length > 0 && (
+                      <button type="button" disabled={downloadingZip} onClick={async () => {
+                        setDownloadingZip(true);
+                        try {
+                          const JSZip = (await import("jszip")).default;
+                          const zip = new JSZip();
+                          for (const doc of appDocs) { const fk = (doc as any).file_key; if (!fk) continue; const r = await api<{ url: string }>(`/documents/download/${encodeURIComponent(fk)}`, { token: accessToken! }); if (r.url) { const blob = await fetch(r.url).then((r) => r.blob()); zip.file(`${doc.name || fk.split("/").pop()}.${fk.split(".").pop() || "pdf"}`, blob); } }
+                          const content = await zip.generateAsync({ type: "blob" });
+                          const url = URL.createObjectURL(content); const a = document.createElement("a"); a.href = url; a.download = `Dokumen_${(selectedApp.partner_name || "Mitra").replace(/\s+/g, "_")}.zip`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                        } catch { /* ignore */ } finally { setDownloadingZip(false); }
+                      }} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50">
+                        {downloadingZip ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        {downloadingZip ? "Mengunduh..." : `Unduh Semua Dokumen (${appDocs.length})`}
+                      </button>
+                    )}
+                  </div>
+                  <div className="px-6 py-2.5 bg-gray-50 flex items-center justify-between text-sm border-b border-gray-100">
+                    <button onClick={() => prevMitra && navigateToMitra(prevMitra.partner_id)} disabled={!prevMitra} className={cn("inline-flex items-center gap-1 transition-colors", prevMitra ? "text-ptba-navy hover:text-ptba-steel-blue" : "text-gray-300 cursor-not-allowed")}>
+                      <ChevronLeft className="h-4 w-4" /> Sebelumnya
+                    </button>
+                    <span className="text-xs text-ptba-gray">{currentIndex + 1} / {applicants.length}</span>
+                    <button onClick={() => nextMitra && navigateToMitra(nextMitra.partner_id)} disabled={!nextMitra} className={cn("inline-flex items-center gap-1 transition-colors", nextMitra ? "text-ptba-navy hover:text-ptba-steel-blue" : "text-gray-300 cursor-not-allowed")}>
+                      Selanjutnya <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
 
-                  return (
-                    <>
-                      {/* Mitra Header */}
-                      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                        <div className={cn(
-                          "px-6 py-4 border-b flex items-center justify-between",
-                          isFinalized ? "bg-gray-50" : isReturned ? "bg-amber-50" : "bg-white"
-                        )}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white",
-                              isFinalized
-                                ? (result === "Lolos" ? "bg-green-500" : "bg-ptba-red")
-                                : isReturned ? "bg-amber-500" : "bg-ptba-navy"
-                            )}>
-                              {isFinalized ? <Lock className="h-5 w-5" /> : app.partner_name.charAt(0)}
+                {/* Applicant Data (collapsible) */}
+                <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                  <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, _appData: !(p._appData ?? false) }))} className="w-full flex items-center justify-between px-6 py-4 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                    <span className="text-sm font-bold text-ptba-navy">Data Pendaftaran Mitra</span>
+                    <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expandedSections._appData ?? false) && "rotate-180")} />
+                  </button>
+                  {(expandedSections._appData ?? false) && (
+                    <div className="p-4 space-y-4">
+                      {loadingDocs ? (
+                        <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-ptba-navy" /></div>
+                      ) : (
+                        SECTIONS.map((section, sIdx) => {
+                          const relDocIds = DOC_SECTION_MAP[section.key] || [section.key];
+                          const matchedDocs = appDocs.filter((d: any) => relDocIds.includes(d.document_type_id));
+                          const formRenderer = EVAL_FORM_DATA_MAP[section.key];
+                          const isOpen = expandedSections[`sec_${sIdx}`] ?? true;
+                          return (
+                            <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
+                              <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, [`sec_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
+                                <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                              </button>
+                              {isOpen && (
+                                <div className="p-4 space-y-3">
+                                  {formRenderer && appFormData && <div className="rounded-lg border border-gray-200 bg-white p-3">{formRenderer.render(appFormData)}</div>}
+                                  {matchedDocs.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
+                                      {matchedDocs.map((doc: any) => (
+                                        <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                          <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
+                                            <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                          </div>
+                                          {doc.file_key && (
+                                            <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                              <Download className="h-3 w-3" /> Unduh
+                                            </button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-ptba-charcoal">{app.partner_name}</h3>
-                              <p className="text-xs text-ptba-gray">
-                                Mitra {currentIndex + 1} dari {phase1Applicants.length} · Mendaftar: {formatDate(app.applied_at)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isFinalized && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-gray-800 px-3 py-1 text-xs font-semibold text-white">
-                                <Lock className="h-3 w-3" /> Final
-                              </span>
-                            )}
-                            {isReturned && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                                <RotateCcw className="h-3 w-3" /> Dikembalikan
-                              </span>
-                            )}
-                            {result === "Lolos" && (
-                              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Lolos</span>
-                            )}
-                            {result === "Tidak Lolos" && (
-                              <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-ptba-red">Tidak Lolos</span>
-                            )}
-                            {result === "Belum Dinilai" && !isFinalized && (
-                              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-ptba-gray">Belum Dinilai</span>
-                            )}
-                          </div>
-                        </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                        {/* PDF Download + Download All Docs + Prev / Next */}
-                        <div className="px-6 py-2 bg-ptba-section-bg border-b border-gray-100 flex items-center gap-2 flex-wrap">
-                          {selectedAppFormData && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                try {
-                                  generateApplicationPdf(app.partner_name || "Mitra", selectedAppFormData);
-                                } catch (err) {
-                                  console.error("PDF generation failed:", err);
-                                  alert("Gagal membuat PDF: " + (err instanceof Error ? err.message : String(err)));
-                                }
-                              }}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
-                            >
-                              <Download className="h-3.5 w-3.5" /> Unduh PDF Formulir
-                            </button>
-                          )}
-                          {selectedAppDocuments.length > 0 && (
-                            <button
-                              type="button"
-                              disabled={downloadingZip}
-                              onClick={async () => {
-                                setDownloadingZip(true);
-                                try {
-                                  const JSZip = (await import("jszip")).default;
-                                  const zip = new JSZip();
-                                  for (const doc of selectedAppDocuments) {
-                                    const fk = (doc as any).file_key;
-                                    if (!fk) continue;
-                                    const res = await api<{ url: string }>(`/documents/download/${encodeURIComponent(fk)}`, { token: accessToken! });
-                                    if (res.url) {
-                                      const blob = await fetch(res.url).then((r) => r.blob());
-                                      const ext = fk.split(".").pop() || "pdf";
-                                      const name = `${doc.name || fk.split("/").pop()}.${ext}`;
-                                      zip.file(name, blob);
-                                    }
-                                  }
-                                  const content = await zip.generateAsync({ type: "blob" });
-                                  const url = URL.createObjectURL(content);
-                                  const a = document.createElement("a");
-                                  a.href = url;
-                                  a.download = `Dokumen_${(app.partner_name || "Mitra").replace(/\s+/g, "_")}.zip`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  document.body.removeChild(a);
-                                  URL.revokeObjectURL(url);
-                                } catch { /* ignore */ } finally {
-                                  setDownloadingZip(false);
-                                }
-                              }}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50"
-                            >
-                              {downloadingZip ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                              {downloadingZip ? "Mengunduh dokumen..." : `Unduh Semua Dokumen (${selectedAppDocuments.length})`}
-                            </button>
-                          )}
+                {/* My Evaluation */}
+                {activeCategory && (
+                  <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b bg-white flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory]?.color || "bg-gray-100 text-gray-700")}>
+                          {CATEGORY_LABELS[activeCategory]?.labelId || activeCategory}
+                        </span>
+                        <h3 className="text-base font-semibold text-ptba-navy">Evaluasi Saya</h3>
+                      </div>
+                      {isMyFinalized && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-800 px-3 py-1 text-xs font-semibold text-white">
+                          <Lock className="h-3 w-3" /> Final
+                        </span>
+                      )}
+                    </div>
+                    <div className={cn("p-6 space-y-5", isMyFinalized && "opacity-75")}>
+                      {/* Finalized banner */}
+                      {isMyFinalized && (
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-ptba-gray shrink-0" />
+                          <p className="text-xs text-ptba-gray">Evaluasi ini telah difinalisasi dan tidak dapat diubah.{myEval?.finalizedAt && ` (${formatDate(myEval.finalizedAt)})`}</p>
                         </div>
-                        <div className="px-6 py-2.5 bg-gray-50 flex items-center justify-between text-sm border-b border-gray-100">
-                          <button
-                            onClick={() => prevMitra && navigateToMitra(prevMitra.partner_id)}
-                            disabled={!prevMitra}
-                            className={cn(
-                              "inline-flex items-center gap-1 transition-colors",
-                              prevMitra ? "text-ptba-navy hover:text-ptba-steel-blue" : "text-gray-300 cursor-not-allowed"
-                            )}
-                          >
-                            <ChevronLeft className="h-4 w-4" /> Sebelumnya
-                          </button>
-                          <span className="text-xs text-ptba-gray">{currentIndex + 1} / {phase1Applicants.length}</span>
-                          <button
-                            onClick={() => nextMitra && navigateToMitra(nextMitra.partner_id)}
-                            disabled={!nextMitra}
-                            className={cn(
-                              "inline-flex items-center gap-1 transition-colors",
-                              nextMitra ? "text-ptba-navy hover:text-ptba-steel-blue" : "text-gray-300 cursor-not-allowed"
-                            )}
-                          >
-                            Selanjutnya <ChevronRight className="h-4 w-4" />
-                          </button>
+                      )}
+
+                      {/* Rich text comment */}
+                      <div>
+                        <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Komentar Evaluasi</label>
+                        {isEditable ? (
+                          <RichTextEditor value={myComment} onChange={setMyComment} placeholder="Tulis komentar evaluasi Anda di sini..." />
+                        ) : (
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: myComment || "<em class='text-gray-400'>Belum ada komentar.</em>" }} />
+                        )}
+                      </div>
+
+                      {/* Notes */}
+                      <div>
+                        <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Catatan Internal (opsional)</label>
+                        {isEditable ? (
+                          <textarea value={myNotes} onChange={(e) => setMyNotes(e.target.value)} placeholder="Catatan internal..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
+                        ) : myNotes ? (
+                          <p className="text-sm text-ptba-gray bg-gray-50 rounded-lg p-3 border border-gray-200">{myNotes}</p>
+                        ) : null}
+                      </div>
+
+                      {/* Evidence files */}
+                      <div>
+                        <label className="text-sm font-medium text-ptba-charcoal mb-2 block">File Bukti / Evidence</label>
+                        <div className="space-y-2">
+                          {myEvidence.map((f) => (
+                            <div key={f.id} className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 bg-gray-50">
+                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                              <span className="text-xs text-ptba-charcoal flex-1 truncate">{f.fileName}</span>
+                              {f.fileKey && (
+                                <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+                                  <Eye className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {isEditable && (
+                                <button type="button" onClick={() => handleDeleteEvidence(f.id)} className="text-red-400 hover:text-ptba-red transition-colors">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {isEditable && (
+                            <label className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors cursor-pointer">
+                              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                              {uploading ? "Mengunggah..." : "Unggah File Bukti"}
+                              <input type="file" className="hidden" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadEvidence(f); e.target.value = ""; }} />
+                            </label>
+                          )}
                         </div>
                       </div>
 
-                      {/* Returned warning banner */}
-                      {isReturned && state.returnedReason && (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
-                          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-amber-800">Nilai Dikembalikan oleh Atasan</p>
-                            <p className="text-sm text-amber-700 mt-1">{state.returnedReason}</p>
-                            <p className="text-xs text-amber-600 mt-2">Silakan perbaiki nilai dan finalisasi kembali.</p>
+                      {/* Verdict */}
+                      <div>
+                        <label className="text-sm font-medium text-ptba-charcoal mb-3 block">Verdict</label>
+                        {isEditable ? (
+                          <div className="flex gap-3">
+                            <button type="button" onClick={() => setMyVerdict("layak")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "layak" ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200" : "border-gray-200 bg-white text-gray-400 hover:border-green-300 hover:bg-green-50/50")}>
+                              <CheckCircle2 className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "layak" ? "text-green-500" : "text-gray-300")} />
+                              Layak
+                            </button>
+                            <button type="button" onClick={() => setMyVerdict("tidak_layak")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "tidak_layak" ? "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200" : "border-gray-200 bg-white text-gray-400 hover:border-red-300 hover:bg-red-50/50")}>
+                              <X className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "tidak_layak" ? "text-red-500" : "text-gray-300")} />
+                              Tidak Layak
+                            </button>
                           </div>
-                        </div>
-                      )}
-
-                      {/* Finalized lock banner */}
-                      {isFinalized && (
-                        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 flex items-start gap-3">
-                          <Lock className="h-5 w-5 text-ptba-gray shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-ptba-charcoal">Nilai Telah Difinalisasi</p>
-                            <p className="text-xs text-ptba-gray mt-1">
-                              Nilai mitra ini sudah final dan tidak dapat diubah.
-                              {state.finalizedAt && ` Difinalisasi pada ${formatDate(state.finalizedAt)}.`}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Evaluation Panel */}
-                      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-
-                        {/* Penilaian Content — unified sections mirroring EoI form */}
-                        {(
-                          <div className={cn("p-6", isFinalized && "opacity-75")}>
-                            {/* Unified sections: each combines doc eval + form eval + related documents */}
-                            {(() => {
-                              const DOC_SECTION_MAP: Record<string, string[]> = {
-                                compro: ["compro", "nib_document", "org_structure"],
-                                statement_eoi: ["statement_eoi"],
-                                portfolio: ["portfolio", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
-                                financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...selectedAppDocuments.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
-                                requirements_fulfillment: ["requirements_fulfillment"],
-                              };
-                              const UNIFIED_SECTIONS = [
-                                { docItem: PHASE1_DOCUMENT_ITEMS[0], formItem: PHASE1_FORM_SECTION_ITEMS[0], title: EVAL_FORM_DATA_MAP.compro?.title || "Company Profile", formKey: "compro" },
-                                { docItem: PHASE1_DOCUMENT_ITEMS[1], formItem: PHASE1_FORM_SECTION_ITEMS[1], title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI", formKey: "statement_eoi" },
-                                { docItem: PHASE1_DOCUMENT_ITEMS[2], formItem: PHASE1_FORM_SECTION_ITEMS[2], title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek", formKey: "portfolio" },
-                                { docItem: PHASE1_DOCUMENT_ITEMS[3], formItem: PHASE1_FORM_SECTION_ITEMS[3], title: EVAL_FORM_DATA_MAP.financial?.title || "Data Keuangan", formKey: "financial_overview" },
-                                { docItem: PHASE1_DOCUMENT_ITEMS[4], formItem: PHASE1_FORM_SECTION_ITEMS[4], title: EVAL_FORM_DATA_MAP.requirements?.title || "Pemenuhan Persyaratan", formKey: "requirements_fulfillment" },
-                              ];
-                              // Find additional docs not in any section
-                              const allMappedDocIds = Object.values(DOC_SECTION_MAP).flat();
-                              const additionalDocs = selectedAppDocuments.filter((d: any) => !allMappedDocIds.includes(d.document_type_id));
-
-                              return (
-                                <div className="space-y-4">
-                                  {UNIFIED_SECTIONS.map((section, sIdx) => {
-                                    const docChecked = state?.checks[section.docItem.id];
-                                    const docComment = state?.comments[section.docItem.id] || "";
-                                    const formChecked = state?.checks[section.formItem.id];
-                                    const formComment = state?.comments[section.formItem.id] || "";
-                                    const relatedDocIds = DOC_SECTION_MAP[section.docItem.id] || [section.docItem.id];
-                                    const matchedDocs = selectedAppDocuments.filter((d: any) => relatedDocIds.includes(d.document_type_id));
-                                    const sectionKey = section.formItem.id.replace("section_", "");
-                                    const formRenderer = EVAL_FORM_DATA_MAP[sectionKey];
-                                    const isOpen = expandedDocs[`section_${sIdx}`] ?? true;
-
-                                    return (
-                                      <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
-                                        {/* Section header */}
-                                        <button type="button" onClick={() => setExpandedDocs((prev) => ({ ...prev, [`section_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
-                                          <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
-                                          <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
-                                        </button>
-
-                                        {isOpen && (
-                                          <div className="p-4 space-y-3">
-                                            {/* Form Data */}
-                                            {formRenderer && selectedAppFormData && (
-                                              <div className="rounded-lg border border-gray-200 bg-white p-3">
-                                                {formRenderer.render(selectedAppFormData)}
-                                              </div>
-                                            )}
-
-                                            {/* Documents */}
-                                            {matchedDocs.length > 0 && (
-                                              <div className="space-y-1.5">
-                                                <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
-                                                {matchedDocs.map((doc: any) => (
-                                                  <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                                    <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                                    <div className="flex-1 min-w-0">
-                                                      <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                                      <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
-                                                    </div>
-                                                    {doc.file_key && (
-                                                      <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                        <Download className="h-3 w-3" /> Unduh
-                                                      </button>
-                                                    )}
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-
-                                        {/* Evaluation pass/fail — always visible, side by side */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border-t border-gray-200 bg-gray-50/30">
-                                          <div className={cn("rounded-lg border p-3", docChecked === true ? "border-green-200 bg-green-50/30" : docChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
-                                            <div className="flex items-center justify-between mb-1.5">
-                                              <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen</p>
-                                              {isEditable ? (
-                                                <div className="flex gap-1.5">
-                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.docItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", docChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                                </div>
-                                              ) : (
-                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", docChecked === true ? "bg-green-100 text-green-700" : docChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{docChecked === true ? "Lulus" : docChecked === false ? "Tidak Lulus" : "Belum"}</span>
-                                              )}
-                                            </div>
-                                            {isEditable ? (
-                                              <textarea placeholder="Komentar dokumen..." value={docComment} onChange={(e) => updateComment(app.partner_id, section.docItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
-                                            ) : docComment ? <p className="text-xs text-ptba-gray">{docComment}</p> : null}
-                                          </div>
-
-                                          <div className={cn("rounded-lg border p-3", formChecked === true ? "border-green-200 bg-green-50/30" : formChecked === false ? "border-red-200 bg-red-50/30" : "border-gray-100 bg-white")}>
-                                            <div className="flex items-center justify-between mb-1.5">
-                                              <p className="text-xs font-medium text-ptba-gray">Penilaian Data Formulir</p>
-                                              {isEditable ? (
-                                                <div className="flex gap-1.5">
-                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                                  <button type="button" onClick={() => updateCheck(app.partner_id, section.formItem.id, false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", formChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                                </div>
-                                              ) : (
-                                                <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", formChecked === true ? "bg-green-100 text-green-700" : formChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{formChecked === true ? "Lulus" : formChecked === false ? "Tidak Lulus" : "Belum"}</span>
-                                              )}
-                                            </div>
-                                            {isEditable ? (
-                                              <textarea placeholder="Komentar data..." value={formComment} onChange={(e) => updateComment(app.partner_id, section.formItem.id, e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
-                                            ) : formComment ? <p className="text-xs text-ptba-gray">{formComment}</p> : null}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-
-                                  {/* Additional Documents (not in any section) */}
-                                  {additionalDocs.length > 0 && (() => {
-                                    const addChecked = state?.checks["additional_docs"];
-                                    const addComment = state?.comments["additional_docs"] || "";
-                                    return (
-                                      <div className="rounded-xl border border-gray-200 overflow-hidden">
-                                        <div className="px-4 py-3 bg-ptba-section-bg">
-                                          <span className="text-sm font-bold text-ptba-navy">6. Dokumen Tambahan ({additionalDocs.length})</span>
-                                        </div>
-                                        <div className="p-4 space-y-1.5">
-                                          {additionalDocs.map((doc: any) => (
-                                            <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-xs text-ptba-charcoal truncate">{doc.name}</p>
-                                                <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
-                                              </div>
-                                              {doc.file_key && (
-                                                <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                                  <Download className="h-3 w-3" /> Unduh
-                                                </button>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                        <div className={cn("p-4 border-t border-gray-200 bg-gray-50/30", addChecked === true ? "bg-green-50/30" : addChecked === false ? "bg-red-50/30" : "")}>
-                                          <div className="flex items-center justify-between mb-1.5">
-                                            <p className="text-xs font-medium text-ptba-gray">Penilaian Dokumen Tambahan</p>
-                                            {isEditable ? (
-                                              <div className="flex gap-1.5">
-                                                <button type="button" onClick={() => updateCheck(app.partner_id, "additional_docs", true)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === true ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500 hover:bg-green-100")}>Lulus</button>
-                                                <button type="button" onClick={() => updateCheck(app.partner_id, "additional_docs", false)} className={cn("px-3 py-1 rounded-full text-xs font-semibold transition-all", addChecked === false ? "bg-ptba-red text-white" : "bg-gray-200 text-gray-500 hover:bg-red-100")}>Tidak Lulus</button>
-                                              </div>
-                                            ) : (
-                                              <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", addChecked === true ? "bg-green-100 text-green-700" : addChecked === false ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>{addChecked === true ? "Lulus" : addChecked === false ? "Tidak Lulus" : "Belum"}</span>
-                                            )}
-                                          </div>
-                                          {isEditable ? (
-                                            <textarea placeholder="Catatan dokumen tambahan..." value={addComment} onChange={(e) => updateComment(app.partner_id, "additional_docs", e.target.value)} className="w-full rounded border border-gray-200 px-2.5 py-1.5 text-xs text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={1} />
-                                          ) : addComment ? <p className="text-xs text-ptba-gray">{addComment}</p> : null}
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              );
-                            })()}
-
-                            {/* Summary */}
-                            <div className="rounded-lg bg-ptba-section-bg p-4">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-sm font-medium text-ptba-gray">Hasil Evaluasi</p>
-                                  <p className="text-xs text-ptba-gray mt-0.5">Semua item harus Lulus untuk lolos</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-bold text-ptba-charcoal">{passedCount.passed} / {passedCount.total} Lulus</p>
-                                  <p className={cn("text-lg font-extrabold", result === "Lolos" ? "text-green-600" : result === "Tidak Lolos" ? "text-ptba-red" : "text-ptba-navy")}>
-                                    {result}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {existingNotes && (
-                              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-                                <p className="text-xs font-medium text-ptba-gray mb-1">Catatan</p>
-                                <p className="text-sm text-ptba-charcoal">{existingNotes}</p>
-                              </div>
-                            )}
+                        ) : (
+                          <div className={cn("rounded-xl py-3 px-4 text-center text-sm font-bold", myVerdict === "layak" ? "bg-green-100 text-green-700" : myVerdict === "tidak_layak" ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>
+                            {myVerdict === "layak" ? "Layak" : myVerdict === "tidak_layak" ? "Tidak Layak" : "Belum ada verdict"}
                           </div>
                         )}
-
                       </div>
 
-                      {/* Action Buttons */}
-                      {isEditable && (
-                        <div className="rounded-xl bg-white p-5 shadow-sm">
-                          {/* Finalization Confirmation Dialog */}
-                          {confirmFinalize === app.partner_id ? (
-                            <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
-                              <div className="flex items-start gap-3">
-                                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                  <p className="text-sm font-semibold text-amber-800">Konfirmasi Finalisasi Filtrasi</p>
-                                  <p className="text-sm text-amber-700 mt-1">
-                                    Setelah difinalisasi, hasil <strong>tidak dapat diubah</strong> kecuali dikembalikan oleh atasan.
-                                    Pastikan semua penilaian sudah benar.
-                                  </p>
-                                  <div className="mt-3 rounded-lg bg-white/80 p-3">
-                                    <p className="text-xs text-ptba-gray mb-1">Hasil evaluasi:</p>
-                                    <p className={cn(
-                                      "text-lg font-bold",
-                                      result === "Lolos" ? "text-green-600" : "text-ptba-red"
-                                    )}>
-                                      {app.partner_name}: {result} ({passedCount.passed}/{passedCount.total} Lulus)
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-3 mt-4">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleFinalize(app.partner_id)}
-                                      disabled={saving}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-red/90 transition-colors disabled:opacity-50"
-                                    >
-                                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Ya, Finalisasi Nilai
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setConfirmFinalize(null)}
-                                      className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-ptba-gray hover:bg-gray-50 transition-colors"
-                                    >
-                                      Batal
-                                    </button>
-                                  </div>
-                                </div>
+                      {/* Action buttons */}
+                      {isEditable && !confirmFinalize && (
+                        <div className="flex items-center gap-3 pt-2">
+                          <button type="button" onClick={handleSaveDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Draft
+                          </button>
+                          <button type="button" onClick={() => setConfirmFinalize(true)} disabled={!myVerdict || !myComment || saving} className={cn("inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors", myVerdict && myComment ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed")}>
+                            <Lock className="h-4 w-4" /> Finalisasi
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Finalize confirmation */}
+                      {isEditable && confirmFinalize && (
+                        <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-amber-800">Konfirmasi Finalisasi</p>
+                              <p className="text-sm text-amber-700 mt-1">Setelah difinalisasi, evaluasi <strong>tidak dapat diubah</strong>.</p>
+                              <div className="mt-3 rounded-lg bg-white/80 p-3">
+                                <p className="text-xs text-ptba-gray mb-1">Verdict Anda:</p>
+                                <p className={cn("text-lg font-bold", myVerdict === "layak" ? "text-green-600" : "text-ptba-red")}>
+                                  {selectedApp.partner_name}: {myVerdict === "layak" ? "Layak" : "Tidak Layak"}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3 mt-4">
+                                <button type="button" onClick={handleFinalize} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-red/90 transition-colors disabled:opacity-50">
+                                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Ya, Finalisasi
+                                </button>
+                                <button type="button" onClick={() => setConfirmFinalize(false)} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-ptba-gray hover:bg-gray-50 transition-colors">Batal</button>
                               </div>
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-3">
-                              {/* Simpan Nilai (draft) */}
-                              <button
-                                type="button"
-                                onClick={() => handleSaveNilai(app.partner_id)}
-                                disabled={!allScored || saving}
-                                className={cn(
-                                  "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
-                                  allScored && !saving
-                                    ? "bg-ptba-navy text-white hover:bg-ptba-navy/90"
-                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                )}
-                              >
-                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Nilai Sementara
-                              </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                              {/* Finalisasi Nilai */}
-                              <button
-                                type="button"
-                                onClick={() => setConfirmFinalize(app.partner_id)}
-                                disabled={!allScored || saving}
-                                className={cn(
-                                  "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
-                                  allScored && !saving
-                                    ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md"
-                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                )}
-                              >
-                                <Lock className="h-4 w-4" /> Finalisasi Nilai
-                              </button>
+                {/* Other Evaluations (read-only accordion) */}
+                <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b">
+                    <h3 className="text-base font-semibold text-ptba-navy">Evaluasi Kategori Lain</h3>
+                    <p className="text-xs text-ptba-gray mt-0.5">Hanya evaluasi yang sudah difinalisasi yang ditampilkan.</p>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {ALL_CATEGORIES.filter((c) => c !== activeCategory).map((cat) => {
+                      const evalData = (catEvals[selectedApp.id]?.evaluations || []).find((e) => e.category === cat);
+                      const isOpen = expandedSections[`other_${cat}`] ?? false;
+                      const catInfo = CATEGORY_LABELS[cat];
+                      return (
+                        <div key={cat}>
+                          <button type="button" onClick={() => { if (evalData?.isFinalized) setExpandedSections((p) => ({ ...p, [`other_${cat}`]: !isOpen })); }} className={cn("w-full flex items-center justify-between px-6 py-3 transition-colors", evalData?.isFinalized ? "hover:bg-ptba-section-bg cursor-pointer" : "cursor-default")}>
+                            <div className="flex items-center gap-3">
+                              <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold", catInfo.color)}>{catInfo.labelId}</span>
+                              {evalData?.isFinalized ? (
+                                <span className={cn("text-xs font-semibold", evalData.verdict === "layak" ? "text-green-600" : "text-ptba-red")}>
+                                  {evalData.verdict === "layak" ? "Layak" : "Tidak Layak"}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-ptba-gray">Belum difinalisasi</span>
+                              )}
+                            </div>
+                            {evalData?.isFinalized && <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />}
+                          </button>
+                          {isOpen && evalData?.isFinalized && (
+                            <div className="px-6 pb-4 space-y-2">
+                              {evalData.evaluatorName && <p className="text-[10px] text-ptba-gray">Evaluator: {evalData.evaluatorName}</p>}
+                              {evalData.comment && (
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: evalData.comment }} />
+                              )}
+                              {evalData.evidenceFiles.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase">Evidence</p>
+                                  {evalData.evidenceFiles.map((f) => (
+                                    <div key={f.id} className="flex items-center gap-2 text-xs">
+                                      <FileText className="h-3.5 w-3.5 text-ptba-steel-blue" />
+                                      <span className="truncate flex-1">{f.fileName}</span>
+                                      {f.fileKey && <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy"><Eye className="h-3 w-3" /></button>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
-                    </>
-                  );
-                })()}
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Submit to Ketua Tim */}
-            {!viewOnly && <div className="rounded-xl bg-white p-6 shadow-sm mt-6 border border-gray-100">
-              <div className="flex items-center gap-3 mb-4">
-                <div className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-lg",
-                  allFinalized ? "bg-ptba-gold" : "bg-gray-200"
-                )}>
-                  <Send className={cn("h-5 w-5", allFinalized ? "text-white" : "text-gray-400")} />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi untuk Persetujuan</h3>
-                  <p className="text-sm text-ptba-gray mt-0.5">
-                    {(project as any)?.isOpenForApplication
-                      ? "Pendaftaran Fase 1 masih dibuka. Tutup pendaftaran terlebih dahulu sebelum mengirim untuk persetujuan."
-                      : allFinalized
-                        ? "Semua nilai mitra telah difinalisasi. Kirim untuk persetujuan pimpinan."
-                        : `${finalizedCount} dari ${phase1Applicants.length} mitra difinalisasi. Finalisasi semua mitra untuk mengirim persetujuan.`}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex items-center justify-between text-xs text-ptba-gray mb-1.5">
-                  <span>Progress Finalisasi</span>
-                  <span className="font-medium">{finalizedCount}/{phase1Applicants.length} mitra</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-                  <div
-                    className={cn("h-full rounded-full transition-all", allFinalized ? "bg-green-500" : "bg-ptba-steel-blue")}
-                    style={{ width: `${phase1Applicants.length > 0 ? (finalizedCount / phase1Applicants.length) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-
-              {allFinalized && (
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
-                    <p className="text-2xl font-bold text-green-600">
-                      {phase1Applicants.filter((a) => getResult(a.partner_id) === "Lolos").length}
-                    </p>
-                    <p className="text-xs text-green-700">Mitra Lolos</p>
+            {/* Submit for Approval */}
+            {!viewOnly && isEbdOrAdmin && (
+              <div className="rounded-xl bg-white p-6 shadow-sm mt-6 border border-gray-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", allAppsAllFinalized ? "bg-ptba-gold" : "bg-gray-200")}>
+                    <Send className={cn("h-5 w-5", allAppsAllFinalized ? "text-white" : "text-gray-400")} />
                   </div>
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
-                    <p className="text-2xl font-bold text-ptba-red">
-                      {phase1Applicants.filter((a) => getResult(a.partner_id) === "Tidak Lolos").length}
+                  <div>
+                    <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi untuk Persetujuan</h3>
+                    <p className="text-sm text-ptba-gray mt-0.5">
+                      {allAppsAllFinalized ? "Semua evaluasi (6 kategori) telah difinalisasi untuk semua mitra." : "Semua 6 kategori evaluasi harus difinalisasi untuk setiap mitra sebelum dapat dikirim."}
                     </p>
-                    <p className="text-xs text-ptba-red">Mitra Tidak Lolos</p>
                   </div>
                 </div>
-              )}
 
-              <button
-                type="button"
-                onClick={handleSubmitForApproval}
-                disabled={!allFinalized || submittedForApproval || saving || !!(project as any)?.isOpenForApplication}
-                className={cn(
-                  "w-full inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-colors",
-                  allFinalized && !submittedForApproval && !saving && !(project as any)?.isOpenForApplication
-                    ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md"
-                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                )}
-              >
-                {submittedForApproval ? (
-                  <><CheckCircle2 className="h-4 w-4" /> Sudah Dikirim untuk Persetujuan</>
-                ) : saving ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Mengirim...</>
-                ) : (project as any)?.isOpenForApplication ? (
-                  <><Clock className="h-4 w-4" /> Pendaftaran Masih Dibuka</>
-                ) : (
-                  <><Send className="h-4 w-4" /> Kirim untuk Persetujuan</>
-                )}
-              </button>
-
-              {submittedForApproval && (
-                <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center">
-                  <p className="text-sm text-green-700">
-                    Item persetujuan telah dikirim.
-                  </p>
-                  <Link
-                    href="/approvals"
-                    className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors"
-                  >
-                    Lihat Antrian Persetujuan <ChevronRight className="h-4 w-4" />
-                  </Link>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-xs text-ptba-gray mb-1.5">
+                    <span>Progress</span>
+                    <span className="font-medium">{applicants.filter((a) => catEvals[a.id]?.allFinalized).length}/{applicants.length} mitra selesai (semua kategori)</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all", allAppsAllFinalized ? "bg-green-500" : "bg-ptba-steel-blue")} style={{ width: `${applicants.length > 0 ? (applicants.filter((a) => catEvals[a.id]?.allFinalized).length / applicants.length) * 100 : 0}%` }} />
+                  </div>
                 </div>
-              )}
-            </div>}
+
+                <button type="button" onClick={handleSubmitForApproval} disabled={!allAppsAllFinalized || submittedForApproval || saving} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-colors", allAppsAllFinalized && !submittedForApproval && !saving ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed")}>
+                  {submittedForApproval ? <><CheckCircle2 className="h-4 w-4" /> Sudah Dikirim untuk Persetujuan</> : saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Mengirim...</> : <><Send className="h-4 w-4" /> Kirim untuk Persetujuan</>}
+                </button>
+
+                {submittedForApproval && (
+                  <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center">
+                    <p className="text-sm text-green-700">Item persetujuan telah dikirim.</p>
+                    <Link href="/approvals" className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors">
+                      Lihat Antrian Persetujuan <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Toast notification */}
+      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 toast-enter">
-          <div className={cn(
-            "relative overflow-hidden rounded-xl shadow-2xl border min-w-[320px] max-w-[420px]",
-            toast.type === "success"
-              ? "bg-white border-green-200"
-              : "bg-white border-red-200"
-          )}>
+          <div className={cn("relative overflow-hidden rounded-xl shadow-2xl border min-w-[320px] max-w-[420px]", toast.type === "success" ? "bg-white border-green-200" : "bg-white border-red-200")}>
             <div className="flex items-start gap-3 px-5 py-4">
-              <div className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5",
-                toast.type === "success" ? "bg-green-100" : "bg-red-100"
-              )}>
-                {toast.type === "success" ? (
-                  <CheckCircle2 className="h-4.5 w-4.5 text-green-600" />
-                ) : (
-                  <AlertTriangle className="h-4.5 w-4.5 text-red-600" />
-                )}
+              <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5", toast.type === "success" ? "bg-green-100" : "bg-red-100")}>
+                {toast.type === "success" ? <CheckCircle2 className="h-4.5 w-4.5 text-green-600" /> : <AlertTriangle className="h-4.5 w-4.5 text-red-600" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={cn(
-                  "text-xs font-semibold",
-                  toast.type === "success" ? "text-green-800" : "text-red-800"
-                )}>
-                  {toast.type === "success" ? "Berhasil" : "Gagal"}
-                </p>
+                <p className={cn("text-xs font-semibold", toast.type === "success" ? "text-green-800" : "text-red-800")}>{toast.type === "success" ? "Berhasil" : "Gagal"}</p>
                 <p className="text-sm text-ptba-charcoal mt-0.5">{toast.message}</p>
               </div>
-              <button
-                onClick={() => setToast(null)}
-                className="shrink-0 rounded-lg p-1 text-ptba-gray hover:bg-ptba-section-bg hover:text-ptba-charcoal transition-colors"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setToast(null)} className="shrink-0 rounded-lg p-1 text-ptba-gray hover:bg-ptba-section-bg hover:text-ptba-charcoal transition-colors">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            {/* Progress bar */}
-            <div className={cn(
-              "h-1 toast-progress-bar",
-              toast.type === "success" ? "bg-green-400" : "bg-red-400"
-            )} />
+            <div className={cn("h-1 toast-progress-bar", toast.type === "success" ? "bg-green-400" : "bg-red-400")} />
           </div>
         </div>
       )}
