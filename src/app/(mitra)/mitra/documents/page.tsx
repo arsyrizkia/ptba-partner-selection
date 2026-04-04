@@ -44,10 +44,7 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
           <Field label="NIB" value={fd.nib} />
           <Field label={t("formData.yearEstablished")} value={fd.yearEstablished} />
           <Field label={t("formData.country")} value={fd.countryEstablished} />
-          <Field label={locale === "en" ? "CEO / President Director" : "Direktur Utama"} value={fd.ceoName} />
-          <Field label={locale === "en" ? "COO" : "Direktur Operasi"} value={fd.cooName} />
-          <Field label={locale === "en" ? "CFO" : "Direktur Keuangan"} value={fd.cfoName} />
-          <Field label={locale === "en" ? "Other Directors" : "Direksi Lainnya"} value={fd.otherDirectors} />
+          <Field label={locale === "en" ? "Company Status" : "Status Perusahaan"} value={fd.companyStatus} />
           <Field label={locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} value={fd.shareholderComposition} />
           <Field label="Contact Person" value={fd.contactPerson} />
           <Field label={locale === "en" ? "CP Phone" : "Telp CP"} value={fd.contactPhone} />

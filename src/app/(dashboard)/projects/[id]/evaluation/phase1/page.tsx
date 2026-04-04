@@ -682,8 +682,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
 
   // Applicant data sections
   const DOC_SECTION_MAP: Record<string, string[]> = {
-    compro: ["compro", "nib_document", "org_structure"],
-    statement_eoi: ["statement_eoi"],
+    compro: ["compro", "nib_document", "org_structure", "company_history"],
+    statement_eoi: ["statement_eoi", "cash_on_hand_evidence"],
     portfolio: ["portfolio", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
     financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
     requirements_fulfillment: ["requirements_fulfillment"],
