@@ -20,8 +20,8 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
     if (!accessToken) return;
     (async () => {
       try {
-        const res = await api<{ data: any }>(`/partners/${id}`, { token: accessToken });
-        setPartner(res.data);
+        const res = await api<any>(`/partners/${id}`, { token: accessToken });
+        setPartner(res);
 
         // Fetch applications for this partner
         try {
