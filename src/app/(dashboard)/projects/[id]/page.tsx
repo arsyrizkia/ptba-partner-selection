@@ -585,9 +585,12 @@ export default function ProjectDetailPage({
   const projectPhasePics = project.phasePics || [];
   const isPhase1Pic = projectPhasePics.some((p: any) => p.phase === "phase1" && p.userId === authUser?.id);
   const isAnyPhasePic = projectPhasePics.some((p: any) => p.userId === authUser?.id);
+  const isEbdPic = projectPhasePics.some((p: any) => p.userId === authUser?.id && p.role === "ebd");
+  const isKetuaTimPic = projectPhasePics.some((p: any) => p.userId === authUser?.id && p.role === "ketua_tim");
   const isCreator = !!authUser && !!project?.createdBy && authUser.id === project.createdBy;
-  // Can manage project: super_admin, project creator, or assigned PIC
-  const isAdmin = role === "super_admin" || isCreator || isAnyPhasePic;
+  // Can manage project (action buttons): super_admin, project creator, EBD PICs, or Ketua Tim
+  // NOT keuangan/hukum/risiko — they can only view and evaluate their category
+  const isAdmin = role === "super_admin" || isCreator || isEbdPic || isKetuaTimPic;
   const canEditPic = role === "super_admin" || isCreator;
   const isPhase1Approved = project.phase === "phase1_approved" || project.phase === "phase1_announcement";
 
