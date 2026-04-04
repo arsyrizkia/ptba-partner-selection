@@ -125,7 +125,7 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
                     <tr className="border-b border-ptba-light-gray">
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.year")}</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{locale === "en" ? "Currency" : "Mata Uang"}</th>
-                      <th className="py-1.5 text-left text-ptba-gray font-medium">Total Debt</th>
+                      <th className="py-1.5 text-left text-ptba-gray font-medium">Total Liability</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">Total Equity</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.totalAsset")}</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.ebitda")}</th>

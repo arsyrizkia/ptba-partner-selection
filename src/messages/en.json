@@ -335,7 +335,11 @@
     },
     "financialFields": {
       "currency": "Currency",
+      "totalDebt": "Total Liability",
+      "totalEquity": "Total Equity",
       "totalAsset": "Total Assets",
+      "unitIDR": "Million IDR",
+      "unitUSD": "Thousand USD",
       "ebitda": "EBITDA",
       "dscr": "DSCR",
       "ratingAgency": "Rating Agency",

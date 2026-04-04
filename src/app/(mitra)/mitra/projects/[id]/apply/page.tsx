@@ -1946,7 +1946,10 @@ export default function MitraProjectApplyPage() {
                 </tr>
                 {/* Total Debt */}
                 <tr className="border-b border-ptba-light-gray/50">
-                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">Total Debt <span className="text-ptba-red">*</span></td>
+                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">
+                    {t("financialFields.totalDebt")} <span className="text-ptba-red">*</span>
+                    <span className="block text-[10px] text-ptba-gray font-normal">({financialYears[0]?.currency === "USD" ? t("financialFields.unitUSD") : t("financialFields.unitIDR")})</span>
+                  </td>
                   {financialYears.map((fy, i) => (
                     <td key={fy.year} className="py-2 px-2">
                       <input
@@ -1969,7 +1972,10 @@ export default function MitraProjectApplyPage() {
                 </tr>
                 {/* Total Equity */}
                 <tr className="border-b border-ptba-light-gray/50">
-                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">Total Equity <span className="text-ptba-red">*</span></td>
+                  <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">
+                    {t("financialFields.totalEquity")} <span className="text-ptba-red">*</span>
+                    <span className="block text-[10px] text-ptba-gray font-normal">({financialYears[0]?.currency === "USD" ? t("financialFields.unitUSD") : t("financialFields.unitIDR")})</span>
+                  </td>
                   {financialYears.map((fy, i) => (
                     <td key={fy.year} className="py-2 px-2">
                       <input
@@ -1992,7 +1998,10 @@ export default function MitraProjectApplyPage() {
                 </tr>
                 {/* Total Aset (auto-calculated) */}
                 <tr className="border-b border-ptba-light-gray/50 bg-ptba-section-bg">
-                  <td className="py-2 pr-3 text-xs font-semibold text-ptba-charcoal">{t("financialFields.totalAsset")}</td>
+                  <td className="py-2 pr-3 text-xs font-semibold text-ptba-charcoal">
+                    {t("financialFields.totalAsset")}
+                    <span className="block text-[10px] text-ptba-gray font-normal">({financialYears[0]?.currency === "USD" ? t("financialFields.unitUSD") : t("financialFields.unitIDR")})</span>
+                  </td>
                   {financialYears.map((fy) => (
                     <td key={fy.year} className="py-2 px-2">
                       <div className="w-full rounded bg-ptba-light-gray/30 px-2 py-1.5 text-xs text-right font-semibold text-ptba-charcoal">
@@ -2003,11 +2012,14 @@ export default function MitraProjectApplyPage() {
                 </tr>
                 {/* EBITDA & DSCR */}
                 {[
-                  { key: "ebitda" as const, label: t("financialFields.ebitda") },
-                  { key: "dscr" as const, label: t("financialFields.dscr") },
+                  { key: "ebitda" as const, label: t("financialFields.ebitda"), hasUnit: true },
+                  { key: "dscr" as const, label: t("financialFields.dscr"), hasUnit: false },
                 ].map((row) => (
                   <tr key={row.key} className="border-b border-ptba-light-gray/50">
-                    <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">{row.label} <span className="text-ptba-red">*</span></td>
+                    <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">
+                      {row.label} <span className="text-ptba-red">*</span>
+                      {row.hasUnit && <span className="block text-[10px] text-ptba-gray font-normal">({financialYears[0]?.currency === "USD" ? t("financialFields.unitUSD") : t("financialFields.unitIDR")})</span>}
+                    </td>
                     {financialYears.map((fy, i) => (
                       <td key={fy.year} className="py-2 px-2">
                         <input

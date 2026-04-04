@@ -189,7 +189,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
                     <tr className="border-b border-ptba-light-gray">
                       <th className="py-1 text-left text-ptba-gray font-medium">Tahun</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">Mata Uang</th>
-                      <th className="py-1 text-left text-ptba-gray font-medium">Total Debt</th>
+                      <th className="py-1 text-left text-ptba-gray font-medium">Total Liability</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">Total Equity</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">Total Asset</th>
                       <th className="py-1 text-left text-ptba-gray font-medium">EBITDA</th>

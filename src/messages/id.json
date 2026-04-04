@@ -335,7 +335,11 @@
     },
     "financialFields": {
       "currency": "Mata Uang",
+      "totalDebt": "Total Liability",
+      "totalEquity": "Total Equity",
       "totalAsset": "Total Aset",
+      "unitIDR": "Juta IDR",
+      "unitUSD": "Ribu USD",
       "ebitda": "EBITDA",
       "dscr": "DSCR",
       "ratingAgency": "Lembaga Pemeringkat",
