@@ -566,6 +566,13 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
     if (!selectedApp || !accessToken || !activeCategory) return;
     setUploading(true);
     try {
+      // Auto-save draft first to ensure evaluation record exists
+      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}`, {
+        method: "POST",
+        body: { verdict: myVerdict || undefined, comment: myComment || undefined, notes: myNotes || undefined },
+        token: accessToken,
+      });
+
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetchWithAuth(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/evidence`, {
@@ -1021,16 +1028,6 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         ) : (
                           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: myComment || "<em class='text-gray-400'>Belum ada komentar.</em>" }} />
                         )}
-                      </div>
-
-                      {/* Notes — hidden, only comment used */}
-                      {false && <div>
-                        <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Catatan Internal (opsional)</label>
-                        {isEditable ? (
-                          <textarea value={myNotes} onChange={(e) => setMyNotes(e.target.value)} placeholder="Catatan internal..." className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-ptba-charcoal outline-none focus:border-ptba-steel-blue resize-none" rows={2} />
-                        ) : myNotes ? (
-                          <p className="text-sm text-ptba-gray bg-gray-50 rounded-lg p-3 border border-gray-200">{myNotes}</p>
-                        ) : null}
                       </div>
 
                       {/* Evidence files */}
