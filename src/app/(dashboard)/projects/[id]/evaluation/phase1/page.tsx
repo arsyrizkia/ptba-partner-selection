@@ -480,7 +480,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       finalizedAt: e.finalizedAt || e.finalized_at,
       evaluatorId: e.evaluatorId || e.evaluator_id,
       evaluatorName: e.evaluatorName || e.evaluator_name,
-      evidenceFiles: (e.evidenceFiles || e.evidence_files || []).map((f: any) => ({
+      evidenceFiles: (e.evidence || e.evidenceFiles || e.evidence_files || []).map((f: any) => ({
         id: f.id,
         fileName: f.fileName || f.file_name || f.name,
         fileKey: f.fileKey || f.file_key,
@@ -582,7 +582,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       });
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error((d as any).error || "Upload gagal"); }
       const data = await res.json();
-      const newFile = { id: data.file?.id || data.id, fileName: file.name, fileKey: data.file?.fileKey || data.file?.file_key || data.fileKey || "" };
+      const newFile = { id: data.evidence?.id || data.file?.id || data.id, fileName: file.name, fileKey: data.evidence?.fileKey || data.evidence?.file_key || data.file?.fileKey || data.file?.file_key || data.fileKey || "" };
       setMyEvidence((prev) => [...prev, newFile]);
       showToast("File bukti berhasil diunggah.");
     } catch (err: any) {
