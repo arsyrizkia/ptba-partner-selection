@@ -163,14 +163,13 @@ export default function MitraProjectDetailPage() {
         {/* Phase Progress */}
         {project.phase && project.phase !== "published" && (
           <div className="mt-4">
-            <div className="flex items-center justify-between text-xs text-white/70 mb-1.5">
-              <span>{t("step", { current: project.currentStep, total: project.totalSteps || 16 })}</span>
-              <span className="font-semibold text-white">{Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%</span>
+            <div className="flex items-center justify-end text-xs text-white/70 mb-1.5">
+              <span className="font-semibold text-white">{Math.round((project.currentStep / (project.totalSteps || 11)) * 100)}%</span>
             </div>
             <div className="h-2 rounded-full bg-white/20 overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-white/90 via-ptba-gold to-ptba-gold transition-all duration-500"
-                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-white/90 to-ptba-gold transition-all duration-500"
+                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 11)) * 100)}%` }}
               />
             </div>
             <div className="mt-1.5 flex text-[10px] text-white/50">

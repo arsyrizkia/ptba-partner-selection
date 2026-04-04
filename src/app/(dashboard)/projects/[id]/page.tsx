@@ -1227,15 +1227,15 @@ export default function ProjectDetailPage({
               <p className="text-xs text-ptba-gray truncate">{PROJECT_STEPS[project.currentStep - 1]?.description ?? ""}</p>
             </div>
             <span className="text-xs font-semibold text-ptba-navy shrink-0">
-              {Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%
+              {Math.round((project.currentStep / (project.totalSteps || 11)) * 100)}%
             </span>
             </div>
 
             {/* Progress bar */}
             <div className="relative h-2 rounded-full bg-ptba-light-gray overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-ptba-navy via-ptba-steel-blue to-ptba-gold transition-all duration-500"
-                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 16)) * 100)}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-ptba-navy to-ptba-steel-blue transition-all duration-500"
+                style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 11)) * 100)}%` }}
               />
             </div>
 
