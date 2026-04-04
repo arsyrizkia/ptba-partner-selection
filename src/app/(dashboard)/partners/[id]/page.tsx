@@ -1,267 +1,197 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
-import { DocumentChecklist } from "@/components/features/partner/document-checklist";
-import { mockPartners } from "@/lib/mock-data";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
-import type { Partner } from "@/lib/types";
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Building2, Loader2, Mail, Phone, Globe, MapPin, Calendar, FileText, Download } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import { useAuth } from "@/lib/auth/auth-context";
+import { api, downloadDocument } from "@/lib/api/client";
+import { formatDate } from "@/lib/utils/format";
 
-function getPartnerStatusVariant(
-  status: Partner["status"]
-): "success" | "warning" | "error" {
-  switch (status) {
-    case "Aktif":
-      return "success";
-    case "Dalam Review":
-      return "warning";
-    case "Tidak Aktif":
-    default:
-      return "error";
-  }
-}
-
-const tabs = [
-  { key: "profil", label: "Profil" },
-  { key: "dokumen", label: "Dokumen" },
-  { key: "keuangan", label: "Data Keuangan" },
-];
-
-export default function PartnerDetailPage() {
-  const params = useParams();
+export default function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
-  const partnerId = params.id as string;
-  const [activeTab, setActiveTab] = useState("profil");
+  const { accessToken } = useAuth();
+  const [partner, setPartner] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [applications, setApplications] = useState<any[]>([]);
 
-  const partner = useMemo(() => {
-    return mockPartners.find((p) => p.id === partnerId);
-  }, [partnerId]);
+  useEffect(() => {
+    if (!accessToken) return;
+    (async () => {
+      try {
+        const res = await api<{ data: any }>(`/partners/${id}`, { token: accessToken });
+        setPartner(res.data);
+
+        // Fetch applications for this partner
+        try {
+          const appsRes = await api<{ applications: any[] }>(`/partners/${id}/applications`, { token: accessToken });
+          setApplications(appsRes.applications || []);
+        } catch { /* may not have applications endpoint */ }
+      } catch {
+        setPartner(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id, accessToken]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+      </div>
+    );
+  }
 
   if (!partner) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-ptba-charcoal mb-2">
-            Mitra Tidak Ditemukan
-          </h2>
-          <p className="text-ptba-gray mb-4">
-            Mitra dengan ID &quot;{partnerId}&quot; tidak ditemukan.
-          </p>
-          <button
-            onClick={() => router.push("/partners")}
-            className="text-ptba-navy underline hover:text-ptba-steel-blue"
-          >
-            Kembali ke Daftar Mitra
-          </button>
+      <div className="space-y-6">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-gray hover:text-ptba-navy transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Kembali
+        </button>
+        <div className="rounded-xl bg-white p-12 shadow-sm text-center">
+          <Building2 className="h-12 w-12 text-ptba-light-gray mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-ptba-charcoal">Mitra Tidak Ditemukan</h2>
+          <p className="text-sm text-ptba-gray mt-1">Mitra dengan ID ini tidak ditemukan.</p>
         </div>
       </div>
     );
   }
+
+  const profileFields = [
+    { label: "Nama Perusahaan", value: partner.name, icon: Building2 },
+    { label: "Kode", value: partner.code },
+    { label: "NIB", value: partner.nib },
+    { label: "Overview Bisnis", value: partner.business_overview || partner.businessOverview, full: true },
+    { label: "Alamat Kantor Pusat", value: partner.address },
+    { label: "Alamat Rep. Indonesia", value: partner.indonesia_office_address || partner.indonesiaOfficeAddress },
+    { label: "Telepon", value: partner.phone, icon: Phone },
+    { label: "Email", value: partner.company_domain ? `info@${partner.company_domain}` : partner.email, icon: Mail },
+    { label: "Website", value: partner.website, icon: Globe },
+    { label: "Negara", value: partner.country || "Indonesia", icon: MapPin },
+    { label: "Tahun Berdiri", value: partner.year_established || partner.yearEstablished, icon: Calendar },
+    { label: "Status", value: partner.status },
+  ];
+
+  const contactFields = [
+    { label: "Contact Person", value: partner.contact_person || partner.contactPerson },
+    { label: "Telepon CP", value: partner.contact_phone || partner.contactPhone },
+    { label: "Email CP", value: partner.contact_email || partner.contactEmail },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
-      <Card accent="navy" padding="lg">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold text-ptba-charcoal">
-                {partner.name}
-              </h1>
-              <Badge variant={getPartnerStatusVariant(partner.status)}>
-                {partner.status}
-              </Badge>
+      <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-gray hover:text-ptba-navy transition-colors">
+        <ArrowLeft className="h-4 w-4" /> Kembali
+      </button>
+
+      {/* Header */}
+      <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6 text-white">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
+                {(partner.name || "?")[0]}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">{partner.name}</h1>
+                <p className="text-sm text-white/70">{partner.code || partner.nib || ""}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-sm text-ptba-gray">
-              <span>
-                <span className="font-medium text-ptba-charcoal">Kode:</span>{" "}
-                {partner.code}
-              </span>
-              <span>
-                <span className="font-medium text-ptba-charcoal">
-                  Industri:
-                </span>{" "}
-                {partner.industry}
-              </span>
-            </div>
-            <div className="flex items-center gap-4 text-sm text-ptba-gray">
-              <span>
-                <span className="font-medium text-ptba-charcoal">
-                  Kontak:
-                </span>{" "}
-                {partner.contactPerson}
-              </span>
-              <span>
-                <span className="font-medium text-ptba-charcoal">Tel:</span>{" "}
-                {partner.contactPhone}
-              </span>
-            </div>
+            {partner.business_overview && (
+              <p className="text-sm text-white/80 mt-2 max-w-2xl">{partner.business_overview}</p>
+            )}
           </div>
           <div className="text-right shrink-0">
-            <p className="text-xs text-ptba-gray">Terdaftar sejak</p>
-            <p className="text-sm font-semibold text-ptba-navy">
-              {formatDate(partner.registrationDate)}
-            </p>
+            <span className={cn(
+              "rounded-full px-3 py-1 text-xs font-semibold",
+              partner.status === "active" || partner.status === "Aktif" ? "bg-green-500/20 text-green-200" : "bg-white/20 text-white/70"
+            )}>
+              {partner.status === "active" ? "Aktif" : partner.status}
+            </span>
           </div>
         </div>
-      </Card>
-
-      {/* Tabs */}
-      <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Tab Content */}
-      <div className="mt-4">
-        {activeTab === "profil" && <ProfilTab partner={partner} />}
-        {activeTab === "dokumen" && (
-          <DocumentChecklist documents={partner.documents} />
-        )}
-        {activeTab === "keuangan" && <KeuanganTab partner={partner} />}
       </div>
-    </div>
-  );
-}
 
-/* ── Profil Tab ───────────────────────────────────────────────────── */
+      {/* Profile */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">Profil Perusahaan</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+          {profileFields.filter(f => f.value).map((field) => (
+            <div key={field.label} className={field.full ? "md:col-span-2" : ""}>
+              <p className="text-[10px] text-ptba-gray uppercase tracking-wider mb-0.5">{field.label}</p>
+              <p className="text-sm font-medium text-ptba-charcoal">{field.value}</p>
+            </div>
+          ))}
+        </div>
 
-function ProfilTab({ partner }: { partner: Partner }) {
-  const profileItems = [
-    { label: "Nama Perusahaan", value: partner.name },
-    { label: "Kode", value: partner.code },
-    { label: "Industri", value: partner.industry },
-    { label: "Alamat", value: partner.address },
-    { label: "Telepon", value: partner.phone },
-    { label: "Domain Email", value: partner.company_domain ? `@${partner.company_domain}` : "-" },
-    { label: "Website", value: partner.website || "-" },
-    { label: "NPWP", value: partner.npwp },
-    { label: "SIUP", value: partner.siup },
-    { label: "Kontak Person", value: partner.contactPerson },
-    { label: "Telepon Kontak", value: partner.contactPhone },
-    {
-      label: "Tanggal Registrasi",
-      value: formatDate(partner.registrationDate),
-    },
-  ];
-
-  return (
-    <Card padding="lg">
-      <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">
-        Detail Perusahaan
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-        {profileItems.map((item) => (
-          <div key={item.label}>
-            <p className="text-xs text-ptba-gray uppercase tracking-wider mb-0.5">
-              {item.label}
-            </p>
-            <p className="text-sm font-medium text-ptba-charcoal">
-              {item.value}
-            </p>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-/* ── Keuangan Tab ─────────────────────────────────────────────────── */
-
-function KeuanganTab({ partner }: { partner: Partner }) {
-  const financialData = partner.financialData;
-
-  if (!financialData || financialData.length === 0) {
-    return (
-      <Card padding="lg">
-        <p className="text-center text-ptba-gray py-8">
-          Data keuangan belum tersedia.
-        </p>
-      </Card>
-    );
-  }
-
-  // Sort by year
-  const sortedData = [...financialData].sort((a, b) => a.year - b.year);
-  const years = sortedData.map((d) => d.year);
-
-  const indicators = [
-    {
-      label: "Total Aset",
-      key: "totalAssets" as const,
-    },
-    {
-      label: "Total Liabilitas",
-      key: "totalLiabilities" as const,
-    },
-    {
-      label: "Total Ekuitas",
-      key: "totalEquity" as const,
-    },
-    {
-      label: "Pendapatan",
-      key: "revenue" as const,
-    },
-    {
-      label: "Laba Bersih",
-      key: "netIncome" as const,
-    },
-    {
-      label: "Arus Kas Operasi",
-      key: "operatingCashFlow" as const,
-    },
-    {
-      label: "Aset Lancar",
-      key: "currentAssets" as const,
-    },
-    {
-      label: "Liabilitas Lancar",
-      key: "currentLiabilities" as const,
-    },
-  ];
-
-  return (
-    <Card padding="lg">
-      <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">
-        Data Keuangan (3 Tahun Terakhir)
-      </h2>
-
-      <div className="overflow-x-auto rounded-xl border border-ptba-light-gray">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-ptba-navy text-white">
-              <th className="px-4 py-3 text-left font-medium">Indikator</th>
-              {years.map((year) => (
-                <th key={year} className="px-4 py-3 text-right font-medium">
-                  {year}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {indicators.map((indicator, index) => (
-              <tr
-                key={indicator.key}
-                className={
-                  index % 2 === 0 ? "bg-white" : "bg-ptba-off-white"
-                }
-              >
-                <td className="px-4 py-3 font-medium text-ptba-charcoal">
-                  {indicator.label}
-                </td>
-                {sortedData.map((yearData) => (
-                  <td
-                    key={yearData.year}
-                    className="px-4 py-3 text-right text-ptba-charcoal"
-                  >
-                    {formatCurrency(yearData[indicator.key])}
-                  </td>
-                ))}
-              </tr>
+        {/* Contact Person */}
+        <div className="border-t border-ptba-light-gray mt-4 pt-4">
+          <p className="text-xs font-semibold text-ptba-charcoal mb-2">Contact Person</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {contactFields.filter(f => f.value).map((field) => (
+              <div key={field.label}>
+                <p className="text-[10px] text-ptba-gray uppercase tracking-wider mb-0.5">{field.label}</p>
+                <p className="text-sm font-medium text-ptba-charcoal">{field.value}</p>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
-    </Card>
+
+      {/* Documents */}
+      {partner.documents && partner.documents.length > 0 && (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">Dokumen Perusahaan</h2>
+          <div className="space-y-2">
+            {partner.documents.map((doc: any) => (
+              <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray p-3">
+                <FileText className="h-5 w-5 text-ptba-steel-blue shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name || doc.document_type}</p>
+                  {doc.uploaded_at && <p className="text-xs text-ptba-gray">{formatDate(doc.uploaded_at)}</p>}
+                </div>
+                {doc.file_key && accessToken && (
+                  <button
+                    onClick={() => downloadDocument(doc.file_key, accessToken)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
+                  >
+                    <Download className="h-3 w-3" /> Unduh
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Applications */}
+      {applications.length > 0 && (
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-ptba-charcoal mb-4">Riwayat Pendaftaran</h2>
+          <div className="space-y-2">
+            {applications.map((app: any) => (
+              <div key={app.id} className="flex items-center justify-between rounded-lg border border-ptba-light-gray p-3">
+                <div>
+                  <p className="text-sm font-medium text-ptba-charcoal">{app.project_name || app.projectName || "Proyek"}</p>
+                  <p className="text-xs text-ptba-gray">
+                    {app.applied_at ? formatDate(app.applied_at) : ""} · Status: {app.status}
+                  </p>
+                </div>
+                <span className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                  app.status === "Shortlisted" ? "bg-green-100 text-green-700" :
+                  app.status === "Ditolak" ? "bg-red-100 text-red-700" :
+                  "bg-ptba-steel-blue/10 text-ptba-steel-blue"
+                )}>
+                  {app.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

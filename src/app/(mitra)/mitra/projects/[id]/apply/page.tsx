@@ -534,6 +534,7 @@ export default function MitraProjectApplyPage() {
         setCompanyPhone(fd?.companyPhone || p.phone || "");
         setCompanyEmail(fd?.companyEmail || (p.company_domain ? `info@${p.company_domain}` : "") || "");
         setCompanyWebsite(fd?.companyWebsite || p.website || "");
+        if (fd?.companyStatus) setCompanyStatus(fd.companyStatus);
         setBusinessOverview(fd?.businessOverview || p.business_overview || "");
         if (fd?.marketShare) setMarketShare(fd.marketShare);
         setNib(fd?.nib || p.nib || "");
@@ -713,6 +714,7 @@ export default function MitraProjectApplyPage() {
     companyPhone,
     companyEmail,
     companyWebsite,
+    companyStatus,
     yearEstablished,
     countryEstablished,
     businessOverview,
@@ -771,7 +773,7 @@ export default function MitraProjectApplyPage() {
     creditRatingAgency, creditRatingValue, financialYears, experiences,
     requirementAnswers, requirementNotes, agreedFinal,
     companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
-    companyWebsite, yearEstablished, countryEstablished, businessOverview, marketShare,
+    companyWebsite, companyStatus, yearEstablished, countryEstablished, businessOverview, marketShare,
     orgStructure, subsidiaries, nib, contactPerson, contactPhone, contactEmail,
     companyVision, companyMission, companyHistory, ceoName, cooName, cfoName, otherDirectors, shareholderComposition,
     autoSaveFormData, application?.id,
