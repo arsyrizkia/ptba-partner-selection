@@ -159,7 +159,7 @@ export default function EditProjectPage({
         ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
         ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
         // Phase 3 docs removed — 2-phase system
-        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`, phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
+        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`, phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 

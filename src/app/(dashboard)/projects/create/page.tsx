@@ -37,7 +37,7 @@ export default function CreateProjectPage() {
       const customDocs = formData.customDocuments
         .filter((d) => d.name.trim())
         .map((d) => ({
-          documentTypeId: `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`,
+          documentTypeId: `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`,
           phase: d.phase,
           isRequired: d.required !== false,
           description: d.description || "",
