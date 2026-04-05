@@ -1020,17 +1020,14 @@ export default function ProjectForm({
             </div>
 
             {/* Phase deadlines */}
-            <div className="rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-ptba-steel-blue">Deadline Per Fase</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1 (EoI)</label>
-                  <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2 (Assessment)</label>
-                  <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 1</label>
+                <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 2</label>
+                <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
               </div>
             </div>
 
@@ -1161,7 +1158,7 @@ export default function ProjectForm({
             <div className="space-y-3">
               <div className="rounded-lg border border-ptba-steel-blue/30 overflow-hidden">
                 <div className="bg-ptba-steel-blue/10 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Fase 1 - Dokumen EoI (Expression of Interest)</h3>
+                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Dokumen Fase 1</h3>
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra pada tahap pendaftaran awal</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
@@ -1232,7 +1229,7 @@ export default function ProjectForm({
             <div className="space-y-3">
               <div className="rounded-lg border border-ptba-navy/30 overflow-hidden">
                 <div className="bg-ptba-navy/10 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-ptba-navy">Fase 2 - Dokumen Detailed Assessment</h3>
+                  <h3 className="text-sm font-semibold text-ptba-navy">Dokumen Fase 2</h3>
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra yang lolos shortlist</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
@@ -1633,8 +1630,8 @@ export default function ProjectForm({
                 <h3 className="text-sm font-semibold text-ptba-charcoal">Dokumen</h3>
               </div>
               <div className="px-4 py-3 space-y-2">
-                <p className="text-xs font-medium text-ptba-steel-blue">Fase 1 EoI: {selectedPhase1Docs.length} dokumen</p>
-                <p className="text-xs font-medium text-ptba-navy">Fase 2 Assessment: {selectedPhase2Docs.length} dokumen</p>
+                <p className="text-xs font-medium text-ptba-steel-blue">Fase 1: {selectedPhase1Docs.length} dokumen</p>
+                <p className="text-xs font-medium text-ptba-navy">Fase 2: {selectedPhase2Docs.length} dokumen</p>
                 {false && selectedPhase3Docs.length > 0 && (
                   <p className="text-xs font-medium text-ptba-gold-dark">Fase 3 Proposal: {selectedPhase3Docs.length} dokumen</p>
                 )}
