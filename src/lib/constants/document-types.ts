@@ -205,8 +205,8 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     phase: 'phase1',
   },
   {
-    id: 'adherent_letter',
-    name: 'Adherent Letter',
+    id: 'adherence_letter',
+    name: 'Adherence Letter',
     description: 'Surat pernyataan kepatuhan terhadap syarat dan ketentuan seleksi',
     required: true,
     category: 'legal',

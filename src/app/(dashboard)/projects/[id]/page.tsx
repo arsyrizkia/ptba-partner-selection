@@ -120,7 +120,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   financial_overview: "Gambaran Umum Keuangan",
   requirements_fulfillment: "Pemenuhan Persyaratan",
   confidential_guarantee_letter: "Confidential Guarantee Letter",
-  adherent_letter: "Adherent Letter",
+  adherence_letter: "Adherence Letter",
   confidential_guarantee_signed: "Confidential Guarantee (Signed)",
   loi_signed: "Letter of Intent (Signed)",
   financial_detail: "Laporan Keuangan Detail",
