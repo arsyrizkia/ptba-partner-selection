@@ -814,18 +814,11 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
 
       {/* Summary strip */}
       <div className="rounded-xl bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-6 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ptba-navy"><User className="h-4 w-4 text-white" /></div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Total Mitra</p>
-              <p className="text-lg font-bold text-ptba-navy">{applicants.length}</p>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-gray-200" />
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ptba-navy"><User className="h-4 w-4 text-white" /></div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Sistem</p>
-            <p className="text-sm font-bold text-ptba-navy">Layak / Tidak Layak (6 Kategori)</p>
+            <p className="text-[10px] uppercase tracking-wider text-ptba-gray">Total Mitra Terdaftar</p>
+            <p className="text-lg font-bold text-ptba-navy">{applicants.length}</p>
           </div>
         </div>
       </div>
