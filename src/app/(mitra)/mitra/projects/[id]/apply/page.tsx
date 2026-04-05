@@ -1439,13 +1439,13 @@ export default function MitraProjectApplyPage() {
           {/* JV Equity & Cash on Hand — side by side */}
           {(() => {
             // Auto-calculate equity breakdown from project Capex + DER
-            const capexMn = parseFloat(String(project.indicativeCapex || project.indicative_capex || "0"));
+            const capexMillion = parseFloat(String(project.indicativeCapex || project.indicative_capex || "0"));
             const derStr = String(project.der || "");
             const derParts = derStr.split(":");
             const equityRatio = derParts.length === 2 ? parseFloat(derParts[1]) / 100 : 0;
             const jvPercent = parseFloat(minorityEquityPercent || "0");
-            const hasProjectData = capexMn > 0 && equityRatio > 0;
-            const totalEquity = capexMn * equityRatio;
+            const hasProjectData = capexMillion > 0 && equityRatio > 0;
+            const totalEquity = capexMillion * equityRatio;
             const mitraContribution = totalEquity * (jvPercent / 100);
             const minCashOnHand = mitraContribution * 1.5;
             const fmtUsd = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1598,13 +1598,13 @@ export default function MitraProjectApplyPage() {
                       className={cn(inputClass, "pl-12 pr-12", errBorder(cashOnHand), hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
                       disabled={readOnly}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Mn</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Million</span>
                   </div>
                   {hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && (
                     <p className="text-[10px] text-ptba-red mt-1">
                       {locale === "en"
-                        ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Mn (1.5x equity contribution)`
-                        : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Mn (1.5x kontribusi ekuitas)`}
+                        ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Million (1.5x equity contribution)`
+                        : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Million (1.5x kontribusi ekuitas)`}
                     </p>
                   )}
                   <div className="mt-3">
@@ -1634,17 +1634,17 @@ export default function MitraProjectApplyPage() {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-lg bg-white p-3 text-center border border-ptba-light-gray">
                         <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Total Project Equity" : "Total Ekuitas Proyek"}</p>
-                        <p className="text-sm font-bold text-ptba-navy">USD {fmtUsd(totalEquity)} Mn</p>
-                        <p className="text-[9px] text-ptba-gray mt-0.5">Capex {fmtUsd(capexMn)} × {(equityRatio * 100).toFixed(0)}%</p>
+                        <p className="text-sm font-bold text-ptba-navy">USD {fmtUsd(totalEquity)} Million</p>
+                        <p className="text-[9px] text-ptba-gray mt-0.5">Capex {fmtUsd(capexMillion)} × {(equityRatio * 100).toFixed(0)}%</p>
                       </div>
                       <div className="rounded-lg bg-white p-3 text-center border border-ptba-light-gray">
                         <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Your Equity Contribution" : "Kontribusi Ekuitas Anda"}</p>
-                        <p className="text-sm font-bold text-ptba-steel-blue">USD {fmtUsd(mitraContribution)} Mn</p>
+                        <p className="text-sm font-bold text-ptba-steel-blue">USD {fmtUsd(mitraContribution)} Million</p>
                         <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(totalEquity)} × {jvPercent}%</p>
                       </div>
                       <div className="rounded-lg bg-white p-3 text-center border border-ptba-gold/30">
                         <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Min. Cash on Hand (1.5x)" : "Min. Cash on Hand (1.5x)"}</p>
-                        <p className="text-sm font-bold text-ptba-gold">USD {fmtUsd(minCashOnHand)} Mn</p>
+                        <p className="text-sm font-bold text-ptba-gold">USD {fmtUsd(minCashOnHand)} Million</p>
                         <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(mitraContribution)} × 1.5</p>
                       </div>
                     </div>
