@@ -150,7 +150,7 @@ export default function MitraProjectDetailPage() {
           )}
           {(() => {
             const deadline = isPhase3 ? project.phase3Deadline : isPhase2 ? project.phase2Deadline : project.phase1Deadline;
-            const label = isPhase3 ? (locale === "en" ? "Phase 3 Deadline" : "Deadline Fase 3") : isPhase2 ? (locale === "en" ? "Phase 2 Deadline" : "Deadline Fase 2") : (locale === "en" ? "Phase 1 Deadline" : "Deadline Fase 1");
+            const label = isPhase3 ? (locale === "en" ? "Phase 3 Registration Deadline" : "Deadline Pendaftaran Fase 3") : isPhase2 ? (locale === "en" ? "Phase 2 Registration Deadline" : "Deadline Pendaftaran Fase 2") : (locale === "en" ? "Phase 1 Registration Deadline" : "Deadline Pendaftaran Fase 1");
             return deadline ? (
               <span className="inline-flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
