@@ -1165,10 +1165,10 @@ export default function MitraProjectApplyPage() {
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.businessOverview")} <span className="text-ptba-red">*</span></label>
             <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2 mb-2">
               <p className="text-[11px] text-ptba-gray leading-relaxed">
-                <span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span>{" "}
+                <span className="font-bold text-ptba-charcoal">{locale === "en" ? "Important:" : "Penting:"}</span>{" "}
                 {locale === "en"
-                  ? "Include: main line of business, product and service description, business process overview, and key competitive advantages."
-                  : "Mencakup: bidang usaha utama, deskripsi produk dan jasa, gambaran proses bisnis, dan keunggulan kompetitif utama."}
+                  ? <>Must include: <span className="font-semibold underline">main line of business</span>, <span className="font-semibold underline">product and service description</span>, <span className="font-semibold underline">business process overview</span>, and <span className="font-semibold underline">key competitive advantages</span>.</>
+                  : <>Wajib mencakup: <span className="font-semibold underline">bidang usaha utama</span>, <span className="font-semibold underline">deskripsi produk dan jasa</span>, <span className="font-semibold underline">gambaran proses bisnis</span>, dan <span className="font-semibold underline">keunggulan kompetitif utama</span>.</>}
               </p>
             </div>
             <textarea value={businessOverview} onChange={(e) => setBusinessOverview(e.target.value)} placeholder={locale === "en" ? "Company business overview, products & services..." : "Overview bisnis perusahaan, produk & jasa..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(businessOverview))} />
@@ -1196,10 +1196,10 @@ export default function MitraProjectApplyPage() {
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Company History & Milestones" : "Sejarah & Milestone Perusahaan"} <span className="text-ptba-red">*</span></label>
             <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2 mb-2">
               <p className="text-[11px] text-ptba-gray leading-relaxed">
-                <span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span>{" "}
+                <span className="font-bold text-ptba-charcoal">{locale === "en" ? "Important:" : "Penting:"}</span>{" "}
                 {locale === "en"
-                  ? "Upload a document containing the company's history, timeline, and key milestones. Accepted formats: PDF or image (JPG, PNG). This should include founding date, major achievements, expansions, and significant corporate events."
-                  : "Unggah dokumen yang berisi sejarah perusahaan, timeline, dan pencapaian utama. Format yang diterima: PDF atau gambar (JPG, PNG). Dokumen harus mencakup tanggal pendirian, pencapaian besar, ekspansi, dan peristiwa korporat penting."}
+                  ? <>Upload document containing: <span className="font-semibold underline">company history & timeline</span>, <span className="font-semibold underline">founding date</span>, <span className="font-semibold underline">major achievements</span>, <span className="font-semibold underline">expansions</span>, and <span className="font-semibold underline">significant corporate events</span>. Accepted: PDF, JPG, PNG.</>
+                  : <>Unggah dokumen berisi: <span className="font-semibold underline">sejarah & timeline perusahaan</span>, <span className="font-semibold underline">tanggal pendirian</span>, <span className="font-semibold underline">pencapaian besar</span>, <span className="font-semibold underline">ekspansi</span>, dan <span className="font-semibold underline">peristiwa korporat penting</span>. Format: PDF, JPG, PNG.</>}
               </p>
             </div>
             <FileUploadButton
@@ -1297,10 +1297,10 @@ export default function MitraProjectApplyPage() {
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("companyFields.orgStructure")} <span className="text-ptba-red">*</span></label>
             <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2 mb-2">
               <p className="text-[11px] text-ptba-gray leading-relaxed">
-                <span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span>{" "}
+                <span className="font-bold text-ptba-charcoal">{locale === "en" ? "Important:" : "Penting:"}</span>{" "}
                 {locale === "en"
-                  ? "Upload organizational structure chart including names and positions of top management (CEO, COO, CFO, Directors, etc.). Accepted formats: PDF or image (JPG, PNG)."
-                  : "Unggah bagan struktur organisasi termasuk nama dan jabatan manajemen puncak (Direktur Utama, COO, CFO, Direksi, dll.). Format yang diterima: PDF atau gambar (JPG, PNG)."}
+                  ? <>Upload chart including <span className="font-semibold underline">names and positions of top management</span> (CEO, COO, CFO, Directors, etc.). Accepted: PDF, JPG, PNG.</>
+                  : <>Unggah bagan berisi <span className="font-semibold underline">nama dan jabatan manajemen puncak</span> (Direktur Utama, COO, CFO, Direksi, dll.). Format: PDF, JPG, PNG.</>}
               </p>
             </div>
             <FileUploadButton

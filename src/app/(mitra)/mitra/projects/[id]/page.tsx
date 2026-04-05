@@ -172,9 +172,11 @@ export default function MitraProjectDetailPage() {
                 style={{ width: `${Math.round((project.currentStep / (project.totalSteps || 11)) * 100)}%` }}
               />
             </div>
-            <div className="mt-1.5 flex text-[10px] text-white/50">
-              <span style={{ width: "50%" }}>{tc("phase1")}</span>
-              <span style={{ width: "50%" }} className="text-right">{tc("phase2")}</span>
+            <div className="mt-1.5 flex justify-between text-[10px] text-white/50">
+              <span>{locale === "en" ? "Registration" : "Pendaftaran"}</span>
+              <span>{locale === "en" ? "Evaluation Phase 1" : "Evaluasi Tahap 1"}</span>
+              <span>{locale === "en" ? "Evaluation Phase 2" : "Evaluasi Tahap 2"}</span>
+              <span>{locale === "en" ? "Finish" : "Selesai"}</span>
             </div>
           </div>
         )}
