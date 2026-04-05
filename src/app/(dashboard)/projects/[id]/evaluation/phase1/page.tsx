@@ -947,9 +947,9 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                 <div className="rounded-xl bg-white shadow-sm overflow-hidden">
                   <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, _appData: !(p._appData ?? true) }))} className="w-full flex items-center justify-between px-6 py-4 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
                     <span className="text-sm font-bold text-ptba-navy">Data Pendaftaran Mitra</span>
-                    <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expandedSections._appData ?? false) && "rotate-180")} />
+                    <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expandedSections._appData ?? true) && "rotate-180")} />
                   </button>
-                  {(expandedSections._appData ?? false) && (
+                  {(expandedSections._appData ?? true) && (
                     <div className="p-4 space-y-4">
                       {loadingDocs ? (
                         <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-ptba-navy" /></div>
