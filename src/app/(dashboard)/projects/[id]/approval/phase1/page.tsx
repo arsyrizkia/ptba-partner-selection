@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, downloadDocument } from "@/lib/api/client";
+import { api, projectApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 // import { ALL_FILTRATION_ITEMS } from "@/lib/constants/phase1-criteria";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
@@ -364,6 +364,9 @@ export default function Phase1ApprovalPage({
   const [showConfirm, setShowConfirm] = useState(false);
   const [ketuaTimSubmitted, setKetuaTimSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [plenoFile, setPlenoFile] = useState<File | null>(null);
+  const [plenoUploading, setPlenoUploading] = useState(false);
+  const [plenoUploaded, setPlenoUploaded] = useState<{ fileKey: string; fileName: string } | null>(null);
 
   /* ---- Panel tab state ---- */
   const [panelTab, setPanelTab] = useState<"penilaian" | "dokumen_formulir">("penilaian");
@@ -633,7 +636,11 @@ export default function Phase1ApprovalPage({
 
       await api(`/approvals/${approvalRecord.id}/decide`, {
         method: "PUT",
-        body: { status, notes },
+        body: {
+          status, notes,
+          pleno_document_key: plenoUploaded?.fileKey,
+          pleno_document_name: plenoUploaded?.fileName,
+        },
         token: accessToken,
       });
 
@@ -1245,6 +1252,44 @@ export default function Phase1ApprovalPage({
                 </div>
               </div>
 
+              {/* Pleno Document Upload */}
+              <div className="rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-4 mb-5">
+                <p className="text-xs font-semibold text-ptba-navy mb-2">Dokumen Rapat Pleno <span className="text-ptba-red">*</span></p>
+                <p className="text-[10px] text-ptba-gray mb-3">Upload dokumen hasil rapat pleno sebagai bukti persetujuan.</p>
+                {plenoUploaded ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                    <FileText className="h-4 w-4 text-green-600 shrink-0" />
+                    <span className="text-xs text-green-800 flex-1 truncate">{plenoUploaded.fileName}</span>
+                    <button type="button" onClick={() => { setPlenoUploaded(null); setPlenoFile(null); }} className="text-xs text-ptba-gray hover:text-ptba-red">Hapus</button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <label className={cn("inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium cursor-pointer transition-colors",
+                      plenoUploading ? "border-gray-200 text-gray-400" : "border-ptba-steel-blue text-ptba-steel-blue hover:bg-ptba-steel-blue/5"
+                    )}>
+                      {plenoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardCheck className="h-3.5 w-3.5" />}
+                      {plenoUploading ? "Mengunggah..." : "Pilih File"}
+                      <input type="file" className="hidden" accept=".pdf,.doc,.docx" disabled={plenoUploading} onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !approvalRecord || !accessToken) return;
+                        setPlenoFile(file);
+                        setPlenoUploading(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          const res = await fetchWithAuth(`/approvals/${approvalRecord.id}/pleno-document`, { method: "POST", token: accessToken, body: formData });
+                          if (!res.ok) throw new Error("Upload gagal");
+                          const data = await res.json();
+                          setPlenoUploaded({ fileKey: data.fileKey, fileName: data.fileName });
+                        } catch { setPlenoFile(null); alert("Gagal mengunggah dokumen pleno."); }
+                        finally { setPlenoUploading(false); e.target.value = ""; }
+                      }} />
+                    </label>
+                    {plenoFile && !plenoUploading && <span className="text-xs text-ptba-gray">{plenoFile.name}</span>}
+                  </div>
+                )}
+              </div>
+
               <textarea
                 value={ketuaTimGlobalNotes}
                 onChange={(e) => setketuaTimGlobalNotes(e.target.value)}
@@ -1253,10 +1298,12 @@ export default function Phase1ApprovalPage({
                 className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40 mb-4"
               />
 
-              <button type="button" onClick={handleKetuaTimSubmit}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold bg-ptba-navy text-white hover:bg-ptba-navy/90 shadow-md transition-colors">
+              <button type="button" onClick={handleKetuaTimSubmit} disabled={!plenoUploaded}
+                className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors shadow-md",
+                  plenoUploaded ? "bg-ptba-navy text-white hover:bg-ptba-navy/90" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                )}>
                 <Send className="h-4 w-4" />
-                Kirim Keputusan ({ketuaTimLayakCount} Layak, {ketuaTimTdkLayakCount} Tidak Layak)
+                {plenoUploaded ? `Finalisasi (${ketuaTimLayakCount} Layak, ${ketuaTimTdkLayakCount} Tidak Layak)` : "Upload dokumen pleno terlebih dahulu"}
               </button>
             </div>
           )}
