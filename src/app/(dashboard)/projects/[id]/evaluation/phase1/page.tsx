@@ -953,7 +953,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
 
                 {/* Applicant Data (collapsible) */}
                 <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                  <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, _appData: !(p._appData ?? false) }))} className="w-full flex items-center justify-between px-6 py-4 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                  <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, _appData: !(p._appData ?? true) }))} className="w-full flex items-center justify-between px-6 py-4 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
                     <span className="text-sm font-bold text-ptba-navy">Data Pendaftaran Mitra</span>
                     <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expandedSections._appData ?? false) && "rotate-180")} />
                   </button>
