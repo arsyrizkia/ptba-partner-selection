@@ -291,21 +291,22 @@ export default function UsersPage() {
       key: "actions",
       label: "Aksi",
       render: (item: ApiUser) => {
-        if (item.status !== "invited") return null;
         return (
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleResendInvitation(item); }}
-              disabled={resendingId === item.id}
-              title="Kirim ulang undangan"
-              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-section-bg transition-colors disabled:opacity-50"
-            >
-              {resendingId === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
-              Kirim Ulang
-            </button>
+            {item.status === "invited" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleResendInvitation(item); }}
+                disabled={resendingId === item.id}
+                title="Kirim ulang undangan"
+                className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-section-bg transition-colors disabled:opacity-50"
+              >
+                {resendingId === item.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCw className="h-3 w-3" />}
+                Kirim Ulang
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(item); }}
-              title="Hapus akun & batalkan undangan"
+              title="Hapus akun"
               className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 className="h-3 w-3" />
@@ -503,7 +504,7 @@ export default function UsersPage() {
               Yakin ingin menghapus akun <span className="font-semibold">{showDeleteConfirm.name}</span>?
             </p>
             <p className="text-xs text-ptba-gray mb-5">
-              Email: {showDeleteConfirm.email} — Link aktivasi akan dibatalkan dan akun dihapus secara permanen.
+              Email: {showDeleteConfirm.email} — Akun akan dihapus secara permanen dari database beserta seluruh data terkait.
             </p>
             <div className="flex gap-3">
               <button
