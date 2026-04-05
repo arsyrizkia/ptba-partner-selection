@@ -783,18 +783,17 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 — Pra-kualifikasi</h1>
-        <p className="text-sm text-ptba-gray mt-1">
-          Evaluasi kelayakan mitra oleh 6 kategori evaluator. Setiap kategori memberikan verdict Layak/Tidak Layak.
-        </p>
         {activeCategory && CATEGORY_LABELS[activeCategory] && (
-          <div className="mt-2">
-            <span className={cn("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory].color)}>
-              Evaluator: {CATEGORY_LABELS[activeCategory].labelId}
-            </span>
-            <p className="mt-1.5 text-xs text-ptba-gray italic leading-relaxed max-w-2xl">
+          <div className="mt-3 rounded-xl border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 px-4 py-3">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={cn("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory].color)}>
+                {CATEGORY_LABELS[activeCategory].labelId}
+              </span>
+              <span className="text-[10px] text-ptba-gray">Keputusan Direksi No. 091/0100/2024</span>
+            </div>
+            <p className="text-xs text-ptba-charcoal leading-relaxed">
               {CATEGORY_LABELS[activeCategory].description}
             </p>
-            <p className="mt-0.5 text-[10px] text-ptba-gray/70">Sesuai Pedoman Kerjasama PTBA — Keputusan Direksi No. 091/0100/2024</p>
           </div>
         )}
       </div>
