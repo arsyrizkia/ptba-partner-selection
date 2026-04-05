@@ -39,13 +39,19 @@ function fmtDocName(name: string, typeId?: string): string {
 }
 
 // ── Category config ──────────────────────────────────────────────────────────
-const CATEGORY_LABELS: Record<string, { label: string; labelId: string; color: string }> = {
-  pasar: { label: "EBD — Market", labelId: "EBD — Pasar", color: "bg-blue-100 text-blue-800" },
-  teknis: { label: "EBD — Technical", labelId: "EBD — Teknis", color: "bg-purple-100 text-purple-800" },
-  komersial: { label: "EBD — Commercial/ESG", labelId: "EBD — Komersial/ESG", color: "bg-teal-100 text-teal-800" },
-  keuangan: { label: "Corporate Finance", labelId: "Corporate Finance", color: "bg-amber-100 text-amber-800" },
-  hukum: { label: "Legal & Regulatory", labelId: "Hukum & Regulasi", color: "bg-red-100 text-red-800" },
-  risiko: { label: "Risk Management", labelId: "Manajemen Risiko", color: "bg-orange-100 text-orange-800" },
+const CATEGORY_LABELS: Record<string, { label: string; labelId: string; color: string; description: string }> = {
+  pasar: { label: "Market Aspect", labelId: "Aspek Pasar", color: "bg-blue-100 text-blue-800",
+    description: "Evaluasi kemampuan Calon Mitra dalam penguasaan pasar atas produk atau jasa yang dikerjasamakan, serta kepemilikan spesifikasi produk atau keahlian yang memadai untuk melaksanakan kerja sama yang dibutuhkan." },
+  teknis: { label: "Technical Aspect", labelId: "Aspek Teknis", color: "bg-purple-100 text-purple-800",
+    description: "Evaluasi kemampuan teknis dan usaha Calon Mitra dalam rencana kerja sama, termasuk menilai infrastruktur dan sumber daya teknis yang dimiliki." },
+  komersial: { label: "ESG Aspect", labelId: "Aspek Lingkungan, Sosial & Tata Kelola", color: "bg-teal-100 text-teal-800",
+    description: "Evaluasi keberlanjutan dalam rangka mendukung pencapaian tujuan pembangunan yang berkelanjutan." },
+  keuangan: { label: "Financial Aspect", labelId: "Aspek Ekonomi & Keuangan", color: "bg-amber-100 text-amber-800",
+    description: "Evaluasi ada tidaknya nilai tambah ekonomis bagi PTBA serta pemangku kepentingan, termasuk kelayakan finansial Calon Mitra." },
+  hukum: { label: "Legal Aspect", labelId: "Aspek Legal", color: "bg-red-100 text-red-800",
+    description: "Evaluasi status legalitas Calon Mitra dalam melaksanakan kerja sama, baik berdasarkan perizinan, penugasan area, ataupun dokumen-dokumen hukum lainnya yang dibutuhkan." },
+  risiko: { label: "Risk Aspect", labelId: "Aspek Risiko", color: "bg-orange-100 text-orange-800",
+    description: "Evaluasi potensi risiko yang dapat mempengaruhi ketercapaian tujuan dari Kerja Sama yang dilakukan beserta rencana untuk mitigasinya." },
 };
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
@@ -785,6 +791,10 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
             <span className={cn("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory].color)}>
               Evaluator: {CATEGORY_LABELS[activeCategory].labelId}
             </span>
+            <p className="mt-1.5 text-xs text-ptba-gray italic leading-relaxed max-w-2xl">
+              {CATEGORY_LABELS[activeCategory].description}
+            </p>
+            <p className="mt-0.5 text-[10px] text-ptba-gray/70">Sesuai Pedoman Kerjasama PTBA — Keputusan Direksi No. 091/0100/2024</p>
           </div>
         )}
       </div>
@@ -1135,15 +1145,18 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                       return (
                         <div key={cat}>
                           <button type="button" onClick={() => { if (evalData?.isFinalized) setExpandedSections((p) => ({ ...p, [`other_${cat}`]: !isOpen })); }} className={cn("w-full flex items-center justify-between px-6 py-3 transition-colors", evalData?.isFinalized ? "hover:bg-ptba-section-bg cursor-pointer" : "cursor-default")}>
-                            <div className="flex items-center gap-3">
-                              <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold", catInfo.color)}>{catInfo.labelId}</span>
-                              {evalData?.isFinalized ? (
-                                <span className={cn("text-xs font-semibold", evalData.verdict === "layak" ? "text-green-600" : "text-ptba-red")}>
-                                  {evalData.verdict === "layak" ? "Layak" : "Tidak Layak"}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-ptba-gray">Belum difinalisasi</span>
-                              )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3">
+                                <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold shrink-0", catInfo.color)}>{catInfo.labelId}</span>
+                                {evalData?.isFinalized ? (
+                                  <span className={cn("text-xs font-semibold", evalData.verdict === "layak" ? "text-green-600" : "text-ptba-red")}>
+                                    {evalData.verdict === "layak" ? "Layak" : "Tidak Layak"}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-ptba-gray">Belum difinalisasi</span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-ptba-gray/70 italic mt-0.5 truncate">{catInfo.description}</p>
                             </div>
                             {evalData?.isFinalized && <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />}
                           </button>

@@ -35,8 +35,8 @@ import FormDataViewer from "@/components/features/project/form-data-viewer";
 /* ------------------------------------------------------------------ */
 
 const CATEGORY_LABELS: Record<string, string> = {
-  pasar: "Pasar", teknis: "Teknis", komersial: "Komersial",
-  keuangan: "Keuangan", hukum: "Hukum", risiko: "Risiko",
+  pasar: "Aspek Pasar", teknis: "Aspek Teknis", komersial: "Aspek ESG",
+  keuangan: "Aspek Keuangan", hukum: "Aspek Legal", risiko: "Aspek Risiko",
 };
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
