@@ -160,7 +160,7 @@
     "supportDocumentsDesc": "Dokumen dari PTBA yang dapat diunduh untuk referensi (TOR, spesifikasi teknis, dll.)",
     "yourApplicationStatus": "Status Pendaftaran Anda",
     "viewStatusDetail": "Lihat Detail Status",
-    "submitEoi": "Ajukan Pendaftaran Fase 1",
+    "submitEoi": "Ajukan Pendaftaran Tahap 1",
     "submitEoiDesc": "Siapkan dokumen Expression of Interest (EoI) yang diperlukan dan ajukan pendaftaran Fase 1 untuk proyek ini.",
     "applyEoi": "Ajukan Pendaftaran",
     "deadlinePassed": "Deadline pendaftaran telah lewat.",
@@ -186,13 +186,13 @@
     "bpp": "BPP"
   },
   "applySuccess": {
-    "title": "Pendaftaran Fase 1 Berhasil Dikirim!",
+    "title": "Pendaftaran Tahap 1 Berhasil Dikirim!",
     "description": "Formulir pendaftaran Fase 1 Anda telah berhasil dikirim. Tim evaluasi akan meninjau dokumen Anda. Kami akan menginformasikan hasil evaluasi melalui portal dan email.",
     "viewProjectDetail": "Lihat Detail Proyek",
     "viewRegistrationStatus": "Lihat Status Pendaftaran"
   },
   "apply": {
-    "title": "Formulir Pendaftaran Fase 1",
+    "title": "Formulir Pendaftaran Tahap 1",
     "phaseLabel": "Fase 1 (Evaluasi)",
     "alreadyRegistered": "Anda sudah mendaftar pada proyek ini",
     "statusLabel": "Status: {status}",
@@ -374,7 +374,7 @@
       "draftSaved": "Draft tersimpan!",
       "saveDraft": "Simpan Draft",
       "savingDraft": "Menyimpan...",
-      "submitEoi": "Kirim Pendaftaran Fase 1",
+      "submitEoi": "Kirim Pendaftaran Tahap 1",
       "submitting": "Mengirim..."
     },
     "errors": {
