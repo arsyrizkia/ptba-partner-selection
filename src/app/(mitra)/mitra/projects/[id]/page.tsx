@@ -592,83 +592,99 @@ export default function MitraProjectDetailPage() {
       </div>
       )}
 
-      {activeTab === "faq" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
-              <h2 className="text-lg font-semibold text-ptba-navy">{locale === "en" ? "Frequently Asked Questions" : "Pertanyaan yang Sering Diajukan"}</h2>
-              {(project.faqs && project.faqs.length > 0 ? project.faqs : [
-                { question: "Apa itu PRIMA PTBA?", answer: "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis." },
-                { question: "Apa saja tahapan evaluasi?", answer: "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko." },
-                { question: "Dokumen apa saja yang diperlukan?", answer: "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek." },
-                { question: "Bagaimana proses evaluasi dilakukan?", answer: "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya." },
-                { question: "Apakah bisa mengedit setelah submit?", answer: "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim." },
-              ]).map((faq: any, i: number) => (
-                <details key={i} className="group rounded-lg border border-gray-200">
-                  <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-ptba-section-bg transition-colors">
-                    <span className="text-sm font-medium text-ptba-charcoal">{faq.question}</span>
-                    <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
-                  </summary>
-                  <div className="px-4 pb-3">
-                    <p className="text-sm text-ptba-gray leading-relaxed">{faq.answer}</p>
-                  </div>
-                </details>
-              ))}
-            </div>
-          </div>
+      {activeTab === "faq" && (() => {
+        const allFaqs = project.faqs && project.faqs.length > 0 ? project.faqs : [
+          { question: "Apa itu PRIMA PTBA?", answer: "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis.", category: "umum", section: "general" },
+          { question: "Apa saja tahapan evaluasi?", answer: "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko.", category: "evaluasi", section: "general" },
+          { question: "Dokumen apa saja yang diperlukan?", answer: "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek.", category: "dokumen", section: "general" },
+          { question: "Bagaimana proses evaluasi dilakukan?", answer: "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya.", category: "evaluasi", section: "general" },
+          { question: "Apakah bisa mengedit setelah submit?", answer: "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim.", category: "pendaftaran", section: "general" },
+        ];
+        const generalFaqs = allFaqs.filter((f: any) => (f.section || "general") === "general");
+        const mitraFaqs = allFaqs.filter((f: any) => f.section === "mitra");
+        const CAT_COLORS: Record<string, string> = { pendaftaran: "bg-blue-100 text-blue-700", evaluasi: "bg-purple-100 text-purple-700", dokumen: "bg-teal-100 text-teal-700", keuangan: "bg-amber-100 text-amber-700", umum: "bg-gray-100 text-gray-700" };
+        const CAT_LABELS: Record<string, string> = { pendaftaran: "Pendaftaran", evaluasi: "Evaluasi", dokumen: "Dokumen", keuangan: "Keuangan", umum: "Umum" };
 
-          {/* Sidebar */}
-          <div className="space-y-4">
-            <div className="rounded-xl bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{locale === "en" ? "Have a Question?" : "Punya Pertanyaan?"}</h3>
-              {canApply ? (
-                <>
-                  <p className="text-xs text-ptba-gray mb-3">
-                    {locale === "en"
-                      ? "Registration is currently open. Submit your questions through the registration form or contact the project team."
-                      : "Pendaftaran sedang dibuka. Ajukan pertanyaan melalui formulir pendaftaran atau hubungi tim proyek."}
-                  </p>
-                  <button onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
-                    className="w-full rounded-lg bg-ptba-navy py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors">
-                    {locale === "en" ? "Submit Question" : "Ajukan Pertanyaan"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-xs text-ptba-gray mb-3">
-                    {locale === "en"
-                      ? "Registration is currently closed. Questions will be available during the next open registration period."
-                      : "Pendaftaran saat ini ditutup. Pertanyaan dapat diajukan saat periode pendaftaran berikutnya dibuka."}
-                  </p>
-                  <div className="rounded-lg bg-ptba-section-bg px-3 py-2 text-center">
-                    <p className="text-xs font-medium text-ptba-gray">{locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup"}</p>
+        const FaqList = ({ items }: { items: any[] }) => items.length === 0
+          ? <p className="text-xs text-ptba-gray py-4 text-center">{locale === "en" ? "No questions yet." : "Belum ada pertanyaan."}</p>
+          : <div className="divide-y divide-gray-100">{items.map((faq: any, i: number) => (
+              <details key={faq.id || i} className="group">
+                <summary className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-ptba-section-bg transition-colors">
+                  {faq.category && <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0", CAT_COLORS[faq.category] || CAT_COLORS.umum)}>{CAT_LABELS[faq.category] || faq.category}</span>}
+                  <span className="text-sm font-medium text-ptba-charcoal flex-1">{faq.question}</span>
+                  <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-4 pb-3 pl-[calc(theme(spacing.4)+4ch)]"><p className="text-sm text-ptba-gray leading-relaxed">{faq.answer}</p></div>
+              </details>
+            ))}</div>;
+
+        return (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Section 1: FAQ Umum */}
+              <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b bg-ptba-section-bg">
+                  <h2 className="text-base font-bold text-ptba-navy">{locale === "en" ? "General FAQ" : "FAQ Umum"}</h2>
+                  <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Frequently asked questions about this project" : "Pertanyaan yang sering diajukan tentang proyek ini"}</p>
+                </div>
+                <FaqList items={generalFaqs} />
+              </div>
+
+              {/* Section 2: Pertanyaan Mitra */}
+              {mitraFaqs.length > 0 && (
+                <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b bg-ptba-steel-blue/5">
+                    <h2 className="text-base font-bold text-ptba-steel-blue">{locale === "en" ? "Questions from Partners" : "Pertanyaan yang Sering Ditanyakan Mitra"}</h2>
+                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Common questions asked by prospective partners" : "Pertanyaan umum dari calon mitra"}</p>
                   </div>
-                </>
+                  <FaqList items={mitraFaqs} />
+                </div>
               )}
             </div>
 
-            {project.phase1Deadline && (
+            {/* Sidebar */}
+            <div className="space-y-4">
               <div className="rounded-xl bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{locale === "en" ? "Important Dates" : "Tanggal Penting"}</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Calendar className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
-                    <span className="text-ptba-gray">{locale === "en" ? "Phase 1 Deadline" : "Deadline Tahap 1"}:</span>
-                    <span className="font-medium text-ptba-charcoal">{new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}</span>
-                  </div>
-                  {project.phase2Deadline && (
+                <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{locale === "en" ? "Have a Question?" : "Punya Pertanyaan?"}</h3>
+                {canApply ? (
+                  <>
+                    <p className="text-xs text-ptba-gray mb-3">{locale === "en" ? "Registration is currently open. Contact the project team for questions." : "Pendaftaran sedang dibuka. Hubungi tim proyek untuk pertanyaan."}</p>
+                    <button onClick={() => router.push(`/mitra/projects/${projectId}/apply`)} className="w-full rounded-lg bg-ptba-navy py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors">
+                      {locale === "en" ? "Apply Now" : "Ajukan Pendaftaran"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-ptba-gray mb-3">{locale === "en" ? "Registration is currently closed." : "Pendaftaran saat ini ditutup."}</p>
+                    <div className="rounded-lg bg-ptba-section-bg px-3 py-2 text-center">
+                      <p className="text-xs font-medium text-ptba-gray">{locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup"}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              {project.phase1Deadline && (
+                <div className="rounded-xl bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{locale === "en" ? "Important Dates" : "Tanggal Penting"}</h3>
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs">
                       <Calendar className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
-                      <span className="text-ptba-gray">{locale === "en" ? "Phase 2 Deadline" : "Deadline Tahap 2"}:</span>
-                      <span className="font-medium text-ptba-charcoal">{new Date(project.phase2Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}</span>
+                      <span className="text-ptba-gray">{locale === "en" ? "Phase 1 Deadline" : "Deadline Tahap 1"}:</span>
+                      <span className="font-medium text-ptba-charcoal">{new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}</span>
                     </div>
-                  )}
+                    {project.phase2Deadline && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <Calendar className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
+                        <span className="text-ptba-gray">{locale === "en" ? "Phase 2 Deadline" : "Deadline Tahap 2"}:</span>
+                        <span className="font-medium text-ptba-charcoal">{new Date(project.phase2Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Image Lightbox */}
       {lightboxSrc && (
