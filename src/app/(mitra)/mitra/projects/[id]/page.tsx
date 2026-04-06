@@ -597,21 +597,20 @@ export default function MitraProjectDetailPage() {
           <div className="lg:col-span-2">
             <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
               <h2 className="text-lg font-semibold text-ptba-navy">{locale === "en" ? "Frequently Asked Questions" : "Pertanyaan yang Sering Diajukan"}</h2>
-              {[
-                { q: locale === "en" ? "What is PRIMA PTBA?" : "Apa itu PRIMA PTBA?", a: locale === "en" ? "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) is the official partner selection system of PT Bukit Asam (Persero) Tbk for managing strategic partnership opportunities." : "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis." },
-                { q: locale === "en" ? "What are the evaluation phases?" : "Apa saja tahapan evaluasi?", a: locale === "en" ? "The evaluation process consists of 2 phases: Phase 1 (Pre-Qualification) and Phase 2 (Final Proposal & Ranking). Each phase evaluates 6 aspects: Market, Technical, ESG, Financial, Legal, and Risk." : "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko." },
-                { q: locale === "en" ? "What documents are required?" : "Dokumen apa saja yang diperlukan?", a: locale === "en" ? "Required documents include Company Profile, Expression of Interest Letter, Project Experience Portfolio, Financial Overview, and other supporting documents as specified in each project." : "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek." },
-                { q: locale === "en" ? "How is the evaluation conducted?" : "Bagaimana proses evaluasi dilakukan?", a: locale === "en" ? "Each evaluation category is assessed by a designated evaluator team. All 6 categories must be marked as 'Layak' (Eligible) for the partner to proceed to the next phase." : "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya." },
-                { q: locale === "en" ? "Can I edit my submission after submitting?" : "Apakah bisa mengedit setelah submit?", a: locale === "en" ? "No, once submitted, the application cannot be edited. Please ensure all information and documents are complete and accurate before submitting." : "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim." },
-                { q: locale === "en" ? "When is the registration deadline?" : "Kapan batas waktu pendaftaran?", a: project.phase1Deadline ? (locale === "en" ? `Phase 1 registration deadline: ${new Date(project.phase1Deadline).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}` : `Deadline pendaftaran Tahap 1: ${new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`) : (locale === "en" ? "Please check the project details for deadline information." : "Silakan cek detail proyek untuk informasi batas waktu.") },
-              ].map((faq, i) => (
+              {(project.faqs && project.faqs.length > 0 ? project.faqs : [
+                { question: "Apa itu PRIMA PTBA?", answer: "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis." },
+                { question: "Apa saja tahapan evaluasi?", answer: "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko." },
+                { question: "Dokumen apa saja yang diperlukan?", answer: "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek." },
+                { question: "Bagaimana proses evaluasi dilakukan?", answer: "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya." },
+                { question: "Apakah bisa mengedit setelah submit?", answer: "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim." },
+              ]).map((faq: any, i: number) => (
                 <details key={i} className="group rounded-lg border border-gray-200">
                   <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-ptba-section-bg transition-colors">
-                    <span className="text-sm font-medium text-ptba-charcoal">{faq.q}</span>
+                    <span className="text-sm font-medium text-ptba-charcoal">{faq.question}</span>
                     <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
                   </summary>
                   <div className="px-4 pb-3">
-                    <p className="text-sm text-ptba-gray leading-relaxed">{faq.a}</p>
+                    <p className="text-sm text-ptba-gray leading-relaxed">{faq.answer}</p>
                   </div>
                 </details>
               ))}

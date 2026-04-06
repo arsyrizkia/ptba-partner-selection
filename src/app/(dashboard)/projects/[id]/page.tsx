@@ -35,6 +35,7 @@ import {
   XCircle,
   Download,
   ChevronDown,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -343,7 +344,7 @@ function EvalStatusCell({ done }: { done: boolean }) {
   );
 }
 
-type Tab = "mitra" | "dokumen" | "informasi" | "riwayat";
+type Tab = "mitra" | "dokumen" | "informasi" | "faq" | "riwayat";
 
 export default function ProjectDetailPage({
   params,
@@ -354,6 +355,11 @@ export default function ProjectDetailPage({
   const { role, accessToken, user: authUser } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("mitra");
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [faqQuestion, setFaqQuestion] = useState("");
+  const [faqAnswer, setFaqAnswer] = useState("");
+  const [faqEditId, setFaqEditId] = useState<string | null>(null);
+  const [faqSaving, setFaqSaving] = useState(false);
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -505,6 +511,7 @@ export default function ProjectDetailPage({
     setLoading(true);
     projectApi(accessToken).getById(id).then((res) => {
       setProject(res.data);
+      if (res.data.faqs) setFaqs(res.data.faqs);
       if (res.data.registrationFee) setPhase2Fee(Number(res.data.registrationFee));
     }).catch(() => {
       setProject(null);
@@ -1265,6 +1272,7 @@ export default function ProjectDetailPage({
                 { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
                 { key: "dokumen", label: "Dokumen", icon: FileText },
                 { key: "informasi", label: "Informasi", icon: Info },
+                { key: "faq", label: "FAQ", icon: HelpCircle },
                 { key: "riwayat", label: "Riwayat", icon: Clock },
               ] as const
             ).map(({ key, label, icon: Icon }) => (
@@ -2202,6 +2210,100 @@ export default function ProjectDetailPage({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab: FAQ */}
+      {activeTab === "faq" && (
+        <div className="rounded-xl bg-white p-6 shadow-sm space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-ptba-charcoal flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-ptba-navy" /> FAQ Proyek
+            </h3>
+            <span className="text-xs text-ptba-gray">{faqs.length} pertanyaan</span>
+          </div>
+
+          {/* Add / Edit form */}
+          {isAdmin && (
+            <div className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
+              <p className="text-xs font-semibold text-ptba-navy">{faqEditId ? "Edit FAQ" : "Tambah FAQ"}</p>
+              <input
+                type="text"
+                placeholder="Pertanyaan..."
+                value={faqQuestion}
+                onChange={(e) => setFaqQuestion(e.target.value)}
+                className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue"
+              />
+              <textarea
+                placeholder="Jawaban..."
+                value={faqAnswer}
+                onChange={(e) => setFaqAnswer(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue resize-y"
+              />
+              <div className="flex gap-2">
+                <button
+                  disabled={!faqQuestion.trim() || !faqAnswer.trim() || faqSaving}
+                  onClick={async () => {
+                    if (!accessToken) return;
+                    setFaqSaving(true);
+                    try {
+                      if (faqEditId) {
+                        const res = await api<{ faq: any }>(`/projects/${id}/faqs/${faqEditId}`, { method: "PUT", token: accessToken, body: { question: faqQuestion, answer: faqAnswer } });
+                        setFaqs((prev) => prev.map((f) => f.id === faqEditId ? res.faq : f));
+                      } else {
+                        const res = await api<{ faq: any }>(`/projects/${id}/faqs`, { method: "POST", token: accessToken, body: { question: faqQuestion, answer: faqAnswer, sort_order: faqs.length } });
+                        setFaqs((prev) => [...prev, res.faq]);
+                      }
+                      setFaqQuestion(""); setFaqAnswer(""); setFaqEditId(null);
+                    } catch { alert("Gagal menyimpan FAQ"); }
+                    finally { setFaqSaving(false); }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 disabled:opacity-50 transition-colors"
+                >
+                  <Save className="h-3.5 w-3.5" /> {faqSaving ? "Menyimpan..." : faqEditId ? "Update" : "Simpan"}
+                </button>
+                {faqEditId && (
+                  <button onClick={() => { setFaqEditId(null); setFaqQuestion(""); setFaqAnswer(""); }} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                    Batal
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* FAQ list */}
+          {faqs.length === 0 ? (
+            <div className="text-center py-8">
+              <HelpCircle className="h-10 w-10 text-ptba-gray mx-auto mb-3" />
+              <p className="text-sm text-ptba-gray">Belum ada FAQ untuk proyek ini.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {faqs.map((faq) => (
+                <details key={faq.id} className="group rounded-lg border border-gray-200">
+                  <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-ptba-section-bg transition-colors">
+                    <span className="text-sm font-medium text-ptba-charcoal">{faq.question}</span>
+                    <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
+                  </summary>
+                  <div className="px-4 pb-3 flex items-start justify-between gap-3">
+                    <p className="text-sm text-ptba-gray leading-relaxed">{faq.answer}</p>
+                    {isAdmin && (
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => { setFaqEditId(faq.id); setFaqQuestion(faq.question); setFaqAnswer(faq.answer); }}
+                          className="rounded p-1 text-ptba-steel-blue hover:bg-ptba-steel-blue/10"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={async () => {
+                          if (!confirm("Hapus FAQ ini?") || !accessToken) return;
+                          await api(`/projects/${id}/faqs/${faq.id}`, { method: "DELETE", token: accessToken });
+                          setFaqs((prev) => prev.filter((f) => f.id !== faq.id));
+                        }} className="rounded p-1 text-ptba-red hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
