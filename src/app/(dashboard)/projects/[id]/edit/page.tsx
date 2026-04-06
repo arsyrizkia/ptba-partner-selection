@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { projectApi, ApiClientError } from "@/lib/api/client";
+import { projectApi, api, ApiClientError } from "@/lib/api/client";
+import { getLockedSections } from "@/lib/utils/edit-restrictions";
 import ProjectForm, {
   type ProjectFormData,
   type SupportingFileExisting,
@@ -24,36 +25,40 @@ export default function EditProjectPage({
   const [loadingProject, setLoadingProject] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [projectData, setProjectData] = useState<any>(null);
+  const [applicationCount, setApplicationCount] = useState(0);
   const [uploadingFile, setUploadingFile] = useState(false);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
-  // Fetch existing project data
+  // Fetch existing project data + application count
   useEffect(() => {
     if (!accessToken) return;
     setLoadingProject(true);
     setLoadError("");
-    projectApi(accessToken)
-      .getById(id)
-      .then((res) => {
-        const project = res.data;
-        if (!project) {
-          setLoadError("Proyek tidak ditemukan.");
-          return;
-        }
-        setProjectData(project);
-      })
-      .catch((err) => {
-        if (err instanceof ApiClientError) {
-          setLoadError(err.message);
-        } else {
-          setLoadError("Gagal memuat data proyek.");
-        }
-      })
-      .finally(() => {
-        setLoadingProject(false);
-      });
+    Promise.all([
+      projectApi(accessToken).getById(id),
+      api<{ applications: any[] }>("/applications", { token: accessToken }).catch(() => ({ applications: [] })),
+    ]).then(([res, appsRes]) => {
+      const project = res.data;
+      if (!project) {
+        setLoadError("Proyek tidak ditemukan.");
+        return;
+      }
+      setProjectData(project);
+      const appCount = (appsRes.applications || []).filter((a: any) => a.project_id === id && a.status !== "Draft").length;
+      setApplicationCount(appCount);
+    }).catch((err) => {
+      if (err instanceof ApiClientError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Gagal memuat data proyek.");
+      }
+    }).finally(() => {
+      setLoadingProject(false);
+    });
   }, [accessToken, id]);
+
+  const lockedSections = projectData ? getLockedSections(projectData.phase, applicationCount) : new Set<string>();
 
   // Upload a file immediately (edit mode)
   const handleFileUpload = async (file: File): Promise<SupportingFileExisting | null> => {
@@ -306,6 +311,7 @@ export default function EditProjectPage({
       onFileDelete={handleFileDelete}
       uploadingFile={uploadingFile}
       cancelHref={`/projects/${id}`}
+      lockedSections={lockedSections}
     />
   );
 }

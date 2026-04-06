@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, Loader2, ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, CheckCircle2, Loader2, ImageIcon, X, Lock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -150,6 +150,8 @@ export interface ProjectFormProps {
   uploadingFile?: boolean;
   /** Where to navigate on cancel (step 1) */
   cancelHref: string;
+  /** Sections that are locked (read-only) based on project phase */
+  lockedSections?: Set<string>;
 }
 
 function formatDateForInput(dateStr: string | null | undefined): string {
@@ -161,6 +163,15 @@ function formatDateForInput(dateStr: string | null | undefined): string {
   } catch {
     return "";
   }
+}
+
+function LockedBanner({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 mb-4">
+      <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+      <p className="text-xs text-amber-800">{message}</p>
+    </div>
+  );
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -175,10 +186,12 @@ export default function ProjectForm({
   onFileDelete,
   uploadingFile = false,
   cancelHref,
+  lockedSections = new Set(),
 }: ProjectFormProps) {
   const router = useRouter();
   const { accessToken } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const isLocked = (section: string) => lockedSections.has(section);
 
   // Internal users for PIC
   const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
@@ -1021,14 +1034,14 @@ export default function ProjectForm({
 
             {/* Phase deadlines */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 1</label>
+              <fieldset disabled={isLocked("phase1Deadline")} className={isLocked("phase1Deadline") ? "opacity-60" : ""}>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 1 {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 2</label>
+              </fieldset>
+              <fieldset disabled={isLocked("phase2Deadline")} className={isLocked("phase2Deadline") ? "opacity-60" : ""}>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 2 {isLocked("phase2Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
-              </div>
+              </fieldset>
             </div>
 
             {/* Dokumen Pendukung Proyek — per fase */}
@@ -1116,9 +1129,11 @@ export default function ProjectForm({
         {currentStep === 3 && (
           <div className="space-y-6">
             {/* Persyaratan Mitra */}
+            <fieldset disabled={isLocked("requirements")} className={isLocked("requirements") ? "opacity-60" : ""}>
+            {isLocked("requirements") && <LockedBanner message="Persyaratan mitra tidak dapat diubah karena mitra sudah mendaftar" />}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-ptba-charcoal">Persyaratan Mitra</h2>
+                <h2 className="text-lg font-semibold text-ptba-charcoal">Persyaratan Mitra {isLocked("requirements") && <Lock className="inline h-4 w-4 text-amber-500" />}</h2>
                 <button
                   type="button"
                   onClick={addRequirement}
@@ -1154,11 +1169,15 @@ export default function ProjectForm({
               </div>
             </div>
 
+            </fieldset>
+
             {/* Fase 1 EoI Documents */}
+            <fieldset disabled={isLocked("phase1Docs")} className={isLocked("phase1Docs") ? "opacity-60" : ""}>
+            {isLocked("phase1Docs") && <LockedBanner message="Dokumen Fase 1 tidak dapat diubah karena mitra sudah mendaftar" />}
             <div className="space-y-3">
               <div className="rounded-lg border border-ptba-steel-blue/30 overflow-hidden">
                 <div className="bg-ptba-steel-blue/10 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Dokumen Fase 1</h3>
+                  <h3 className="text-sm font-semibold text-ptba-steel-blue">Dokumen Fase 1 {isLocked("phase1Docs") && <Lock className="inline h-3 w-3 text-amber-500" />}</h3>
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra pada tahap pendaftaran awal</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
@@ -1225,11 +1244,15 @@ export default function ProjectForm({
               </div>
             </div>
 
+            </fieldset>
+
             {/* Fase 2 Documents */}
+            <fieldset disabled={isLocked("phase2Docs")} className={isLocked("phase2Docs") ? "opacity-60" : ""}>
+            {isLocked("phase2Docs") && <LockedBanner message="Dokumen Fase 2 tidak dapat diubah pada fase ini" />}
             <div className="space-y-3">
               <div className="rounded-lg border border-ptba-navy/30 overflow-hidden">
                 <div className="bg-ptba-navy/10 px-4 py-2.5">
-                  <h3 className="text-sm font-semibold text-ptba-navy">Dokumen Fase 2</h3>
+                  <h3 className="text-sm font-semibold text-ptba-navy">Dokumen Fase 2 {isLocked("phase2Docs") && <Lock className="inline h-3 w-3 text-amber-500" />}</h3>
                   <p className="text-xs text-ptba-gray mt-0.5">Dokumen yang harus diunggah mitra yang lolos shortlist</p>
                 </div>
                 <div className="divide-y divide-ptba-light-gray/50">
@@ -1369,7 +1392,10 @@ export default function ProjectForm({
             </div>
             )}
 
+            </fieldset>
+
             {/* Custom Documents */}
+            <fieldset disabled={isLocked("customDocs")} className={isLocked("customDocs") ? "opacity-60" : ""}>
             <div className="rounded-lg border border-dashed border-ptba-steel-blue/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -1456,11 +1482,14 @@ export default function ProjectForm({
                 </div>
               )}
             </div>
+          </fieldset>
           </div>
         )}
 
         {/* Step 4: Penunjukan PIC */}
         {currentStep === 4 && (
+          <fieldset disabled={isLocked("pics")} className={isLocked("pics") ? "opacity-60" : ""}>
+          {isLocked("pics") && <LockedBanner message="Penugasan PIC tidak dapat diubah pada fase ini" />}
           <div className="space-y-6">
             <div className="rounded-xl bg-white p-6 shadow-sm border border-ptba-light-gray">
               <h2 className="text-lg font-semibold text-ptba-charcoal">Penunjukan PIC per Fase</h2>
@@ -1550,6 +1579,7 @@ export default function ProjectForm({
               </div>
             </div>
           </div>
+          </fieldset>
         )}
 
         {/* Step 5: Ringkasan */}

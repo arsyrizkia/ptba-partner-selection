@@ -1296,45 +1296,38 @@ export default function ProjectDetailPage({
           </nav>
           {isAdmin && !editMode && (
             <div className="flex items-center gap-2 pb-2">
-              {applicationCount ? (
-                <>
-                  <span className="text-xs text-ptba-gray">Tidak dapat diedit — {applicationCount} mitra sudah mendaftar</span>
-                  <button disabled className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-400 cursor-not-allowed">
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit Proyek
-                  </button>
-                  {canEditPic && (
-                    <button
-                      onClick={async () => {
-                        if (!accessToken) return;
-                        // Load internal users for PIC dropdowns
-                        try {
-                          const res = await authApi().listUsers(accessToken);
-                          setPicUsers(res.users.filter((u: any) => u.status === "active").map((u: any) => ({ id: u.id, name: u.name, role: u.role })));
-                        } catch { /* ignore */ }
-                        // Pre-fill from phasePics
-                        const entries = (project.phasePics || []).map((p: any) => ({
-                          phase: p.phase,
-                          role: p.role,
-                          subcategory: p.subcategory || undefined,
-                          userId: p.userId,
-                          userName: p.userName || undefined,
-                        }));
-                        setPicDraft(entries);
-                        setPicEditTab("phase1");
-                        setShowPicEdit(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-4 py-2 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
-                    >
-                      <Users className="h-3.5 w-3.5" />
-                      Edit PIC
-                    </button>
-                  )}
-                </>
-              ) : (
-                <button onClick={() => router.push(`/projects/${id}/edit`)} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-4 py-2 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit Proyek
+              {applicationCount > 0 && (
+                <span className="text-xs text-amber-600">
+                  {project.phase?.startsWith("phase2") ? "Hanya PIC yang dapat diedit" : "Beberapa bagian terkunci"}
+                </span>
+              )}
+              <button onClick={() => router.push(`/projects/${id}/edit`)} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-navy px-4 py-2 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
+                <Pencil className="h-3.5 w-3.5" />
+                Edit Proyek
+              </button>
+              {canEditPic && applicationCount > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!accessToken) return;
+                    try {
+                      const res = await authApi().listUsers(accessToken);
+                      setPicUsers(res.users.filter((u: any) => u.status === "active").map((u: any) => ({ id: u.id, name: u.name, role: u.role })));
+                    } catch { /* ignore */ }
+                    const entries = (project.phasePics || []).map((p: any) => ({
+                      phase: p.phase,
+                      role: p.role,
+                      subcategory: p.subcategory || undefined,
+                      userId: p.userId,
+                      userName: p.userName || undefined,
+                    }));
+                    setPicDraft(entries);
+                    setPicEditTab("phase1");
+                    setShowPicEdit(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-4 py-2 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Edit PIC
                 </button>
               )}
             </div>
