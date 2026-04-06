@@ -269,7 +269,7 @@
       "eoiDeclaration": "Berdasarkan indicative CAPEX, DER, dan Business Scheme pada Deskripsi Proyek, dengan ini kami menyatakan minat untuk mengikuti proses seleksi mitra strategis PT Bukit Asam (Persero) Tbk untuk proyek <strong>{projectName}</strong> dengan mengajukan persentase ekuitas joint venture sebesar <strong>{equityPercent}%</strong>. Kami memahami bahwa pengajuan Expression of Interest ini tidak mengikat kedua belah pihak dan hanya merupakan tahap awal dari proses seleksi.",
       "agreeStatement": "Saya <strong>menyetujui</strong> pernyataan di atas dan menyatakan bahwa perusahaan kami berminat untuk berpartisipasi.",
       "shareholderType": "Tipe Pemegang Saham",
-      "majority": "Pemegang Saham Mayoritas (>50%)",
+      "majority": "Pemegang Saham Mayoritas (>50% - 51%)",
       "minority": "Pemegang Saham Minoritas (45–50%)",
       "equityPercent": "Persentase Ekuitas Joint Venture",
       "equityPercentHint": "Persentase ekuitas yang diajukan jika terpilih sebagai mitra dalam joint venture",

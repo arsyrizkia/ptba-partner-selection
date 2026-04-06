@@ -1491,15 +1491,15 @@ export default function MitraProjectApplyPage() {
                         onChange={(e) => setMinorityEquityPercent(e.target.value.replace(/[^0-9.,]/g, ""))}
                         placeholder={shareholderType === "majority" ? "51" : shareholderType === "minority" ? "49" : "49"}
                         className={cn(inputClass, "pr-10", errBorder(minorityEquityPercent),
-                          shareholderType === "majority" && minorityEquityPercent && parseFloat(minorityEquityPercent.replace(",", ".")) <= 50 && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
+                          shareholderType === "majority" && minorityEquityPercent && (() => { const v = parseFloat(minorityEquityPercent.replace(",", ".")); return v <= 50 || v > 51; })() && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
                           shareholderType === "minority" && minorityEquityPercent && (parseFloat(minorityEquityPercent.replace(",", ".")) < 45 || parseFloat(minorityEquityPercent.replace(",", ".")) >= 50) && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10",
                         )}
                         disabled={readOnly}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-ptba-gray">%</span>
                     </div>
-                    {shareholderType === "majority" && minorityEquityPercent && parseFloat(minorityEquityPercent.replace(",", ".")) <= 50 && (
-                      <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMajority")}</p>
+                    {shareholderType === "majority" && minorityEquityPercent && (() => { const v = parseFloat(minorityEquityPercent.replace(",", ".")); return v <= 50 || v > 51; })() && (
+                      <p className="text-[10px] text-ptba-red mt-1">{locale === "en" ? "Majority equity must be >50% and ≤51%" : "Ekuitas mayoritas harus >50% dan ≤51%"}</p>
                     )}
                     {shareholderType === "minority" && minorityEquityPercent && (parseFloat(minorityEquityPercent.replace(",", ".")) < 45 || parseFloat(minorityEquityPercent.replace(",", ".")) >= 50) && (
                       <p className="text-[10px] text-ptba-red mt-1">{t("eoiFields.errMinority")}</p>

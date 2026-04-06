@@ -22,8 +22,8 @@ function Field({ label, value }: { label: string; value?: string }) {
 }
 
 const SHAREHOLDER_LABELS: Record<string, Record<string, string>> = {
-  en: { majority: "Majority Shareholder (>50%)", minority: "Minority Shareholder (45-50%)" },
-  id: { majority: "Pemegang Saham Mayoritas (>50%)", minority: "Pemegang Saham Minoritas (45-50%)" },
+  en: { majority: "Majority Shareholder (>50% - 51%)", minority: "Minority Shareholder (45-50%)" },
+  id: { majority: "Pemegang Saham Mayoritas (>50% - 51%)", minority: "Pemegang Saham Minoritas (45-50%)" },
 };
 const CAT_LABELS: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Project Financing", general: "General Project" };
 

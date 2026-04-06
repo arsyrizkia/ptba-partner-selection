@@ -269,7 +269,7 @@
       "eoiDeclaration": "According to the indicative CAPEX, DER, and Business Scheme in the Project Description, we hereby declare our interest in participating in the PT Bukit Asam (Persero) Tbk strategic partner selection process for the <strong>{projectName}</strong> project, proposing a joint venture equity percentage of <strong>{equityPercent}%</strong>. We understand that this Expression of Interest submission is non-binding for both parties and is only the initial stage of the selection process.",
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that our company is interested in participating.",
       "shareholderType": "Shareholder Type",
-      "majority": "Majority Shareholder (>50%)",
+      "majority": "Majority Shareholder (>50% - 51%)",
       "minority": "Minority Shareholder (45–50%)",
       "equityPercent": "Joint Venture Equity Percentage",
       "equityPercentHint": "Proposed equity percentage if selected as joint venture partner",

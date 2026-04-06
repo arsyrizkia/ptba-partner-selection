@@ -112,7 +112,7 @@ function getLabel(key: string): string {
 }
 
 const VALUE_LABELS: Record<string, string> = {
-  majority: "Pemegang Saham Mayoritas (>50%)",
+  majority: "Pemegang Saham Mayoritas (>50% - 51%)",
   minority: "Pemegang Saham Minoritas (45–50%)",
   yes: "Ya",
   no: "Tidak",
