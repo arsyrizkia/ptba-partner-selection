@@ -717,7 +717,7 @@
       "companyNameHint": "Nama lengkap perusahaan sesuai akta",
       "companyCode": "Kode Perusahaan",
       "companyCodePlaceholder": "Contoh: MJB",
-      "companyCodeHint": "Kode singkat unik (huruf, angka, strip)",
+      "companyCodeHint": "Kode singkat (huruf, angka, strip)",
       "businessOverview": "Overview Bidang Usaha (Sesuai KBLI)",
       "businessOverviewPlaceholder": "Jelaskan bidang usaha utama perusahaan Anda",
       "businessOverviewHint": "Deskripsi singkat bidang usaha dan kegiatan utama perusahaan",

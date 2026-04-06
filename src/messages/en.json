@@ -717,7 +717,7 @@
       "companyNameHint": "Full company name as per deed of establishment",
       "companyCode": "Company Code",
       "companyCodePlaceholder": "e.g. MJB",
-      "companyCodeHint": "Unique short code (letters, numbers, hyphens)",
+      "companyCodeHint": "Short code (letters, numbers, hyphens)",
       "businessOverview": "Business Overview (As per KBLI)",
       "businessOverviewPlaceholder": "Describe your company's main line of business",
       "businessOverviewHint": "Brief description of business activities",
