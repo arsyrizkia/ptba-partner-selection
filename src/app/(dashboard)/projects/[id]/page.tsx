@@ -564,6 +564,7 @@ export default function ProjectDetailPage({
       ...(a.phase2Documents || []),
       ...(a.generalDocuments || []),
     ];
+    const fd = a.form_data || {};
     return {
       id: a.partner_id,
       applicationId: a.id,
@@ -571,6 +572,10 @@ export default function ProjectDetailPage({
       code: a.partner_id.substring(0, 8),
       status: a.status,
       appliedAt: a.applied_at,
+      businessOverview: fd.businessOverview,
+      companyAddress: fd.companyAddress,
+      companyPhone: fd.companyPhone,
+      companyEmail: fd.companyEmail,
       phase1Result: a.phase1_result || evaluation?.overall_result,
       phase1Score: evaluation?.weighted_score != null ? Number(evaluation.weighted_score) : undefined,
       hasEvaluation: !!evaluation,
@@ -1243,15 +1248,11 @@ export default function ProjectDetailPage({
             </div>
 
             {/* Phase labels under bar */}
-            <div className="flex mt-1.5">
-              {[
-                { label: "Fase 1", steps: PHASE1_STEPS.length, color: "text-ptba-navy" },
-                { label: "Fase 2", steps: PHASE2_STEPS.length, color: "text-ptba-steel-blue" },
-              ].map((p) => (
-                <div key={p.label} style={{ width: `${(p.steps / (PHASE1_STEPS.length + PHASE2_STEPS.length)) * 100}%` }} className={cn("text-[10px] font-medium", p.color)}>
-                  {p.label}
-                </div>
-              ))}
+            <div className="flex justify-between mt-1.5 text-[10px] text-ptba-gray">
+              <span>Pendaftaran</span>
+              <span>Evaluasi Tahap 1</span>
+              <span>Evaluasi Tahap 2</span>
+              <span>Selesai</span>
             </div>
           </div>
           </div>
@@ -1391,7 +1392,12 @@ export default function ProjectDetailPage({
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-ptba-charcoal truncate">{partner.name}</p>
-                          <p className="text-xs text-ptba-gray">{partner.code}</p>
+                          {partner.businessOverview && <p className="text-xs text-ptba-gray mt-0.5 line-clamp-1">{partner.businessOverview}</p>}
+                          {(partner.companyAddress || partner.companyEmail) && (
+                            <p className="text-[10px] text-ptba-gray/70 mt-0.5 truncate">
+                              {[partner.companyAddress, partner.companyPhone, partner.companyEmail].filter(Boolean).join(" · ")}
+                            </p>
+                          )}
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1 rounded-full bg-ptba-section-bg px-2 py-0.5 text-[11px] text-ptba-gray">
                               <FileText className="h-3 w-3" /> {partner.status}
