@@ -184,13 +184,13 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
                 {exp.category === "financing" && <>
                   <EvalField label="Tipe Pembiayaan" value={exp.financingType} />
                   <EvalField label="Jumlah (USD)" value={exp.amountUSD} />
-                  <EvalField label="Tahun" value={exp.year} />
+                  <EvalField label="Tahun COD" value={exp.codYear || exp.year} />
                 </>}
                 {exp.category === "general" && <>
                   <EvalField label="Jenis Proyek" value={exp.projectType} />
                   <EvalField label="Peran" value={exp.role} />
                   {exp.contractValueUSD && <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />}
-                  <EvalField label="Tahun" value={exp.year} />
+                  <EvalField label="Tahun COD" value={exp.codYear || exp.year} />
                   {exp.description && <EvalField label="Deskripsi" value={exp.description} />}
                 </>}
               </dl>

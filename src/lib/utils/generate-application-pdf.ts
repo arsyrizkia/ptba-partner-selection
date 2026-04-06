@@ -154,12 +154,12 @@ tr:nth-child(even) td { background: #fafbfc; }
       ` : exp.category === "financing" ? `
         <div class="field"><div class="field-label">Tipe Pembiayaan</div><div class="field-value">${esc(exp.financingType)}</div></div>
         <div class="field"><div class="field-label">Jumlah (USD)</div><div class="field-value">${esc(exp.amountUSD)}</div></div>
-        <div class="field"><div class="field-label">Tahun</div><div class="field-value">${esc(exp.year)}</div></div>
+        <div class="field"><div class="field-label">Tahun COD</div><div class="field-value">${esc(exp.codYear || exp.year)}</div></div>
       ` : exp.category === "general" ? `
         <div class="field"><div class="field-label">Jenis Proyek</div><div class="field-value">${esc(exp.projectType)}</div></div>
         <div class="field"><div class="field-label">Peran</div><div class="field-value">${esc(exp.role)}</div></div>
         ${exp.contractValueUSD ? `<div class="field"><div class="field-label">Nilai Kontrak (USD)</div><div class="field-value">${esc(exp.contractValueUSD)}</div></div>` : ""}
-        <div class="field"><div class="field-label">Tahun</div><div class="field-value">${esc(exp.year)}</div></div>
+        <div class="field"><div class="field-label">Tahun COD</div><div class="field-value">${esc(exp.codYear || exp.year)}</div></div>
         ${exp.description ? `<div class="field"><div class="field-label">Deskripsi</div><div class="field-value">${esc(exp.description)}</div></div>` : ""}
       ` : ""}
     </div>

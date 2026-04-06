@@ -131,7 +131,14 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
                   {exp.category === "financing" && <>
                     <Field label={locale === "en" ? "Financing Type" : "Tipe Pembiayaan"} value={exp.financingType} />
                     <Field label={locale === "en" ? "Amount (USD)" : "Jumlah (USD)"} value={exp.amountUSD} />
-                    <Field label={t("formData.year")} value={exp.year} />
+                    <Field label={locale === "en" ? "COD Year" : "Tahun COD"} value={exp.codYear || exp.year} />
+                  </>}
+                  {exp.category === "general" && <>
+                    <Field label={locale === "en" ? "Project Type" : "Jenis Proyek"} value={exp.projectType} />
+                    <Field label={locale === "en" ? "Role" : "Peran"} value={exp.role} />
+                    <Field label={locale === "en" ? "Contract Value (USD)" : "Nilai Kontrak (USD)"} value={exp.contractValueUSD} />
+                    <Field label={locale === "en" ? "COD Year" : "Tahun COD"} value={exp.codYear || exp.year} />
+                    {exp.description && <Field label={locale === "en" ? "Description" : "Deskripsi"} value={exp.description} />}
                   </>}
                 </dl>
               </div>
