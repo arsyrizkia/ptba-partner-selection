@@ -1,6 +1,6 @@
 const SHAREHOLDER_LABELS: Record<string, string> = {
   majority: "Pemegang Saham Mayoritas (>50% - 51%)",
-  minority: "Pemegang Saham Minoritas (45–50%)",
+  minority: "Pemegang Saham Minoritas (&lt;50%)",
 };
 
 function esc(s: string | undefined | null): string {

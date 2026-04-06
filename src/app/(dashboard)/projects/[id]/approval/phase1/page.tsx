@@ -199,7 +199,7 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
         <EvalField label="Nama Penandatangan" value={fd.signerName} />
         <EvalField label="Jabatan" value={fd.signerPosition} />
         <EvalField label="Tanggal" value={fd.signerDate} />
-        <EvalField label="Tipe Pemegang Saham" value={fd.shareholderType === "majority" ? "Pemegang Saham Mayoritas (>50% - 51%)" : fd.shareholderType === "minority" ? "Pemegang Saham Minoritas (45–50%)" : fd.shareholderType} />
+        <EvalField label="Tipe Pemegang Saham" value={fd.shareholderType === "majority" ? "Pemegang Saham Mayoritas (>50% - 51%)" : fd.shareholderType === "minority" ? "Pemegang Saham Minoritas (&lt;50%)" : fd.shareholderType} />
         <EvalField label="Ekuitas Joint Venture" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
         <EvalField label="Dapat Dinegosiasikan" value={fd.equityNegotiable === "yes" ? "Ya" : fd.equityNegotiable === "no" ? "Tidak" : fd.equityNegotiable} />
         {fd.equityNegotiable === "yes" && fd.shareholderType === "majority" && (
