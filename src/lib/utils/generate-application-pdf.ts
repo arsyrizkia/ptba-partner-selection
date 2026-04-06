@@ -135,7 +135,7 @@ tr:nth-child(even) td { background: #fafbfc; }
 <!-- 3. Pengalaman Proyek -->
 <div class="section">
   <div class="section-title"><span class="section-num">3</span>Pengalaman Proyek</div>
-  ${fd.noExperience ? '<p style="font-size:9pt;color:#92400e;background:#fffbeb;padding:10px;border-radius:6px;">Ditandai tidak memiliki pengalaman relevan</p>' : experiences.length === 0 ? '<p style="font-size:8.5pt;color:#94a3b8;padding:8px 0;">Tidak ada data pengalaman</p>' : experiences.map((exp: any, i: number) => `
+  ${fd.noExperience ? '<p style="font-size:9pt;color:#92400e;background:#fffbeb;padding:10px;border-radius:6px;">Ditandai tidak memiliki pengalaman</p>' : experiences.length === 0 ? '<p style="font-size:8.5pt;color:#94a3b8;padding:8px 0;">Tidak ada data pengalaman</p>' : experiences.map((exp: any, i: number) => `
   <div class="exp-card no-break">
     <div class="exp-header">Pengalaman #${i + 1} — ${esc(catLabels[exp.category] || exp.category)}</div>
     <div class="fields">

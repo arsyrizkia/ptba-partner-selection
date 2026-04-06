@@ -105,7 +105,7 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
       titleKey: "formData.projectExperience",
       render: (fd) => {
         const exps = fd.experiences || [];
-        if (fd.noExperience) return <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">{locale === "en" ? "Marked as no relevant experience" : "Ditandai tidak memiliki pengalaman relevan"}</p>;
+        if (fd.noExperience) return <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">{locale === "en" ? "Marked as no relevant experience" : "Ditandai tidak memiliki pengalaman"}</p>;
         if (exps.length === 0) return <p className="text-xs text-ptba-gray">{t("formData.noExperienceData")}</p>;
         return (
           <div className="space-y-3">

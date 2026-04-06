@@ -241,7 +241,7 @@ export default function FormDataViewer({ formData, className }: FormDataViewerPr
       {formData.noExperience && (
         <div className="rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 bg-ptba-section-bg"><span className="text-sm font-bold text-ptba-navy">Pengalaman Proyek</span></div>
-          <div className="p-4"><p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">Ditandai tidak memiliki pengalaman relevan</p></div>
+          <div className="p-4"><p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">Ditandai tidak memiliki pengalaman</p></div>
         </div>
       )}
       {!formData.noExperience && formData.experiences?.length > 0 && (() => {

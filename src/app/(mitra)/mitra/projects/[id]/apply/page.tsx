@@ -1894,13 +1894,13 @@ export default function MitraProjectApplyPage() {
               onClick={() => setNoExperience(true)}
               className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-ptba-light-gray py-3 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
             >
-              {locale === "en" ? "I don't have relevant experience" : "Tidak memiliki pengalaman relevan"}
+              {locale === "en" ? "I don't have relevant experience" : "Tidak memiliki pengalaman"}
             </button>
           )}
 
           {noExperience && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
-              <p className="text-sm text-amber-800">{locale === "en" ? "Marked as no relevant experience" : "Ditandai tidak memiliki pengalaman relevan"}</p>
+              <p className="text-sm text-amber-800">{locale === "en" ? "Marked as no relevant experience" : "Ditandai tidak memiliki pengalaman"}</p>
               {!readOnly && (
                 <button onClick={() => setNoExperience(false)} className="text-xs font-medium text-ptba-steel-blue hover:underline">
                   {locale === "en" ? "Cancel" : "Batalkan"}
