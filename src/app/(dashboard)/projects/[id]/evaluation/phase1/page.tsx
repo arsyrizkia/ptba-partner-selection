@@ -330,7 +330,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   // My draft form state (per appId)
   const [myComment, setMyComment] = useState("");
   const [myNotes, setMyNotes] = useState("");
-  const [myVerdict, setMyVerdict] = useState<"sesuai" | "tidak_sesuai" | "perlu_diskusi" | null>(null);
+  const [myVerdict, setMyVerdict] = useState<string | null>(null);
   const [myEvidence, setMyEvidence] = useState<{ id: string; fileName: string; fileKey: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
