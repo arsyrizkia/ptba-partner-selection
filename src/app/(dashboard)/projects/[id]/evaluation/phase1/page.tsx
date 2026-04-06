@@ -966,8 +966,11 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                                 const matchedDocs = appDocs.filter((d: any) => relDocIds.includes(d.document_type_id));
                                 const formRenderer = EVAL_FORM_DATA_MAP[section.key];
                                 const hasFormData = formRenderer && appFormData;
-                                // Skip empty sections (e.g. Pemenuhan Persyaratan with no data)
-                                if (!hasFormData && matchedDocs.length === 0) return null;
+                                // Skip empty sections
+                                const isRequirements = section.key === "requirements_fulfillment";
+                                const hasRequirementData = isRequirements && appFormData?.requirementAnswers && Object.keys(appFormData.requirementAnswers).length > 0;
+                                if (isRequirements && !hasRequirementData && matchedDocs.length === 0) return null;
+                                if (!isRequirements && !hasFormData && matchedDocs.length === 0) return null;
                                 sectionNum++;
                                 const isOpen = expandedSections[`sec_${section.key}`] ?? true;
                                 return (
