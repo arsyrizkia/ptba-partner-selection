@@ -695,16 +695,6 @@ export default function MitraProjectDetailPage() {
                         {String(i + 1).padStart(2, "0")}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          {faq.category && (
-                            <span className={cn(
-                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-none",
-                              CAT_COLORS[faq.category] || CAT_COLORS.umum
-                            )}>
-                              {CAT_LABELS[faq.category] || faq.category}
-                            </span>
-                          )}
-                        </div>
                         <span className={cn(
                           "text-sm font-medium leading-snug transition-colors",
                           isOpen ? "text-ptba-navy" : "text-ptba-charcoal"
@@ -929,7 +919,7 @@ export default function MitraProjectDetailPage() {
                   <p className="text-[11px] text-white/70 leading-relaxed">
                     {canApply
                       ? (locale === "en" ? "Registration is open. Apply now to get started." : "Pendaftaran sedang dibuka. Daftar sekarang untuk memulai.")
-                      : (locale === "en" ? "Registration is currently closed for this project." : "Pendaftaran saat ini ditutup untuk proyek ini.")}
+                      : (locale === "en" ? "Questions are currently closed for this project." : "Pertanyaan saat ini ditutup untuk proyek ini.")}
                   </p>
                 </div>
                 <div className="p-4">
@@ -944,7 +934,7 @@ export default function MitraProjectDetailPage() {
                   ) : (
                     <div className="rounded-lg bg-ptba-section-bg px-3 py-2.5 text-center">
                       <p className="text-xs font-medium text-ptba-gray">
-                        {locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup"}
+                        {locale === "en" ? "Questions Closed" : "Pertanyaan Ditutup"}
                       </p>
                     </div>
                   )}
