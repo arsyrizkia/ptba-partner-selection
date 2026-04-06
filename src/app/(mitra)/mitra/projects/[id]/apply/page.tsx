@@ -1756,7 +1756,7 @@ export default function MitraProjectApplyPage() {
                 {((exp as any).experienceType || 'powerplant') === 'powerplant' && (
                   <div>
                     <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.totalCapacity")} <span className="text-ptba-red">*</span></label>
-                    <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} inputMode="decimal" value={exp.totalCapacityMW} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
+                    <input type="text" placeholder={t("portfolioFields.capacityPlaceholder")} inputMode="decimal" value={fmtThousand(exp.totalCapacityMW)} onChange={(e) => updateExperience(i, "totalCapacityMW", e.target.value.replace(/[^0-9.,]/g, "").replace(/,/g, ""))} className={inputClass} />
                   </div>
                 )}
 
@@ -1765,7 +1765,7 @@ export default function MitraProjectApplyPage() {
                   <>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.equity")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.equityPlaceholder")} inputMode="decimal" value={exp.equityPercent} onChange={(e) => updateExperience(i, "equityPercent", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.equityPlaceholder")} inputMode="decimal" value={exp.equityPercent} onChange={(e) => { let v = e.target.value.replace(/,/g, ".").replace(/[^0-9.]/g, ""); const num = parseFloat(v); if (!isNaN(num) && num > 100) v = "100"; updateExperience(i, "equityPercent", v); }} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.ippCaptive")} <span className="text-ptba-red">*</span></label>
@@ -1786,11 +1786,11 @@ export default function MitraProjectApplyPage() {
                   <>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.contractValue")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.contractValuePlaceholder")} inputMode="decimal" value={exp.contractValueUSD} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.contractValuePlaceholder")} inputMode="decimal" value={fmtThousand(exp.contractValueUSD)} onChange={(e) => updateExperience(i, "contractValueUSD", e.target.value.replace(/[^0-9.,]/g, "").replace(/,/g, ""))} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.workPortion")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.workPortionPlaceholder")} inputMode="decimal" value={exp.workPortionPercent} onChange={(e) => updateExperience(i, "workPortionPercent", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.workPortionPlaceholder")} inputMode="decimal" value={exp.workPortionPercent} onChange={(e) => { let v = e.target.value.replace(/,/g, ".").replace(/[^0-9.]/g, ""); const num = parseFloat(v); if (!isNaN(num) && num > 100) v = "100"; updateExperience(i, "workPortionPercent", v); }} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.ippCaptive")} <span className="text-ptba-red">*</span></label>
@@ -1818,7 +1818,7 @@ export default function MitraProjectApplyPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.amount")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.amountPlaceholder")} inputMode="decimal" value={exp.amountUSD} onChange={(e) => updateExperience(i, "amountUSD", e.target.value.replace(/[^0-9.]/g, ""))} className={inputClass} />
+                      <input type="text" placeholder={t("portfolioFields.amountPlaceholder")} inputMode="decimal" value={fmtThousand(exp.amountUSD)} onChange={(e) => updateExperience(i, "amountUSD", e.target.value.replace(/[^0-9.,]/g, "").replace(/,/g, ""))} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.year")} <span className="text-ptba-red">*</span></label>
@@ -1842,7 +1842,7 @@ export default function MitraProjectApplyPage() {
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.contractValue")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" inputMode="decimal" placeholder={t("portfolioFields.contractValuePlaceholder")} value={(exp as any).contractValueUSD || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).contractValueUSD = e.target.value.replace(/[^0-9.,]/g, ""); setExperiences(next); }} className={inputClass} />
+                      <input type="text" inputMode="decimal" placeholder={t("portfolioFields.contractValuePlaceholder")} value={fmtThousand((exp as any).contractValueUSD || "")} onChange={(e) => { const next = [...experiences]; (next[i] as any).contractValueUSD = e.target.value.replace(/[^0-9.,]/g, "").replace(/,/g, ""); setExperiences(next); }} className={inputClass} />
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Project Year" : "Tahun Proyek"} <span className="text-ptba-red">*</span></label>
