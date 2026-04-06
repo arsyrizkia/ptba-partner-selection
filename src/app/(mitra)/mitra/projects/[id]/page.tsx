@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
@@ -42,6 +42,7 @@ export default function MitraProjectDetailPage() {
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "faq">("overview");
 
   const dateLocale = locale === "en" ? "en-US" : "id-ID";
 
@@ -207,6 +208,19 @@ export default function MitraProjectDetailPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-gray-200">
+        {(["overview", "faq"] as const).map((tab) => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            className={cn("px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+              activeTab === tab ? "border-ptba-navy text-ptba-navy" : "border-transparent text-ptba-gray hover:text-ptba-charcoal"
+            )}>
+            {tab === "overview" ? (locale === "en" ? "Overview" : "Ringkasan") : "FAQ"}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "overview" && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
@@ -576,6 +590,30 @@ export default function MitraProjectDetailPage() {
           })()}
         </div>
       </div>
+      )}
+
+      {activeTab === "faq" && (
+        <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
+          <h2 className="text-lg font-semibold text-ptba-navy">FAQ</h2>
+          {[
+            { q: locale === "en" ? "What is PRIMA PTBA?" : "Apa itu PRIMA PTBA?", a: locale === "en" ? "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) is the official partner selection system of PT Bukit Asam (Persero) Tbk for managing strategic partnership opportunities." : "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis." },
+            { q: locale === "en" ? "What are the evaluation phases?" : "Apa saja tahapan evaluasi?", a: locale === "en" ? "The evaluation process consists of 2 phases: Phase 1 (Pre-Qualification) and Phase 2 (Final Proposal & Ranking). Each phase evaluates 6 aspects: Market, Technical, ESG, Financial, Legal, and Risk." : "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko." },
+            { q: locale === "en" ? "What documents are required?" : "Dokumen apa saja yang diperlukan?", a: locale === "en" ? "Required documents include Company Profile, Expression of Interest Letter, Project Experience Portfolio, Financial Overview, and other supporting documents as specified in each project." : "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek." },
+            { q: locale === "en" ? "How is the evaluation conducted?" : "Bagaimana proses evaluasi dilakukan?", a: locale === "en" ? "Each evaluation category is assessed by a designated evaluator team. All 6 categories must be marked as 'Layak' (Eligible) for the partner to proceed to the next phase." : "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya." },
+            { q: locale === "en" ? "Can I edit my submission after submitting?" : "Apakah bisa mengedit setelah submit?", a: locale === "en" ? "No, once submitted, the application cannot be edited. Please ensure all information and documents are complete and accurate before submitting." : "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim." },
+          ].map((faq, i) => (
+            <details key={i} className="group rounded-lg border border-gray-200">
+              <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-ptba-section-bg transition-colors">
+                <span className="text-sm font-medium text-ptba-charcoal">{faq.q}</span>
+                <ChevronDown className="h-4 w-4 text-ptba-gray group-open:rotate-180 transition-transform" />
+              </summary>
+              <div className="px-4 pb-3">
+                <p className="text-sm text-ptba-gray leading-relaxed">{faq.a}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
 
       {/* Image Lightbox */}
       {lightboxSrc && (
