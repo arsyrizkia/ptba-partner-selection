@@ -330,7 +330,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   // My draft form state (per appId)
   const [myComment, setMyComment] = useState("");
   const [myNotes, setMyNotes] = useState("");
-  const [myVerdict, setMyVerdict] = useState<"layak" | "tidak_layak" | null>(null);
+  const [myVerdict, setMyVerdict] = useState<"sesuai" | "tidak_sesuai" | "perlu_diskusi" | null>(null);
   const [myEvidence, setMyEvidence] = useState<{ id: string; fileName: string; fileKey: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
@@ -1114,18 +1114,22 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         <label className="text-sm font-medium text-ptba-charcoal mb-3 block">Verdict</label>
                         {isEditable ? (
                           <div className="flex gap-3">
-                            <button type="button" onClick={() => setMyVerdict("layak")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "layak" ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200" : "border-gray-200 bg-white text-gray-400 hover:border-green-300 hover:bg-green-50/50")}>
-                              <CheckCircle2 className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "layak" ? "text-green-500" : "text-gray-300")} />
-                              Layak
+                            <button type="button" onClick={() => setMyVerdict("sesuai")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "sesuai" ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200" : "border-gray-200 bg-white text-gray-400 hover:border-green-300 hover:bg-green-50/50")}>
+                              <CheckCircle2 className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "sesuai" ? "text-green-500" : "text-gray-300")} />
+                              Sesuai
                             </button>
-                            <button type="button" onClick={() => setMyVerdict("tidak_layak")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "tidak_layak" ? "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200" : "border-gray-200 bg-white text-gray-400 hover:border-red-300 hover:bg-red-50/50")}>
-                              <X className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "tidak_layak" ? "text-red-500" : "text-gray-300")} />
-                              Tidak Layak
+                            <button type="button" onClick={() => setMyVerdict("tidak_sesuai")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "tidak_sesuai" ? "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200" : "border-gray-200 bg-white text-gray-400 hover:border-red-300 hover:bg-red-50/50")}>
+                              <X className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "tidak_sesuai" ? "text-red-500" : "text-gray-300")} />
+                              Tidak Sesuai
+                            </button>
+                            <button type="button" onClick={() => setMyVerdict("perlu_diskusi")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "perlu_diskusi" ? "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200" : "border-gray-200 bg-white text-gray-400 hover:border-amber-300 hover:bg-amber-50/50")}>
+                              <AlertTriangle className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "perlu_diskusi" ? "text-amber-500" : "text-gray-300")} />
+                              Perlu Diskusi
                             </button>
                           </div>
                         ) : (
-                          <div className={cn("rounded-xl py-3 px-4 text-center text-sm font-bold", myVerdict === "layak" ? "bg-green-100 text-green-700" : myVerdict === "tidak_layak" ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>
-                            {myVerdict === "layak" ? "Layak" : myVerdict === "tidak_layak" ? "Tidak Layak" : "Belum ada verdict"}
+                          <div className={cn("rounded-xl py-3 px-4 text-center text-sm font-bold", myVerdict === "sesuai" ? "bg-green-100 text-green-700" : myVerdict === "tidak_sesuai" ? "bg-red-100 text-ptba-red" : myVerdict === "perlu_diskusi" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
+                            {myVerdict === "sesuai" ? "Sesuai" : myVerdict === "tidak_sesuai" ? "Tidak Sesuai" : myVerdict === "perlu_diskusi" ? "Perlu Didiskusikan Lebih Lanjut" : "Belum ada verdict"}
                           </div>
                         )}
                       </div>
@@ -1152,8 +1156,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                               <p className="text-sm text-amber-700 mt-1">Setelah difinalisasi, evaluasi <strong>tidak dapat diubah</strong>.</p>
                               <div className="mt-3 rounded-lg bg-white/80 p-3">
                                 <p className="text-xs text-ptba-gray mb-1">Verdict Anda:</p>
-                                <p className={cn("text-lg font-bold", myVerdict === "layak" ? "text-green-600" : "text-ptba-red")}>
-                                  {selectedApp.partner_name}: {myVerdict === "layak" ? "Layak" : "Tidak Layak"}
+                                <p className={cn("text-lg font-bold", myVerdict === "sesuai" ? "text-green-600" : myVerdict === "perlu_diskusi" ? "text-amber-600" : "text-ptba-red")}>
+                                  {selectedApp.partner_name}: {myVerdict === "sesuai" ? "Sesuai" : myVerdict === "perlu_diskusi" ? "Perlu Diskusi" : "Tidak Sesuai"}
                                 </p>
                               </div>
                               <div className="flex items-center gap-3 mt-4">
@@ -1188,8 +1192,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                               <div className="flex items-center gap-3">
                                 <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold shrink-0", catInfo.color)}>{catInfo.labelId}</span>
                                 {evalData?.isFinalized ? (
-                                  <span className={cn("text-xs font-semibold", evalData.verdict === "layak" ? "text-green-600" : "text-ptba-red")}>
-                                    {evalData.verdict === "layak" ? "Layak" : "Tidak Layak"}
+                                  <span className={cn("text-xs font-semibold", evalData.verdict === "sesuai" || evalData.verdict === "layak" ? "text-green-600" : evalData.verdict === "perlu_diskusi" ? "text-amber-600" : "text-ptba-red")}>
+                                    {evalData.verdict === "sesuai" || evalData.verdict === "layak" ? "Sesuai" : evalData.verdict === "perlu_diskusi" ? "Perlu Diskusi" : "Tidak Sesuai"}
                                   </span>
                                 ) : (
                                   <span className="text-xs text-ptba-gray">Belum difinalisasi</span>

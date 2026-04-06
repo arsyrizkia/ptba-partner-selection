@@ -40,13 +40,26 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
-/** Normalize verdict: "layak" → "Layak", "tidak layak" → "Tidak Layak" */
+/** Normalize verdict for display */
 function normalizeVerdict(v: string | null | undefined): string | null {
   if (!v) return null;
-  const lower = v.toLowerCase();
-  if (lower === "layak") return "Layak";
-  if (lower === "tidak layak") return "Tidak Layak";
+  const lower = v.toLowerCase().replace(/_/g, " ");
+  if (lower === "sesuai" || lower === "layak") return "Sesuai";
+  if (lower === "tidak sesuai" || lower === "tidak layak") return "Tidak Sesuai";
+  if (lower === "perlu diskusi" || lower === "perlu_diskusi") return "Perlu Diskusi";
   return v;
+}
+
+function verdictColor(v: string | null): string {
+  if (v === "Sesuai") return "text-green-600";
+  if (v === "Perlu Diskusi") return "text-amber-600";
+  return "text-ptba-red";
+}
+
+function verdictBg(v: string | null): string {
+  if (v === "Sesuai") return "border-green-200 bg-green-50/50";
+  if (v === "Perlu Diskusi") return "border-amber-200 bg-amber-50/50";
+  return "border-red-200 bg-red-50/50";
 }
 
 interface CatEvalRaw {
@@ -426,7 +439,7 @@ export default function Phase1ApprovalPage({
         const summaries = Array.from(byPartner.values()).map((s) => {
           const cats = Object.values(s.categories);
           s.allFinalized = ALL_CATEGORIES.every((c) => s.categories[c]?.isFinalized);
-          s.overall_result = s.allFinalized && ALL_CATEGORIES.every((c) => s.categories[c]?.verdict === "Layak") ? "Layak" : "Tidak Layak";
+          s.overall_result = s.allFinalized && ALL_CATEGORIES.every((c) => s.categories[c]?.verdict === "Sesuai") ? "Layak" : "Tidak Layak";
           return s;
         });
         setMitraSummaries(summaries);
