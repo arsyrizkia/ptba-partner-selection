@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown, HelpCircle, MessageCircle, Filter, Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
@@ -43,6 +43,10 @@ export default function MitraProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "faq">("overview");
+  const [faqFilter, setFaqFilter] = useState<string>("all");
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [openMitraFaqIndex, setOpenMitraFaqIndex] = useState<number | null>(null);
+  const [faqSearch, setFaqSearch] = useState("");
 
   const dateLocale = locale === "en" ? "en-US" : "id-ID";
 
@@ -602,80 +606,385 @@ export default function MitraProjectDetailPage() {
         ];
         const generalFaqs = allFaqs.filter((f: any) => (f.section || "general") === "general");
         const mitraFaqs = allFaqs.filter((f: any) => f.section === "mitra");
-        const CAT_COLORS: Record<string, string> = { pendaftaran: "bg-blue-100 text-blue-700", evaluasi: "bg-purple-100 text-purple-700", dokumen: "bg-teal-100 text-teal-700", keuangan: "bg-amber-100 text-amber-700", umum: "bg-gray-100 text-gray-700" };
+        const CAT_COLORS: Record<string, string> = {
+          pendaftaran: "bg-blue-50 text-blue-700 border-blue-200",
+          evaluasi: "bg-purple-50 text-purple-700 border-purple-200",
+          dokumen: "bg-teal-50 text-teal-700 border-teal-200",
+          keuangan: "bg-amber-50 text-amber-700 border-amber-200",
+          umum: "bg-gray-50 text-gray-600 border-gray-200",
+        };
+        const CAT_ACTIVE_COLORS: Record<string, string> = {
+          pendaftaran: "bg-blue-600 text-white border-blue-600",
+          evaluasi: "bg-purple-600 text-white border-purple-600",
+          dokumen: "bg-teal-600 text-white border-teal-600",
+          keuangan: "bg-amber-500 text-white border-amber-500",
+          umum: "bg-gray-600 text-white border-gray-600",
+        };
         const CAT_LABELS: Record<string, string> = { pendaftaran: "Pendaftaran", evaluasi: "Evaluasi", dokumen: "Dokumen", keuangan: "Keuangan", umum: "Umum" };
 
-        const FaqList = ({ items }: { items: any[] }) => items.length === 0
-          ? <p className="text-xs text-ptba-gray py-4 text-center">{locale === "en" ? "No questions yet." : "Belum ada pertanyaan."}</p>
-          : <div className="divide-y divide-gray-100">{items.map((faq: any, i: number) => (
-              <details key={faq.id || i} className="group">
-                <summary className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-ptba-section-bg transition-colors">
-                  {faq.category && <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0", CAT_COLORS[faq.category] || CAT_COLORS.umum)}>{CAT_LABELS[faq.category] || faq.category}</span>}
-                  <span className="text-sm font-medium text-ptba-charcoal flex-1">{faq.question}</span>
-                  <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
-                </summary>
-                <div className="px-4 pb-3 pl-[calc(theme(spacing.4)+4ch)]"><p className="text-sm text-ptba-gray leading-relaxed">{faq.answer}</p></div>
-              </details>
-            ))}</div>;
+        // Count FAQs per category across all FAQs
+        const catCounts: Record<string, number> = {};
+        allFaqs.forEach((f: any) => {
+          const cat = f.category || "umum";
+          catCounts[cat] = (catCounts[cat] || 0) + 1;
+        });
+        const availableCategories = Object.keys(catCounts).sort();
+
+        // Filter logic
+        const filterFaqs = (items: any[]) => {
+          let filtered = items;
+          if (faqFilter !== "all") {
+            filtered = filtered.filter((f: any) => (f.category || "umum") === faqFilter);
+          }
+          if (faqSearch.trim()) {
+            const q = faqSearch.toLowerCase();
+            filtered = filtered.filter((f: any) =>
+              f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q)
+            );
+          }
+          return filtered;
+        };
+
+        const filteredGeneral = filterFaqs(generalFaqs);
+        const filteredMitra = filterFaqs(mitraFaqs);
+        const totalFiltered = filteredGeneral.length + filteredMitra.length;
+
+        const FaqAccordion = ({ items, section }: { items: any[]; section: "general" | "mitra" }) => {
+          const [openIdx, setOpenIdx] = section === "general"
+            ? [openFaqIndex, setOpenFaqIndex]
+            : [openMitraFaqIndex, setOpenMitraFaqIndex];
+
+          if (items.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-10 px-4">
+                <div className="rounded-full bg-ptba-section-bg p-3 mb-3">
+                  <HelpCircle className="h-6 w-6 text-ptba-gray" />
+                </div>
+                <p className="text-sm text-ptba-gray text-center">
+                  {faqFilter !== "all" || faqSearch.trim()
+                    ? (locale === "en" ? "No questions match your filter." : "Tidak ada pertanyaan yang cocok dengan filter.")
+                    : (locale === "en" ? "No questions yet." : "Belum ada pertanyaan.")}
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-2 p-4">
+              {items.map((faq: any, i: number) => {
+                const isOpen = openIdx === i;
+                return (
+                  <div
+                    key={faq.id || i}
+                    className={cn(
+                      "rounded-xl border transition-all duration-200",
+                      isOpen
+                        ? "border-ptba-steel-blue/30 bg-white shadow-md ring-1 ring-ptba-steel-blue/10"
+                        : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenIdx(isOpen ? null : i)}
+                      className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
+                    >
+                      <div className={cn(
+                        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold transition-colors duration-200",
+                        isOpen ? "bg-ptba-navy text-white" : "bg-ptba-section-bg text-ptba-gray"
+                      )}>
+                        {String(i + 1).padStart(2, "0")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          {faq.category && (
+                            <span className={cn(
+                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-none",
+                              CAT_COLORS[faq.category] || CAT_COLORS.umum
+                            )}>
+                              {CAT_LABELS[faq.category] || faq.category}
+                            </span>
+                          )}
+                        </div>
+                        <span className={cn(
+                          "text-sm font-medium leading-snug transition-colors",
+                          isOpen ? "text-ptba-navy" : "text-ptba-charcoal"
+                        )}>
+                          {faq.question}
+                        </span>
+                      </div>
+                      <ChevronDown className={cn(
+                        "mt-1 h-4 w-4 shrink-0 text-ptba-gray transition-transform duration-200",
+                        isOpen && "rotate-180 text-ptba-steel-blue"
+                      )} />
+                    </button>
+                    <div className={cn(
+                      "overflow-hidden transition-all duration-200",
+                      isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    )}>
+                      <div className="border-t border-dashed border-gray-100 mx-4" />
+                      <div className="px-4 py-3 pl-[52px]">
+                        <p className="text-sm text-ptba-gray leading-relaxed">{faq.answer}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        };
 
         return (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
-              {/* Section 1: FAQ Umum */}
-              <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b bg-ptba-section-bg">
-                  <h2 className="text-base font-bold text-ptba-navy">{locale === "en" ? "General FAQ" : "FAQ Umum"}</h2>
-                  <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Frequently asked questions about this project" : "Pertanyaan yang sering diajukan tentang proyek ini"}</p>
+            {/* Left: FAQ Content */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* Search + Filter Bar */}
+              <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+                {/* Search */}
+                <div className="px-4 py-3 border-b border-gray-50">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ptba-gray" />
+                    <input
+                      type="text"
+                      placeholder={locale === "en" ? "Search questions..." : "Cari pertanyaan..."}
+                      value={faqSearch}
+                      onChange={(e) => setFaqSearch(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-ptba-section-bg py-2 pl-9 pr-4 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:border-ptba-steel-blue focus:bg-white focus:outline-none focus:ring-1 focus:ring-ptba-steel-blue/30 transition-all"
+                    />
+                  </div>
                 </div>
-                <FaqList items={generalFaqs} />
+                {/* Category Filter Pills */}
+                <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
+                  <Filter className="h-3.5 w-3.5 text-ptba-gray shrink-0" />
+                  <button
+                    onClick={() => setFaqFilter("all")}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150",
+                      faqFilter === "all"
+                        ? "bg-ptba-navy text-white border-ptba-navy shadow-sm"
+                        : "bg-white text-ptba-gray border-gray-200 hover:border-gray-300 hover:text-ptba-charcoal"
+                    )}
+                  >
+                    {locale === "en" ? "All" : "Semua"}
+                    <span className={cn(
+                      "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold",
+                      faqFilter === "all" ? "bg-white/20 text-white" : "bg-gray-100 text-ptba-gray"
+                    )}>
+                      {allFaqs.length}
+                    </span>
+                  </button>
+                  {availableCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setFaqFilter(faqFilter === cat ? "all" : cat)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150",
+                        faqFilter === cat
+                          ? CAT_ACTIVE_COLORS[cat] || "bg-gray-600 text-white border-gray-600"
+                          : cn("bg-white hover:shadow-sm", CAT_COLORS[cat] || "text-ptba-gray border-gray-200")
+                      )}
+                    >
+                      {CAT_LABELS[cat] || cat}
+                      <span className={cn(
+                        "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold",
+                        faqFilter === cat ? "bg-white/20 text-white" : "bg-black/5"
+                      )}>
+                        {catCounts[cat]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {/* Result count hint */}
+                {(faqFilter !== "all" || faqSearch.trim()) && (
+                  <div className="px-4 pb-3 -mt-1">
+                    <p className="text-[11px] text-ptba-gray">
+                      {locale === "en"
+                        ? `Showing ${totalFiltered} of ${allFaqs.length} questions`
+                        : `Menampilkan ${totalFiltered} dari ${allFaqs.length} pertanyaan`}
+                      {(faqFilter !== "all" || faqSearch.trim()) && (
+                        <button
+                          onClick={() => { setFaqFilter("all"); setFaqSearch(""); }}
+                          className="ml-2 text-ptba-steel-blue hover:text-ptba-navy font-medium underline underline-offset-2 transition-colors"
+                        >
+                          {locale === "en" ? "Clear filters" : "Hapus filter"}
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 1: FAQ Umum */}
+              <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-ptba-navy/[0.03] to-transparent">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ptba-navy/10">
+                      <HelpCircle className="h-[18px] w-[18px] text-ptba-navy" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-ptba-navy">
+                        {locale === "en" ? "General FAQ" : "FAQ Umum"}
+                      </h2>
+                      <p className="text-[11px] text-ptba-gray mt-0.5">
+                        {locale === "en" ? "Frequently asked questions about this project" : "Pertanyaan yang sering diajukan tentang proyek ini"}
+                      </p>
+                    </div>
+                    <div className="ml-auto">
+                      <span className="inline-flex items-center rounded-full bg-ptba-section-bg px-2.5 py-0.5 text-[11px] font-medium text-ptba-gray">
+                        {filteredGeneral.length} {locale === "en" ? "questions" : "pertanyaan"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <FaqAccordion items={filteredGeneral} section="general" />
               </div>
 
               {/* Section 2: Pertanyaan Mitra */}
               {mitraFaqs.length > 0 && (
-                <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b bg-ptba-steel-blue/5">
-                    <h2 className="text-base font-bold text-ptba-steel-blue">{locale === "en" ? "Questions from Partners" : "Pertanyaan yang Sering Ditanyakan Mitra"}</h2>
-                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Common questions asked by prospective partners" : "Pertanyaan umum dari calon mitra"}</p>
+                <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-ptba-steel-blue/[0.04] to-transparent">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ptba-steel-blue/10">
+                        <MessageCircle className="h-[18px] w-[18px] text-ptba-steel-blue" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-ptba-steel-blue">
+                          {locale === "en" ? "Questions from Partners" : "Pertanyaan yang Sering Ditanyakan Mitra"}
+                        </h2>
+                        <p className="text-[11px] text-ptba-gray mt-0.5">
+                          {locale === "en" ? "Common questions asked by prospective partners" : "Pertanyaan umum dari calon mitra"}
+                        </p>
+                      </div>
+                      <div className="ml-auto">
+                        <span className="inline-flex items-center rounded-full bg-ptba-steel-blue/5 px-2.5 py-0.5 text-[11px] font-medium text-ptba-steel-blue">
+                          {filteredMitra.length} {locale === "en" ? "questions" : "pertanyaan"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <FaqList items={mitraFaqs} />
+                  <FaqAccordion items={filteredMitra} section="mitra" />
                 </div>
               )}
             </div>
 
-            {/* Sidebar */}
+            {/* Right: Sidebar */}
             <div className="space-y-4">
-              <div className="rounded-xl bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{locale === "en" ? "Have a Question?" : "Punya Pertanyaan?"}</h3>
-                {canApply ? (
-                  <>
-                    <p className="text-xs text-ptba-gray mb-3">{locale === "en" ? "Registration is currently open. Contact the project team for questions." : "Pendaftaran sedang dibuka. Hubungi tim proyek untuk pertanyaan."}</p>
-                    <button onClick={() => router.push(`/mitra/projects/${projectId}/apply`)} className="w-full rounded-lg bg-ptba-navy py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors">
-                      {locale === "en" ? "Apply Now" : "Ajukan Pendaftaran"}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-ptba-gray mb-3">{locale === "en" ? "Registration is currently closed." : "Pendaftaran saat ini ditutup."}</p>
-                    <div className="rounded-lg bg-ptba-section-bg px-3 py-2 text-center">
-                      <p className="text-xs font-medium text-ptba-gray">{locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup"}</p>
-                    </div>
-                  </>
+              {/* Quick Stats */}
+              <div className="rounded-xl bg-white shadow-sm border border-gray-100 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ptba-gold/10">
+                    <HelpCircle className="h-3.5 w-3.5 text-ptba-gold" />
+                  </div>
+                  <h3 className="text-sm font-bold text-ptba-charcoal">
+                    {locale === "en" ? "FAQ Summary" : "Ringkasan FAQ"}
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-ptba-section-bg p-3 text-center">
+                    <p className="text-lg font-bold text-ptba-navy">{generalFaqs.length}</p>
+                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "General" : "Umum"}</p>
+                  </div>
+                  <div className="rounded-lg bg-ptba-steel-blue/5 p-3 text-center">
+                    <p className="text-lg font-bold text-ptba-steel-blue">{mitraFaqs.length}</p>
+                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Partner" : "Mitra"}</p>
+                  </div>
+                </div>
+                {/* Category breakdown */}
+                {availableCategories.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    {availableCategories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setFaqFilter(faqFilter === cat ? "all" : cat)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs transition-all",
+                          faqFilter === cat
+                            ? "bg-ptba-navy/5 text-ptba-navy font-medium"
+                            : "hover:bg-ptba-section-bg text-ptba-gray"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "h-2 w-2 rounded-full",
+                            cat === "pendaftaran" && "bg-blue-500",
+                            cat === "evaluasi" && "bg-purple-500",
+                            cat === "dokumen" && "bg-teal-500",
+                            cat === "keuangan" && "bg-amber-500",
+                            cat === "umum" && "bg-gray-400",
+                          )} />
+                          {CAT_LABELS[cat] || cat}
+                        </div>
+                        <span className="font-medium">{catCounts[cat]}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
+
+              {/* Have a Question? CTA */}
+              <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-br from-ptba-navy to-ptba-navy/90 px-5 py-4">
+                  <h3 className="text-sm font-bold text-white mb-1">
+                    {locale === "en" ? "Have a Question?" : "Punya Pertanyaan?"}
+                  </h3>
+                  <p className="text-[11px] text-white/70 leading-relaxed">
+                    {canApply
+                      ? (locale === "en" ? "Registration is open. Apply now to get started." : "Pendaftaran sedang dibuka. Daftar sekarang untuk memulai.")
+                      : (locale === "en" ? "Registration is currently closed for this project." : "Pendaftaran saat ini ditutup untuk proyek ini.")}
+                  </p>
+                </div>
+                <div className="p-4">
+                  {canApply ? (
+                    <button
+                      onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-ptba-gold py-2.5 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 active:scale-[0.98] transition-all shadow-sm"
+                    >
+                      {locale === "en" ? "Apply Now" : "Ajukan Pendaftaran"}
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <div className="rounded-lg bg-ptba-section-bg px-3 py-2.5 text-center">
+                      <p className="text-xs font-medium text-ptba-gray">
+                        {locale === "en" ? "Registration Closed" : "Pendaftaran Ditutup"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Important Dates */}
               {project.phase1Deadline && (
-                <div className="rounded-xl bg-white p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-ptba-charcoal mb-2">{locale === "en" ? "Important Dates" : "Tanggal Penting"}</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <Calendar className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
-                      <span className="text-ptba-gray">{locale === "en" ? "Phase 1 Deadline" : "Deadline Tahap 1"}:</span>
-                      <span className="font-medium text-ptba-charcoal">{new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}</span>
+                <div className="rounded-xl bg-white shadow-sm border border-gray-100 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ptba-red/10">
+                      <Calendar className="h-3.5 w-3.5 text-ptba-red" />
+                    </div>
+                    <h3 className="text-sm font-bold text-ptba-charcoal">
+                      {locale === "en" ? "Important Dates" : "Tanggal Penting"}
+                    </h3>
+                  </div>
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-3 rounded-lg bg-ptba-section-bg p-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                        <span className="text-[10px] font-bold text-ptba-navy">T1</span>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-ptba-gray">{locale === "en" ? "Phase 1 Deadline" : "Deadline Tahap 1"}</p>
+                        <p className="text-xs font-semibold text-ptba-charcoal">
+                          {new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
+                        </p>
+                      </div>
                     </div>
                     {project.phase2Deadline && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Calendar className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
-                        <span className="text-ptba-gray">{locale === "en" ? "Phase 2 Deadline" : "Deadline Tahap 2"}:</span>
-                        <span className="font-medium text-ptba-charcoal">{new Date(project.phase2Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" })}</span>
+                      <div className="flex items-start gap-3 rounded-lg bg-ptba-steel-blue/5 p-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                          <span className="text-[10px] font-bold text-ptba-steel-blue">T2</span>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-ptba-gray">{locale === "en" ? "Phase 2 Deadline" : "Deadline Tahap 2"}</p>
+                          <p className="text-xs font-semibold text-ptba-charcoal">
+                            {new Date(project.phase2Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
