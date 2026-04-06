@@ -273,7 +273,7 @@ EVAL_FORM_DATA_MAP.requirements = EVAL_FORM_DATA_MAP.requirements_fulfillment;
 interface CatEval {
   id?: string;
   category: string;
-  verdict: "layak" | "tidak_layak" | null;
+  verdict: string | null;
   comment: string;
   notes: string;
   isFinalized: boolean;
