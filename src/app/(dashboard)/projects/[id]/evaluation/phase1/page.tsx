@@ -158,6 +158,7 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
   portfolio: {
     title: "Pengalaman Proyek",
     render: (fd) => {
+      if (fd.noExperience) return <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">Ditandai tidak memiliki pengalaman relevan</p>;
       const exps = fd.experiences || [];
       if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
       const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan", general: "Proyek Umum" };
