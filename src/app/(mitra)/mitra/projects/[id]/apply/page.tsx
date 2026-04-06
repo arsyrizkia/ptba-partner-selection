@@ -882,33 +882,37 @@ export default function MitraProjectApplyPage() {
   const allComplete = activeSectionIds.every((id) => optionalSectionIds.has(id) || sectionComplete[id]) && additionalDocsComplete && sectionComplete.final;
 
   const scrollToFirstIncomplete = () => {
+    const scrollToEl = (el: Element, sectionNum: number) => {
+      setOpenSection(sectionNum);
+      // Delay to let section expand, then scroll to first error field
+      setTimeout(() => {
+        const errField = el.querySelector('[class*="border-ptba-red"], [class*="ring-ptba-red"], [class*="border-red"]');
+        if (errField) {
+          errField.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 150);
+    };
+
     // Check main sections
     for (const id of activeSectionIds) {
       if (!sectionComplete[id]) {
         const el = document.getElementById(`section-${id}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          setOpenSection(getSectionNumber(id));
-        }
+        if (el) scrollToEl(el, getSectionNumber(id));
         return;
       }
     }
     // Check additional docs section
     if (hasAdditionalDocs && !additionalDocsComplete) {
       const el = document.getElementById("section-additional");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setOpenSection(additionalDocsSectionNumber);
-      }
+      if (el) scrollToEl(el, additionalDocsSectionNumber);
       return;
     }
     // Check final section
     if (!sectionComplete.final) {
       const el = document.getElementById("section-final");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setOpenSection(finalSectionNumber);
-      }
+      if (el) scrollToEl(el, finalSectionNumber);
     }
   };
 
@@ -2360,9 +2364,9 @@ export default function MitraProjectApplyPage() {
               disabled={submitting}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-bold transition-colors",
-                allComplete && !submitting
-                  ? "bg-ptba-gold text-ptba-charcoal hover:bg-ptba-gold-light"
-                  : "bg-ptba-light-gray text-ptba-gray hover:bg-ptba-light-gray/80"
+                submitting
+                  ? "bg-ptba-light-gray text-ptba-gray"
+                  : "bg-ptba-navy text-white hover:bg-ptba-navy/90"
               )}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
