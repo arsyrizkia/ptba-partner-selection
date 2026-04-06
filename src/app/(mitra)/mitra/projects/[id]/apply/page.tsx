@@ -955,7 +955,7 @@ export default function MitraProjectApplyPage() {
       if (newCategory === 'developer') return { ...base, experienceType: 'powerplant' as const, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
       if (newCategory === 'om_contractor') return { ...base, experienceType: 'powerplant' as const, category: 'om_contractor' as const, contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
       if (newCategory === 'general') return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", description: "", codYear: "" };
-      return { ...base, experienceType: 'powerplant' as const, category: 'financing' as const, financingType: "", amountUSD: "", year: "" };
+      return { ...base, experienceType: 'powerplant' as const, category: 'financing' as const, financingType: "", amountUSD: "", codYear: "" };
     }));
   };
 
