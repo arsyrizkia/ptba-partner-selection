@@ -511,7 +511,7 @@ export default function ProjectDetailPage({
     setLoading(true);
     projectApi(accessToken).getById(id).then((res) => {
       setProject(res.data);
-      if (res.data.faqs) setFaqs(res.data.faqs);
+      if (Array.isArray(res.data.faqs)) setFaqs(res.data.faqs);
       if (res.data.registrationFee) setPhase2Fee(Number(res.data.registrationFee));
     }).catch(() => {
       setProject(null);
