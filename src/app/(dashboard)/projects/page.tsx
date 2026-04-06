@@ -260,18 +260,16 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {filtered.map((project) => {
-            const pct = Math.round((project.currentStep / project.totalSteps) * 100);
+            const pct = Math.round((project.currentStep / (project.totalSteps || 11)) * 100);
             const pi = phaseInfo(project.phase);
             const isP1 = project.phase?.startsWith("phase1");
             const isP2 = project.phase?.startsWith("phase2");
-            const isP3 = project.phase?.startsWith("phase3");
             const isCompleted = project.phase === "completed";
-            const p1Steps = 7;
-            const p2Steps = 3;
-            const p3Steps = Math.max(project.totalSteps - p1Steps - p2Steps, 3);
+            const totalSteps = project.totalSteps || 11;
+            const p1Steps = 6;
+            const p2Steps = totalSteps - p1Steps;
             const p1Filled = Math.min(project.currentStep, p1Steps);
-            const p2Filled = Math.min(Math.max(0, project.currentStep - p1Steps), p2Steps);
-            const p3Filled = Math.max(0, project.currentStep - p1Steps - p2Steps);
+            const p2Filled = Math.max(0, project.currentStep - p1Steps);
 
             return (
               <Link
@@ -282,7 +280,6 @@ export default function ProjectsPage() {
                   isCompleted ? "border-l-ptba-green" :
                   isP1 ? "border-l-ptba-navy" :
                   isP2 ? "border-l-ptba-steel-blue" :
-                  isP3 ? "border-l-ptba-gold" :
                   "border-l-ptba-light-gray"
                 )}
               >
@@ -327,7 +324,7 @@ export default function ProjectsPage() {
                   <div className="flex items-center justify-between text-xs text-ptba-gray mb-1.5">
                     <span className="flex items-center gap-1">
                       <FileText className="h-3 w-3" />
-                      Langkah {project.currentStep}/{project.totalSteps}
+                      Langkah {project.currentStep}/{totalSteps}
                     </span>
                     <span className="font-medium">{pct}%</span>
                   </div>
@@ -339,27 +336,19 @@ export default function ProjectsPage() {
                       />
                     </div>
                     <div className="w-px h-2.5 bg-ptba-charcoal/20 mx-px" />
-                    <div className="flex-1 h-1.5 overflow-hidden bg-ptba-light-gray">
-                      <div
-                        className="h-full bg-ptba-steel-blue transition-all"
-                        style={{ width: `${(p2Filled / p2Steps) * 100}%` }}
-                      />
-                    </div>
-                    <div className="w-px h-2.5 bg-ptba-charcoal/20 mx-px" />
                     <div className="flex-1 h-1.5 overflow-hidden rounded-r-full bg-ptba-light-gray">
                       <div
                         className={cn(
                           "h-full rounded-r-full transition-all",
-                          project.phase === "completed" ? "bg-ptba-green" : "bg-ptba-gold"
+                          project.phase === "completed" ? "bg-green-500" : "bg-ptba-steel-blue"
                         )}
-                        style={{ width: `${(p3Filled / p3Steps) * 100}%` }}
+                        style={{ width: `${(p2Filled / p2Steps) * 100}%` }}
                       />
                     </div>
                   </div>
                   <div className="mt-0.5 flex justify-between text-[9px] text-ptba-gray/50">
-                    <span>P1</span>
-                    <span>P2</span>
-                    <span>P3</span>
+                    <span>Tahap 1</span>
+                    <span>Tahap 2</span>
                   </div>
                 </div>
 
