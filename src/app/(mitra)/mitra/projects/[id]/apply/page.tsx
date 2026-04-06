@@ -54,7 +54,7 @@ interface FinancingExperience extends BaseExperience {
   category: 'financing';
   financingType: string;
   amountUSD: string;
-  year: string;
+  codYear: string;
 }
 
 interface GeneralExperience extends BaseExperience {
@@ -63,8 +63,8 @@ interface GeneralExperience extends BaseExperience {
   projectType: string;
   role: string;
   contractValueUSD: string;
-  year: string;
   description: string;
+  codYear: string;
 }
 
 type CategorizedExperience = DeveloperExperience | OMContractorExperience | FinancingExperience | GeneralExperience;
@@ -853,12 +853,12 @@ export default function MitraProjectApplyPage() {
     portfolio: experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       if (exp.category === 'general') {
-        return !!exp.plantName && !!exp.location && hasCred && !!(exp as any).projectType && !!(exp as any).role && !!(exp as any).year;
+        return !!exp.plantName && !!exp.location && hasCred && !!(exp as any).projectType && !!(exp as any).role && !!(exp as any).codYear;
       }
       const base = !!exp.plantName && !!exp.location && !!exp.totalCapacityMW && hasCred;
       if (exp.category === 'developer') return base && !!exp.equityPercent && !!exp.ippOrCaptive && !!exp.codYear;
       if (exp.category === 'om_contractor') return base && !!exp.contractValueUSD && !!exp.workPortionPercent && !!exp.ippOrCaptive && !!exp.codYear;
-      if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.year;
+      if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.codYear;
       return false;
     }),
     financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
@@ -927,9 +927,9 @@ export default function MitraProjectApplyPage() {
     } else if (category === 'om_contractor') {
       newExp = { ...base, experienceType: 'powerplant' as const, category: 'om_contractor', contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
     } else if (category === 'financing') {
-      newExp = { ...base, experienceType: 'powerplant' as const, category: 'financing', financingType: "", amountUSD: "", year: "" };
+      newExp = { ...base, experienceType: 'powerplant' as const, category: 'financing', financingType: "", amountUSD: "", codYear: "" };
     } else {
-      newExp = { ...base, experienceType: 'general' as const, category: 'general', projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
+      newExp = { ...base, experienceType: 'general' as const, category: 'general', projectType: "", role: "", contractValueUSD: "", description: "", codYear: "" };
     }
     setExperiences((prev) => [...prev, newExp]);
   };
@@ -945,7 +945,7 @@ export default function MitraProjectApplyPage() {
       if (idx !== i) return e;
       const base = { uid: e.uid, plantName: e.plantName, location: e.location, totalCapacityMW: e.totalCapacityMW };
       if (newType === 'powerplant') return { ...base, experienceType: 'powerplant' as const, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
-      return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
+      return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", description: "", codYear: "" };
     }));
   };
   const changeExperienceCategory = (i: number, newCategory: ExperienceCategory) => {
@@ -954,7 +954,7 @@ export default function MitraProjectApplyPage() {
       const base = { uid: e.uid, experienceType: e.experienceType || 'powerplant' as ExperienceType, plantName: e.plantName, location: e.location, totalCapacityMW: e.totalCapacityMW };
       if (newCategory === 'developer') return { ...base, experienceType: 'powerplant' as const, category: 'developer' as const, equityPercent: "", ippOrCaptive: "", codYear: "" };
       if (newCategory === 'om_contractor') return { ...base, experienceType: 'powerplant' as const, category: 'om_contractor' as const, contractValueUSD: "", workPortionPercent: "", ippOrCaptive: "", codYear: "" };
-      if (newCategory === 'general') return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", year: "", description: "" };
+      if (newCategory === 'general') return { ...base, experienceType: 'general' as const, category: 'general' as const, projectType: "", role: "", contractValueUSD: "", description: "", codYear: "" };
       return { ...base, experienceType: 'powerplant' as const, category: 'financing' as const, financingType: "", amountUSD: "", year: "" };
     }));
   };
@@ -1821,8 +1821,8 @@ export default function MitraProjectApplyPage() {
                       <input type="text" placeholder={t("portfolioFields.amountPlaceholder")} inputMode="decimal" value={fmtThousand(exp.amountUSD)} onChange={(e) => updateExperience(i, "amountUSD", e.target.value.replace(/[^0-9.,]/g, "").replace(/,/g, ""))} className={inputClass} />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.year")} <span className="text-ptba-red">*</span></label>
-                      <input type="text" placeholder={t("portfolioFields.yearPlaceholder")} inputMode="numeric" value={exp.year} onChange={(e) => updateExperience(i, "year", e.target.value.replace(/[^0-9]/g, ""))} className={inputClass} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.codYear")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" placeholder={t("portfolioFields.codYearPlaceholder")} inputMode="numeric" value={exp.codYear} onChange={(e) => updateExperience(i, "codYear", e.target.value.replace(/[^0-9]/g, ""))} className={inputClass} />
                     </div>
                   </>
                 )}
@@ -1845,9 +1845,9 @@ export default function MitraProjectApplyPage() {
                       <input type="text" inputMode="decimal" placeholder={t("portfolioFields.contractValuePlaceholder")} value={fmtThousand((exp as any).contractValueUSD || "")} onChange={(e) => { const next = [...experiences]; (next[i] as any).contractValueUSD = e.target.value.replace(/[^0-9.,]/g, "").replace(/,/g, ""); setExperiences(next); }} className={inputClass} />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Project Year" : "Tahun Proyek"} <span className="text-ptba-red">*</span></label>
-                      <input type="text" inputMode="numeric" placeholder={t("portfolioFields.yearPlaceholder")} value={(exp as any).year || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).year = e.target.value.replace(/[^0-9]/g, ""); setExperiences(next); }} className={cn(inputClass, errBorder((exp as any).year))} />
-                      <ErrText show={errMsg((exp as any).year) as boolean} />
+                      <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("portfolioFields.codYear")} <span className="text-ptba-red">*</span></label>
+                      <input type="text" inputMode="numeric" placeholder={t("portfolioFields.codYearPlaceholder")} value={(exp as any).codYear || ""} onChange={(e) => { const next = [...experiences]; (next[i] as any).codYear = e.target.value.replace(/[^0-9]/g, ""); setExperiences(next); }} className={cn(inputClass, errBorder((exp as any).codYear))} />
+                      <ErrText show={errMsg((exp as any).codYear) as boolean} />
                     </div>
                     <div className="md:col-span-2">
                       <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Project Description" : "Deskripsi Proyek"}</label>
