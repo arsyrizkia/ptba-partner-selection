@@ -400,6 +400,7 @@ export default function MitraProjectApplyPage() {
 
   // Section: Pengalaman Proyek (portfolio)
   const [experiences, setExperiences] = useState<CategorizedExperience[]>([]);
+  const [noExperience, setNoExperience] = useState(false);
 
   // Section: Pemenuhan Persyaratan (requirements_fulfillment)
   const [requirementAnswers, setRequirementAnswers] = useState<Record<number, boolean>>({});
@@ -503,6 +504,7 @@ export default function MitraProjectApplyPage() {
         if (fd.creditRatingValue) setCreditRatingValue(fd.creditRatingValue);
         if (fd.cashOnHand) setCashOnHand(fd.cashOnHand);
         if (fd.experiences?.length && fd.experiences[0]?.category) setExperiences(fd.experiences);
+        if (fd.noExperience) setNoExperience(true);
         if (fd.requirementAnswers) setRequirementAnswers(fd.requirementAnswers);
         if (fd.requirementNotes) setRequirementNotes(fd.requirementNotes);
         if (fd.agreedFinal) setAgreedFinal(fd.agreedFinal);
@@ -705,6 +707,7 @@ export default function MitraProjectApplyPage() {
     creditRatingValue,
     cashOnHand,
     experiences,
+    noExperience,
     requirementAnswers,
     requirementNotes,
     agreedFinal,
@@ -770,7 +773,7 @@ export default function MitraProjectApplyPage() {
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [
     signerName, signerPosition, signerDate, eoiAgreed, shareholderType, minorityEquityPercent, equityNegotiable, equityMinPercent, canBecomeMinority, cashOnHand,
-    creditRatingAgency, creditRatingValue, financialYears, experiences,
+    creditRatingAgency, creditRatingValue, financialYears, experiences, noExperience,
     requirementAnswers, requirementNotes, agreedFinal,
     companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
     companyWebsite, companyStatus, yearEstablished, countryEstablished, businessOverview, marketShare,
@@ -850,7 +853,7 @@ export default function MitraProjectApplyPage() {
   const sectionComplete: Record<string, boolean> = {
     compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
-    portfolio: experiences.length >= 1 && experiences.every((exp) => {
+    portfolio: noExperience || (experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
       if (exp.category === 'general') {
         return !!exp.plantName && !!exp.location && hasCred && !!(exp as any).projectType && !!(exp as any).role && !!(exp as any).codYear;
@@ -860,7 +863,7 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'om_contractor') return base && !!exp.contractValueUSD && !!exp.workPortionPercent && !!exp.ippOrCaptive && !!exp.codYear;
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.codYear;
       return false;
-    }),
+    })),
     financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && !!creditRatingAgency && !!creditRatingValue
@@ -1718,7 +1721,7 @@ export default function MitraProjectApplyPage() {
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Experience Type" : "Tipe Pengalaman"} <span className="text-ptba-red">*</span></label>
                   <select value={(exp as any).experienceType || 'powerplant'} onChange={(e) => changeExperienceType(i, e.target.value as ExperienceType)} className={inputClass}>
-                    <option value="powerplant">{locale === "en" ? "Power Plant" : "Pembangkit Listrik"}</option>
+                    <option value="powerplant">{locale === "en" ? "Power Plant (Preferable)" : "Pembangkit Listrik (Preferable)"}</option>
                     <option value="general">{locale === "en" ? "General Project" : "Proyek Umum"}</option>
                   </select>
                 </div>
@@ -1876,7 +1879,7 @@ export default function MitraProjectApplyPage() {
             </div>
           ))}
 
-          {!readOnly && (
+          {!readOnly && !noExperience && (
             <button
               onClick={() => addExperience('developer')}
               className="w-full inline-flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ptba-steel-blue/30 py-3 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
@@ -1884,6 +1887,26 @@ export default function MitraProjectApplyPage() {
               <Plus className="h-4 w-4" />
               {t("portfolioFields.addExperience")}
             </button>
+          )}
+
+          {!readOnly && experiences.length === 0 && !noExperience && (
+            <button
+              onClick={() => setNoExperience(true)}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-ptba-light-gray py-3 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+            >
+              {locale === "en" ? "I don't have relevant experience" : "Tidak memiliki pengalaman relevan"}
+            </button>
+          )}
+
+          {noExperience && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
+              <p className="text-sm text-amber-800">{locale === "en" ? "Marked as no relevant experience" : "Ditandai tidak memiliki pengalaman relevan"}</p>
+              {!readOnly && (
+                <button onClick={() => setNoExperience(false)} className="text-xs font-medium text-ptba-steel-blue hover:underline">
+                  {locale === "en" ? "Cancel" : "Batalkan"}
+                </button>
+              )}
+            </div>
           )}
 
         </Section>
