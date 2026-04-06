@@ -32,24 +32,52 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
     compro: {
       titleKey: "formData.companyInfo",
       render: (fd) => (
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <Field label={t("formData.companyName")} value={fd.companyName} />
-          <Field label={t("formData.address")} value={fd.companyAddress} />
-          <Field label={locale === "en" ? "Vision" : "Visi"} value={fd.companyVision} />
-          <Field label={locale === "en" ? "Mission" : "Misi"} value={fd.companyMission} />
-          <Field label={locale === "en" ? "Company History" : "Sejarah Perusahaan"} value={fd.companyHistory} />
-          <Field label={locale === "en" ? "Phone" : "Telepon"} value={fd.companyPhone} />
-          <Field label="Email" value={fd.companyEmail} />
-          <Field label={t("formData.website")} value={fd.companyWebsite} />
-          <Field label="NIB" value={fd.nib} />
-          <Field label={t("formData.yearEstablished")} value={fd.yearEstablished} />
-          <Field label={t("formData.country")} value={fd.countryEstablished} />
-          <Field label={locale === "en" ? "Company Status" : "Status Perusahaan"} value={fd.companyStatus} />
-          <Field label={locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} value={fd.shareholderComposition} />
-          <Field label="Contact Person" value={fd.contactPerson} />
-          <Field label={locale === "en" ? "CP Phone" : "Telp CP"} value={fd.contactPhone} />
-          <Field label="CP Email" value={fd.contactEmail} />
-        </dl>
+        <div className="space-y-3">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <Field label={t("formData.companyName")} value={fd.companyName} />
+            <Field label={locale === "en" ? "Business Overview" : "Overview Bidang Usaha"} value={fd.businessOverview} />
+          </dl>
+          {(fd.companyVision || fd.companyMission) && (
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <Field label={locale === "en" ? "Vision" : "Visi"} value={fd.companyVision} />
+              <Field label={locale === "en" ? "Mission" : "Misi"} value={fd.companyMission} />
+            </dl>
+          )}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <Field label={locale === "en" ? "Head Office Address" : "Alamat Kantor Pusat"} value={fd.companyAddress} />
+            <Field label={locale === "en" ? "Indonesia Rep. Office" : "Alamat Kantor Rep. Indonesia"} value={fd.companyIndonesiaAddress} />
+          </dl>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <Field label={locale === "en" ? "Phone" : "Telepon"} value={fd.companyPhone} />
+            <Field label="Email" value={fd.companyEmail} />
+            <Field label={t("formData.website")} value={fd.companyWebsite} />
+            <Field label="NIB" value={fd.nib} />
+          </dl>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <Field label={t("formData.yearEstablished")} value={fd.yearEstablished} />
+            <Field label={t("formData.country")} value={fd.countryEstablished} />
+            <Field label={locale === "en" ? "Company Status" : "Status Perusahaan"} value={fd.companyStatus} />
+          </dl>
+          {fd.shareholderComposition && (
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <Field label={locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} value={fd.shareholderComposition} />
+            </dl>
+          )}
+          {(fd.orgStructure || fd.subsidiaries) && (
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
+              {fd.orgStructure && <Field label={locale === "en" ? "Organizational Structure" : "Struktur Organisasi"} value={fd.orgStructure} />}
+              {fd.subsidiaries && <Field label={locale === "en" ? "Subsidiaries / Affiliates" : "Anak Perusahaan / Afiliasi"} value={fd.subsidiaries} />}
+            </dl>
+          )}
+          <div className="border-t border-gray-200 pt-2">
+            <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1">Contact Person</p>
+            <dl className="grid grid-cols-3 gap-x-4 gap-y-2">
+              <Field label="Contact Person" value={fd.contactPerson} />
+              <Field label={locale === "en" ? "CP Phone" : "Telp CP"} value={fd.contactPhone} />
+              <Field label="CP Email" value={fd.contactEmail} />
+            </dl>
+          </div>
+        </div>
       ),
     },
     statement_eoi: {
@@ -68,7 +96,7 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
           {fd.equityNegotiable === "yes" && (
             <Field label={locale === "en" ? "Min. Equity" : "Ekuitas Minimum"} value={fd.equityMinPercent ? `${fd.equityMinPercent}%` : undefined} />
           )}
-          <Field label="Cash on Hand" value={fd.cashOnHand ? `$ ${fd.cashOnHand} Mn` : undefined} />
+          <Field label="Cash on Hand" value={fd.cashOnHand ? `USD ${fd.cashOnHand} Million` : undefined} />
           <Field label={t("formData.eoiAgreed")} value={fd.eoiAgreed ? (locale === "en" ? "Yes" : "Ya") : (locale === "en" ? "No" : "Tidak")} />
         </dl>
       ),
