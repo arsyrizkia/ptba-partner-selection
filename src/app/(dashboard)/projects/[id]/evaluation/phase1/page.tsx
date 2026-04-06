@@ -955,44 +955,87 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                       {loadingDocs ? (
                         <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-ptba-navy" /></div>
                       ) : (
-                        SECTIONS.map((section, sIdx) => {
-                          const relDocIds = DOC_SECTION_MAP[section.key] || [section.key];
-                          const matchedDocs = appDocs.filter((d: any) => relDocIds.includes(d.document_type_id));
-                          const formRenderer = EVAL_FORM_DATA_MAP[section.key];
-                          const isOpen = expandedSections[`sec_${sIdx}`] ?? true;
+                        (() => {
+                          const allMappedDocIds = Object.values(DOC_SECTION_MAP).flat();
+                          const additionalDocs = appDocs.filter((d: any) => !allMappedDocIds.includes(d.document_type_id));
+                          let sectionNum = 0;
                           return (
-                            <div key={sIdx} className="rounded-xl border border-gray-200 overflow-hidden">
-                              <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, [`sec_${sIdx}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
-                                <span className="text-sm font-bold text-ptba-navy">{sIdx + 1}. {section.title}</span>
-                                <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
-                              </button>
-                              {isOpen && (
-                                <div className="p-4 space-y-3">
-                                  {formRenderer && appFormData && <div className="rounded-lg border border-gray-200 bg-white p-3">{formRenderer.render(appFormData)}</div>}
-                                  {matchedDocs.length > 0 && (
-                                    <div className="space-y-1.5">
-                                      <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
-                                      {matchedDocs.map((doc: any) => (
-                                        <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
-                                          <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-xs text-ptba-charcoal truncate">{fmtDocName(doc.name, doc.document_type_id)}</p>
-                                            <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                            <>
+                              {SECTIONS.map((section) => {
+                                const relDocIds = DOC_SECTION_MAP[section.key] || [section.key];
+                                const matchedDocs = appDocs.filter((d: any) => relDocIds.includes(d.document_type_id));
+                                const formRenderer = EVAL_FORM_DATA_MAP[section.key];
+                                const hasFormData = formRenderer && appFormData;
+                                // Skip empty sections (e.g. Pemenuhan Persyaratan with no data)
+                                if (!hasFormData && matchedDocs.length === 0) return null;
+                                sectionNum++;
+                                const isOpen = expandedSections[`sec_${section.key}`] ?? true;
+                                return (
+                                  <div key={section.key} className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, [`sec_${section.key}`]: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                      <span className="text-sm font-bold text-ptba-navy">{sectionNum}. {section.title}</span>
+                                      <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                                    </button>
+                                    {isOpen && (
+                                      <div className="p-4 space-y-3">
+                                        {hasFormData && <div className="rounded-lg border border-gray-200 bg-white p-3">{formRenderer.render(appFormData)}</div>}
+                                        {matchedDocs.length > 0 && (
+                                          <div className="space-y-1.5">
+                                            <p className="text-[10px] font-semibold text-ptba-gray uppercase">Dokumen ({matchedDocs.length})</p>
+                                            {matchedDocs.map((doc: any) => (
+                                              <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                                <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-xs text-ptba-charcoal truncate">{fmtDocName(doc.name, doc.document_type_id)}</p>
+                                                  <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                                </div>
+                                                {doc.file_key && (
+                                                  <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                    <Download className="h-3 w-3" /> Unduh
+                                                  </button>
+                                                )}
+                                              </div>
+                                            ))}
                                           </div>
-                                          {doc.file_key && (
-                                            <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
-                                              <Download className="h-3 w-3" /> Unduh
-                                            </button>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              {additionalDocs.length > 0 && (() => {
+                                sectionNum++;
+                                const isOpen = expandedSections.sec_additional ?? true;
+                                return (
+                                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, sec_additional: !isOpen }))} className="w-full flex items-center justify-between px-4 py-3 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
+                                      <span className="text-sm font-bold text-ptba-navy">{sectionNum}. Dokumen Tambahan</span>
+                                      <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
+                                    </button>
+                                    {isOpen && (
+                                      <div className="p-4 space-y-1.5">
+                                        {additionalDocs.map((doc: any) => (
+                                          <div key={doc.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                            <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-xs text-ptba-charcoal truncate">{fmtDocName(doc.name, doc.document_type_id)}</p>
+                                              <p className="text-[10px] text-ptba-gray">{doc.status} · {formatDate(doc.upload_date || "")}</p>
+                                            </div>
+                                            {doc.file_key && (
+                                              <button type="button" onClick={async () => { try { await downloadDocument(doc.file_key, accessToken!, doc.name); } catch {} }} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0">
+                                                <Download className="h-3 w-3" /> Unduh
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </>
                           );
-                        })
+                        })()
                       )}
                     </div>
                   )}
