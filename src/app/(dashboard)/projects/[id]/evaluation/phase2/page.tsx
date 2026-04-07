@@ -25,10 +25,12 @@ import { mockEvaluations } from "@/lib/mock-data/evaluations";
 type EvalStatus = "belum" | "sedang" | "selesai";
 
 const DIVISIONS = [
+  { key: "ebd_pasar", label: "Pasar", sublabel: "EBD", icon: ClipboardCheck, path: "market" },
+  { key: "ebd_teknis", label: "Teknis", sublabel: "EBD", icon: ClipboardCheck, path: "market" },
+  { key: "ebd_komersial", label: "Komersial", sublabel: "EBD / ESG", icon: ClipboardCheck, path: "market" },
   { key: "keuangan", label: "Keuangan", sublabel: "KEP-100", icon: BarChart3, path: "financial" },
   { key: "hukum", label: "Hukum", sublabel: "Regulasi", icon: Scale, path: "legal" },
   { key: "risiko", label: "Risiko", sublabel: "Manajemen", icon: AlertTriangle, path: "risk" },
-  { key: "ebd", label: "Teknis & Pasar", sublabel: "EBD", icon: ClipboardCheck, path: "market" },
 ] as const;
 
 function getEvalStatus(

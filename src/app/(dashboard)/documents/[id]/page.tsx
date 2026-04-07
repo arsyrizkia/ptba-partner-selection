@@ -263,7 +263,7 @@ export default function DocumentDetailPage() {
               <span className="text-ptba-gray">Tanggal</span>
               <span>: 4 Maret 2026</span>
               <span className="text-ptba-gray">Kepada</span>
-              <span>: Direktur Utama PT Bukit Asam Tbk</span>
+              <span>: Direktur Utama PT Bukit Asam (Persero) Tbk</span>
               <span className="text-ptba-gray">Dari</span>
               <span>: VP Pengembangan Usaha</span>
               <span className="text-ptba-gray">Perihal</span>

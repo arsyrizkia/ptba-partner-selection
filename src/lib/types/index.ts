@@ -4,7 +4,7 @@ export type UserRole =
   | 'keuangan'
   | 'hukum'
   | 'risiko'
-  | 'direksi'
+  | 'ketua_tim'
   | 'mitra'
   | 'viewer';
 
@@ -21,9 +21,8 @@ export interface User {
 export interface Project {
   id: string;
   name: string;
-  type: 'CAPEX' | 'OPEX' | 'Strategis';
-  status: 'Draft' | 'Evaluasi' | 'Persetujuan' | 'Selesai' | 'Dibatalkan';
-  capexValue: number;
+  type: 'mining' | 'power_generation' | 'coal_processing' | 'infrastructure' | 'environmental' | 'corporate';
+  status: 'Draft' | 'Berjalan' | 'Menunggu Persetujuan' | 'Selesai' | 'Dibatalkan';
   description: string;
   startDate: string;
   endDate: string;
@@ -44,15 +43,12 @@ export interface Project {
   shortlistedPartners?: string[];
   phase1Deadline?: string;
   phase2Deadline?: string;
+  phase3Deadline?: string;
   phase1Documents?: string[];
   phase2Documents?: string[];
+  phase3Documents?: string[];
   ptbaDocuments?: PTBADocument[];
   registrationFee?: number;
-  phase2Config?: {
-    deadline: string;
-    registrationFee: number;
-    requiredDivisions: string[];
-  };
 }
 
 export interface Partner {
@@ -60,18 +56,23 @@ export interface Partner {
   name: string;
   code: string;
   industry: string;
+  businessOverview?: string;
   status: 'Aktif' | 'Dalam Review' | 'Tidak Aktif';
   registrationDate: string;
   address: string;
+  indonesiaOfficeAddress?: string;
   phone: string;
-  email: string;
+  company_domain?: string;
   website?: string;
-  npwp: string;
-  siup: string;
+  npwp?: string;
+  siup?: string;
+  nib?: string;
   documents: DocumentItem[];
   financialData: FinancialYear[];
   contactPerson: string;
   contactPhone: string;
+  contactEmail?: string;
+  logoFileKey?: string;
 }
 
 export interface DocumentItem {
@@ -248,10 +249,15 @@ export type ProjectPhase =
   | 'phase1_approved'
   | 'phase2_registration'
   | 'phase2_evaluation'
-  | 'phase2_ranking'
-  | 'phase2_negotiation'
   | 'phase2_approval'
   | 'phase2_announcement'
+  | 'phase2_approved'
+  | 'phase3_registration'
+  | 'phase3_evaluation'
+  | 'phase3_ranking'
+  | 'phase3_negotiation'
+  | 'phase3_approval'
+  | 'phase3_announcement'
   | 'completed'
   | 'cancelled';
 
@@ -292,6 +298,57 @@ export interface ApplicationDocument {
   status: 'Diunggah';
   uploadDate: string;
   fileUrl?: string;
+}
+
+// ─── Negotiation Types ───
+
+export interface Negotiation {
+  id: string;
+  projectId: string;
+  applicationId: string;
+  partnerId: string;
+  partnerName?: string;
+  projectName?: string;
+  initialValue: number;
+  agreedValue?: number;
+  status: 'pending' | 'waiting_mitra_proposal' | 'waiting_ptba_review' | 'countered' | 'agreed' | 'failed';
+  currentRound: number;
+  conclusionNotes?: string;
+  deadline?: string;
+  agreedAt?: string;
+  rounds: NegotiationRound[];
+  documents: NegotiationDocument[];
+}
+
+export interface NegotiationRound {
+  id: string;
+  roundNumber: number;
+  party: 'mitra' | 'ptba';
+  proposedValue: number;
+  justification?: string;
+  costBreakdown?: CostBreakdownItem[];
+  status: 'submitted' | 'accepted' | 'countered' | 'rejected';
+  responseNotes?: string;
+  submittedBy?: string;
+  submittedAt: string;
+  respondedAt?: string;
+}
+
+export interface CostBreakdownItem {
+  item: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface NegotiationDocument {
+  id: string;
+  name: string;
+  type: 'boq' | 'supplier_quote' | 'berita_acara' | 'supporting';
+  fileKey?: string;
+  uploadedByRole: 'mitra' | 'ptba';
 }
 
 export interface PartnerApplication {

@@ -12,7 +12,7 @@ export function PTBALogo({ variant = 'full', className = '', width, height }: PT
     return (
       <Image
         src="/ptba-logo.svg"
-        alt="PT Bukit Asam Tbk"
+        alt="PT Bukit Asam (Persero) Tbk"
         width={width || 140}
         height={height || 25}
         className={className}
@@ -25,7 +25,7 @@ export function PTBALogo({ variant = 'full', className = '', width, height }: PT
     <div className={`flex flex-col items-center gap-2 ${className}`}>
       <Image
         src="/ptba-logo.svg"
-        alt="PT Bukit Asam Tbk"
+        alt="PT Bukit Asam (Persero) Tbk"
         width={width || 200}
         height={height || 36}
         priority

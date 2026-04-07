@@ -993,7 +993,7 @@ export const mockEvaluations: Evaluation[] = [
     evaluatedBy: 'U006',
     evaluatedAt: '2025-10-22T14:00:00Z',
   },
-  // Phase 1 Evaluations for P001
+  // Fase 1 Evaluations for P001
   {
     id: 'EVAL-P1-001',
     projectId: 'P001',
@@ -1013,7 +1013,7 @@ export const mockEvaluations: Evaluation[] = [
       overallResult: 'Lolos',
       evaluatedBy: 'U002',
       evaluatedAt: '2025-11-15T10:00:00Z',
-      notes: 'Mitra sangat qualified untuk melanjutkan ke Phase 2',
+      notes: 'Mitra sangat qualified untuk melanjutkan ke Fase 2',
     },
     status: 'Selesai',
     evaluatedBy: 'U002',
@@ -1038,13 +1038,13 @@ export const mockEvaluations: Evaluation[] = [
       overallResult: 'Lolos',
       evaluatedBy: 'U002',
       evaluatedAt: '2025-11-15T11:00:00Z',
-      notes: 'Layak melanjutkan ke Phase 2',
+      notes: 'Layak melanjutkan ke Fase 2',
     },
     status: 'Selesai',
     evaluatedBy: 'U002',
     evaluatedAt: '2025-11-15T11:00:00Z',
   },
-  // Phase 1 Evaluations for P002 (in progress)
+  // Fase 1 Evaluations for P002 (in progress)
   {
     id: 'EVAL-P1-003',
     projectId: 'P002',
@@ -1088,7 +1088,7 @@ export const mockEvaluations: Evaluation[] = [
       overallResult: 'Lolos',
       evaluatedBy: 'U002',
       evaluatedAt: '2026-01-10T10:00:00Z',
-      notes: 'Lolos dengan catatan: perlu melengkapi pengalaman gasifikasi di Phase 2',
+      notes: 'Lolos dengan catatan: perlu melengkapi pengalaman gasifikasi di Fase 2',
     },
     status: 'Selesai',
     evaluatedBy: 'U002',

@@ -1,0 +1,10 @@
+[     275ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)
+[   13437ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://dev.prima-ptba.cloud/api/auth/users:0
+[   13439ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://dev.prima-ptba.cloud/api/documents/download/projects/d8af1c47-f8fc-464f-905b-ab8274cf42ad/cover_1774419834979.jpg:0

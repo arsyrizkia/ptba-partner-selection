@@ -1,0 +1,20 @@
+[     163ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)
+[  232073ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ https://dev.prima-ptba.cloud/_next/static/chunks/00c411e2b0b0efa7.js:0
+[  409853ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)

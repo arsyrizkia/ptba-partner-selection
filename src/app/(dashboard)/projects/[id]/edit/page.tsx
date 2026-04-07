@@ -1,0 +1,317 @@
+"use client";
+
+import { use, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
+import { projectApi, api, ApiClientError } from "@/lib/api/client";
+import { getLockedSections } from "@/lib/utils/edit-restrictions";
+import ProjectForm, {
+  type ProjectFormData,
+  type SupportingFileExisting,
+} from "@/components/features/project/project-form";
+
+export default function EditProjectPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const router = useRouter();
+  const { accessToken } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [loadingProject, setLoadingProject] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [projectData, setProjectData] = useState<any>(null);
+  const [applicationCount, setApplicationCount] = useState(0);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+
+  // Fetch existing project data + application count
+  useEffect(() => {
+    if (!accessToken) return;
+    setLoadingProject(true);
+    setLoadError("");
+    Promise.all([
+      projectApi(accessToken).getById(id),
+      api<{ applications: any[] }>("/applications", { token: accessToken }).catch(() => ({ applications: [] })),
+    ]).then(([res, appsRes]) => {
+      const project = res.data;
+      if (!project) {
+        setLoadError("Proyek tidak ditemukan.");
+        return;
+      }
+      setProjectData(project);
+      const appCount = (appsRes.applications || []).filter((a: any) => a.project_id === id && a.status !== "Draft").length;
+      setApplicationCount(appCount);
+    }).catch((err) => {
+      if (err instanceof ApiClientError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Gagal memuat data proyek.");
+      }
+    }).finally(() => {
+      setLoadingProject(false);
+    });
+  }, [accessToken, id]);
+
+  const lockedSections = projectData ? getLockedSections(projectData.phase, applicationCount) : new Set<string>();
+
+  // Upload a file immediately (edit mode)
+  const handleFileUpload = async (file: File): Promise<SupportingFileExisting | null> => {
+    if (!accessToken) return null;
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", file.name);
+      formData.append("type", "supporting");
+      formData.append("phase", "phase1");
+
+      const res = await fetch(`${API_BASE}/projects/${id}/documents`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal mengunggah");
+      }
+
+      const data = await res.json();
+      return {
+        id: data.document.id,
+        name: data.document.name,
+        fileKey: data.document.fileKey,
+        phase: data.document.phase || "phase1",
+      };
+    } catch (err: any) {
+      setSubmitError(err.message || "Gagal mengunggah dokumen");
+      return null;
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  // Delete an existing supporting file
+  const handleFileDelete = async (fileId: string) => {
+    if (!accessToken) return;
+    try {
+      await fetch(`${API_BASE}/projects/${id}/documents/${fileId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleSubmit = async (
+    formData: ProjectFormData,
+    templateFiles: Record<string, File>,
+  ) => {
+    if (!accessToken || !formData.projectType) return;
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      // Build PIC assignments from form data
+      const picAssignments = Object.entries(formData.picAssignments)
+        .filter(([, userId]) => userId)
+        .map(([role, userId]) => {
+          const user = formData.internalUsers.find((u) => u.id === userId);
+          return { role, userId, userName: user?.name };
+        });
+
+      // Update basic fields + PIC
+      await projectApi(accessToken).update(id, {
+        name: formData.projectName,
+        type: formData.projectType as any,
+        description: formData.description || undefined,
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+        phase1Deadline: formData.phase1Deadline || undefined,
+        phase2Deadline: formData.phase2Deadline || undefined,
+        // phase3Deadline removed — 2-phase system
+        picAssignments: picAssignments.length > 0 ? picAssignments : undefined,
+        phasePics: formData.phasePics.length > 0 ? formData.phasePics : undefined,
+        location: formData.location || undefined,
+        capacityMw: formData.capacityMw || undefined,
+        indicativeCapex: formData.indicativeCapex || undefined,
+        npv: formData.npv || undefined,
+        der: formData.der || undefined,
+        lifetime: formData.lifetime || undefined,
+        projectIrr: formData.projectIrr || undefined,
+        equityIrr: formData.equityIrr || undefined,
+        paybackPeriod: formData.paybackPeriod || undefined,
+        wacc: formData.wacc || undefined,
+        tariffLevelized: formData.tariffLevelized || undefined,
+        bppValue: formData.bppValue || undefined,
+        bppLocation: formData.bppLocation || undefined,
+        indicativeDisclaimer: formData.indicativeDisclaimer || undefined,
+      });
+
+      // Update requirements
+      const reqs = formData.requirements.filter((r) => r.trim());
+      await projectApi(accessToken).updateRequirements(id, reqs);
+
+      // Update required documents (phase1 + phase2 + phase3 + custom)
+      const optSet = new Set(formData.optionalDocIds || []);
+      const allDocs: { documentTypeId: string; phase: string; isRequired: boolean }[] = [
+        ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
+        ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
+        // Phase 3 docs removed — 2-phase system
+        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`, phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
+      ];
+      await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
+
+      // Delete cover image if removed
+      if (formData.coverImageDeleted && !formData.coverImageFile) {
+        await fetch(`${API_BASE}/projects/${id}/cover-image`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
+
+      // Upload cover image if new file selected
+      if (formData.coverImageFile) {
+        const fd = new FormData();
+        fd.append("file", formData.coverImageFile);
+        const coverRes = await fetch(`${API_BASE}/projects/${id}/cover-image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: fd,
+        });
+        if (!coverRes.ok) {
+          const errData = await coverRes.json().catch(() => ({}));
+          console.error("Cover image upload failed:", errData);
+        }
+      }
+
+      // Delete removed description images
+      if (formData.deletedDescriptionImageIds && formData.deletedDescriptionImageIds.length > 0) {
+        for (const imageId of formData.deletedDescriptionImageIds) {
+          await fetch(`${API_BASE}/projects/${id}/images/${imageId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+        }
+      }
+
+      // Upload new description images
+      if (formData.descriptionImageFiles && formData.descriptionImageFiles.length > 0) {
+        for (const file of formData.descriptionImageFiles) {
+          const fd = new FormData();
+          fd.append("file", file);
+          await fetch(`${API_BASE}/projects/${id}/images`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: fd,
+          });
+        }
+      }
+
+      // Sync phase changes on existing PTBA documents
+      for (const sf of formData.supportingFiles) {
+        if ("id" in sf && sf.id && sf.phase) {
+          await fetch(`${API_BASE}/projects/${id}/documents/${sf.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ phase: sf.phase }),
+          });
+        }
+      }
+
+      // Upload template files if any
+      if (Object.keys(templateFiles).length > 0) {
+        // Fetch updated project to get new required document IDs
+        const updatedProject = await projectApi(accessToken).getById(id);
+        const reqDocs = (updatedProject.data as any)?.requiredDocuments || [];
+
+        // Build mapping from custom_N index keys to actual document type IDs
+        const customDocIdMap: Record<string, string> = {};
+        formData.customDocuments.forEach((d, i) => {
+          if (d.name.trim()) {
+            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`;
+          }
+        });
+
+        // Get fresh token (accessToken may have expired during save)
+        const freshToken = typeof window !== "undefined" ? localStorage.getItem("ptba_access_token") : accessToken;
+
+        for (const [templateKey, file] of Object.entries(templateFiles)) {
+          const docTypeId = customDocIdMap[templateKey] || templateKey;
+          const reqDoc = reqDocs.find((d: any) => d.documentTypeId === docTypeId);
+          if (reqDoc?.id) {
+            const fd = new FormData();
+            fd.append("file", file);
+            await fetch(`${API_BASE}/projects/${id}/required-documents/${reqDoc.id}/template`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${freshToken}` },
+              body: fd,
+            });
+          }
+        }
+      }
+
+      router.push(`/projects/${id}`);
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Gagal menyimpan perubahan. Silakan coba lagi.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Loading state
+  if (loadingProject) {
+    return (
+      <div className="mx-auto max-w-3xl flex flex-col items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-navy mb-4" />
+        <p className="text-sm text-ptba-gray">Memuat data proyek...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-3xl flex flex-col items-center justify-center py-20">
+        <div className="rounded-lg bg-red-50 border border-red-200 px-6 py-4 text-center">
+          <p className="text-sm text-red-700 mb-3">{loadError}</p>
+          <Link
+            href={`/projects/${id}`}
+            className="text-sm font-medium text-ptba-navy hover:underline"
+          >
+            Kembali ke Detail Proyek
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ProjectForm
+      mode="edit"
+      projectId={id}
+      initialData={projectData}
+      onSubmit={handleSubmit}
+      submitting={submitting}
+      submitError={submitError}
+      onFileUpload={handleFileUpload}
+      onFileDelete={handleFileDelete}
+      uploadingFile={uploadingFile}
+      cancelHref={`/projects/${id}`}
+      lockedSections={lockedSections}
+    />
+  );
+}

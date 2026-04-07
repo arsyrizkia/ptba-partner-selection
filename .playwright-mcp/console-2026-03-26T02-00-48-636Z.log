@@ -1,0 +1,37 @@
+[     168ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)
+[   56899ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)
+[   59682ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)
+[  622007ms] Error: Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rK (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:46764)
+    at io (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:97485)
+    at sc (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:137956)
+    at https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132846
+    at u9 (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:132947)
+    at sV (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:159329)
+    at MessagePort.O (https://dev.prima-ptba.cloud/_next/static/chunks/aee6c7720838f8a2.js:1:8295)
+[  622129ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://dev.prima-ptba.cloud/api/dashboard/notifications:0
+[  622129ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://dev.prima-ptba.cloud/api/projects/d8af1c47-f8fc-464f-905b-ab8274cf42ad:0
+[  623587ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://dev.prima-ptba.cloud/api/applications:0
+[  623716ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://dev.prima-ptba.cloud/api/evaluations/phase1/d8af1c47-f8fc-464f-905b-ab8274cf42ad:0
+[  623871ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://dev.prima-ptba.cloud/api/applications/7e6bea29-8013-4977-a44e-bbdc16d2719f:0

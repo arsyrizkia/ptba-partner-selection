@@ -1,11 +1,11 @@
 import type { Project, User, UserRole } from '@/lib/types';
 
-const ALWAYS_ACCESS_ROLES: UserRole[] = ['super_admin', 'direksi', 'viewer'];
+const ALWAYS_ACCESS_ROLES: UserRole[] = ['super_admin', 'ebd', 'ketua_tim', 'viewer'];
 const EVALUATOR_ROLES: UserRole[] = ['ebd', 'keuangan', 'hukum', 'risiko'];
 
 /**
  * Check if a user can access (view) a project based on PIC assignments.
- * super_admin, direksi, and viewer always have access.
+ * super_admin, ketua_tim, and viewer always have access.
  * Evaluator roles must be assigned as PIC.
  */
 export function canAccessProject(project: Project, user: User | null): boolean {

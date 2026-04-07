@@ -3,7 +3,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { formatCurrency } from "@/lib/utils/format";
 import type { Project } from "@/lib/types";
 
 interface ProjectCardProps {
@@ -15,9 +14,9 @@ function getStatusVariant(
   status: Project["status"]
 ): "success" | "warning" | "error" | "info" | "neutral" {
   switch (status) {
-    case "Evaluasi":
+    case "Berjalan":
       return "info";
-    case "Persetujuan":
+    case "Menunggu Persetujuan":
       return "warning";
     case "Selesai":
       return "success";
@@ -29,15 +28,26 @@ function getStatusVariant(
   }
 }
 
+const TYPE_LABELS: Record<string, string> = {
+  mining: "Pertambangan",
+  power_generation: "Pembangkit Listrik",
+  coal_processing: "Pengolahan Batubara",
+  infrastructure: "Infrastruktur",
+  environmental: "Lingkungan",
+  corporate: "Korporat",
+  others: "Lainnya",
+};
+
 function getTypeVariant(
   type: Project["type"]
 ): "info" | "warning" | "neutral" {
   switch (type) {
-    case "CAPEX":
+    case "power_generation":
+    case "infrastructure":
       return "info";
-    case "Strategis":
+    case "mining":
+    case "coal_processing":
       return "warning";
-    case "OPEX":
     default:
       return "neutral";
   }
@@ -59,12 +69,8 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
           <h3 className="text-sm font-semibold text-ptba-charcoal line-clamp-2">
             {project.name}
           </h3>
-          <Badge variant={getTypeVariant(project.type)}>{project.type}</Badge>
+          <Badge variant={getTypeVariant(project.type)}>{TYPE_LABELS[project.type] || project.type}</Badge>
         </div>
-
-        <p className="text-lg font-bold text-ptba-navy mb-2">
-          {formatCurrency(project.capexValue)}
-        </p>
 
         <div className="flex items-center justify-between mb-3">
           <Badge variant={getStatusVariant(project.status)}>
