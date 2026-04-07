@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 import { formatDate } from "@/lib/utils/format";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
@@ -1075,7 +1076,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         {isEditable ? (
                           <RichTextEditor value={myComment} onChange={setMyComment} placeholder="Tulis komentar evaluasi Anda di sini..." />
                         ) : (
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: myComment || "<em class='text-gray-400'>Belum ada komentar.</em>" }} />
+                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: myComment ? sanitizeHtml(myComment) : "<em class='text-gray-400'>Belum ada komentar.</em>" }} />
                         )}
                       </div>
 
@@ -1207,7 +1208,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                             <div className="px-6 pb-4 space-y-2">
                               {evalData.evaluatorName && <p className="text-[10px] text-ptba-gray">Evaluator: {evalData.evaluatorName}</p>}
                               {evalData.comment && (
-                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: evalData.comment }} />
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: sanitizeHtml(evalData.comment) }} />
                               )}
                               {evalData.evidenceFiles.length > 0 && (
                                 <div className="space-y-1">

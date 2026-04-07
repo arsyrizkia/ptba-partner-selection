@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
 
@@ -233,7 +234,7 @@ export default function MitraProjectDetailPage() {
             {project.description ? (
               <div
                 className="text-sm text-ptba-gray leading-relaxed prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity [&_table]:w-full [&_table]:table-fixed"
-                dangerouslySetInnerHTML={{ __html: project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ") }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ")) }}
                 onClick={(e) => { const t = e.target as HTMLElement; if (t.tagName === "IMG") setLightboxSrc((t as HTMLImageElement).src); }}
               />
             ) : (

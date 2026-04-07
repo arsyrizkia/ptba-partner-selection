@@ -27,6 +27,7 @@ import { api, projectApi, downloadDocument, fetchWithAuth } from "@/lib/api/clie
 // import { ALL_FILTRATION_ITEMS } from "@/lib/constants/phase1-criteria";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
 import FormDataViewer from "@/components/features/project/form-data-viewer";
 
@@ -980,7 +981,7 @@ export default function Phase1ApprovalPage({
                                         <div className="px-3 pb-3 pt-1 space-y-2 border-t border-gray-100">
                                           {detail.evaluatorName && <p className="text-[10px] text-ptba-gray">Evaluator: {detail.evaluatorName}</p>}
                                           {detail.comment && (
-                                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: detail.comment }} />
+                                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: sanitizeHtml(detail.comment) }} />
                                           )}
                                           {detail.evidence.length > 0 && (
                                             <div className="space-y-1">

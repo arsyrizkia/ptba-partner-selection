@@ -38,6 +38,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, authApi, downloadDocument } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
@@ -1784,7 +1785,7 @@ export default function ProjectDetailPage({
               ) : project.description ? (
                 <div
                   className="text-sm leading-relaxed text-ptba-gray prose prose-sm max-w-none overflow-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity [&_table]:w-full [&_table]:table-fixed"
-                  dangerouslySetInnerHTML={{ __html: project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ") }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(project.description.replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ")) }}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.tagName === "IMG") {

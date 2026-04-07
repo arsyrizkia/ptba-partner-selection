@@ -66,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [accessToken]);
 
   const login = useCallback((email: string): User | null => {
+    // Mock login is dev-only — never allow in production builds
+    if (process.env.NODE_ENV === "production") return null;
     const found = mockUsers.find(
       (u) => u.email.toLowerCase() === email.toLowerCase()
     );
@@ -126,6 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const switchRole = useCallback((role: UserRole) => {
+    // Demo role switcher is dev-only — never allow in production builds
+    if (process.env.NODE_ENV === "production") return;
     const found = mockUsers.find((u) => u.role === role);
     if (found) {
       setUser(found);
