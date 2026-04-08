@@ -60,6 +60,25 @@ export default function EditProjectPage({
 
   const lockedSections = projectData ? getLockedSections(projectData.phase, applicationCount) : new Set<string>();
 
+  // Per-item locking for custom docs: pre-existing custom docs that are
+  // tagged as phase1/both/general can't be deleted or moved off phase 1
+  // once mitra have applied. Only applies in phase 1 (phase 2 locks the
+  // entire customDocs section via lockedSections).
+  const lockedCustomDocs = (() => {
+    if (!projectData || applicationCount === 0) return new Set<string>();
+    if (projectData.phase?.startsWith("phase2")) return new Set<string>(); // already covered by section lock
+    const set = new Set<string>();
+    for (const d of projectData.requiredDocuments || []) {
+      const id = d.documentTypeId || "";
+      if (!id.startsWith("custom_")) continue;
+      const phase = d.phase || "general";
+      if (phase === "phase1" || phase === "both" || phase === "general") {
+        set.add(id);
+      }
+    }
+    return set;
+  })();
+
   // Upload a file immediately (edit mode)
   const handleFileUpload = async (file: File): Promise<SupportingFileExisting | null> => {
     if (!accessToken) return null;
@@ -312,6 +331,7 @@ export default function EditProjectPage({
       uploadingFile={uploadingFile}
       cancelHref={`/projects/${id}`}
       lockedSections={lockedSections}
+      lockedCustomDocs={lockedCustomDocs}
     />
   );
 }
