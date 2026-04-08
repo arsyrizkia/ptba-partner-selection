@@ -2050,14 +2050,15 @@ export default function MitraProjectApplyPage() {
                 </tr>
                 {/* Cash, IBD, EBITDA & DSCR */}
                 {[
-                  { key: "cashOnHand" as const, label: locale === "en" ? "Cash & Cash Equivalents" : "Kas & Setara Kas", hasUnit: true },
-                  { key: "totalIBD" as const, label: locale === "en" ? "Total IBD (Interest Bearing Debt)" : "Total IBD (Interest Bearing Debt)", hasUnit: true },
-                  { key: "ebitda" as const, label: t("financialFields.ebitda"), hasUnit: true },
-                  { key: "dscr" as const, label: t("financialFields.dscr"), hasUnit: false },
+                  { key: "cashOnHand" as const, label: locale === "en" ? "Cash & Cash Equivalents" : "Kas & Setara Kas", acronym: null, hasUnit: true },
+                  { key: "totalIBD" as const, label: "Total IBD", acronym: locale === "en" ? "Interest Bearing Debt — total interest-bearing liabilities (loans, bonds, leases)" : "Interest Bearing Debt — total liabilitas berbunga (pinjaman, obligasi, sewa)", hasUnit: true },
+                  { key: "ebitda" as const, label: "EBITDA", acronym: locale === "en" ? "Earnings Before Interest, Taxes, Depreciation & Amortization" : "Earnings Before Interest, Taxes, Depreciation & Amortization — laba sebelum bunga, pajak, depresiasi & amortisasi", hasUnit: true },
+                  { key: "dscr" as const, label: "DSCR", acronym: locale === "en" ? "Debt Service Coverage Ratio — EBITDA ÷ debt service" : "Debt Service Coverage Ratio — rasio EBITDA terhadap kewajiban utang", hasUnit: false },
                 ].map((row) => (
                   <tr key={row.key} className="border-b border-ptba-light-gray/50">
                     <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">
                       {row.label} <span className="text-ptba-red">*</span>
+                      {row.acronym && <span className="block text-[10px] text-ptba-gray font-normal italic">{row.acronym}</span>}
                       {row.hasUnit && <span className="block text-[10px] text-ptba-gray font-normal">({financialYears[0]?.currency === "USD" ? t("financialFields.unitUSD") : t("financialFields.unitIDR")})</span>}
                     </td>
                     {financialYears.map((fy, i) => (
