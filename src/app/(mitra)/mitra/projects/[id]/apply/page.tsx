@@ -2003,7 +2003,7 @@ export default function MitraProjectApplyPage() {
                           next[i].totalAsset = String(debt + equity);
                           setFinancialYears(next);
                         }}
-                        className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
+                        className={cn("w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue", errBorder(fy.totalDebt))}
                       />
                     </td>
                   ))}
@@ -2029,7 +2029,7 @@ export default function MitraProjectApplyPage() {
                           next[i].totalAsset = String(debt + equity);
                           setFinancialYears(next);
                         }}
-                        className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
+                        className={cn("w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue", errBorder(fy.totalEquity))}
                       />
                     </td>
                   ))}
@@ -2070,7 +2070,7 @@ export default function MitraProjectApplyPage() {
                           onChange={(e) => {
                             const next = [...financialYears]; next[i][row.key] = e.target.value.replace(/[^0-9.,-]/g, ""); setFinancialYears(next);
                           }}
-                          className="w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue"
+                          className={cn("w-full rounded border border-ptba-light-gray px-2 py-1.5 text-xs text-right outline-none focus:border-ptba-steel-blue", errBorder(fy[row.key]))}
                         />
                       </td>
                     ))}
