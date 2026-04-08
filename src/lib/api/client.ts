@@ -146,8 +146,14 @@ export async function fetchWithAuth(
   options: RequestInit & { token: string }
 ): Promise<Response> {
   const { token, ...fetchOpts } = options;
+  // Idempotent URL resolution: if the caller already prefixed with API_BASE
+  // (or passed a full http URL), don't prepend again. Otherwise prefix.
+  const resolvedUrl =
+    url.startsWith("http") || url.startsWith(API_BASE + "/") || url === API_BASE
+      ? url
+      : `${API_BASE}${url}`;
   const doFetch = (t: string) =>
-    fetch(url.startsWith("http") ? url : `${API_BASE}${url}`, {
+    fetch(resolvedUrl, {
       ...fetchOpts,
       headers: { ...fetchOpts.headers as Record<string, string>, Authorization: `Bearer ${t}` },
     });
