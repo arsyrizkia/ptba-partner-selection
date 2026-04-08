@@ -75,6 +75,8 @@ interface FinancialYear {
   totalAsset: string;
   totalDebt: string;
   totalEquity: string;
+  cashOnHand: string;
+  totalIBD: string;
   ebitda: string;
   dscr: string;
 }
@@ -387,12 +389,12 @@ export default function MitraProjectApplyPage() {
 
   // Section: Kriteria Keuangan (financial_overview)
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>(
-    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", ebitda: "", dscr: "" }))
+    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", cashOnHand: "", totalIBD: "", ebitda: "", dscr: "" }))
   );
   const selectedRangeKey = financialYears.map((f) => f.year).join("-");
   const handleYearRangeChange = (rangeIndex: number) => {
     const newYears = YEAR_RANGE_OPTIONS[rangeIndex];
-    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", ebitda: "", dscr: "" })));
+    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", cashOnHand: "", totalIBD: "", ebitda: "", dscr: "" })));
   };
   const [creditRatingAgency, setCreditRatingAgency] = useState("");
   const [creditRatingValue, setCreditRatingValue] = useState("");
@@ -499,7 +501,17 @@ export default function MitraProjectApplyPage() {
         if (fd.signerPosition) setSignerPosition(fd.signerPosition);
         if (fd.signerDate) setSignerDate(fd.signerDate);
         if (fd.eoiAgreed) setEoiAgreed(fd.eoiAgreed);
-        if (fd.financialYears) setFinancialYears(fd.financialYears);
+        if (fd.financialYears) setFinancialYears(fd.financialYears.map((f: Partial<FinancialYear>) => ({
+          year: f.year || "",
+          currency: f.currency || "IDR",
+          totalAsset: f.totalAsset || "",
+          totalDebt: f.totalDebt || "",
+          totalEquity: f.totalEquity || "",
+          cashOnHand: f.cashOnHand || "",
+          totalIBD: f.totalIBD || "",
+          ebitda: f.ebitda || "",
+          dscr: f.dscr || "",
+        })));
         if (fd.creditRatingAgency) setCreditRatingAgency(fd.creditRatingAgency);
         if (fd.creditRatingValue) setCreditRatingValue(fd.creditRatingValue);
         if (fd.cashOnHand) setCashOnHand(fd.cashOnHand);
@@ -864,7 +876,7 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.codYear;
       return false;
     })),
-    financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
+    financial_overview: financialYears.every((f) => f.totalAsset && f.totalDebt && f.totalEquity && f.cashOnHand && f.totalIBD && f.ebitda && f.dscr)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && !!creditRatingAgency && !!creditRatingValue
       && isDoc("credit_rating_evidence"),
@@ -2036,8 +2048,10 @@ export default function MitraProjectApplyPage() {
                     </td>
                   ))}
                 </tr>
-                {/* EBITDA & DSCR */}
+                {/* Cash, IBD, EBITDA & DSCR */}
                 {[
+                  { key: "cashOnHand" as const, label: locale === "en" ? "Cash & Cash Equivalents" : "Kas & Setara Kas", hasUnit: true },
+                  { key: "totalIBD" as const, label: locale === "en" ? "Total IBD (Interest Bearing Debt)" : "Total IBD (Interest Bearing Debt)", hasUnit: true },
                   { key: "ebitda" as const, label: t("financialFields.ebitda"), hasUnit: true },
                   { key: "dscr" as const, label: t("financialFields.dscr"), hasUnit: false },
                 ].map((row) => (
