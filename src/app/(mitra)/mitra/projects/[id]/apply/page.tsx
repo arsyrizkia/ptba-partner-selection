@@ -867,8 +867,7 @@ export default function MitraProjectApplyPage() {
     financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && !!creditRatingAgency && !!creditRatingValue
-      && isDoc("credit_rating_evidence")
-      && isDoc("ebitda_dscr_calculation"),
+      && isDoc("credit_rating_evidence"),
     requirements_fulfillment: (projectRequirements.length
       ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
       : true) && isDoc("requirements_fulfillment"),
@@ -2102,35 +2101,6 @@ export default function MitraProjectApplyPage() {
             )}
           </div>
 
-          {/* EBITDA & DSCR Calculation */}
-          <div className="space-y-2 pt-2 border-t border-ptba-light-gray mt-4">
-            <p className="text-xs font-semibold text-ptba-charcoal pt-3">EBITDA & DSCR Calculation <span className="text-ptba-red">*</span></p>
-            <p className="text-[10px] text-ptba-gray">Download the calculation form, fill it in, then upload the completed file (xlsx format, max 20 MB).</p>
-            <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50/50 px-3 py-2">
-              <Download className="h-3.5 w-3.5 text-green-600 shrink-0" />
-              <span className="text-[11px] text-ptba-gray flex-1">Click here for EBITDA and DSCR calculation</span>
-              <a
-                href={`/templates/ebitda-dscr-calculation-${financialYears[0].year}-${financialYears[2].year}.xlsx`}
-                download
-                className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 transition-colors shrink-0"
-              >
-                <Download className="h-3 w-3" />
-                Download
-              </a>
-            </div>
-            <FileUploadButton
-              label="Upload EBITDA and DSCR calculation"
-              accept=".xlsx,.xls"
-              uploaded={isDoc("ebitda_dscr_calculation")}
-              uploading={uploadedDocs["ebitda_dscr_calculation"]?.uploading ?? false}
-              fileName={uploadedDocs["ebitda_dscr_calculation"]?.name}
-              onSelect={(f) => uploadDoc("ebitda_dscr_calculation", "EBITDA & DSCR Calculation", f)}
-              onDelete={() => deleteDoc("ebitda_dscr_calculation")}
-              readOnly={readOnly}
-              onDownload={docDownloadHandler("ebitda_dscr_calculation")}
-              error={showErrors && !isDoc("ebitda_dscr_calculation")}
-            />
-          </div>
 
           {/* Credit Rating Evidence */}
           <div className="space-y-2 pt-2">
