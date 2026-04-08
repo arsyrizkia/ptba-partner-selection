@@ -36,9 +36,18 @@ import {
   Download,
   ChevronDown,
   HelpCircle,
+  MessageSquare,
+  MessagesSquare,
+  Inbox,
+  CircleDot,
+  CheckCheck,
+  Lock,
+  Unlock,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
+import { formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, authApi, downloadDocument } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
@@ -364,6 +373,19 @@ export default function ProjectDetailPage({
   const [faqEditId, setFaqEditId] = useState<string | null>(null);
   const [faqSaving, setFaqSaving] = useState(false);
   const [faqFilter, setFaqFilter] = useState<"all" | "general" | "mitra">("all");
+  // Q&A Tickets state
+  const [faqSubTab, setFaqSubTab] = useState<"general" | "mitra" | "tickets">("general");
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [questionMessages, setQuestionMessages] = useState<any[]>([]);
+  const [questionReply, setQuestionReply] = useState("");
+  const [questionStatusFilter, setQuestionStatusFilter] = useState<"all" | "open" | "answered" | "closed">("all");
+  const [questionsOpen, setQuestionsOpen] = useState(false);
+  const [questionsCloseAt, setQuestionsCloseAt] = useState("");
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionMessagesLoading, setQuestionMessagesLoading] = useState(false);
+  const [questionReplyLoading, setQuestionReplyLoading] = useState(false);
+  const [questionConfigSaving, setQuestionConfigSaving] = useState(false);
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -517,6 +539,14 @@ export default function ProjectDetailPage({
       setProject(res.data);
       if (Array.isArray(res.data.faqs)) setFaqs(res.data.faqs);
       if (res.data.registrationFee) setPhase2Fee(Number(res.data.registrationFee));
+      if (typeof res.data.questionsOpen === "boolean") setQuestionsOpen(res.data.questionsOpen);
+      const closeAt = (res.data as any).questionsCloseAt as string | null | undefined;
+      if (closeAt) {
+        // Format to datetime-local "YYYY-MM-DDTHH:mm"
+        const d = new Date(closeAt);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        setQuestionsCloseAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+      }
     }).catch(() => {
       setProject(null);
     }).finally(() => setLoading(false));
@@ -2210,7 +2240,7 @@ export default function ProjectDetailPage({
         </div>
       )}
 
-      {/* Tab: FAQ */}
+      {/* Tab: FAQ & Q&A Tickets */}
       {activeTab === "faq" && (() => {
         const FAQ_CATEGORIES = [
           { value: "pendaftaran", label: "Pendaftaran", color: "bg-blue-100 text-blue-700" },
@@ -2221,13 +2251,27 @@ export default function ProjectDetailPage({
         ];
         const catColor = (cat: string) => FAQ_CATEGORIES.find((c) => c.value === cat)?.color || "bg-gray-100 text-gray-700";
         const catLabel = (cat: string) => FAQ_CATEGORIES.find((c) => c.value === cat)?.label || cat;
-        const filteredFaqs = faqFilter === "all" ? faqs : faqs.filter((f) => (f.section || "general") === faqFilter);
-        const resetForm = () => { setFaqEditId(null); setFaqQuestion(""); setFaqAnswer(""); setFaqCategory("umum"); setFaqSection("general"); };
+
+        const generalFaqs = faqs.filter((f) => (f.section || "general") === "general");
+        const mitraFaqs = faqs.filter((f) => (f.section || "general") === "mitra");
+        const activeSection: "general" | "mitra" = faqSubTab === "mitra" ? "mitra" : "general";
+        const sectionFaqs = activeSection === "general" ? generalFaqs : mitraFaqs;
+        // Group by category preserving FAQ_CATEGORIES order
+        const groupedFaqs = FAQ_CATEGORIES
+          .map((c) => ({ ...c, items: sectionFaqs.filter((f) => (f.category || "umum") === c.value) }))
+          .filter((g) => g.items.length > 0);
+
+        const openCount = questions.filter((q) => q.status === "open").length;
+        const filteredQuestions =
+          questionStatusFilter === "all" ? questions : questions.filter((q) => q.status === questionStatusFilter);
+        const selectedQuestion = questions.find((q) => q.id === selectedQuestionId) || null;
+
+        const resetForm = () => { setFaqEditId(null); setFaqQuestion(""); setFaqAnswer(""); setFaqCategory("umum"); setFaqSection(activeSection); };
         const saveFaq = async () => {
           if (!accessToken) return;
           setFaqSaving(true);
           try {
-            const body = { question: faqQuestion, answer: faqAnswer, category: faqCategory, section: faqSection, sort_order: faqs.length };
+            const body = { question: faqQuestion, answer: faqAnswer, category: faqCategory, section: activeSection, sort_order: faqs.length };
             if (faqEditId) {
               const res = await api<{ faq: any }>(`/projects/${id}/faqs/${faqEditId}`, { method: "PUT", token: accessToken, body });
               setFaqs((prev) => prev.map((f) => f.id === faqEditId ? res.faq : f));
@@ -2240,85 +2284,602 @@ export default function ProjectDetailPage({
           finally { setFaqSaving(false); }
         };
 
+        const fetchQuestions = async () => {
+          if (!accessToken) return;
+          setQuestionsLoading(true);
+          try {
+            const res = await api<{ questions: any[] }>(`/projects/${id}/questions`, { token: accessToken });
+            setQuestions(res.questions || []);
+          } catch { /* ignore */ }
+          finally { setQuestionsLoading(false); }
+        };
+
+        const fetchQuestionMessages = async (qid: string) => {
+          if (!accessToken) return;
+          setQuestionMessagesLoading(true);
+          try {
+            const res = await api<{ question: any; messages: any[] }>(`/projects/${id}/questions/${qid}`, { token: accessToken });
+            setQuestionMessages(res.messages || []);
+          } catch { /* ignore */ }
+          finally { setQuestionMessagesLoading(false); }
+        };
+
+        const sendReply = async () => {
+          if (!accessToken || !selectedQuestionId || !questionReply.trim()) return;
+          setQuestionReplyLoading(true);
+          try {
+            await api(`/projects/${id}/questions/${selectedQuestionId}/messages`, {
+              method: "POST",
+              token: accessToken,
+              body: { message: questionReply.trim() },
+            });
+            setQuestionReply("");
+            await fetchQuestionMessages(selectedQuestionId);
+            await fetchQuestions();
+          } catch { alert("Gagal mengirim balasan"); }
+          finally { setQuestionReplyLoading(false); }
+        };
+
+        const updateQuestionStatus = async (qid: string, status: "open" | "answered" | "closed") => {
+          if (!accessToken) return;
+          try {
+            await api(`/projects/${id}/questions/${qid}/status`, {
+              method: "PATCH",
+              token: accessToken,
+              body: { status },
+            });
+            await fetchQuestions();
+          } catch { alert("Gagal mengubah status"); }
+        };
+
+        const saveQuestionsConfig = async () => {
+          if (!accessToken) return;
+          setQuestionConfigSaving(true);
+          try {
+            await api(`/projects/${id}/questions-config`, {
+              method: "PUT",
+              token: accessToken,
+              body: {
+                questions_open: questionsOpen,
+                questions_close_at: questionsCloseAt || null,
+              },
+            });
+          } catch { alert("Gagal menyimpan konfigurasi"); }
+          finally { setQuestionConfigSaving(false); }
+        };
+
+        const subTabs = [
+          { key: "general" as const, label: "FAQ Umum", icon: HelpCircle, count: generalFaqs.length },
+          { key: "mitra" as const, label: "Pertanyaan Mitra", icon: Users, count: mitraFaqs.length },
+          { key: "tickets" as const, label: "Q&A Tiket", icon: MessagesSquare, count: questions.length, badge: openCount },
+        ];
+
+        const formatRelative = (dateStr?: string) => {
+          if (!dateStr) return "-";
+          const d = new Date(dateStr);
+          const now = new Date();
+          const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+          if (diff < 60) return "baru saja";
+          if (diff < 3600) return `${Math.floor(diff / 60)} mnt lalu`;
+          if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
+          if (diff < 604800) return `${Math.floor(diff / 86400)} hari lalu`;
+          return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+        };
+
+        const statusBadge = (status: string) => {
+          const map: Record<string, { label: string; cls: string; icon: any }> = {
+            open: { label: "Terbuka", cls: "bg-amber-100 text-amber-700 border-amber-200", icon: CircleDot },
+            answered: { label: "Terjawab", cls: "bg-green-100 text-green-700 border-green-200", icon: CheckCheck },
+            closed: { label: "Ditutup", cls: "bg-gray-100 text-gray-600 border-gray-200", icon: Lock },
+          };
+          return map[status] || map.open;
+        };
+
         return (
           <div className="space-y-5">
-            {/* Header + Filter */}
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-ptba-charcoal flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5 text-ptba-navy" /> FAQ Proyek
-                </h3>
-                <span className="text-xs text-ptba-gray">{faqs.length} pertanyaan</span>
-              </div>
-              <div className="flex gap-2">
-                {([{ key: "all", label: "Semua" }, { key: "general", label: "FAQ Umum" }, { key: "mitra", label: "Pertanyaan Mitra" }] as const).map((t) => (
-                  <button key={t.key} onClick={() => setFaqFilter(t.key)} className={cn("rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors", faqFilter === t.key ? "bg-ptba-navy text-white" : "bg-ptba-section-bg text-ptba-gray hover:bg-ptba-light-gray")}>
-                    {t.label} ({t.key === "all" ? faqs.length : faqs.filter((f) => (f.section || "general") === t.key).length})
-                  </button>
-                ))}
+            {/* Sub-tab header */}
+            <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-ptba-light-gray px-6 pt-5 pb-0">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-ptba-charcoal flex items-center gap-2">
+                      <MessagesSquare className="h-5 w-5 text-ptba-navy" /> Pusat Tanya Jawab
+                    </h3>
+                    <p className="text-xs text-ptba-gray mt-0.5">Kelola FAQ dan tiket pertanyaan langsung dari mitra</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 -mb-px">
+                  {subTabs.map((t) => {
+                    const Icon = t.icon;
+                    const isActive = faqSubTab === t.key;
+                    return (
+                      <button
+                        key={t.key}
+                        onClick={() => {
+                          setFaqSubTab(t.key);
+                          if (t.key !== "tickets") setFaqSection(t.key);
+                          if (t.key === "tickets" && questions.length === 0) fetchQuestions();
+                        }}
+                        className={cn(
+                          "relative inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors",
+                          isActive
+                            ? "border-ptba-navy text-ptba-navy"
+                            : "border-transparent text-ptba-gray hover:text-ptba-charcoal hover:border-ptba-light-gray"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {t.label}
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                          isActive ? "bg-ptba-navy/10 text-ptba-navy" : "bg-ptba-section-bg text-ptba-gray"
+                        )}>{t.count}</span>
+                        {t.badge && t.badge > 0 ? (
+                          <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-ptba-red px-1 text-[9px] font-bold text-white">
+                            {t.badge}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Add / Edit form */}
-            {isAdmin && (
-              <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
-                <p className="text-sm font-bold text-ptba-navy">{faqEditId ? "Edit FAQ" : "Tambah FAQ Baru"}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori</label>
-                    <select value={faqCategory} onChange={(e) => setFaqCategory(e.target.value)} className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue">
-                      {FAQ_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tampilkan di</label>
-                    <select value={faqSection} onChange={(e) => setFaqSection(e.target.value)} className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue">
-                      <option value="general">FAQ Umum</option>
-                      <option value="mitra">Pertanyaan Mitra</option>
-                    </select>
-                  </div>
-                </div>
-                <input type="text" placeholder="Pertanyaan..." value={faqQuestion} onChange={(e) => setFaqQuestion(e.target.value)} className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue" />
-                <textarea placeholder="Jawaban..." value={faqAnswer} onChange={(e) => setFaqAnswer(e.target.value)} rows={3} className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue resize-y" />
-                <div className="flex gap-2">
-                  <button disabled={!faqQuestion.trim() || !faqAnswer.trim() || faqSaving} onClick={saveFaq} className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 disabled:opacity-50 transition-colors">
-                    <Save className="h-3.5 w-3.5" /> {faqSaving ? "Menyimpan..." : faqEditId ? "Update" : "Simpan"}
-                  </button>
-                  {faqEditId && <button onClick={resetForm} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm text-ptba-gray hover:bg-ptba-section-bg transition-colors">Batal</button>}
-                </div>
-              </div>
-            )}
-
-            {/* FAQ list */}
-            {filteredFaqs.length === 0 ? (
-              <div className="rounded-xl bg-white p-6 shadow-sm text-center py-8">
-                <HelpCircle className="h-10 w-10 text-ptba-gray mx-auto mb-3" />
-                <p className="text-sm text-ptba-gray">Belum ada FAQ {faqFilter !== "all" ? `di bagian ${faqFilter === "general" ? "FAQ Umum" : "Pertanyaan Mitra"}` : "untuk proyek ini"}.</p>
-              </div>
-            ) : (
-              <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                <div className="divide-y divide-gray-100">
-                  {filteredFaqs.map((faq) => (
-                    <details key={faq.id} className="group">
-                      <summary className="flex items-center gap-3 px-6 py-4 cursor-pointer hover:bg-ptba-section-bg transition-colors">
-                        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0", catColor(faq.category || "umum"))}>{catLabel(faq.category || "umum")}</span>
-                        <span className="text-sm font-medium text-ptba-charcoal flex-1">{faq.question}</span>
-                        {faq.section === "mitra" && <span className="rounded-full bg-ptba-steel-blue/10 px-2 py-0.5 text-[10px] text-ptba-steel-blue font-medium shrink-0">Mitra</span>}
-                        <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
-                      </summary>
-                      <div className="px-6 pb-4 flex items-start justify-between gap-3">
-                        <p className="text-sm text-ptba-gray leading-relaxed pl-[calc(theme(spacing.2)+theme(spacing.0.5)+4ch)]">{faq.answer}</p>
-                        {isAdmin && (
-                          <div className="flex gap-1 shrink-0">
-                            <button onClick={() => { setFaqEditId(faq.id); setFaqQuestion(faq.question); setFaqAnswer(faq.answer); setFaqCategory(faq.category || "umum"); setFaqSection(faq.section || "general"); }} className="rounded p-1.5 text-ptba-steel-blue hover:bg-ptba-steel-blue/10"><Pencil className="h-3.5 w-3.5" /></button>
-                            <button onClick={async () => { if (!confirm("Hapus FAQ ini?") || !accessToken) return; await api(`/projects/${id}/faqs/${faq.id}`, { method: "DELETE", token: accessToken }); setFaqs((prev) => prev.filter((f) => f.id !== faq.id)); }} className="rounded p-1.5 text-ptba-red hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
-                          </div>
+            {/* === FAQ VIEWS (general / mitra) === */}
+            {faqSubTab !== "tickets" && (
+              <>
+                {/* Add / Edit form */}
+                {isAdmin && (
+                  <div className="rounded-xl bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm font-bold text-ptba-navy flex items-center gap-2">
+                        {faqEditId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                        {faqEditId ? "Edit FAQ" : `Tambah FAQ ${activeSection === "general" ? "Umum" : "untuk Mitra"}`}
+                      </p>
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-ptba-gray bg-ptba-section-bg px-2 py-1 rounded">
+                        {activeSection === "general" ? "FAQ UMUM" : "PERTANYAAN MITRA"}
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori</label>
+                        <div className="flex flex-wrap gap-2">
+                          {FAQ_CATEGORIES.map((c) => (
+                            <button
+                              key={c.value}
+                              type="button"
+                              onClick={() => setFaqCategory(c.value)}
+                              className={cn(
+                                "rounded-full px-3 py-1.5 text-xs font-semibold border transition-all",
+                                faqCategory === c.value
+                                  ? `${c.color} border-current shadow-sm`
+                                  : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
+                              )}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Pertanyaan</label>
+                        <input
+                          type="text"
+                          placeholder="Misal: Bagaimana cara mendaftar sebagai mitra?"
+                          value={faqQuestion}
+                          onChange={(e) => setFaqQuestion(e.target.value)}
+                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jawaban</label>
+                        <textarea
+                          placeholder="Tulis jawaban yang jelas dan informatif..."
+                          value={faqAnswer}
+                          onChange={(e) => setFaqAnswer(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-y"
+                        />
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          disabled={!faqQuestion.trim() || !faqAnswer.trim() || faqSaving}
+                          onClick={saveFaq}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-steel-blue disabled:opacity-50 transition-colors"
+                        >
+                          {faqSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          {faqSaving ? "Menyimpan..." : faqEditId ? "Update FAQ" : "Tambahkan FAQ"}
+                        </button>
+                        {faqEditId && (
+                          <button onClick={resetForm} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                            Batal
+                          </button>
                         )}
                       </div>
-                    </details>
-                  ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* FAQ list grouped by category */}
+                {sectionFaqs.length === 0 ? (
+                  <div className="rounded-xl bg-white p-12 shadow-sm text-center">
+                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-ptba-navy/5 mb-4">
+                      <HelpCircle className="h-8 w-8 text-ptba-navy/50" />
+                    </div>
+                    <p className="text-base font-semibold text-ptba-charcoal mb-1">Belum ada FAQ</p>
+                    <p className="text-sm text-ptba-gray">
+                      {activeSection === "general"
+                        ? "FAQ Umum belum ditambahkan untuk proyek ini."
+                        : "Belum ada pertanyaan dari mitra yang diarsipkan."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {groupedFaqs.map((group) => (
+                      <div key={group.value} className="rounded-xl bg-white shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-ptba-light-gray bg-ptba-section-bg/40 px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", group.color)}>
+                              {group.label}
+                            </span>
+                            <span className="text-xs text-ptba-gray">{group.items.length} pertanyaan</span>
+                          </div>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {group.items.map((faq) => (
+                            <details key={faq.id} className="group">
+                              <summary className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-ptba-section-bg/40 transition-colors list-none">
+                                <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
+                                <span className="text-sm font-semibold text-ptba-charcoal flex-1">{faq.question}</span>
+                                {isAdmin && (
+                                  <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        setFaqEditId(faq.id);
+                                        setFaqQuestion(faq.question);
+                                        setFaqAnswer(faq.answer);
+                                        setFaqCategory(faq.category || "umum");
+                                        setFaqSection(faq.section || "general");
+                                        window.scrollTo({ top: 0, behavior: "smooth" });
+                                      }}
+                                      className="rounded p-1.5 text-ptba-steel-blue hover:bg-ptba-steel-blue/10"
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.preventDefault();
+                                        if (!confirm("Hapus FAQ ini?") || !accessToken) return;
+                                        await api(`/projects/${id}/faqs/${faq.id}`, { method: "DELETE", token: accessToken });
+                                        setFaqs((prev) => prev.filter((f) => f.id !== faq.id));
+                                      }}
+                                      className="rounded p-1.5 text-ptba-red hover:bg-red-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </summary>
+                              <div className="px-5 pb-5 pl-12">
+                                <div className="rounded-lg bg-ptba-section-bg/40 border-l-2 border-ptba-steel-blue p-4">
+                                  <p className="text-sm text-ptba-charcoal/80 leading-relaxed whitespace-pre-line">{faq.answer}</p>
+                                </div>
+                              </div>
+                            </details>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* === Q&A TICKETS VIEW === */}
+            {faqSubTab === "tickets" && (
+              <>
+                {/* Config bar */}
+                <div className={cn(
+                  "rounded-xl shadow-sm overflow-hidden border",
+                  questionsOpen ? "border-green-200 bg-gradient-to-r from-green-50 to-white" : "border-gray-200 bg-white"
+                )}>
+                  <div className="p-5">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                          questionsOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                        )}>
+                          {questionsOpen ? <Unlock className="h-6 w-6" /> : <Lock className="h-6 w-6" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-ptba-charcoal">
+                            {questionsOpen ? "Pertanyaan Dibuka" : "Pertanyaan Ditutup"}
+                          </p>
+                          <p className="text-xs text-ptba-gray">
+                            {questionsOpen
+                              ? "Mitra dapat mengirim pertanyaan baru ke proyek ini."
+                              : "Mitra tidak dapat mengirim pertanyaan baru saat ini."}
+                          </p>
+                        </div>
+                      </div>
+                      {isAdmin && (
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                          {/* Toggle */}
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-medium text-ptba-gray uppercase tracking-wide">Status</label>
+                            <button
+                              type="button"
+                              onClick={() => setQuestionsOpen((v) => !v)}
+                              className={cn(
+                                "relative inline-flex h-8 w-16 shrink-0 items-center rounded-full transition-colors",
+                                questionsOpen ? "bg-green-500" : "bg-gray-300"
+                              )}
+                            >
+                              <span className={cn(
+                                "inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform",
+                                questionsOpen ? "translate-x-9" : "translate-x-1"
+                              )} />
+                            </button>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-medium text-ptba-gray uppercase tracking-wide">Tutup Otomatis (Opsional)</label>
+                            <div className="flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-white px-3 py-2">
+                              <CalendarClock className="h-4 w-4 text-ptba-gray shrink-0" />
+                              <input
+                                type="datetime-local"
+                                value={questionsCloseAt}
+                                onChange={(e) => setQuestionsCloseAt(e.target.value)}
+                                className="text-xs text-ptba-charcoal outline-none bg-transparent"
+                              />
+                              {questionsCloseAt && (
+                                <button type="button" onClick={() => setQuestionsCloseAt("")} className="text-ptba-gray hover:text-ptba-red" title="Hapus tanggal">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            disabled={questionConfigSaving}
+                            onClick={saveQuestionsConfig}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-steel-blue disabled:opacity-50 transition-colors"
+                          >
+                            {questionConfigSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                            Simpan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+                {/* Split layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  {/* LEFT: Questions list */}
+                  <div className="lg:col-span-5 rounded-xl bg-white shadow-sm overflow-hidden flex flex-col" style={{ minHeight: 600 }}>
+                    <div className="border-b border-ptba-light-gray p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-bold text-ptba-charcoal flex items-center gap-2">
+                          <Inbox className="h-4 w-4 text-ptba-navy" /> Kotak Masuk
+                        </p>
+                        <button
+                          onClick={fetchQuestions}
+                          className="text-[11px] text-ptba-steel-blue hover:underline font-medium"
+                        >
+                          {questionsLoading ? "Memuat..." : "Muat ulang"}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          { key: "all", label: "Semua", count: questions.length },
+                          { key: "open", label: "Terbuka", count: questions.filter((q) => q.status === "open").length },
+                          { key: "answered", label: "Terjawab", count: questions.filter((q) => q.status === "answered").length },
+                          { key: "closed", label: "Ditutup", count: questions.filter((q) => q.status === "closed").length },
+                        ] as const).map((f) => (
+                          <button
+                            key={f.key}
+                            onClick={() => setQuestionStatusFilter(f.key)}
+                            className={cn(
+                              "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                              questionStatusFilter === f.key
+                                ? "bg-ptba-navy text-white"
+                                : "bg-ptba-section-bg text-ptba-gray hover:bg-ptba-light-gray"
+                            )}
+                          >
+                            {f.label} <span className="opacity-70">{f.count}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {questionsLoading && questions.length === 0 ? (
+                        <div className="flex items-center justify-center h-40">
+                          <Loader2 className="h-5 w-5 animate-spin text-ptba-gray" />
+                        </div>
+                      ) : filteredQuestions.length === 0 ? (
+                        <div className="text-center py-12 px-6">
+                          <Inbox className="h-10 w-10 text-ptba-gray/40 mx-auto mb-3" />
+                          <p className="text-sm font-medium text-ptba-charcoal mb-1">Tidak ada tiket</p>
+                          <p className="text-xs text-ptba-gray">Belum ada pertanyaan dari mitra di filter ini.</p>
+                        </div>
+                      ) : (
+                        <ul className="divide-y divide-gray-100">
+                          {filteredQuestions.map((q) => {
+                            const sb = statusBadge(q.status || "open");
+                            const isSelected = selectedQuestionId === q.id;
+                            const isOpen = q.status === "open";
+                            return (
+                              <li key={q.id}>
+                                <button
+                                  onClick={() => {
+                                    setSelectedQuestionId(q.id);
+                                    fetchQuestionMessages(q.id);
+                                  }}
+                                  className={cn(
+                                    "w-full text-left px-4 py-3 transition-colors relative",
+                                    isSelected ? "bg-ptba-navy/5 border-l-4 border-ptba-navy" : "hover:bg-ptba-section-bg/40 border-l-4 border-transparent",
+                                    isOpen && !isSelected && "bg-amber-50/30"
+                                  )}
+                                >
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <p className="text-xs font-semibold text-ptba-navy truncate">
+                                      {q.partner_name || q.partnerName || "Mitra"}
+                                    </p>
+                                    <span className="text-[10px] text-ptba-gray shrink-0">{formatRelative(q.updated_at || q.created_at)}</span>
+                                  </div>
+                                  <p className={cn("text-sm mb-1.5 line-clamp-2", isOpen ? "font-bold text-ptba-charcoal" : "font-medium text-ptba-charcoal/80")}>
+                                    {q.subject || "(Tanpa judul)"}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {q.category && (
+                                      <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase", catColor(q.category))}>
+                                        {catLabel(q.category)}
+                                      </span>
+                                    )}
+                                    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase", sb.cls)}>
+                                      <sb.icon className="h-2.5 w-2.5" />
+                                      {sb.label}
+                                    </span>
+                                  </div>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* RIGHT: Chat view */}
+                  <div className="lg:col-span-7 rounded-xl bg-white shadow-sm overflow-hidden flex flex-col" style={{ minHeight: 600 }}>
+                    {!selectedQuestion ? (
+                      <div className="flex-1 flex items-center justify-center text-center px-6 py-12">
+                        <div>
+                          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-ptba-navy/5 mb-4">
+                            <MessageSquare className="h-8 w-8 text-ptba-navy/40" />
+                          </div>
+                          <p className="text-base font-semibold text-ptba-charcoal mb-1">Pilih sebuah tiket</p>
+                          <p className="text-sm text-ptba-gray">Pilih pertanyaan dari kotak masuk untuk melihat percakapan.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Header */}
+                        <div className="border-b border-ptba-light-gray p-4">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-base font-bold text-ptba-charcoal">{selectedQuestion.subject || "(Tanpa judul)"}</p>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-ptba-gray">
+                                <Building2 className="h-3.5 w-3.5" />
+                                <span className="font-medium text-ptba-navy">{selectedQuestion.partner_name || selectedQuestion.partnerName || "Mitra"}</span>
+                                <span>·</span>
+                                <span>{formatRelative(selectedQuestion.created_at)}</span>
+                              </div>
+                            </div>
+                            {isAdmin && (
+                              <select
+                                value={selectedQuestion.status || "open"}
+                                onChange={(e) => updateQuestionStatus(selectedQuestion.id, e.target.value as any)}
+                                className="rounded-lg border border-ptba-light-gray px-3 py-1.5 text-xs font-semibold text-ptba-charcoal outline-none focus:border-ptba-steel-blue bg-white"
+                              >
+                                <option value="open">Terbuka</option>
+                                <option value="answered">Terjawab</option>
+                                <option value="closed">Ditutup</option>
+                              </select>
+                            )}
+                          </div>
+                          {selectedQuestion.category && (
+                            <span className={cn("inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", catColor(selectedQuestion.category))}>
+                              {catLabel(selectedQuestion.category)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-4 bg-ptba-section-bg/30 space-y-3">
+                          {questionMessagesLoading ? (
+                            <div className="flex items-center justify-center h-32">
+                              <Loader2 className="h-5 w-5 animate-spin text-ptba-gray" />
+                            </div>
+                          ) : questionMessages.length === 0 ? (
+                            <p className="text-center text-xs text-ptba-gray py-8">Belum ada pesan.</p>
+                          ) : (
+                            questionMessages.map((m, idx) => {
+                              const isMitra = m.sender_type === "mitra" || m.senderType === "mitra";
+                              const prev = idx > 0 ? questionMessages[idx - 1] : null;
+                              const showDaySeparator = !prev || !isSameDay(prev.created_at, m.created_at);
+                              return (
+                                <div key={m.id}>
+                                  {showDaySeparator && (
+                                    <div className="flex justify-center my-3">
+                                      <span className="rounded-full bg-ptba-section-bg px-3 py-1 text-[10px] font-medium text-ptba-gray shadow-sm">
+                                        {formatChatDaySeparator(m.created_at)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className={cn("flex", isMitra ? "justify-start" : "justify-end")}>
+                                    <div className={cn("max-w-[80%]", isMitra ? "items-start" : "items-end")}>
+                                      <div className={cn(
+                                        "rounded-2xl px-4 py-2.5 shadow-sm",
+                                        isMitra
+                                          ? "bg-white text-ptba-charcoal rounded-tl-sm border border-ptba-light-gray"
+                                          : "bg-ptba-navy text-white rounded-tr-sm"
+                                      )}>
+                                        <p className="text-[10px] font-bold mb-0.5 opacity-80">
+                                          {isMitra ? (m.sender_name || "Mitra") : (m.sender_name || "Admin PTBA")}
+                                        </p>
+                                        <p className="text-sm whitespace-pre-line leading-relaxed">{m.message}</p>
+                                      </div>
+                                      <p className={cn("text-[10px] text-ptba-gray mt-1 px-1", isMitra ? "text-left" : "text-right")}>
+                                        {formatChatTime(m.created_at)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* Reply box */}
+                        {isAdmin && (
+                          <div className="border-t border-ptba-light-gray p-4 bg-white">
+                            {selectedQuestion.status === "closed" ? (
+                              <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 text-center">
+                                <Lock className="h-4 w-4 text-ptba-gray mx-auto mb-1" />
+                                <p className="text-xs text-ptba-gray">Tiket ini telah ditutup. Ubah status untuk membalas.</p>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2 items-end">
+                                <textarea
+                                  value={questionReply}
+                                  onChange={(e) => setQuestionReply(e.target.value)}
+                                  placeholder="Tulis balasan untuk mitra..."
+                                  rows={2}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendReply();
+                                  }}
+                                  className="flex-1 rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-none"
+                                />
+                                <button
+                                  disabled={!questionReply.trim() || questionReplyLoading}
+                                  onClick={sendReply}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-gold/90 disabled:opacity-50 transition-colors shrink-0"
+                                >
+                                  {questionReplyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                  Kirim
+                                </button>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-ptba-gray mt-1.5 text-right">Tekan Cmd/Ctrl + Enter untuk kirim</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         );

@@ -217,6 +217,8 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
                   <th className="py-1 text-left text-ptba-gray font-medium">Total Liability</th>
                   <th className="py-1 text-left text-ptba-gray font-medium">Total Equity</th>
                   <th className="py-1 text-left text-ptba-gray font-medium">Total Asset</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium" title="Cash & Cash Equivalents">Cash</th>
+                  <th className="py-1 text-left text-ptba-gray font-medium" title="Interest Bearing Debt">Total IBD</th>
                   <th className="py-1 text-left text-ptba-gray font-medium">EBITDA</th>
                   <th className="py-1 text-left text-ptba-gray font-medium">DSCR</th>
                 </tr>
@@ -229,6 +231,8 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any) => R
                     <td className="py-1 text-ptba-charcoal">{fy.totalDebt || "-"}</td>
                     <td className="py-1 text-ptba-charcoal">{fy.totalEquity || "-"}</td>
                     <td className="py-1 text-ptba-charcoal font-medium">{fy.totalAsset || "-"}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.cashOnHand || "-"}</td>
+                    <td className="py-1 text-ptba-charcoal">{fy.totalIBD || "-"}</td>
                     <td className="py-1 text-ptba-charcoal">{fy.ebitda || "-"}</td>
                     <td className="py-1 text-ptba-charcoal">{fy.dscr || "-"}</td>
                   </tr>
@@ -700,7 +704,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
     compro: ["compro", "nib_document", "org_structure", "company_history"],
     statement_eoi: ["statement_eoi", "cash_on_hand_evidence"],
     portfolio: ["portfolio", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
-    financial_overview: ["financial_overview", "ebitda_dscr_calculation", "credit_rating_evidence", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+    financial_overview: ["financial_overview", "credit_rating_evidence", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
     requirements_fulfillment: ["requirements_fulfillment"],
   };
   const SECTIONS = [

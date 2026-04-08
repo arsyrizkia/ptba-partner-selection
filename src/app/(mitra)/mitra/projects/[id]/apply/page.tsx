@@ -75,6 +75,8 @@ interface FinancialYear {
   totalAsset: string;
   totalDebt: string;
   totalEquity: string;
+  cashOnHand: string;
+  totalIBD: string;
   ebitda: string;
   dscr: string;
 }
@@ -387,12 +389,12 @@ export default function MitraProjectApplyPage() {
 
   // Section: Kriteria Keuangan (financial_overview)
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>(
-    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", ebitda: "", dscr: "" }))
+    YEAR_RANGE_OPTIONS[0].map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", cashOnHand: "", totalIBD: "", ebitda: "", dscr: "" }))
   );
   const selectedRangeKey = financialYears.map((f) => f.year).join("-");
   const handleYearRangeChange = (rangeIndex: number) => {
     const newYears = YEAR_RANGE_OPTIONS[rangeIndex];
-    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", ebitda: "", dscr: "" })));
+    setFinancialYears(newYears.map((y) => ({ year: String(y), currency: "IDR", totalAsset: "", totalDebt: "", totalEquity: "", cashOnHand: "", totalIBD: "", ebitda: "", dscr: "" })));
   };
   const [creditRatingAgency, setCreditRatingAgency] = useState("");
   const [creditRatingValue, setCreditRatingValue] = useState("");
@@ -499,7 +501,17 @@ export default function MitraProjectApplyPage() {
         if (fd.signerPosition) setSignerPosition(fd.signerPosition);
         if (fd.signerDate) setSignerDate(fd.signerDate);
         if (fd.eoiAgreed) setEoiAgreed(fd.eoiAgreed);
-        if (fd.financialYears) setFinancialYears(fd.financialYears);
+        if (fd.financialYears) setFinancialYears(fd.financialYears.map((f: Partial<FinancialYear>) => ({
+          year: f.year || "",
+          currency: f.currency || "IDR",
+          totalAsset: f.totalAsset || "",
+          totalDebt: f.totalDebt || "",
+          totalEquity: f.totalEquity || "",
+          cashOnHand: f.cashOnHand || "",
+          totalIBD: f.totalIBD || "",
+          ebitda: f.ebitda || "",
+          dscr: f.dscr || "",
+        })));
         if (fd.creditRatingAgency) setCreditRatingAgency(fd.creditRatingAgency);
         if (fd.creditRatingValue) setCreditRatingValue(fd.creditRatingValue);
         if (fd.cashOnHand) setCashOnHand(fd.cashOnHand);
@@ -864,11 +876,10 @@ export default function MitraProjectApplyPage() {
       if (exp.category === 'financing') return base && !!exp.financingType && !!exp.amountUSD && !!exp.codYear;
       return false;
     })),
-    financial_overview: financialYears.every((f) => (f.totalDebt || f.totalEquity) && f.ebitda && f.dscr)
+    financial_overview: financialYears.every((f) => f.totalAsset && f.totalDebt && f.totalEquity && f.cashOnHand && f.totalIBD && f.ebitda && f.dscr)
       && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
       && !!creditRatingAgency && !!creditRatingValue
-      && isDoc("credit_rating_evidence")
-      && isDoc("ebitda_dscr_calculation"),
+      && isDoc("credit_rating_evidence"),
     requirements_fulfillment: (projectRequirements.length
       ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
       : true) && isDoc("requirements_fulfillment"),
@@ -2037,14 +2048,17 @@ export default function MitraProjectApplyPage() {
                     </td>
                   ))}
                 </tr>
-                {/* EBITDA & DSCR */}
+                {/* Cash, IBD, EBITDA & DSCR */}
                 {[
-                  { key: "ebitda" as const, label: t("financialFields.ebitda"), hasUnit: true },
-                  { key: "dscr" as const, label: t("financialFields.dscr"), hasUnit: false },
+                  { key: "cashOnHand" as const, label: locale === "en" ? "Cash & Cash Equivalents" : "Kas & Setara Kas", acronym: null, hasUnit: true },
+                  { key: "totalIBD" as const, label: "Total IBD", acronym: locale === "en" ? "Interest Bearing Debt — total interest-bearing liabilities (loans, bonds, leases)" : "Interest Bearing Debt — total liabilitas berbunga (pinjaman, obligasi, sewa)", hasUnit: true },
+                  { key: "ebitda" as const, label: "EBITDA", acronym: locale === "en" ? "Earnings Before Interest, Taxes, Depreciation & Amortization" : "Earnings Before Interest, Taxes, Depreciation & Amortization — laba sebelum bunga, pajak, depresiasi & amortisasi", hasUnit: true },
+                  { key: "dscr" as const, label: "DSCR", acronym: locale === "en" ? "Debt Service Coverage Ratio — EBITDA ÷ debt service" : "Debt Service Coverage Ratio — rasio EBITDA terhadap kewajiban utang", hasUnit: false },
                 ].map((row) => (
                   <tr key={row.key} className="border-b border-ptba-light-gray/50">
                     <td className="py-2 pr-3 text-xs font-medium text-ptba-charcoal">
                       {row.label} <span className="text-ptba-red">*</span>
+                      {row.acronym && <span className="block text-[10px] text-ptba-gray font-normal italic">{row.acronym}</span>}
                       {row.hasUnit && <span className="block text-[10px] text-ptba-gray font-normal">({financialYears[0]?.currency === "USD" ? t("financialFields.unitUSD") : t("financialFields.unitIDR")})</span>}
                     </td>
                     {financialYears.map((fy, i) => (
@@ -2102,35 +2116,6 @@ export default function MitraProjectApplyPage() {
             )}
           </div>
 
-          {/* EBITDA & DSCR Calculation */}
-          <div className="space-y-2 pt-2 border-t border-ptba-light-gray mt-4">
-            <p className="text-xs font-semibold text-ptba-charcoal pt-3">EBITDA & DSCR Calculation <span className="text-ptba-red">*</span></p>
-            <p className="text-[10px] text-ptba-gray">Download the calculation form, fill it in, then upload the completed file (xlsx format, max 20 MB).</p>
-            <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50/50 px-3 py-2">
-              <Download className="h-3.5 w-3.5 text-green-600 shrink-0" />
-              <span className="text-[11px] text-ptba-gray flex-1">Click here for EBITDA and DSCR calculation</span>
-              <a
-                href={`/templates/ebitda-dscr-calculation-${financialYears[0].year}-${financialYears[2].year}.xlsx`}
-                download
-                className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 transition-colors shrink-0"
-              >
-                <Download className="h-3 w-3" />
-                Download
-              </a>
-            </div>
-            <FileUploadButton
-              label="Upload EBITDA and DSCR calculation"
-              accept=".xlsx,.xls"
-              uploaded={isDoc("ebitda_dscr_calculation")}
-              uploading={uploadedDocs["ebitda_dscr_calculation"]?.uploading ?? false}
-              fileName={uploadedDocs["ebitda_dscr_calculation"]?.name}
-              onSelect={(f) => uploadDoc("ebitda_dscr_calculation", "EBITDA & DSCR Calculation", f)}
-              onDelete={() => deleteDoc("ebitda_dscr_calculation")}
-              readOnly={readOnly}
-              onDownload={docDownloadHandler("ebitda_dscr_calculation")}
-              error={showErrors && !isDoc("ebitda_dscr_calculation")}
-            />
-          </div>
 
           {/* Credit Rating Evidence */}
           <div className="space-y-2 pt-2">

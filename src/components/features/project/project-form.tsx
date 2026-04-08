@@ -152,6 +152,8 @@ export interface ProjectFormProps {
   cancelHref: string;
   /** Sections that are locked (read-only) based on project phase */
   lockedSections?: Set<string>;
+  /** Custom doc IDs (e.g. "custom_dokumen_sponsor") that pre-existed and cannot be deleted/moved off phase 1 */
+  lockedCustomDocs?: Set<string>;
 }
 
 function formatDateForInput(dateStr: string | null | undefined): string {
@@ -187,11 +189,17 @@ export default function ProjectForm({
   uploadingFile = false,
   cancelHref,
   lockedSections = new Set(),
+  lockedCustomDocs,
 }: ProjectFormProps) {
   const router = useRouter();
   const { accessToken } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const isLocked = (section: string) => lockedSections.has(section);
+  // Generate the same custom doc ID format used by the create/edit pages
+  const customDocId = (name: string) =>
+    `custom_${name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
+  const isCustomDocLocked = (doc: { name: string }) =>
+    lockedCustomDocs?.has(customDocId(doc.name)) ?? false;
 
   // Internal users for PIC
   const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
@@ -1022,10 +1030,10 @@ export default function ProjectForm({
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-ptba-charcoal">Timeline & Pendaftaran</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Mulai</label>
+              <fieldset disabled={isLocked("phase1Deadline")} className={isLocked("phase1Deadline") ? "opacity-60" : ""}>
+                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Mulai {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
-              </div>
+              </fieldset>
               <div>
                 <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Selesai</label>
                 <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
@@ -1413,7 +1421,9 @@ export default function ProjectForm({
               </div>
               {customDocuments.length > 0 && (
                 <div className="space-y-2">
-                  {customDocuments.map((doc, index) => (
+                  {customDocuments.map((doc, index) => {
+                    const docLocked = isCustomDocLocked(doc);
+                    return (
                     <div key={index} className="space-y-1.5">
                       <div className="flex items-center gap-2">
                         <input
@@ -1421,8 +1431,14 @@ export default function ProjectForm({
                           placeholder="Contoh: Sertifikat K3, Izin Lingkungan, dll."
                           value={doc.name}
                           onChange={(e) => updateCustomDocName(index, e.target.value)}
-                          className={cn(inputClass, "flex-1")}
+                          disabled={docLocked}
+                          className={cn(inputClass, "flex-1", docLocked && "opacity-70")}
                         />
+                        {docLocked && (
+                          <span title="Dokumen sudah aktif di Fase 1 dan tidak dapat dihapus" className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 shrink-0">
+                            <Lock className="h-2.5 w-2.5" /> Terkunci
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => setCustomDocuments((prev) => prev.map((d, i) => i === index ? { ...d, required: !d.required } : d))}
@@ -1440,16 +1456,22 @@ export default function ProjectForm({
                           className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none"
                         >
                           <option value="phase1">Fase 1</option>
-                          <option value="phase2">Fase 2</option>
+                          {!docLocked && <option value="phase2">Fase 2</option>}
                           <option value="both">Semua Fase</option>
                         </select>
-                        <button
-                          type="button"
-                          onClick={() => removeCustomDocument(index)}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ptba-red hover:bg-ptba-red/5 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {docLocked ? (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-300" title="Dokumen tidak dapat dihapus karena mitra sudah mendaftar">
+                            <Lock className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => removeCustomDocument(index)}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ptba-red hover:bg-ptba-red/5 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                       {doc.name.trim() && (
                         <input
@@ -1478,7 +1500,8 @@ export default function ProjectForm({
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
