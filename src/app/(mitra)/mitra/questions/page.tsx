@@ -6,7 +6,7 @@ import { MessageSquare, Send, Loader2, ArrowLeft, CheckCircle2, Clock, CheckChec
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api } from "@/lib/api/client";
-import { formatDate } from "@/lib/utils/format";
+import { formatDate, formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 
 interface Question {
   id: string;
@@ -223,21 +223,32 @@ export default function MitraQuestionsPage() {
                       <div className="text-center py-8">
                         <Loader2 className="h-5 w-5 animate-spin text-ptba-gray mx-auto" />
                       </div>
-                    ) : messages.map((m) => {
+                    ) : messages.map((m, idx) => {
                       const isMitra = m.sender_type === "mitra";
+                      const prev = idx > 0 ? messages[idx - 1] : null;
+                      const showDaySeparator = !prev || !isSameDay(prev.created_at, m.created_at);
                       return (
-                        <div key={m.id} className={cn("flex", isMitra ? "justify-end" : "justify-start")}>
-                          <div className={cn(
-                            "max-w-[75%] rounded-xl px-4 py-2.5 text-xs",
-                            isMitra ? "bg-ptba-navy text-white" : "bg-ptba-section-bg text-ptba-charcoal"
-                          )}>
-                            <p className="text-[10px] font-semibold mb-0.5 opacity-70">
-                              {isMitra ? "Anda" : (m.sender_name || "Admin")}
-                            </p>
-                            <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>
-                            <p className={cn("text-[9px] mt-1", isMitra ? "text-white/60" : "text-ptba-gray")}>
-                              {formatDate(m.created_at)}
-                            </p>
+                        <div key={m.id}>
+                          {showDaySeparator && (
+                            <div className="flex justify-center my-3">
+                              <span className="rounded-full bg-ptba-section-bg px-3 py-1 text-[10px] font-medium text-ptba-gray shadow-sm">
+                                {formatChatDaySeparator(m.created_at)}
+                              </span>
+                            </div>
+                          )}
+                          <div className={cn("flex", isMitra ? "justify-end" : "justify-start")}>
+                            <div className={cn(
+                              "max-w-[75%] rounded-xl px-4 py-2.5 text-xs",
+                              isMitra ? "bg-ptba-navy text-white" : "bg-ptba-section-bg text-ptba-charcoal"
+                            )}>
+                              <p className="text-[10px] font-semibold mb-0.5 opacity-70">
+                                {isMitra ? "Anda" : (m.sender_name || "Admin")}
+                              </p>
+                              <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                              <p className={cn("text-[9px] mt-1 text-right", isMitra ? "text-white/60" : "text-ptba-gray")}>
+                                {formatChatTime(m.created_at)}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       );
