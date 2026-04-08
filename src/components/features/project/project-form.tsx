@@ -1029,16 +1029,16 @@ export default function ProjectForm({
         {currentStep === 2 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-ptba-charcoal">Timeline & Pendaftaran</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <fieldset disabled={isLocked("phase1Deadline")} className={cn("grid grid-cols-1 md:grid-cols-2 gap-3", isLocked("phase1Deadline") && "opacity-60")}>
               <div>
-                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Mulai</label>
+                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Mulai {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Selesai</label>
+                <label className="mb-1 block text-sm font-medium text-ptba-charcoal">Tanggal Selesai {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
               </div>
-            </div>
+            </fieldset>
 
             {/* Phase deadlines */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
