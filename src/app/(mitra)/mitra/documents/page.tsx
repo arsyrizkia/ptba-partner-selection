@@ -164,6 +164,8 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
                       <th className="py-1.5 text-left text-ptba-gray font-medium">Total Liability</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">Total Equity</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.totalAsset")}</th>
+                      <th className="py-1.5 text-left text-ptba-gray font-medium" title="Cash & Cash Equivalents">{locale === "en" ? "Cash" : "Kas"}</th>
+                      <th className="py-1.5 text-left text-ptba-gray font-medium" title="Interest Bearing Debt">Total IBD</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.ebitda")}</th>
                       <th className="py-1.5 text-left text-ptba-gray font-medium">{t("formData.dscr")}</th>
                     </tr>
@@ -176,6 +178,8 @@ function buildFormDataMap(t: (key: string, values?: Record<string, string>) => s
                         <td className="py-1.5 text-ptba-charcoal">{fy.totalDebt || "-"}</td>
                         <td className="py-1.5 text-ptba-charcoal">{fy.totalEquity || "-"}</td>
                         <td className="py-1.5 text-ptba-charcoal font-medium">{fy.totalAsset || "-"}</td>
+                        <td className="py-1.5 text-ptba-charcoal">{fy.cashOnHand || "-"}</td>
+                        <td className="py-1.5 text-ptba-charcoal">{fy.totalIBD || "-"}</td>
                         <td className="py-1.5 text-ptba-charcoal">{fy.ebitda || "-"}</td>
                         <td className="py-1.5 text-ptba-charcoal">{fy.dscr || "-"}</td>
                       </tr>

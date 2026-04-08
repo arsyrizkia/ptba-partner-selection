@@ -172,10 +172,10 @@ tr:nth-child(even) td { background: #fafbfc; }
   ${financialYears.length > 0 ? `
   <table>
     <thead>
-      <tr><th>Tahun</th><th>Mata Uang</th><th>Total Liability</th><th>Total Equity</th><th>Total Asset</th><th>EBITDA</th><th>DSCR</th></tr>
+      <tr><th>Tahun</th><th>Mata Uang</th><th>Total Liability</th><th>Total Equity</th><th>Total Asset</th><th>Cash &amp; Equivalents</th><th>Total IBD</th><th>EBITDA</th><th>DSCR</th></tr>
     </thead>
     <tbody>
-      ${financialYears.map((fy: any) => `<tr><td>${esc(fy.year)}</td><td><strong>${esc(fy.currency)}</strong></td><td>${esc(fy.totalDebt)}</td><td>${esc(fy.totalEquity)}</td><td><strong>${esc(fy.totalAsset)}</strong></td><td>${esc(fy.ebitda)}</td><td>${esc(fy.dscr)}</td></tr>`).join("")}
+      ${financialYears.map((fy: any) => `<tr><td>${esc(fy.year)}</td><td><strong>${esc(fy.currency)}</strong></td><td>${esc(fy.totalDebt)}</td><td>${esc(fy.totalEquity)}</td><td><strong>${esc(fy.totalAsset)}</strong></td><td>${esc(fy.cashOnHand)}</td><td>${esc(fy.totalIBD)}</td><td>${esc(fy.ebitda)}</td><td>${esc(fy.dscr)}</td></tr>`).join("")}
     </tbody>
   </table>` : ""}
   <div class="fields" style="margin-top:6px;">
