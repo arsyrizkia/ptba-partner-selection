@@ -539,9 +539,10 @@ export default function ProjectDetailPage({
       if (Array.isArray(res.data.faqs)) setFaqs(res.data.faqs);
       if (res.data.registrationFee) setPhase2Fee(Number(res.data.registrationFee));
       if (typeof res.data.questionsOpen === "boolean") setQuestionsOpen(res.data.questionsOpen);
-      if (res.data.questionsCloseAt) {
+      const closeAt = (res.data as any).questionsCloseAt as string | null | undefined;
+      if (closeAt) {
         // Format to datetime-local "YYYY-MM-DDTHH:mm"
-        const d = new Date(res.data.questionsCloseAt);
+        const d = new Date(closeAt);
         const pad = (n: number) => String(n).padStart(2, "0");
         setQuestionsCloseAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
       }
