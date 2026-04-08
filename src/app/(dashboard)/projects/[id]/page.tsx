@@ -2805,7 +2805,7 @@ export default function ProjectDetailPage({
                             <p className="text-center text-xs text-ptba-gray py-8">Belum ada pesan.</p>
                           ) : (
                             questionMessages.map((m) => {
-                              const isMitra = m.sender_role === "mitra" || m.senderRole === "mitra";
+                              const isMitra = m.sender_type === "mitra" || m.senderType === "mitra";
                               return (
                                 <div key={m.id} className={cn("flex", isMitra ? "justify-start" : "justify-end")}>
                                   <div className={cn("max-w-[80%]", isMitra ? "items-start" : "items-end")}>
