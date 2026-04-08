@@ -142,8 +142,7 @@ export default function MitraQuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ptba-section-bg">
-      <div className="max-w-6xl mx-auto p-4 lg:p-6 space-y-4">
+    <div className="space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-sm text-ptba-gray hover:text-ptba-navy">
             <ArrowLeft className="h-4 w-4" /> Kembali
@@ -281,10 +280,9 @@ export default function MitraQuestionsPage() {
           </div>
         )}
 
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-700">{error}</div>
-        )}
-      </div>
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-700">{error}</div>
+      )}
     </div>
   );
 }

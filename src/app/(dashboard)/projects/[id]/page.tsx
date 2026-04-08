@@ -2604,34 +2604,45 @@ export default function ProjectDetailPage({
                         </div>
                       </div>
                       {isAdmin && (
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
                           {/* Toggle */}
-                          <button
-                            type="button"
-                            onClick={() => setQuestionsOpen((v) => !v)}
-                            className={cn(
-                              "relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors",
-                              questionsOpen ? "bg-green-500" : "bg-gray-300"
-                            )}
-                          >
-                            <span className={cn(
-                              "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
-                              questionsOpen ? "translate-x-8" : "translate-x-1"
-                            )} />
-                          </button>
-                          <div className="flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-white px-3 py-1.5">
-                            <CalendarClock className="h-4 w-4 text-ptba-gray shrink-0" />
-                            <input
-                              type="datetime-local"
-                              value={questionsCloseAt}
-                              onChange={(e) => setQuestionsCloseAt(e.target.value)}
-                              className="text-xs text-ptba-charcoal outline-none bg-transparent"
-                            />
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-medium text-ptba-gray uppercase tracking-wide">Status</label>
+                            <button
+                              type="button"
+                              onClick={() => setQuestionsOpen((v) => !v)}
+                              className={cn(
+                                "relative inline-flex h-8 w-16 shrink-0 items-center rounded-full transition-colors",
+                                questionsOpen ? "bg-green-500" : "bg-gray-300"
+                              )}
+                            >
+                              <span className={cn(
+                                "inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform",
+                                questionsOpen ? "translate-x-9" : "translate-x-1"
+                              )} />
+                            </button>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-medium text-ptba-gray uppercase tracking-wide">Tutup Otomatis (Opsional)</label>
+                            <div className="flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-white px-3 py-2">
+                              <CalendarClock className="h-4 w-4 text-ptba-gray shrink-0" />
+                              <input
+                                type="datetime-local"
+                                value={questionsCloseAt}
+                                onChange={(e) => setQuestionsCloseAt(e.target.value)}
+                                className="text-xs text-ptba-charcoal outline-none bg-transparent"
+                              />
+                              {questionsCloseAt && (
+                                <button type="button" onClick={() => setQuestionsCloseAt("")} className="text-ptba-gray hover:text-ptba-red" title="Hapus tanggal">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <button
                             disabled={questionConfigSaving}
                             onClick={saveQuestionsConfig}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-semibold text-white hover:bg-ptba-steel-blue disabled:opacity-50 transition-colors"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-steel-blue disabled:opacity-50 transition-colors"
                           >
                             {questionConfigSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                             Simpan
