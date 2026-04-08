@@ -48,6 +48,12 @@ export default function MitraProjectDetailPage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [openMitraFaqIndex, setOpenMitraFaqIndex] = useState<number | null>(null);
   const [faqSearch, setFaqSearch] = useState("");
+  const [showAskModal, setShowAskModal] = useState(false);
+  const [askSubject, setAskSubject] = useState("");
+  const [askMessage, setAskMessage] = useState("");
+  const [askCategory, setAskCategory] = useState("umum");
+  const [askSubmitting, setAskSubmitting] = useState(false);
+  const [askError, setAskError] = useState("");
 
   const dateLocale = locale === "en" ? "en-US" : "id-ID";
 
@@ -912,35 +918,46 @@ export default function MitraProjectDetailPage() {
               </div>
 
               {/* Have a Question? CTA */}
-              <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-br from-ptba-navy to-ptba-navy/90 px-5 py-4">
-                  <h3 className="text-sm font-bold text-white mb-1">
-                    {locale === "en" ? "Have a Question?" : "Punya Pertanyaan?"}
-                  </h3>
-                  <p className="text-[11px] text-white/70 leading-relaxed">
-                    {canApply
-                      ? (locale === "en" ? "Registration is open. Apply now to get started." : "Pendaftaran sedang dibuka. Daftar sekarang untuk memulai.")
-                      : (locale === "en" ? "Questions are currently closed for this project." : "Pertanyaan saat ini ditutup untuk proyek ini.")}
-                  </p>
-                </div>
-                <div className="p-4">
-                  {canApply ? (
-                    <button
-                      onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-ptba-gold py-2.5 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 active:scale-[0.98] transition-all shadow-sm"
-                    >
-                      {locale === "en" ? "Apply Now" : "Ajukan Pendaftaran"}
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  ) : (
-                    <div className="rounded-lg bg-ptba-section-bg px-3 py-2.5 text-center">
-                      <p className="text-xs font-medium text-ptba-gray">
-                        {locale === "en" ? "Questions Closed" : "Pertanyaan Ditutup"}
+              {(() => {
+                const questionsOpen = project.questionsOpen && (!project.questionsCloseAt || new Date(project.questionsCloseAt) > new Date());
+                return (
+                  <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-gradient-to-br from-ptba-navy to-ptba-navy/90 px-5 py-4">
+                      <h3 className="text-sm font-bold text-white mb-1">
+                        {locale === "en" ? "Have a Question?" : "Punya Pertanyaan?"}
+                      </h3>
+                      <p className="text-[11px] text-white/70 leading-relaxed">
+                        {questionsOpen
+                          ? (locale === "en" ? "Submit your question and we'll respond soon." : "Ajukan pertanyaan Anda dan akan kami respon segera.")
+                          : (locale === "en" ? "Questions are currently closed for this project." : "Pertanyaan saat ini ditutup untuk proyek ini.")}
                       </p>
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="p-4 space-y-2">
+                      {questionsOpen ? (
+                        <button
+                          onClick={() => setShowAskModal(true)}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg bg-ptba-gold py-2.5 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 active:scale-[0.98] transition-all shadow-sm"
+                        >
+                          {locale === "en" ? "Ask a Question" : "Ajukan Pertanyaan"}
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <div className="rounded-lg bg-ptba-section-bg px-3 py-2.5 text-center">
+                          <p className="text-xs font-medium text-ptba-gray">
+                            {locale === "en" ? "Questions Closed" : "Pertanyaan Ditutup"}
+                          </p>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => router.push(`/mitra/questions?project=${projectId}`)}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-ptba-light-gray py-2 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                      >
+                        {locale === "en" ? "View My Questions" : "Lihat Pertanyaan Saya"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Important Dates */}
               {project.phase1Deadline && (
@@ -985,6 +1002,68 @@ export default function MitraProjectDetailPage() {
           </div>
         );
       })()}
+
+      {/* Ask Question Modal */}
+      {showAskModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !askSubmitting && setShowAskModal(false)}>
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+              <h3 className="text-base font-bold text-ptba-navy">{locale === "en" ? "Ask a Question" : "Ajukan Pertanyaan"}</h3>
+              <button onClick={() => !askSubmitting && setShowAskModal(false)} className="text-ptba-gray hover:text-ptba-charcoal"><ArrowLeft className="h-4 w-4 rotate-45" /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Category" : "Kategori"}</label>
+                <select value={askCategory} onChange={(e) => setAskCategory(e.target.value)} className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue">
+                  <option value="umum">Umum</option>
+                  <option value="pendaftaran">Pendaftaran</option>
+                  <option value="evaluasi">Evaluasi</option>
+                  <option value="dokumen">Dokumen</option>
+                  <option value="keuangan">Keuangan</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Subject" : "Subjek"} *</label>
+                <input type="text" value={askSubject} onChange={(e) => setAskSubject(e.target.value)} placeholder={locale === "en" ? "Brief summary of your question" : "Ringkasan singkat pertanyaan Anda"} className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Message" : "Pesan"} *</label>
+                <textarea value={askMessage} onChange={(e) => setAskMessage(e.target.value)} rows={5} placeholder={locale === "en" ? "Describe your question in detail..." : "Jelaskan pertanyaan Anda secara detail..."} className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue resize-y" />
+              </div>
+              {askError && <p className="text-xs text-ptba-red">{askError}</p>}
+            </div>
+            <div className="flex gap-2 border-t border-gray-100 px-5 py-3">
+              <button onClick={() => setShowAskModal(false)} disabled={askSubmitting} className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2 text-sm text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                {locale === "en" ? "Cancel" : "Batal"}
+              </button>
+              <button
+                disabled={!askSubject.trim() || !askMessage.trim() || askSubmitting}
+                onClick={async () => {
+                  if (!accessToken) return;
+                  setAskSubmitting(true); setAskError("");
+                  try {
+                    await api(`/projects/${projectId}/questions`, {
+                      method: "POST",
+                      token: accessToken,
+                      body: { subject: askSubject, message: askMessage, category: askCategory },
+                    });
+                    setShowAskModal(false);
+                    setAskSubject(""); setAskMessage(""); setAskCategory("umum");
+                    router.push(`/mitra/questions?project=${projectId}`);
+                  } catch (err: any) {
+                    setAskError(err?.message || "Gagal mengirim pertanyaan");
+                  } finally {
+                    setAskSubmitting(false);
+                  }
+                }}
+                className="flex-1 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-semibold text-white hover:bg-ptba-navy/90 disabled:opacity-50 transition-colors"
+              >
+                {askSubmitting ? (locale === "en" ? "Sending..." : "Mengirim...") : (locale === "en" ? "Send" : "Kirim")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Image Lightbox */}
       {lightboxSrc && (
