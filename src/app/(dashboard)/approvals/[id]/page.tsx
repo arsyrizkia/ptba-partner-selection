@@ -84,13 +84,27 @@ export default function ApprovalDetailPage() {
     );
   }
 
-  // Parse evaluation summary
+  // Parse evaluation summary (snapshot at submission time)
   const evalSummary: any[] = approval.evaluation_summary
     ? (typeof approval.evaluation_summary === "string" ? JSON.parse(approval.evaluation_summary) : approval.evaluation_summary)
     : [];
 
-  const lolosCount = evalSummary.filter((e) => e.result === "Lolos").length;
-  const tidakLolosCount = evalSummary.filter((e) => e.result === "Tidak Lolos").length;
+  // Parse per-mitra decisions made by the approver (new flow, populated
+  // by the Phase 1 approval page redesign)
+  const approverDecisions: Array<{ applicationId: string; decision: 'layak' | 'tidak_layak'; notes?: string }> =
+    approval.decisions
+      ? (typeof approval.decisions === "string" ? JSON.parse(approval.decisions) : approval.decisions)
+      : [];
+  const decisionsByAppId = new Map(approverDecisions.map((d) => [d.applicationId, d]));
+
+  // If approver decisions are present, use them for the displayed counts.
+  // Otherwise fall back to the evaluation_summary snapshot.
+  const layakCount = approverDecisions.length > 0
+    ? approverDecisions.filter((d) => d.decision === "layak").length
+    : evalSummary.filter((e) => e.result === "Lolos").length;
+  const tdkLayakCount = approverDecisions.length > 0
+    ? approverDecisions.filter((d) => d.decision === "tidak_layak").length
+    : evalSummary.filter((e) => e.result === "Tidak Lolos").length;
 
   const handleDisposisi = async (decision: string, notes: string) => {
     if (!accessToken) return;
@@ -193,13 +207,23 @@ export default function ApprovalDetailPage() {
         )}
       </Card>
 
-      {/* Evaluation Summary — show mitra scores */}
+      {/* Per-mitra decisions (Phase 1 approver) */}
       {evalSummary.length > 0 && (
         <Card padding="lg">
-          <h3 className="text-lg font-semibold text-ptba-charcoal mb-4 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-ptba-steel-blue" />
-            Hasil Evaluasi Mitra
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-ptba-charcoal flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-ptba-steel-blue" />
+              Keputusan Per Mitra
+            </h3>
+            {approval.type === "phase1_evaluation" && (
+              <Link
+                href={`/projects/${approval.project_id}/approval/phase1`}
+                className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy inline-flex items-center gap-1"
+              >
+                Lihat Detail Penilaian <ShieldCheck className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
 
           {/* Summary counts */}
           <div className="grid grid-cols-3 gap-3 mb-4">
@@ -208,26 +232,33 @@ export default function ApprovalDetailPage() {
               <p className="text-xs text-ptba-gray">Total Mitra</p>
             </div>
             <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{lolosCount}</p>
-              <p className="text-xs text-green-700">Lolos</p>
+              <p className="text-2xl font-bold text-green-600">{layakCount}</p>
+              <p className="text-xs text-green-700">Layak</p>
             </div>
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
-              <p className="text-2xl font-bold text-ptba-red">{tidakLolosCount}</p>
-              <p className="text-xs text-ptba-red">Tidak Lolos</p>
+              <p className="text-2xl font-bold text-ptba-red">{tdkLayakCount}</p>
+              <p className="text-xs text-ptba-red">Tidak Layak</p>
             </div>
           </div>
 
           {/* Mitra list */}
           <div className="space-y-3">
-            {evalSummary
-              .sort((a, b) => (b.weightedScore || 0) - (a.weightedScore || 0))
-              .map((ev, index) => (
+            {evalSummary.map((ev, index) => {
+              // Prefer the approver's explicit decision from approvals.decisions
+              // JSONB; fall back to the evaluation_summary snapshot for legacy
+              // approvals that predate the new flow.
+              const persistedDecision = decisionsByAppId.get(ev.applicationId);
+              const isLayak = persistedDecision
+                ? persistedDecision.decision === "layak"
+                : ev.result === "Lolos";
+              const labelText = isLayak ? "Layak" : "Tidak Layak";
+              const decisionNotes = persistedDecision?.notes || ev.notes;
+              return (
                 <div key={ev.applicationId} className="rounded-xl border border-ptba-light-gray p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <span className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                        index === 0 ? "bg-ptba-gold/20 text-ptba-gold" : "bg-gray-200 text-gray-600"
+                        "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold bg-ptba-section-bg text-ptba-charcoal"
                       )}>
                         {index + 1}
                       </span>
@@ -238,23 +269,24 @@ export default function ApprovalDetailPage() {
                     <div className="flex items-center gap-3">
                       <span className={cn(
                         "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold",
-                        ev.result === "Lolos"
+                        isLayak
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-600"
                       )}>
-                        {ev.result === "Lolos" ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                        {ev.result}
+                        {isLayak ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                        {labelText}
                       </span>
                     </div>
                   </div>
-                  {ev.notes && (
+                  {decisionNotes && (
                     <div className="mt-3 rounded-lg bg-ptba-section-bg p-3">
-                      <p className="text-[10px] text-ptba-gray mb-0.5">Catatan Evaluator</p>
-                      <p className="text-xs text-ptba-charcoal">{ev.notes}</p>
+                      <p className="text-[10px] text-ptba-gray mb-0.5">Catatan</p>
+                      <p className="text-xs text-ptba-charcoal">{decisionNotes}</p>
                     </div>
                   )}
                 </div>
-              ))}
+              );
+            })}
           </div>
         </Card>
       )}
@@ -324,6 +356,17 @@ export default function ApprovalDetailPage() {
               <p className="text-sm text-ptba-gray mt-3">
                 Diproses pada {formatDate(approval.approved_at)}
               </p>
+            )}
+            {approval.type === "phase1_evaluation" && (
+              <div className="mt-5">
+                <Link
+                  href={`/projects/${approval.project_id}/approval/phase1`}
+                  className="inline-flex items-center gap-2 rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy hover:text-white transition-colors"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Buka Halaman Persetujuan Detail
+                </Link>
+              </div>
             )}
           </div>
         </Card>
