@@ -1737,8 +1737,11 @@ export default function ProjectDetailPage({
             );
           })()}
 
-          {/* Fase 2 View: Full evaluation matrix */}
-          {isPhase2 && (
+          {/* Fase 2 View: Full evaluation matrix — only after Phase 2
+              registration closes (phase2_evaluation onward). During
+              phase2_registration the list stays read-only (payment
+              verification card above). */}
+          {isPhase2 && project.phase !== "phase2_registration" && (
             <div className="overflow-x-auto">
               <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
                 <BarChart3 className="h-4 w-4 text-ptba-steel-blue" />
