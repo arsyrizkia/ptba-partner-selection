@@ -1347,7 +1347,12 @@ export default function ProjectDetailPage({
                 { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
                 { key: "dokumen", label: "Dokumen", icon: FileText },
                 { key: "informasi", label: "Informasi", icon: Info },
-                { key: "faq", label: "FAQ", icon: HelpCircle },
+                // FAQ / Q&A management is restricted to EBD + super_admin.
+                // Other divisions (keuangan, hukum, risiko, ketua_tim,
+                // viewer) don't manage mitra-facing content.
+                ...((role === "ebd" || role === "super_admin")
+                  ? [{ key: "faq", label: "FAQ", icon: HelpCircle } as const]
+                  : []),
                 { key: "riwayat", label: "Riwayat", icon: Clock },
               ] as const
             ).map(({ key, label, icon: Icon }) => (
@@ -2285,7 +2290,7 @@ export default function ProjectDetailPage({
       )}
 
       {/* Tab: FAQ & Q&A Tickets */}
-      {activeTab === "faq" && (() => {
+      {activeTab === "faq" && (role === "ebd" || role === "super_admin") && (() => {
         const FAQ_CATEGORIES = [
           { value: "pendaftaran", label: "Pendaftaran", color: "bg-blue-100 text-blue-700" },
           { value: "evaluasi", label: "Evaluasi", color: "bg-purple-100 text-purple-700" },
