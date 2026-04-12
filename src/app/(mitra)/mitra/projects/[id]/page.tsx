@@ -604,15 +604,18 @@ export default function MitraProjectDetailPage() {
       )}
 
       {activeTab === "faq" && (() => {
-        const allFaqs = project.faqs && project.faqs.length > 0 ? project.faqs : [
+        const defaultGeneralFaqs = [
           { question: "Apa itu PRIMA PTBA?", answer: "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis.", category: "umum", section: "general" },
           { question: "Apa saja tahapan evaluasi?", answer: "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko.", category: "evaluasi", section: "general" },
           { question: "Dokumen apa saja yang diperlukan?", answer: "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek.", category: "dokumen", section: "general" },
           { question: "Bagaimana proses evaluasi dilakukan?", answer: "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya.", category: "evaluasi", section: "general" },
           { question: "Apakah bisa mengedit setelah submit?", answer: "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim.", category: "pendaftaran", section: "general" },
         ];
-        const generalFaqs = allFaqs.filter((f: any) => (f.section || "general") === "general");
-        const mitraFaqs = allFaqs.filter((f: any) => f.section === "mitra");
+        const projectFaqs = project.faqs || [];
+        const projectGeneralFaqs = projectFaqs.filter((f: any) => (f.section || "general") === "general");
+        const generalFaqs = projectGeneralFaqs.length > 0 ? projectGeneralFaqs : defaultGeneralFaqs;
+        const mitraFaqs = projectFaqs.filter((f: any) => f.section === "mitra");
+        const allFaqs = [...generalFaqs, ...mitraFaqs];
         const CAT_COLORS: Record<string, string> = {
           pendaftaran: "bg-blue-50 text-blue-700 border-blue-200",
           evaluasi: "bg-purple-50 text-purple-700 border-purple-200",
