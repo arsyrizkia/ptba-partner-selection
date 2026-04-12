@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/utils/format";
 import { useTranslations } from "next-intl";
 
 const STATUS_STYLE: Record<string, string> = {
+  Draft: "bg-amber-50 text-amber-700 border border-amber-200",
   Dikirim: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
   "Dalam Review": "bg-amber-50 text-amber-600 border border-amber-200",
   Shortlisted: "bg-green-50 text-green-700 border border-green-200",
@@ -19,6 +20,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 const STATUS_ICON: Record<string, typeof Clock> = {
+  Draft: FileCheck,
   Dikirim: Clock,
   "Dalam Review": Clock,
   Shortlisted: CheckCircle2,
@@ -41,7 +43,7 @@ export default function MitraDashboardPage() {
       api<{ applications: any[] }>("/applications", { token: accessToken }),
       projectApi(accessToken).list(),
     ]).then(([appRes, projRes]) => {
-      setApplications((appRes.applications || []).filter((a: any) => a.status !== "Draft"));
+      setApplications(appRes.applications || []);
       const projects = projRes.data || [];
       setOpenProjectsCount(projects.filter((p: any) => p.isOpenForApplication).length);
     }).catch(() => {})
