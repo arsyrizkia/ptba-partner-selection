@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown, HelpCircle, MessageCircle, Filter, Search } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown, HelpCircle, MessageCircle, Filter, Search, Clock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
@@ -934,6 +934,17 @@ export default function MitraProjectDetailPage() {
                           ? (locale === "en" ? "Submit your question and we'll respond soon." : "Ajukan pertanyaan Anda dan akan kami respon segera.")
                           : (locale === "en" ? "Questions are currently closed for this project." : "Pertanyaan saat ini ditutup untuk proyek ini.")}
                       </p>
+                      {questionsOpen && project.questionsCloseAt && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1">
+                          <Clock className="h-3 w-3 text-ptba-gold" />
+                          <span className="text-[11px] text-white/90 font-medium">
+                            {locale === "en" ? "Closes" : "Ditutup"}{" "}
+                            {new Date(project.questionsCloseAt).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                            {" "}
+                            {new Date(project.questionsCloseAt).toLocaleTimeString(locale === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-4 space-y-2">
                       {questionsOpen ? (
