@@ -44,12 +44,13 @@ import {
   Lock,
   Unlock,
   CalendarClock,
+  ImagePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, authApi, downloadDocument } from "@/lib/api/client";
+import { api, projectApi, authApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
@@ -379,6 +380,9 @@ export default function ProjectDetailPage({
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [questionMessages, setQuestionMessages] = useState<any[]>([]);
   const [questionReply, setQuestionReply] = useState("");
+  const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
+  const [questionImagePreview, setQuestionImagePreview] = useState<string | null>(null);
+  const [questionLightboxSrc, setQuestionLightboxSrc] = useState<string | null>(null);
   const [questionStatusFilter, setQuestionStatusFilter] = useState<"all" | "open" | "answered" | "closed">("all");
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questionsCloseAt, setQuestionsCloseAt] = useState("");
@@ -2354,15 +2358,20 @@ export default function ProjectDetailPage({
         };
 
         const sendReply = async () => {
-          if (!accessToken || !selectedQuestionId || !questionReply.trim()) return;
+          if (!accessToken || !selectedQuestionId || (!questionReply.trim() && !questionImageFile)) return;
           setQuestionReplyLoading(true);
           try {
-            await api(`/projects/${id}/questions/${selectedQuestionId}/messages`, {
+            const formData = new FormData();
+            if (questionReply.trim()) formData.append("message", questionReply.trim());
+            if (questionImageFile) formData.append("image", questionImageFile);
+            await fetchWithAuth(`/api/projects/${id}/questions/${selectedQuestionId}/messages`, {
               method: "POST",
               token: accessToken,
-              body: { message: questionReply.trim() },
+              body: formData,
             });
             setQuestionReply("");
+            setQuestionImageFile(null);
+            if (questionImagePreview) { URL.revokeObjectURL(questionImagePreview); setQuestionImagePreview(null); }
             await fetchQuestionMessages(selectedQuestionId);
             await fetchQuestions();
           } catch { alert("Gagal mengirim balasan"); }
@@ -2878,7 +2887,15 @@ export default function ProjectDetailPage({
                                         <p className="text-[10px] font-bold mb-0.5 opacity-80">
                                           {isMitra ? (m.sender_name || "Mitra") : (m.sender_name || "Admin PTBA")}
                                         </p>
-                                        <p className="text-sm whitespace-pre-line leading-relaxed">{m.message}</p>
+                                        {m.image_url && (
+                                          <img
+                                            src={m.image_url}
+                                            alt=""
+                                            className="rounded-lg max-w-full max-h-48 object-contain cursor-pointer mb-1.5 hover:opacity-90 transition-opacity"
+                                            onClick={() => setQuestionLightboxSrc(m.image_url)}
+                                          />
+                                        )}
+                                        {m.message && <p className="text-sm whitespace-pre-line leading-relaxed">{m.message}</p>}
                                       </div>
                                       <p className={cn("text-[10px] text-ptba-gray mt-1 px-1", isMitra ? "text-left" : "text-right")}>
                                         {formatChatTime(m.created_at)}
@@ -2900,25 +2917,43 @@ export default function ProjectDetailPage({
                                 <p className="text-xs text-ptba-gray">Tiket ini telah ditutup. Ubah status untuk membalas.</p>
                               </div>
                             ) : (
-                              <div className="flex gap-2 items-end">
-                                <textarea
-                                  value={questionReply}
-                                  onChange={(e) => setQuestionReply(e.target.value)}
-                                  placeholder="Tulis balasan untuk mitra..."
-                                  rows={2}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendReply();
-                                  }}
-                                  className="flex-1 rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-none"
-                                />
-                                <button
-                                  disabled={!questionReply.trim() || questionReplyLoading}
-                                  onClick={sendReply}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-gold/90 disabled:opacity-50 transition-colors shrink-0"
-                                >
-                                  {questionReplyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                  Kirim
-                                </button>
+                              <div className="space-y-2">
+                                {questionImagePreview && (
+                                  <div className="relative inline-block">
+                                    <img src={questionImagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
+                                    <button onClick={() => { setQuestionImageFile(null); URL.revokeObjectURL(questionImagePreview); setQuestionImagePreview(null); }} className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="flex gap-2 items-end">
+                                  <input type="file" accept="image/*" className="hidden" id="admin-qa-image" onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f && f.type.startsWith("image/")) { setQuestionImageFile(f); setQuestionImagePreview(URL.createObjectURL(f)); }
+                                    e.target.value = "";
+                                  }} />
+                                  <button onClick={() => document.getElementById("admin-qa-image")?.click()} className="rounded-lg border border-ptba-light-gray px-2.5 py-2.5 text-ptba-gray hover:bg-ptba-section-bg transition-colors" title="Lampirkan gambar">
+                                    <ImagePlus className="h-4 w-4" />
+                                  </button>
+                                  <textarea
+                                    value={questionReply}
+                                    onChange={(e) => setQuestionReply(e.target.value)}
+                                    placeholder="Tulis balasan untuk mitra..."
+                                    rows={2}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendReply();
+                                    }}
+                                    className="flex-1 rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-none"
+                                  />
+                                  <button
+                                    disabled={(!questionReply.trim() && !questionImageFile) || questionReplyLoading}
+                                    onClick={sendReply}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-gold/90 disabled:opacity-50 transition-colors shrink-0"
+                                  >
+                                    {questionReplyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                    Kirim
+                                  </button>
+                                </div>
                               </div>
                             )}
                             <p className="text-[10px] text-ptba-gray mt-1.5 text-right">Tekan Cmd/Ctrl + Enter untuk kirim</p>
@@ -3169,19 +3204,19 @@ export default function ProjectDetailPage({
       )}
 
       {/* Image Lightbox */}
-      {lightboxSrc && (
+      {(lightboxSrc || questionLightboxSrc) && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxSrc(null)}
+          onClick={() => { setLightboxSrc(null); setQuestionLightboxSrc(null); }}
         >
           <button
-            onClick={() => setLightboxSrc(null)}
+            onClick={() => { setLightboxSrc(null); setQuestionLightboxSrc(null); }}
             className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
           >
             <span className="text-2xl leading-none">&times;</span>
           </button>
           <img
-            src={lightboxSrc}
+            src={(lightboxSrc || questionLightboxSrc)!}
             alt=""
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}
