@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/utils/format";
 import { useTranslations } from "next-intl";
 
 const STATUS_STYLE: Record<string, string> = {
+  Draft: "bg-amber-50 text-amber-700 border border-amber-200",
   Dikirim: "bg-ptba-steel-blue/10 text-ptba-steel-blue border border-ptba-steel-blue/20",
   "Dalam Review": "bg-amber-50 text-amber-600 border border-amber-200",
   Shortlisted: "bg-green-50 text-green-700 border border-green-200",
@@ -19,6 +20,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 const STATUS_ICON: Record<string, typeof Clock> = {
+  Draft: FileCheck,
   Dikirim: Clock,
   "Dalam Review": Clock,
   Shortlisted: CheckCircle2,
@@ -41,7 +43,7 @@ export default function MitraDashboardPage() {
       api<{ applications: any[] }>("/applications", { token: accessToken }),
       projectApi(accessToken).list(),
     ]).then(([appRes, projRes]) => {
-      setApplications((appRes.applications || []).filter((a: any) => a.status !== "Draft"));
+      setApplications(appRes.applications || []);
       const projects = projRes.data || [];
       setOpenProjectsCount(projects.filter((p: any) => p.isOpenForApplication).length);
     }).catch(() => {})
@@ -66,7 +68,7 @@ export default function MitraDashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-5 border border-ptba-light-gray/50">
           <div className="flex items-start justify-between">
             <div>
@@ -78,27 +80,22 @@ export default function MitraDashboardPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-xl bg-white p-5 border border-ptba-light-gray/50">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-ptba-gray">{t("availableProjects")}</p>
-              <p className="mt-1 text-3xl font-bold text-ptba-charcoal">{openProjectsCount}</p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-ptba-green">
-              <BarChart3 className="h-6 w-6 text-white" />
-            </div>
-          </div>
-        </div>
         <button
           onClick={() => router.push("/mitra/projects")}
           className="rounded-xl bg-white p-5 border border-ptba-light-gray/50 text-left hover:border-ptba-steel-blue/30 transition-all"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-semibold text-ptba-charcoal">{t("findProjects")}</p>
-              <p className="mt-0.5 text-xs text-ptba-gray">{t("findProjectsDesc")}</p>
+              <p className="text-sm text-ptba-gray">{t("availableProjects")}</p>
+              {openProjectsCount > 0 ? (
+                <p className="mt-1 text-3xl font-bold text-ptba-charcoal">{openProjectsCount}</p>
+              ) : (
+                <p className="mt-0.5 text-xs text-ptba-gray">{t("findProjectsDesc")}</p>
+              )}
             </div>
-            <ArrowRight className="h-5 w-5 text-ptba-steel-blue" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-ptba-green">
+              <BarChart3 className="h-6 w-6 text-white" />
+            </div>
           </div>
         </button>
       </div>

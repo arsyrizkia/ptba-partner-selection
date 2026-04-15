@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown, HelpCircle, MessageCircle, Filter, Search } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown, HelpCircle, MessageCircle, Filter, Search, Clock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi } from "@/lib/api/client";
@@ -604,15 +604,18 @@ export default function MitraProjectDetailPage() {
       )}
 
       {activeTab === "faq" && (() => {
-        const allFaqs = project.faqs && project.faqs.length > 0 ? project.faqs : [
+        const defaultGeneralFaqs = [
           { question: "Apa itu PRIMA PTBA?", answer: "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis.", category: "umum", section: "general" },
           { question: "Apa saja tahapan evaluasi?", answer: "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko.", category: "evaluasi", section: "general" },
           { question: "Dokumen apa saja yang diperlukan?", answer: "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek.", category: "dokumen", section: "general" },
           { question: "Bagaimana proses evaluasi dilakukan?", answer: "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya.", category: "evaluasi", section: "general" },
           { question: "Apakah bisa mengedit setelah submit?", answer: "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim.", category: "pendaftaran", section: "general" },
         ];
-        const generalFaqs = allFaqs.filter((f: any) => (f.section || "general") === "general");
-        const mitraFaqs = allFaqs.filter((f: any) => f.section === "mitra");
+        const projectFaqs = project.faqs || [];
+        const projectGeneralFaqs = projectFaqs.filter((f: any) => (f.section || "general") === "general");
+        const generalFaqs = projectGeneralFaqs.length > 0 ? projectGeneralFaqs : defaultGeneralFaqs;
+        const mitraFaqs = projectFaqs.filter((f: any) => f.section === "mitra");
+        const allFaqs = [...generalFaqs, ...mitraFaqs];
         const CAT_COLORS: Record<string, string> = {
           pendaftaran: "bg-blue-50 text-blue-700 border-blue-200",
           evaluasi: "bg-purple-50 text-purple-700 border-purple-200",
@@ -931,6 +934,17 @@ export default function MitraProjectDetailPage() {
                           ? (locale === "en" ? "Submit your question and we'll respond soon." : "Ajukan pertanyaan Anda dan akan kami respon segera.")
                           : (locale === "en" ? "Questions are currently closed for this project." : "Pertanyaan saat ini ditutup untuk proyek ini.")}
                       </p>
+                      {questionsOpen && project.questionsCloseAt && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1">
+                          <Clock className="h-3 w-3 text-ptba-gold" />
+                          <span className="text-[11px] text-white/90 font-medium">
+                            {locale === "en" ? "Closes" : "Ditutup"}{" "}
+                            {new Date(project.questionsCloseAt).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                            {" "}
+                            {new Date(project.questionsCloseAt).toLocaleTimeString(locale === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-4 space-y-2">
                       {questionsOpen ? (

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MessageSquare, Send, Loader2, ArrowLeft, CheckCircle2, Clock, CheckCheck } from "lucide-react";
+import { MessageSquare, Send, Loader2, ArrowLeft, CheckCircle2, Clock, CheckCheck, ImagePlus, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api } from "@/lib/api/client";
+import { api, fetchWithAuth } from "@/lib/api/client";
 import { formatDate, formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 
 interface Question {
@@ -25,6 +25,7 @@ interface Message {
   sender_type: "mitra" | "admin";
   sender_name?: string;
   message: string;
+  image_url?: string | null;
   created_at: string;
 }
 
@@ -73,6 +74,10 @@ export default function MitraQuestionsPage() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selected = questions.find((q) => q.id === selectedId);
 
@@ -113,16 +118,36 @@ export default function MitraQuestionsPage() {
     if (selectedId) loadMessages(selectedId);
   }, [selectedId, loadMessages]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Hanya file gambar yang diperbolehkan"); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const sendReply = async () => {
-    if (!reply.trim() || !selectedId || !accessToken || !projectId) return;
+    if ((!reply.trim() && !imageFile) || !selectedId || !accessToken || !projectId) return;
     setSending(true);
     try {
-      await api(`/projects/${projectId}/questions/${selectedId}/messages`, {
+      const formData = new FormData();
+      if (reply.trim()) formData.append("message", reply.trim());
+      if (imageFile) formData.append("image", imageFile);
+
+      await fetchWithAuth(`/api/projects/${projectId}/questions/${selectedId}/messages`, {
         method: "POST",
         token: accessToken,
-        body: { message: reply },
+        body: formData,
       });
       setReply("");
+      clearImage();
       await loadMessages(selectedId);
       await loadQuestions();
     } catch (err: any) {
@@ -244,7 +269,15 @@ export default function MitraQuestionsPage() {
                               <p className="text-[10px] font-semibold mb-0.5 opacity-70">
                                 {isMitra ? "Anda" : (m.sender_name || "Admin")}
                               </p>
-                              <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>
+                              {m.image_url && (
+                                <img
+                                  src={m.image_url}
+                                  alt=""
+                                  className="rounded-lg max-w-full max-h-48 object-contain cursor-pointer mb-1.5 hover:opacity-90 transition-opacity"
+                                  onClick={() => setLightboxSrc(m.image_url!)}
+                                />
+                              )}
+                              {m.message && <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>}
                               <p className={cn("text-[9px] mt-1 text-right", isMitra ? "text-white/60" : "text-ptba-gray")}>
                                 {formatChatTime(m.created_at)}
                               </p>
@@ -257,7 +290,23 @@ export default function MitraQuestionsPage() {
 
                   {selected.status !== "closed" && (
                     <div className="border-t border-gray-100 p-3">
+                      {imagePreview && (
+                        <div className="mb-2 relative inline-block">
+                          <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
+                          <button onClick={clearImage} className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                       <div className="flex gap-2">
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="rounded-lg border border-ptba-light-gray px-2.5 text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                          title="Lampirkan gambar"
+                        >
+                          <ImagePlus className="h-4 w-4" />
+                        </button>
                         <textarea
                           value={reply}
                           onChange={(e) => setReply(e.target.value)}
@@ -268,7 +317,7 @@ export default function MitraQuestionsPage() {
                         />
                         <button
                           onClick={sendReply}
-                          disabled={!reply.trim() || sending}
+                          disabled={(!reply.trim() && !imageFile) || sending}
                           className="rounded-lg bg-ptba-navy px-4 text-white hover:bg-ptba-navy/90 disabled:opacity-50 transition-colors"
                         >
                           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -293,6 +342,16 @@ export default function MitraQuestionsPage() {
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-700">{error}</div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxSrc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setLightboxSrc(null)}>
+          <button onClick={() => setLightboxSrc(null)} className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+            <X className="h-6 w-6" />
+          </button>
+          <img src={lightboxSrc} alt="" className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+        </div>
       )}
     </div>
   );

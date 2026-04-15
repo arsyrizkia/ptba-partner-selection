@@ -44,12 +44,13 @@ import {
   Lock,
   Unlock,
   CalendarClock,
+  ImagePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, authApi, downloadDocument } from "@/lib/api/client";
+import { api, projectApi, authApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
@@ -379,6 +380,9 @@ export default function ProjectDetailPage({
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [questionMessages, setQuestionMessages] = useState<any[]>([]);
   const [questionReply, setQuestionReply] = useState("");
+  const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
+  const [questionImagePreview, setQuestionImagePreview] = useState<string | null>(null);
+  const [questionLightboxSrc, setQuestionLightboxSrc] = useState<string | null>(null);
   const [questionStatusFilter, setQuestionStatusFilter] = useState<"all" | "open" | "answered" | "closed">("all");
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questionsCloseAt, setQuestionsCloseAt] = useState("");
@@ -558,9 +562,50 @@ export default function ProjectDetailPage({
       setApplicationCount(apps.length);
     }).catch(() => {});
 
-    // Fetch evaluations for this project
-    api<{ evaluations: any[] }>(`/evaluations/phase1/${id}`, { token: accessToken })
-      .then((res) => setProjectEvaluations(res.evaluations || []))
+    // Fetch per-category evaluations for this project and aggregate per mitra.
+    // The legacy /evaluations/phase1/:id endpoint reads phase1_evaluations
+    // (old score-based flow) which is empty for projects using the new
+    // 6-category flow — so we aggregate phase1_category_evaluations instead.
+    api<{ evaluations: any[] }>(`/evaluations/phase1-cat/${id}`, { token: accessToken })
+      .then((res) => {
+        const raw = Array.isArray(res) ? res : (res.evaluations || []);
+        const byPartner = new Map<string, any>();
+        for (const ev of raw) {
+          if (!byPartner.has(ev.partner_id)) {
+            byPartner.set(ev.partner_id, {
+              id: ev.partner_id,
+              partner_id: ev.partner_id,
+              partner_name: ev.partner_name,
+              application_id: ev.application_id,
+              categories: [],
+              evaluator_names: new Set<string>(),
+              last_evaluated_at: null,
+              finalized_count: 0,
+              sesuai_count: 0,
+              tidak_sesuai_count: 0,
+              perlu_diskusi_count: 0,
+            });
+          }
+          const entry = byPartner.get(ev.partner_id)!;
+          const v = (ev.verdict || "").toLowerCase();
+          entry.categories.push({ category: ev.category, verdict: ev.verdict, finalized: ev.is_finalized });
+          if (ev.evaluator_name) entry.evaluator_names.add(ev.evaluator_name);
+          if (ev.is_finalized) entry.finalized_count++;
+          if (v === "sesuai") entry.sesuai_count++;
+          else if (v === "tidak_sesuai") entry.tidak_sesuai_count++;
+          else if (v === "perlu_diskusi") entry.perlu_diskusi_count++;
+          if (ev.evaluated_at && (!entry.last_evaluated_at || ev.evaluated_at > entry.last_evaluated_at)) {
+            entry.last_evaluated_at = ev.evaluated_at;
+          }
+        }
+        const aggregated = Array.from(byPartner.values()).map((e) => ({
+          ...e,
+          evaluator_name: Array.from(e.evaluator_names).join(", "),
+          evaluated_at: e.last_evaluated_at,
+          is_finalized: e.finalized_count === 6,
+        }));
+        setProjectEvaluations(aggregated);
+      })
       .catch(() => {});
 
     // Fetch approvals for this project
@@ -613,9 +658,9 @@ export default function ProjectDetailPage({
       code: a.partner_id.substring(0, 8),
       status: a.status,
       appliedAt: a.applied_at,
-      phase1Result: a.phase1_result || evaluation?.overall_result,
-      phase1Score: evaluation?.weighted_score != null ? Number(evaluation.weighted_score) : undefined,
-      hasEvaluation: !!evaluation,
+      phase1Result: a.phase1_result,
+      phase1Score: undefined,
+      hasEvaluation: !!evaluation && evaluation.finalized_count === 6,
       phase: a.phase,
       isShortlisted: shortlistedIds.has(a.partner_id),
       documents: allDocs,
@@ -1306,7 +1351,12 @@ export default function ProjectDetailPage({
                 { key: "mitra", label: "Mitra yang Berminat", icon: Building2 },
                 { key: "dokumen", label: "Dokumen", icon: FileText },
                 { key: "informasi", label: "Informasi", icon: Info },
-                { key: "faq", label: "FAQ", icon: HelpCircle },
+                // FAQ / Q&A management is restricted to EBD + super_admin.
+                // Other divisions (keuangan, hukum, risiko, ketua_tim,
+                // viewer) don't manage mitra-facing content.
+                ...((role === "ebd" || role === "super_admin")
+                  ? [{ key: "faq", label: "FAQ", icon: HelpCircle } as const]
+                  : []),
                 { key: "riwayat", label: "Riwayat", icon: Clock },
               ] as const
             ).map(({ key, label, icon: Icon }) => (
@@ -1696,8 +1746,11 @@ export default function ProjectDetailPage({
             );
           })()}
 
-          {/* Fase 2 View: Full evaluation matrix */}
-          {isPhase2 && (
+          {/* Fase 2 View: Full evaluation matrix — only after Phase 2
+              registration closes (phase2_evaluation onward). During
+              phase2_registration the list stays read-only (payment
+              verification card above). */}
+          {isPhase2 && project.phase !== "phase2_registration" && (
             <div className="overflow-x-auto">
               <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
                 <BarChart3 className="h-4 w-4 text-ptba-steel-blue" />
@@ -2241,7 +2294,7 @@ export default function ProjectDetailPage({
       )}
 
       {/* Tab: FAQ & Q&A Tickets */}
-      {activeTab === "faq" && (() => {
+      {activeTab === "faq" && (role === "ebd" || role === "super_admin") && (() => {
         const FAQ_CATEGORIES = [
           { value: "pendaftaran", label: "Pendaftaran", color: "bg-blue-100 text-blue-700" },
           { value: "evaluasi", label: "Evaluasi", color: "bg-purple-100 text-purple-700" },
@@ -2305,15 +2358,20 @@ export default function ProjectDetailPage({
         };
 
         const sendReply = async () => {
-          if (!accessToken || !selectedQuestionId || !questionReply.trim()) return;
+          if (!accessToken || !selectedQuestionId || (!questionReply.trim() && !questionImageFile)) return;
           setQuestionReplyLoading(true);
           try {
-            await api(`/projects/${id}/questions/${selectedQuestionId}/messages`, {
+            const formData = new FormData();
+            if (questionReply.trim()) formData.append("message", questionReply.trim());
+            if (questionImageFile) formData.append("image", questionImageFile);
+            await fetchWithAuth(`/api/projects/${id}/questions/${selectedQuestionId}/messages`, {
               method: "POST",
               token: accessToken,
-              body: { message: questionReply.trim() },
+              body: formData,
             });
             setQuestionReply("");
+            setQuestionImageFile(null);
+            if (questionImagePreview) { URL.revokeObjectURL(questionImagePreview); setQuestionImagePreview(null); }
             await fetchQuestionMessages(selectedQuestionId);
             await fetchQuestions();
           } catch { alert("Gagal mengirim balasan"); }
@@ -2829,7 +2887,15 @@ export default function ProjectDetailPage({
                                         <p className="text-[10px] font-bold mb-0.5 opacity-80">
                                           {isMitra ? (m.sender_name || "Mitra") : (m.sender_name || "Admin PTBA")}
                                         </p>
-                                        <p className="text-sm whitespace-pre-line leading-relaxed">{m.message}</p>
+                                        {m.image_url && (
+                                          <img
+                                            src={m.image_url}
+                                            alt=""
+                                            className="rounded-lg max-w-full max-h-48 object-contain cursor-pointer mb-1.5 hover:opacity-90 transition-opacity"
+                                            onClick={() => setQuestionLightboxSrc(m.image_url)}
+                                          />
+                                        )}
+                                        {m.message && <p className="text-sm whitespace-pre-line leading-relaxed">{m.message}</p>}
                                       </div>
                                       <p className={cn("text-[10px] text-ptba-gray mt-1 px-1", isMitra ? "text-left" : "text-right")}>
                                         {formatChatTime(m.created_at)}
@@ -2851,25 +2917,43 @@ export default function ProjectDetailPage({
                                 <p className="text-xs text-ptba-gray">Tiket ini telah ditutup. Ubah status untuk membalas.</p>
                               </div>
                             ) : (
-                              <div className="flex gap-2 items-end">
-                                <textarea
-                                  value={questionReply}
-                                  onChange={(e) => setQuestionReply(e.target.value)}
-                                  placeholder="Tulis balasan untuk mitra..."
-                                  rows={2}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendReply();
-                                  }}
-                                  className="flex-1 rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-none"
-                                />
-                                <button
-                                  disabled={!questionReply.trim() || questionReplyLoading}
-                                  onClick={sendReply}
-                                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-gold/90 disabled:opacity-50 transition-colors shrink-0"
-                                >
-                                  {questionReplyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                  Kirim
-                                </button>
+                              <div className="space-y-2">
+                                {questionImagePreview && (
+                                  <div className="relative inline-block">
+                                    <img src={questionImagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
+                                    <button onClick={() => { setQuestionImageFile(null); URL.revokeObjectURL(questionImagePreview); setQuestionImagePreview(null); }} className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="flex gap-2 items-end">
+                                  <input type="file" accept="image/*" className="hidden" id="admin-qa-image" onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f && f.type.startsWith("image/")) { setQuestionImageFile(f); setQuestionImagePreview(URL.createObjectURL(f)); }
+                                    e.target.value = "";
+                                  }} />
+                                  <button onClick={() => document.getElementById("admin-qa-image")?.click()} className="rounded-lg border border-ptba-light-gray px-2.5 py-2.5 text-ptba-gray hover:bg-ptba-section-bg transition-colors" title="Lampirkan gambar">
+                                    <ImagePlus className="h-4 w-4" />
+                                  </button>
+                                  <textarea
+                                    value={questionReply}
+                                    onChange={(e) => setQuestionReply(e.target.value)}
+                                    placeholder="Tulis balasan untuk mitra..."
+                                    rows={2}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) sendReply();
+                                    }}
+                                    className="flex-1 rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-none"
+                                  />
+                                  <button
+                                    disabled={(!questionReply.trim() && !questionImageFile) || questionReplyLoading}
+                                    onClick={sendReply}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-semibold text-white hover:bg-ptba-gold/90 disabled:opacity-50 transition-colors shrink-0"
+                                  >
+                                    {questionReplyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                    Kirim
+                                  </button>
+                                </div>
                               </div>
                             )}
                             <p className="text-[10px] text-ptba-gray mt-1.5 text-right">Tekan Cmd/Ctrl + Enter untuk kirim</p>
@@ -2896,31 +2980,38 @@ export default function ProjectDetailPage({
             </h3>
             {projectEvaluations.length > 0 ? (
               <div className="space-y-3">
-                {projectEvaluations.map((ev: any) => (
-                  <div key={ev.id} className={cn("rounded-lg border p-4", ev.overall_result === "Lolos" ? "border-green-200 bg-green-50/30" : ev.overall_result === "Tidak Lolos" ? "border-red-200 bg-red-50/30" : "border-gray-200")}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className="text-sm font-semibold text-ptba-charcoal">{ev.partner_name}</p>
-                        <p className="text-[10px] text-ptba-gray">
-                          Evaluator: {ev.evaluator_name || "-"} · {ev.evaluated_at ? formatDate(ev.evaluated_at) : "-"}
-                          {ev.is_finalized && " · Difinalisasi"}
-                        </p>
+                {projectEvaluations.map((ev: any) => {
+                  const allFinalized = ev.finalized_count === 6;
+                  return (
+                    <div key={ev.id} className={cn("rounded-lg border p-4", allFinalized ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30")}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-ptba-charcoal">{ev.partner_name}</p>
+                          <p className="text-[10px] text-ptba-gray">
+                            Evaluator: {ev.evaluator_name || "-"} · {ev.evaluated_at ? formatDate(ev.evaluated_at) : "-"}
+                            {allFinalized ? " · Difinalisasi" : ` · ${ev.finalized_count}/6 difinalisasi`}
+                          </p>
+                        </div>
+                        <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", allFinalized ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
+                          {ev.finalized_count} / 6 Aspek
+                        </span>
                       </div>
-                      <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", ev.overall_result === "Lolos" ? "bg-green-100 text-green-700" : ev.overall_result === "Tidak Lolos" ? "bg-red-100 text-ptba-red" : "bg-gray-100 text-gray-500")}>
-                        {ev.overall_result || "Belum Dinilai"}
-                      </span>
+                      <div className="mt-2 flex items-center gap-3 text-[11px]">
+                        <span className="text-green-700"><span className="font-bold">{ev.sesuai_count}</span> Sesuai</span>
+                        <span className="text-amber-700"><span className="font-bold">{ev.perlu_diskusi_count}</span> Perlu Diskusi</span>
+                        <span className="text-ptba-red"><span className="font-bold">{ev.tidak_sesuai_count}</span> Tidak Sesuai</span>
+                      </div>
+                      <div className="mt-2">
+                        <Link
+                          href={`/projects/${id}/evaluation/phase1?partnerId=${ev.partner_id}`}
+                          className="text-xs text-ptba-steel-blue hover:underline"
+                        >
+                          Lihat Detail Evaluasi →
+                        </Link>
+                      </div>
                     </div>
-                    {ev.notes && <p className="text-xs text-ptba-gray mt-1">{ev.notes}</p>}
-                    <div className="mt-2">
-                      <Link
-                        href={`/projects/${id}/evaluation/phase1?partnerId=${ev.partner_id}`}
-                        className="text-xs text-ptba-steel-blue hover:underline"
-                      >
-                        Lihat Detail Evaluasi →
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-ptba-gray italic">Belum ada evaluasi.</p>
@@ -3113,19 +3204,19 @@ export default function ProjectDetailPage({
       )}
 
       {/* Image Lightbox */}
-      {lightboxSrc && (
+      {(lightboxSrc || questionLightboxSrc) && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxSrc(null)}
+          onClick={() => { setLightboxSrc(null); setQuestionLightboxSrc(null); }}
         >
           <button
-            onClick={() => setLightboxSrc(null)}
+            onClick={() => { setLightboxSrc(null); setQuestionLightboxSrc(null); }}
             className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
           >
             <span className="text-2xl leading-none">&times;</span>
           </button>
           <img
-            src={lightboxSrc}
+            src={(lightboxSrc || questionLightboxSrc)!}
             alt=""
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}

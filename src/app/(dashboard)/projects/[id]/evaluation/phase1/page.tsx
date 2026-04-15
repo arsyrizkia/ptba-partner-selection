@@ -633,15 +633,16 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   };
 
   // ── Sidebar status helpers ─────────────────────────────────────────────────
+  // Note: this page is the EVALUATION stage. Evaluators give per-aspect
+  // verdicts (sesuai / tidak_sesuai / perlu_diskusi). The final overall
+  // Layak / Tidak Layak call is made by the approver later, NOT inferred
+  // from the aspect verdicts here.
   const getMitraStatus = (appId: string): { text: string; color: string; icon: "finalized" | "partial" | "none" } => {
     const status = catEvals[appId];
     if (!status) return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" };
     const finCount = status.evaluations.filter((e) => e.isFinalized).length;
     if (status.allFinalized) {
-      const allLayak = status.evaluations.every((e) => e.verdict === "layak");
-      return allLayak
-        ? { text: "Layak (6/6)", color: "text-green-600", icon: "finalized" }
-        : { text: "Tidak Layak", color: "text-ptba-red", icon: "finalized" };
+      return { text: "Selesai (6/6)", color: "text-ptba-steel-blue", icon: "finalized" };
     }
     if (finCount > 0) return { text: `${finCount}/6 selesai`, color: "text-ptba-steel-blue", icon: "partial" };
     return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" };
@@ -905,13 +906,17 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         const status = catEvals[selectedApp.id];
                         if (!status) return null;
                         const finCount = status.evaluations.filter((e) => e.isFinalized).length;
-                        return (
-                          <>
-                            {finCount > 0 && <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">{finCount}/6 Kategori Final</span>}
-                            {status.allFinalized && status.evaluations.every((e) => e.verdict === "layak") && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">Layak</span>}
-                            {status.allFinalized && !status.evaluations.every((e) => e.verdict === "layak") && <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-ptba-red">Tidak Layak</span>}
-                          </>
-                        );
+                        // Evaluation stage only surfaces finalization progress.
+                        // Layak / Tidak Layak is the approver's call, not derived
+                        // from per-aspect verdicts.
+                        return finCount > 0 ? (
+                          <span className={cn(
+                            "rounded-full px-3 py-1 text-xs font-semibold",
+                            status.allFinalized ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                          )}>
+                            {finCount}/6 Kategori {status.allFinalized ? "Final" : "Selesai"}
+                          </span>
+                        ) : null;
                       })()}
                     </div>
                   </div>
