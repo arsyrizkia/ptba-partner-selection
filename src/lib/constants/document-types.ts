@@ -212,6 +212,22 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
     category: 'legal',
     phase: 'phase1',
   },
+  {
+    id: 'annual_report',
+    name: 'Annual Report (Laporan Tahunan)',
+    description: 'Dokumen resmi yang diterbitkan perusahaan publik setahun sekali untuk memaparkan kinerja keuangan, operasional, dan strategi perusahaan selama tahun fiskal terakhir.',
+    required: true,
+    category: 'administrasi',
+    phase: 'phase1',
+  },
+  {
+    id: 'esg_sustainability_report',
+    name: 'Laporan ESG / Sustainability Report',
+    description: 'Dokumen terkait aspek Lingkungan (Environmental), Sosial (Social), dan Tata Kelola (Governance) perusahaan.',
+    required: true,
+    category: 'administrasi',
+    phase: 'phase1',
+  },
 
   // === Fase 2: FRP & Proposal Document Types ===
   {
