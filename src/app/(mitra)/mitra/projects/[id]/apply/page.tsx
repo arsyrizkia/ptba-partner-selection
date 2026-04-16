@@ -1496,9 +1496,20 @@ export default function MitraProjectApplyPage() {
             const hasProjectData = capexMillion > 0 && equityRatio > 0;
             const totalEquity = capexMillion * equityRatio;
             const mitraContribution = totalEquity * (jvPercent / 100);
-            const minCashOnHand = mitraContribution * 1.5;
+            const minCashOnHand = mitraContribution * 1.0;
             const fmtUsd = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const cashNum = parseFloat(String(cashOnHand).replace(/,/g, "") || "0");
+            const cohMultiplier = mitraContribution > 0 ? cashNum / mitraContribution : 0;
+            const getCohClass = (m: number) => {
+              if (m < 1.0) return null;
+              if (m <= 1.10) return { label: "Class F", color: "text-red-700 bg-red-50 border-red-200" };
+              if (m <= 1.20) return { label: "Class E", color: "text-orange-700 bg-orange-50 border-orange-200" };
+              if (m <= 1.30) return { label: "Class D", color: "text-amber-700 bg-amber-50 border-amber-200" };
+              if (m <= 1.40) return { label: "Class C", color: "text-yellow-700 bg-yellow-50 border-yellow-200" };
+              if (m <= 1.50) return { label: "Class B", color: "text-blue-700 bg-blue-50 border-blue-200" };
+              return { label: "Class A", color: "text-green-700 bg-green-50 border-green-200" };
+            };
+            const cohClass = hasProjectData && jvPercent > 0 && cashNum > 0 ? getCohClass(cohMultiplier) : null;
 
             return (
               <>
@@ -1652,9 +1663,30 @@ export default function MitraProjectApplyPage() {
                   {hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && (
                     <p className="text-[10px] text-ptba-red mt-1">
                       {locale === "en"
-                        ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Million (1.5x equity contribution)`
-                        : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Million (1.5x kontribusi ekuitas)`}
+                        ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Million (1x equity contribution)`
+                        : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Million (1x kontribusi ekuitas)`}
                     </p>
+                  )}
+                  {/* Multiplier & Classification */}
+                  {cohClass && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs font-semibold text-ptba-charcoal">{cohMultiplier.toFixed(2)}x equity</span>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${cohClass.color}`}>{cohClass.label}</span>
+                      <div className="relative group">
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-ptba-gray/20 text-ptba-gray cursor-help text-[10px] font-bold">i</div>
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-64 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
+                          <p className="font-bold mb-1.5">{locale === "en" ? "Cash on Hand Classification:" : "Klasifikasi Cash on Hand:"}</p>
+                          <div className="space-y-0.5">
+                            <p><span className="font-semibold text-red-300">Class F</span> : 1.00x – 1.10x equity</p>
+                            <p><span className="font-semibold text-orange-300">Class E</span> : 1.11x – 1.20x equity</p>
+                            <p><span className="font-semibold text-amber-300">Class D</span> : 1.21x – 1.30x equity</p>
+                            <p><span className="font-semibold text-yellow-300">Class C</span> : 1.31x – 1.40x equity</p>
+                            <p><span className="font-semibold text-blue-300">Class B</span> : 1.41x – 1.50x equity</p>
+                            <p><span className="font-semibold text-green-300">Class A</span> : &gt; 1.50x equity</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
                   <div className="mt-3">
                     <p className="text-xs font-semibold text-ptba-charcoal mb-1">{locale === "en" ? "Cash on Hand Evidence" : "Bukti Cash on Hand"} <span className="text-ptba-red">*</span></p>
@@ -1692,9 +1724,9 @@ export default function MitraProjectApplyPage() {
                         <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(totalEquity)} × {jvPercent}%</p>
                       </div>
                       <div className="rounded-lg bg-white p-3 text-center border border-ptba-gold/30">
-                        <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Min. Cash on Hand (1.5x)" : "Min. Cash on Hand (1.5x)"}</p>
+                        <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Min. Cash on Hand (1x)" : "Min. Cash on Hand (1x)"}</p>
                         <p className="text-sm font-bold text-ptba-gold">USD {fmtUsd(minCashOnHand)} Million</p>
-                        <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(mitraContribution)} × 1.5</p>
+                        <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(mitraContribution)} × 1.0</p>
                       </div>
                     </div>
                   </div>
