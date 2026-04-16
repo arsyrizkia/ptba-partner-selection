@@ -860,7 +860,7 @@ export default function ProjectDetailPage({
             <div className="mb-4">
               <label className="flex items-center gap-1.5 text-sm font-semibold text-ptba-charcoal mb-1.5">
                 <Calendar className="h-4 w-4 text-ptba-gray" />
-                Batas Waktu Fase 2
+                Batas Waktu Fase 2 <span className="text-ptba-gray font-normal">(WIB)</span>
               </label>
               <input
                 type="datetime-local"
@@ -2000,8 +2000,8 @@ export default function ProjectDetailPage({
                 <div className="space-y-3">
                   <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Mulai</label><input type="date" value={editDraft.startDate} onChange={(e) => setEditDraft((d) => ({ ...d, startDate: e.target.value }))} className={inputCls} /></div>
                   <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Selesai</label><input type="date" value={editDraft.endDate} onChange={(e) => setEditDraft((d) => ({ ...d, endDate: e.target.value }))} className={inputCls} /></div>
-                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1</label><input type="datetime-local" value={editDraft.phase1Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase1Deadline: e.target.value }))} className={inputCls} /></div>
-                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2</label><input type="datetime-local" value={editDraft.phase2Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase2Deadline: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1 <span className="text-ptba-gray font-normal">(WIB)</span></label><input type="datetime-local" value={editDraft.phase1Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase1Deadline: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2 <span className="text-ptba-gray font-normal">(WIB)</span></label><input type="datetime-local" value={editDraft.phase2Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase2Deadline: e.target.value }))} className={inputCls} /></div>
                 </div>
               ) : (
                 <dl className="space-y-3 text-sm">

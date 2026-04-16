@@ -270,7 +270,7 @@
       "agreeStatement": "I <strong>agree</strong> to the above statement and declare that our company is interested in participating.",
       "shareholderType": "Shareholder Type",
       "majority": "Majority Shareholder (>50% - 51%)",
-      "minority": "Minority Shareholder (&lt;50%)",
+      "minority": "Minority Shareholder (45% - 49%)",
       "equityPercent": "Joint Venture Equity Percentage",
       "equityPercentHint": "Proposed equity percentage if selected as joint venture partner",
       "negotiable": "Is this equity percentage negotiable?",

@@ -1062,11 +1062,11 @@ export default function ProjectForm({
             {/* Phase deadlines */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <fieldset disabled={isLocked("phase1Deadline")} className={isLocked("phase1Deadline") ? "opacity-60" : ""}>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 1 {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 1 <span className="text-ptba-gray font-normal">(WIB)</span> {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="datetime-local" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
               </fieldset>
               <fieldset disabled={isLocked("phase2Deadline")} className={isLocked("phase2Deadline") ? "opacity-60" : ""}>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 2 {isLocked("phase2Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 2 <span className="text-ptba-gray font-normal">(WIB)</span> {isLocked("phase2Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
                 <input type="datetime-local" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
               </fieldset>
             </div>
