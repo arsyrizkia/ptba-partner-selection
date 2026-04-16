@@ -137,12 +137,9 @@ export default function HomePage() {
   const [activeProjects, setActiveProjects] = useState<PublicProject[]>([]);
 
   useEffect(() => {
-    if (user) {
-      if (role === "mitra") {
-        router.replace("/mitra/dashboard");
-      } else {
-        router.replace("/dashboard");
-      }
+    // Only redirect non-mitra (admin/internal) users away from landing page
+    if (user && role !== "mitra") {
+      router.replace("/dashboard");
     }
   }, [user, role, router]);
 
@@ -154,11 +151,14 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  if (user) return null;
+  // Only hide page for non-mitra logged-in users (they get redirected above)
+  if (user && role !== "mitra") return null;
+
+  const isLoggedIn = !!user;
 
   return (
     <div className="min-h-screen bg-ptba-off-white">
-      <PopupBanner />
+      <PopupBanner alwaysShow />
       {/* Header */}
       <header className="border-b border-ptba-light-gray bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -178,12 +178,20 @@ export default function HomePage() {
               <span className={cn("px-1", locale === "id" ? "text-ptba-navy" : "text-ptba-gray")}>ID</span>
               <span className={cn("px-1", locale === "en" ? "text-ptba-navy" : "text-ptba-gray")}>EN</span>
             </button>
-            <button onClick={() => router.push("/login")} className="flex items-center gap-2 rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
-              <LogIn className="h-4 w-4" /> {t.login}
-            </button>
-            <button onClick={() => router.push("/register")} className="flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
-              <UserPlus className="h-4 w-4" /> {t.register}
-            </button>
+            {isLoggedIn ? (
+              <button onClick={() => router.push("/mitra/dashboard")} className="flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
+                {locale === "en" ? "Go to Dashboard" : "Ke Dashboard"} <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <>
+                <button onClick={() => router.push("/login")} className="flex items-center gap-2 rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
+                  <LogIn className="h-4 w-4" /> {t.login}
+                </button>
+                <button onClick={() => router.push("/register")} className="flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
+                  <UserPlus className="h-4 w-4" /> {t.register}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
