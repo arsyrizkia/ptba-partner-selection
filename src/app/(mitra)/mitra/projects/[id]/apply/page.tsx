@@ -2304,6 +2304,7 @@ export default function MitraProjectApplyPage() {
           title={t("sections.additionalDocs")}
           icon={FileText}
           complete={additionalDocsComplete}
+          isRequired
           open={readOnly || openSection === additionalDocsSectionNumber}
           onToggle={() => setOpenSection(openSection === additionalDocsSectionNumber ? 0 : additionalDocsSectionNumber)}
           readOnly={readOnly}
@@ -2350,6 +2351,7 @@ export default function MitraProjectApplyPage() {
         title={t("sections.finalStatement")}
         icon={ShieldCheck}
         complete={sectionComplete.final}
+        isRequired
         open={readOnly || openSection === finalSectionNumber}
         onToggle={() => setOpenSection(openSection === finalSectionNumber ? 0 : finalSectionNumber)}
         readOnly={readOnly}
