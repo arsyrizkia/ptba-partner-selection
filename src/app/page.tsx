@@ -80,7 +80,7 @@ interface PublicProject {
   type: string;
   description: string;
   phase1Deadline: string | null;
-  coverImageKey: string | null;
+  coverImageUrl: string | null;
   location: string | null;
   capacityMw: string | null;
   createdAt: string;
@@ -182,6 +182,86 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Active Project — right under hero */}
+      {activeProjects.length > 0 && (() => {
+        const project = activeProjects[0];
+        return (
+          <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-ptba-navy to-ptba-steel-blue py-20">
+            <div className="absolute inset-0">
+              <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-ptba-gold/5 blur-3xl" />
+              <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-ptba-steel-blue/10 blur-3xl" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+            </div>
+
+            <div className="relative mx-auto max-w-6xl px-6">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 border border-green-400/20 px-5 py-2 mb-5">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-sm font-bold text-green-300 tracking-wide">Pendaftaran Dibuka</span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Proyek Aktif</h2>
+                <p className="mt-3 text-base text-white/50">Proyek yang saat ini membuka pendaftaran mitra</p>
+              </div>
+
+              <div className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
+                <div className="bg-white/5 border-b border-white/10 px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${TYPE_COLORS[project.type] || TYPE_COLORS.others}`}>
+                    {TYPE_LABELS[project.type] || project.type}
+                  </span>
+                  {project.phase1Deadline && (
+                    <div className="flex items-center gap-2 rounded-full bg-ptba-red/10 border border-ptba-red/20 px-4 py-1.5">
+                      <Calendar className="h-4 w-4 text-ptba-red" />
+                      <span className="text-sm font-semibold text-red-300">
+                        Deadline: {new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}, {new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col md:flex-row">
+                  {project.coverImageUrl && (
+                    <div className="md:w-80 lg:w-96 shrink-0">
+                      <img src={project.coverImageUrl} alt={project.name} className="h-full w-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 px-8 py-8 sm:py-10">
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">{project.name}</h3>
+                    {project.description && (
+                      <p className="mt-5 text-base text-white/60 leading-relaxed max-w-3xl">
+                        {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
+                      </p>
+                    )}
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      {project.location && (
+                        <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
+                          <MapPin className="h-4 w-4 text-ptba-gold" />
+                          <span className="text-sm text-white/80">{project.location}</span>
+                        </div>
+                      )}
+                      {project.capacityMw && (
+                        <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
+                          <Zap className="h-4 w-4 text-ptba-gold" />
+                          <span className="text-sm text-white/80">{project.capacityMw} MW</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-8">
+                      <button
+                        onClick={() => router.push("/register")}
+                        className="group inline-flex items-center gap-3 rounded-xl bg-ptba-gold px-8 py-4 text-base font-bold text-ptba-navy hover:bg-yellow-400 transition-all shadow-lg shadow-ptba-gold/20 hover:shadow-ptba-gold/40 hover:-translate-y-0.5"
+                      >
+                        Daftar Sekarang
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       {/* Features */}
       <section className="mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-center text-2xl font-bold text-ptba-charcoal">Apa yang Bisa Anda Lakukan</h2>
@@ -201,91 +281,6 @@ export default function HomePage() {
           })}
         </div>
       </section>
-
-      {/* Active Project */}
-      {activeProjects.length > 0 && (() => {
-        const project = activeProjects[0];
-        return (
-          <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-ptba-navy to-ptba-steel-blue py-20">
-            {/* Background decorations */}
-            <div className="absolute inset-0">
-              <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-ptba-gold/5 blur-3xl" />
-              <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-ptba-steel-blue/10 blur-3xl" />
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
-            </div>
-
-            <div className="relative mx-auto max-w-6xl px-6">
-              {/* Section header */}
-              <div className="text-center mb-12">
-                <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 border border-green-400/20 px-5 py-2 mb-5">
-                  <div className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-sm font-bold text-green-300 tracking-wide">Pendaftaran Dibuka</span>
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Proyek Aktif</h2>
-                <p className="mt-3 text-base text-white/50">Proyek yang saat ini membuka pendaftaran mitra</p>
-              </div>
-
-              {/* Project showcase */}
-              <div className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
-                {/* Project header bar */}
-                <div className="bg-white/5 border-b border-white/10 px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${TYPE_COLORS[project.type] || TYPE_COLORS.others}`}>
-                      {TYPE_LABELS[project.type] || project.type}
-                    </span>
-                  </div>
-                  {project.phase1Deadline && (
-                    <div className="flex items-center gap-2 rounded-full bg-ptba-red/10 border border-ptba-red/20 px-4 py-1.5">
-                      <Calendar className="h-4 w-4 text-ptba-red" />
-                      <span className="text-sm font-semibold text-red-300">
-                        Deadline: {new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}, {new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Project content */}
-                <div className="px-8 py-8 sm:py-10">
-                  <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">{project.name}</h3>
-
-                  {project.description && (
-                    <p className="mt-5 text-base text-white/60 leading-relaxed max-w-3xl">
-                      {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
-                    </p>
-                  )}
-
-                  {/* Info pills */}
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    {project.location && (
-                      <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-                        <MapPin className="h-4 w-4 text-ptba-gold" />
-                        <span className="text-sm text-white/80">{project.location}</span>
-                      </div>
-                    )}
-                    {project.capacityMw && (
-                      <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-                        <Zap className="h-4 w-4 text-ptba-gold" />
-                        <span className="text-sm text-white/80">{project.capacityMw} MW</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CTA */}
-                  <div className="mt-8">
-                    <button
-                      onClick={() => router.push("/register")}
-                      className="group inline-flex items-center gap-3 rounded-xl bg-ptba-gold px-8 py-4 text-base font-bold text-ptba-navy hover:bg-yellow-400 transition-all shadow-lg shadow-ptba-gold/20 hover:shadow-ptba-gold/40 hover:-translate-y-0.5"
-                    >
-                      Daftar Sekarang
-                      <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
 
       {/* How it works */}
       <section className="bg-white py-16">
