@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 
-export default function PopupBanner() {
+export default function PopupBanner({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const { accessToken } = useAuth();
   const [banner, setBanner] = useState<{ id: string; title: string; imageUrl: string; linkUrl?: string | null } | null>(null);
   const [visible, setVisible] = useState(false);
@@ -17,13 +17,15 @@ export default function PopupBanner() {
       .then((res) => res.json())
       .then((data) => {
         if (!data.banner) return;
-        const dismissed = sessionStorage.getItem(`popup_dismissed_${data.banner.id}`);
-        if (dismissed) return;
+        if (!alwaysShow) {
+          const dismissed = sessionStorage.getItem(`popup_dismissed_${data.banner.id}`);
+          if (dismissed) return;
+        }
         setBanner(data.banner);
         setVisible(true);
       })
       .catch(() => {});
-  }, [accessToken]);
+  }, [accessToken, alwaysShow]);
 
   const handleClose = () => {
     if (banner) {
