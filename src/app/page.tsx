@@ -279,7 +279,7 @@ export default function HomePage() {
                   <div className="flex-1 px-8 py-8 sm:py-10">
                     <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">{project.name}</h3>
                     {project.description && (
-                      <p className="mt-5 text-base text-white/60 leading-relaxed max-w-3xl">
+                      <p className="mt-5 text-base text-white/60 leading-relaxed max-w-3xl text-justify">
                         {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
                       </p>
                     )}
