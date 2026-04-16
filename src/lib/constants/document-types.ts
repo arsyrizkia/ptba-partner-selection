@@ -199,7 +199,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
   {
     id: 'confidential_guarantee_letter',
     name: 'Confidential Guarantee Statement Letter',
-    description: 'Surat pernyataan jaminan kerahasiaan informasi proyek',
+    description: 'Surat pernyataan jaminan kerahasiaan informasi proyek. ⚠ Apabila dokumen ini ditandatangani oleh seseorang selain Direktur atau pimpinan perusahaan, maka wajib dilampirkan surat kuasa yang ditandatangani secara sah oleh Direktur atau pimpinan perusahaan.',
     required: true,
     category: 'legal',
     phase: 'phase1',
@@ -207,7 +207,7 @@ export const DOCUMENT_TYPES: DocumentTypeDef[] = [
   {
     id: 'adherence_letter',
     name: 'Adherence Letter',
-    description: 'Surat pernyataan kepatuhan terhadap syarat dan ketentuan seleksi',
+    description: 'Surat pernyataan kepatuhan terhadap syarat dan ketentuan seleksi. ⚠ Apabila dokumen ini ditandatangani oleh seseorang selain Direktur atau pimpinan perusahaan, maka wajib dilampirkan surat kuasa yang ditandatangani secara sah oleh Direktur atau pimpinan perusahaan.',
     required: true,
     category: 'legal',
     phase: 'phase1',
