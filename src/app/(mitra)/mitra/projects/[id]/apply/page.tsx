@@ -360,6 +360,8 @@ export default function MitraProjectApplyPage() {
   const [yearEstablished, setYearEstablished] = useState("");
   const [countryEstablished, setCountryEstablished] = useState("Indonesia");
   const [businessOverview, setBusinessOverview] = useState("");
+  const [valueProposition, setValueProposition] = useState("");
+  const [developmentPlan, setDevelopmentPlan] = useState("");
   const [marketShare, setMarketShare] = useState("");
   const [orgStructure, setOrgStructure] = useState("");
   const [subsidiaries, setSubsidiaries] = useState("");
@@ -550,6 +552,8 @@ export default function MitraProjectApplyPage() {
         setCompanyWebsite(fd?.companyWebsite || p.website || "");
         if (fd?.companyStatus) setCompanyStatus(fd.companyStatus);
         setBusinessOverview(fd?.businessOverview || p.business_overview || "");
+        if (fd?.valueProposition) setValueProposition(fd.valueProposition);
+        if (fd?.developmentPlan) setDevelopmentPlan(fd.developmentPlan);
         if (fd?.marketShare) setMarketShare(fd.marketShare);
         setNib(fd?.nib || p.nib || "");
         setContactPerson(fd?.contactPerson || p.contact_person || "");
@@ -733,6 +737,8 @@ export default function MitraProjectApplyPage() {
     yearEstablished,
     countryEstablished,
     businessOverview,
+    valueProposition,
+    developmentPlan,
     marketShare,
     orgStructure,
     subsidiaries,
@@ -788,7 +794,7 @@ export default function MitraProjectApplyPage() {
     creditRatingAgency, creditRatingValue, financialYears, experiences, noExperience,
     requirementAnswers, requirementNotes, agreedFinal,
     companyName, companyAddress, companyIndonesiaAddress, companyPhone, companyEmail,
-    companyWebsite, companyStatus, yearEstablished, countryEstablished, businessOverview, marketShare,
+    companyWebsite, companyStatus, yearEstablished, countryEstablished, businessOverview, valueProposition, developmentPlan, marketShare,
     orgStructure, subsidiaries, nib, contactPerson, contactPhone, contactEmail,
     companyVision, companyMission, companyHistory, ceoName, cooName, cfoName, otherDirectors, shareholderComposition,
     autoSaveFormData, application?.id,
@@ -863,7 +869,7 @@ export default function MitraProjectApplyPage() {
   );
 
   const sectionComplete: Record<string, boolean> = {
-    compro: !!companyName && !!companyAddress && !!businessOverview && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
+    compro: !!companyName && !!companyAddress && !!businessOverview && !!valueProposition && !!developmentPlan && !!companyPhone && !!companyEmail && !!companyWebsite && !!companyStatus && !!yearEstablished && !!countryEstablished && !!contactPerson && !!contactPhone && !!contactEmail && !!companyVision && !!companyMission && isDoc("company_history") && !!shareholderComposition && isDoc("nib_document") && isDoc("org_structure") && isDoc("compro"),
     statement_eoi: !!signerName && !!signerPosition && !!signerDate && !!shareholderType && !!minorityEquityPercent && !!equityNegotiable && (equityNegotiable !== "yes" || (!!equityMinPercent && (shareholderType !== "majority" || !!canBecomeMinority))) && !!cashOnHand && eoiAgreed && isDoc("statement_eoi") && isDoc("cash_on_hand_evidence"),
     portfolio: noExperience || (experiences.length >= 1 && experiences.every((exp) => {
       const hasCred = isDoc(`credential_exp_${exp.uid}`);
@@ -1193,6 +1199,22 @@ export default function MitraProjectApplyPage() {
             <ErrText show={errMsg(businessOverview) as boolean} />
           </div>
 
+          {/* Value Proposition */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Value Proposition" : "Value Proposition"} <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Describe your company's unique value proposition for this project" : "Jelaskan value proposition unik perusahaan Anda untuk proyek ini"}</p>
+            <textarea value={valueProposition} onChange={(e) => setValueProposition(e.target.value)} placeholder={locale === "en" ? "What unique value does your company bring to this project..." : "Nilai unik apa yang perusahaan Anda tawarkan untuk proyek ini..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(valueProposition))} />
+            <ErrText show={errMsg(valueProposition) as boolean} />
+          </div>
+
+          {/* Development Plan / Project */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Development Plan / Project" : "Rencana Pengembangan / Proyek"} <span className="text-ptba-red">*</span></label>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Describe your development plan or project approach" : "Jelaskan rencana pengembangan atau pendekatan proyek Anda"}</p>
+            <textarea value={developmentPlan} onChange={(e) => setDevelopmentPlan(e.target.value)} placeholder={locale === "en" ? "Your development plan, timeline, milestones..." : "Rencana pengembangan, timeline, milestone..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(developmentPlan))} />
+            <ErrText show={errMsg(developmentPlan) as boolean} />
+          </div>
+
           {/* Vision & Mission */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -1395,6 +1417,15 @@ export default function MitraProjectApplyPage() {
           readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.eoiStatementDesc")}</p>
+
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              <span className="font-semibold">⚠ {locale === "en" ? "Important:" : "Penting:"}</span>{" "}
+              {locale === "en"
+                ? "If this document is signed by a person other than the Director or the head of the company, a valid power of attorney signed by the Director or the head of the company must be attached."
+                : "Apabila dokumen ini ditandatangani oleh seseorang selain Direktur atau pimpinan perusahaan, maka wajib dilampirkan surat kuasa yang ditandatangani secara sah oleh Direktur atau pimpinan perusahaan."}
+            </p>
+          </div>
 
           <div className="rounded-lg border border-ptba-light-gray p-4 space-y-3">
             <p className="text-xs font-semibold text-ptba-navy">{t("eoiFields.signerData")}</p>

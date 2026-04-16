@@ -64,6 +64,26 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function formatDateTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const date = d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
+  return `${date}, ${time} WIB`;
+}
+
+/** Convert ISO timestamp to datetime-local value in WIB */
+function formatToWibDatetime(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const wib = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+  const yyyy = wib.getUTCFullYear();
+  const mm = String(wib.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(wib.getUTCDate()).padStart(2, "0");
+  const hh = String(wib.getUTCHours()).padStart(2, "0");
+  const min = String(wib.getUTCMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
 function statusBadgeClass(status: string): string {
   const map: Record<string, string> = {
     Draft: "bg-gray-100 text-gray-600",
@@ -462,7 +482,11 @@ export default function ProjectDetailPage({
   const [phase2Deadline, setPhase2Deadline] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
+    // Default to 23:59 WIB
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T23:59`;
   });
   const [phase2Fee, setPhase2Fee] = useState(50000000);
   const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
@@ -498,8 +522,8 @@ export default function ProjectDetailPage({
       description: project?.description || "",
       startDate: project?.startDate ? new Date(project.startDate).toISOString().split("T")[0] : "",
       endDate: project?.endDate ? new Date(project.endDate).toISOString().split("T")[0] : "",
-      phase1Deadline: project?.phase1Deadline ? new Date(project.phase1Deadline).toISOString().split("T")[0] : "",
-      phase2Deadline: project?.phase2Deadline ? new Date(project.phase2Deadline).toISOString().split("T")[0] : "",
+      phase1Deadline: project?.phase1Deadline ? formatToWibDatetime(project.phase1Deadline) : "",
+      phase2Deadline: project?.phase2Deadline ? formatToWibDatetime(project.phase2Deadline) : "",
     });
     const currentReqs = (project?.requirements || []).map((r: any) =>
       typeof r === "string" ? r : r.requirement
@@ -839,7 +863,7 @@ export default function ProjectDetailPage({
                 Batas Waktu Fase 2
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 value={phase2Deadline}
                 onChange={(e) => setPhase2Deadline(e.target.value)}
                 className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
@@ -1976,15 +2000,15 @@ export default function ProjectDetailPage({
                 <div className="space-y-3">
                   <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Mulai</label><input type="date" value={editDraft.startDate} onChange={(e) => setEditDraft((d) => ({ ...d, startDate: e.target.value }))} className={inputCls} /></div>
                   <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Tanggal Selesai</label><input type="date" value={editDraft.endDate} onChange={(e) => setEditDraft((d) => ({ ...d, endDate: e.target.value }))} className={inputCls} /></div>
-                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1</label><input type="date" value={editDraft.phase1Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase1Deadline: e.target.value }))} className={inputCls} /></div>
-                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2</label><input type="date" value={editDraft.phase2Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase2Deadline: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 1</label><input type="datetime-local" value={editDraft.phase1Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase1Deadline: e.target.value }))} className={inputCls} /></div>
+                  <div><label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Fase 2</label><input type="datetime-local" value={editDraft.phase2Deadline} onChange={(e) => setEditDraft((d) => ({ ...d, phase2Deadline: e.target.value }))} className={inputCls} /></div>
                 </div>
               ) : (
                 <dl className="space-y-3 text-sm">
                   <div className="flex justify-between"><dt className="text-ptba-gray">Tanggal Mulai</dt><dd className="font-medium text-ptba-charcoal">{formatDate(project.startDate)}</dd></div>
                   <div className="flex justify-between"><dt className="text-ptba-gray">Tanggal Selesai</dt><dd className="font-medium text-ptba-charcoal">{formatDate(project.endDate)}</dd></div>
-                  {project.phase1Deadline && <div className="flex justify-between"><dt className="text-ptba-gray">Deadline Fase 1</dt><dd className="font-medium text-ptba-steel-blue">{formatDate(project.phase1Deadline)}</dd></div>}
-                  {project.phase2Deadline && <div className="flex justify-between"><dt className="text-ptba-gray">Deadline Fase 2</dt><dd className="font-medium text-ptba-navy">{formatDate(project.phase2Deadline)}</dd></div>}
+                  {project.phase1Deadline && <div className="flex justify-between"><dt className="text-ptba-gray">Deadline Fase 1</dt><dd className="font-medium text-ptba-steel-blue">{formatDateTime(project.phase1Deadline)}</dd></div>}
+                  {project.phase2Deadline && <div className="flex justify-between"><dt className="text-ptba-gray">Deadline Fase 2</dt><dd className="font-medium text-ptba-navy">{formatDateTime(project.phase2Deadline)}</dd></div>}
                   <div className="flex justify-between"><dt className="text-ptba-gray">Progres Langkah</dt><dd className="font-medium text-ptba-charcoal">{project.currentStep}/{project.totalSteps}</dd></div>
                   <div className="flex justify-between"><dt className="text-ptba-gray">Langkah Saat Ini</dt><dd className="font-medium text-ptba-charcoal">{PROJECT_STEPS[project.currentStep - 1]?.name ?? "-"}</dd></div>
                 </dl>

@@ -92,6 +92,8 @@ tr:nth-child(even) td { background: #fafbfc; }
     <div class="field"><div class="field-label">Nama Perusahaan</div><div class="field-value highlight">${esc(fd.companyName)}</div></div>
     <div class="field"><div class="field-label">Kode Perusahaan</div><div class="field-value">${esc(fd.companyCode)}</div></div>
     <div class="field"><div class="field-label">Overview Bidang Usaha</div><div class="field-value">${esc(fd.businessOverview)}</div></div>
+    ${fd.valueProposition ? `<div class="field"><div class="field-label">Value Proposition</div><div class="field-value">${esc(fd.valueProposition)}</div></div>` : ""}
+    ${fd.developmentPlan ? `<div class="field"><div class="field-label">Rencana Pengembangan / Proyek</div><div class="field-value">${esc(fd.developmentPlan)}</div></div>` : ""}
     ${fd.companyVision ? `<div class="field"><div class="field-label">Visi</div><div class="field-value">${esc(fd.companyVision)}</div></div>` : ""}
     ${fd.companyMission ? `<div class="field"><div class="field-label">Misi</div><div class="field-value">${esc(fd.companyMission)}</div></div>` : ""}
     ${fd.companyHistory ? `<div class="field"><div class="field-label">Sejarah Perusahaan</div><div class="field-value">${esc(fd.companyHistory)}</div></div>` : ""}

@@ -167,6 +167,25 @@ function formatDateForInput(dateStr: string | null | undefined): string {
   }
 }
 
+/** Format ISO timestamp to datetime-local value (YYYY-MM-DDTHH:mm) in WIB (UTC+7) */
+function formatDateTimeForInput(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    // Convert to WIB (UTC+7)
+    const wib = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    const yyyy = wib.getUTCFullYear();
+    const mm = String(wib.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(wib.getUTCDate()).padStart(2, "0");
+    const hh = String(wib.getUTCHours()).padStart(2, "0");
+    const min = String(wib.getUTCMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  } catch {
+    return "";
+  }
+}
+
 function LockedBanner({ message }: { message: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 mb-4">
@@ -301,9 +320,9 @@ export default function ProjectForm({
     // Step 2
     setStartDate(formatDateForInput(project.startDate as string));
     setEndDate(formatDateForInput(project.endDate as string));
-    setPhase1Deadline(formatDateForInput(project.phase1Deadline as string));
-    setPhase2Deadline(formatDateForInput(project.phase2Deadline as string));
-    setPhase3Deadline(formatDateForInput(project.phase3Deadline as string));
+    setPhase1Deadline(formatDateTimeForInput(project.phase1Deadline as string));
+    setPhase2Deadline(formatDateTimeForInput(project.phase2Deadline as string));
+    setPhase3Deadline(formatDateTimeForInput(project.phase3Deadline as string));
     setIsOpenForApplication(!!project.isOpenForApplication);
 
     // Cover image preview — use presigned URL if already returned by API
@@ -1044,11 +1063,11 @@ export default function ProjectForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <fieldset disabled={isLocked("phase1Deadline")} className={isLocked("phase1Deadline") ? "opacity-60" : ""}>
                 <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 1 {isLocked("phase1Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
-                <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
+                <input type="datetime-local" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase1Deadline} onChange={(e) => setPhase1Deadline(e.target.value)} className={inputClass} />
               </fieldset>
               <fieldset disabled={isLocked("phase2Deadline")} className={isLocked("phase2Deadline") ? "opacity-60" : ""}>
                 <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Deadline Pendaftaran Fase 2 {isLocked("phase2Deadline") && <Lock className="inline h-3 w-3 text-amber-500" />}</label>
-                <input type="date" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
+                <input type="datetime-local" onClick={(e) => (e.target as HTMLInputElement).showPicker?.()} value={phase2Deadline} onChange={(e) => setPhase2Deadline(e.target.value)} className={inputClass} />
               </fieldset>
             </div>
 
