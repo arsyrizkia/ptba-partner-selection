@@ -15,6 +15,8 @@ const FIELD_LABELS: Record<string, string> = {
   yearEstablished: "Tahun Berdiri",
   countryEstablished: "Negara",
   businessOverview: "Overview Bidang Usaha",
+  valueProposition: "Value Proposition",
+  developmentPlan: "Rencana Pengembangan / Proyek",
   orgStructure: "Struktur Organisasi",
   subsidiaries: "Anak / Afiliasi Perusahaan",
   shareholderType: "Tipe Pemegang Saham",
@@ -76,7 +78,7 @@ const SECTIONS: { key: string; title: string; fields: string[] }[] = [
     key: "company",
     title: "Informasi Perusahaan",
     fields: [
-      "companyName", "companyCode", "businessOverview", "marketShare",
+      "companyName", "companyCode", "businessOverview", "valueProposition", "developmentPlan", "marketShare",
       "companyVision", "companyMission", "companyHistory",
       "companyAddress", "companyIndonesiaAddress",
       "companyPhone", "companyEmail", "companyWebsite",
