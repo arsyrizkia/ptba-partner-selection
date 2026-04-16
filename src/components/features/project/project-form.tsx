@@ -283,6 +283,8 @@ export default function ProjectForm({
 
   // Template files per document type ID
   const [templateFiles, setTemplateFiles] = useState<Record<string, File>>({});
+  // Existing templates from server (when editing)
+  const [existingTemplates, setExistingTemplates] = useState<Record<string, { key: string; name: string }>>({});
 
   // Step 4 - PIC Assignments
   const [phasePics, setPhasePics] = useState<PhasePicEntry[]>([]);
@@ -423,6 +425,15 @@ export default function ProjectForm({
       if (p3Docs.length > 0) setSelectedPhase3Docs(p3Docs);
       if (initialOptionalIds.size > 0) setOptionalDocIds(initialOptionalIds);
       if (customDocs.length > 0) setCustomDocuments(customDocs);
+
+      // Restore existing templates
+      const tpl: Record<string, { key: string; name: string }> = {};
+      for (const doc of project.requiredDocuments) {
+        if (doc.templateFileKey && doc.templateFileName) {
+          tpl[doc.documentTypeId] = { key: doc.templateFileKey, name: doc.templateFileName };
+        }
+      }
+      if (Object.keys(tpl).length > 0) setExistingTemplates(tpl);
     }
 
     // Step 4: PIC Assignments
@@ -1254,6 +1265,15 @@ export default function ProjectForm({
                                 <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
                                 <span className="text-xs text-green-700 truncate flex-1">{templateFiles[doc.id].name}</span>
                                 <button type="button" onClick={() => setTemplateFiles((p) => { const n = { ...p }; delete n[doc.id]; return n; })} className="text-xs text-red-500 hover:text-red-700 shrink-0">Hapus</button>
+                              </div>
+                            ) : existingTemplates[doc.id] ? (
+                              <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-3 py-1.5">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                <span className="text-xs text-green-700 truncate flex-1">{existingTemplates[doc.id].name}</span>
+                                <label className="text-xs text-ptba-steel-blue hover:text-ptba-navy cursor-pointer shrink-0">
+                                  Ganti
+                                  <input type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setTemplateFiles((p) => ({ ...p, [doc.id]: f })); e.target.value = ""; }} />
+                                </label>
                               </div>
                             ) : (
                               <label className="inline-flex items-center gap-1.5 rounded border border-dashed border-ptba-steel-blue/40 px-3 py-1.5 text-xs text-ptba-steel-blue hover:bg-ptba-steel-blue/5 cursor-pointer transition-colors">
