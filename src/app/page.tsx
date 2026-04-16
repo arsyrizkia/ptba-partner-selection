@@ -202,85 +202,90 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Active Projects */}
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-green-50 border border-green-200 px-4 py-1.5 mb-4">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-semibold text-green-700">Pendaftaran Dibuka</span>
+      {/* Active Project */}
+      {activeProjects.length > 0 && (() => {
+        const project = activeProjects[0];
+        return (
+          <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-ptba-navy to-ptba-steel-blue py-20">
+            {/* Background decorations */}
+            <div className="absolute inset-0">
+              <div className="absolute top-0 right-0 h-96 w-96 rounded-full bg-ptba-gold/5 blur-3xl" />
+              <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-ptba-steel-blue/10 blur-3xl" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
             </div>
-            <h2 className="text-2xl font-bold text-ptba-charcoal">Proyek Aktif</h2>
-            <p className="mt-2 text-sm text-ptba-gray">Proyek yang saat ini membuka pendaftaran mitra</p>
-          </div>
 
-          {activeProjects.length > 0 ? (
-            <div className={`mt-10 grid grid-cols-1 gap-6 ${activeProjects.length === 1 ? "max-w-2xl mx-auto" : activeProjects.length === 2 ? "md:grid-cols-2 max-w-4xl mx-auto" : "md:grid-cols-2 lg:grid-cols-3"}`}>
-              {activeProjects.map((project) => (
-                <div key={project.id} className="group rounded-xl border border-ptba-light-gray bg-white shadow-sm hover:shadow-lg hover:border-ptba-steel-blue/30 transition-all overflow-hidden">
-                  {/* Card Header */}
-                  <div className="bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6">
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${TYPE_COLORS[project.type] || TYPE_COLORS.others}`}>
+            <div className="relative mx-auto max-w-6xl px-6">
+              {/* Section header */}
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 border border-green-400/20 px-5 py-2 mb-5">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-sm font-bold text-green-300 tracking-wide">Pendaftaran Dibuka</span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Proyek Aktif</h2>
+                <p className="mt-3 text-base text-white/50">Proyek yang saat ini membuka pendaftaran mitra</p>
+              </div>
+
+              {/* Project showcase */}
+              <div className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
+                {/* Project header bar */}
+                <div className="bg-white/5 border-b border-white/10 px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${TYPE_COLORS[project.type] || TYPE_COLORS.others}`}>
                       {TYPE_LABELS[project.type] || project.type}
                     </span>
-                    <h3 className="mt-2.5 text-lg font-bold text-white leading-snug line-clamp-2">{project.name}</h3>
                   </div>
-
-                  {/* Card Body */}
-                  <div className="p-6 space-y-4">
-                    {project.description && (
-                      <p className="text-sm text-ptba-gray leading-relaxed line-clamp-4">
-                        {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
-                      </p>
-                    )}
-
-                    <div className="space-y-1.5">
-                      {project.phase1Deadline && (
-                        <div className="flex items-center gap-2 text-xs text-ptba-charcoal">
-                          <Calendar className="h-3.5 w-3.5 text-ptba-red shrink-0" />
-                          <span className="font-medium">Deadline:</span>
-                          <span>{new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}, {new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB</span>
-                        </div>
-                      )}
-                      {project.location && (
-                        <div className="flex items-center gap-2 text-xs text-ptba-gray">
-                          <MapPin className="h-3.5 w-3.5 shrink-0" />
-                          <span>{project.location}</span>
-                        </div>
-                      )}
-                      {project.capacityMw && (
-                        <div className="flex items-center gap-2 text-xs text-ptba-gray">
-                          <Zap className="h-3.5 w-3.5 shrink-0" />
-                          <span>{project.capacityMw} MW</span>
-                        </div>
-                      )}
+                  {project.phase1Deadline && (
+                    <div className="flex items-center gap-2 rounded-full bg-ptba-red/10 border border-ptba-red/20 px-4 py-1.5">
+                      <Calendar className="h-4 w-4 text-ptba-red" />
+                      <span className="text-sm font-semibold text-red-300">
+                        Deadline: {new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}, {new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB
+                      </span>
                     </div>
+                  )}
+                </div>
+
+                {/* Project content */}
+                <div className="px-8 py-8 sm:py-10">
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">{project.name}</h3>
+
+                  {project.description && (
+                    <p className="mt-5 text-base text-white/60 leading-relaxed max-w-3xl">
+                      {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
+                    </p>
+                  )}
+
+                  {/* Info pills */}
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {project.location && (
+                      <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
+                        <MapPin className="h-4 w-4 text-ptba-gold" />
+                        <span className="text-sm text-white/80">{project.location}</span>
+                      </div>
+                    )}
+                    {project.capacityMw && (
+                      <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
+                        <Zap className="h-4 w-4 text-ptba-gold" />
+                        <span className="text-sm text-white/80">{project.capacityMw} MW</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Card Footer */}
-                  <div className="px-6 pb-6">
+                  {/* CTA */}
+                  <div className="mt-8">
                     <button
                       onClick={() => router.push("/register")}
-                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-navy hover:bg-yellow-400 transition-colors shadow-sm"
+                      className="group inline-flex items-center gap-3 rounded-xl bg-ptba-gold px-8 py-4 text-base font-bold text-ptba-navy hover:bg-yellow-400 transition-all shadow-lg shadow-ptba-gold/20 hover:shadow-ptba-gold/40 hover:-translate-y-0.5"
                     >
-                      Daftar Sekarang <ArrowRight className="h-4 w-4" />
+                      Daftar Sekarang
+                      <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          ) : (
-            <div className="mt-10 rounded-xl border-2 border-dashed border-ptba-light-gray p-10 text-center">
-              <FolderKanban className="mx-auto h-10 w-10 text-ptba-light-gray" />
-              <p className="mt-3 text-sm font-medium text-ptba-gray">Belum ada proyek yang membuka pendaftaran saat ini.</p>
-              <p className="mt-1 text-xs text-ptba-gray/70">Daftarkan akun Anda terlebih dahulu agar tidak ketinggalan saat proyek baru tersedia.</p>
-              <button onClick={() => router.push("/register")} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-ptba-navy px-5 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
-                <UserPlus className="h-4 w-4" /> Daftar Akun
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* How it works */}
       <section className="bg-white py-16">
