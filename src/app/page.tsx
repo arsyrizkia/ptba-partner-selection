@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -11,6 +11,9 @@ import {
   ArrowRight,
   UserPlus,
   LogIn,
+  Calendar,
+  MapPin,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import PopupBanner from "@/components/features/popup-banner";
@@ -51,9 +54,42 @@ const steps = [
   { num: 6, label: "Hasil & Kontrak", desc: "Jika terpilih, proses penunjukan dan penandatanganan kontrak" },
 ];
 
+const TYPE_LABELS: Record<string, string> = {
+  mining: "Pertambangan",
+  power_generation: "Pembangkit Listrik",
+  coal_processing: "Pengolahan Batubara",
+  infrastructure: "Infrastruktur",
+  environmental: "Lingkungan",
+  corporate: "Korporat",
+  others: "Lainnya",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  mining: "bg-amber-100 text-amber-800",
+  power_generation: "bg-blue-100 text-blue-800",
+  coal_processing: "bg-orange-100 text-orange-800",
+  infrastructure: "bg-purple-100 text-purple-800",
+  environmental: "bg-green-100 text-green-800",
+  corporate: "bg-ptba-steel-blue/10 text-ptba-steel-blue",
+  others: "bg-gray-100 text-gray-700",
+};
+
+interface PublicProject {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  phase1Deadline: string | null;
+  coverImageKey: string | null;
+  location: string | null;
+  capacityMw: string | null;
+  createdAt: string;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { user, role } = useAuth();
+  const [activeProjects, setActiveProjects] = useState<PublicProject[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -64,6 +100,14 @@ export default function HomePage() {
       }
     }
   }, [user, role, router]);
+
+  useEffect(() => {
+    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
+    fetch(`${API}/projects/public`)
+      .then((r) => r.json())
+      .then((d) => setActiveProjects(d.data || []))
+      .catch(() => {});
+  }, []);
 
   if (user) return null;
 
@@ -158,11 +202,91 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Active Projects */}
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-green-50 border border-green-200 px-4 py-1.5 mb-4">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-semibold text-green-700">Pendaftaran Dibuka</span>
+            </div>
+            <h2 className="text-2xl font-bold text-ptba-charcoal">Proyek Aktif</h2>
+            <p className="mt-2 text-sm text-ptba-gray">Proyek yang saat ini membuka pendaftaran mitra</p>
+          </div>
+
+          {activeProjects.length > 0 ? (
+            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {activeProjects.map((project) => (
+                <div key={project.id} className="group rounded-xl border border-ptba-light-gray bg-white shadow-sm hover:shadow-lg hover:border-ptba-steel-blue/30 transition-all overflow-hidden">
+                  {/* Card Header */}
+                  <div className="bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-5">
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${TYPE_COLORS[project.type] || TYPE_COLORS.others}`}>
+                      {TYPE_LABELS[project.type] || project.type}
+                    </span>
+                    <h3 className="mt-2.5 text-base font-bold text-white leading-snug line-clamp-2">{project.name}</h3>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="p-5 space-y-3">
+                    {project.description && (
+                      <p className="text-xs text-ptba-gray leading-relaxed line-clamp-3">
+                        {project.description.replace(/<[^>]*>/g, "")}
+                      </p>
+                    )}
+
+                    <div className="space-y-1.5">
+                      {project.phase1Deadline && (
+                        <div className="flex items-center gap-2 text-xs text-ptba-charcoal">
+                          <Calendar className="h-3.5 w-3.5 text-ptba-red shrink-0" />
+                          <span className="font-medium">Deadline:</span>
+                          <span>{new Date(project.phase1Deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}, {new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB</span>
+                        </div>
+                      )}
+                      {project.location && (
+                        <div className="flex items-center gap-2 text-xs text-ptba-gray">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span>{project.location}</span>
+                        </div>
+                      )}
+                      {project.capacityMw && (
+                        <div className="flex items-center gap-2 text-xs text-ptba-gray">
+                          <Zap className="h-3.5 w-3.5 shrink-0" />
+                          <span>{project.capacityMw} MW</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="px-5 pb-5">
+                    <button
+                      onClick={() => router.push("/register")}
+                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-navy hover:bg-yellow-400 transition-colors shadow-sm"
+                    >
+                      Daftar Sekarang <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-10 rounded-xl border-2 border-dashed border-ptba-light-gray p-10 text-center">
+              <FolderKanban className="mx-auto h-10 w-10 text-ptba-light-gray" />
+              <p className="mt-3 text-sm font-medium text-ptba-gray">Belum ada proyek yang membuka pendaftaran saat ini.</p>
+              <p className="mt-1 text-xs text-ptba-gray/70">Daftarkan akun Anda terlebih dahulu agar tidak ketinggalan saat proyek baru tersedia.</p>
+              <button onClick={() => router.push("/register")} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-ptba-navy px-5 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors">
+                <UserPlus className="h-4 w-4" /> Daftar Akun
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* How it works */}
       <section className="bg-white py-16">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center text-2xl font-bold text-ptba-charcoal">Alur Pendaftaran Mitra</h2>
-          <p className="mt-2 text-center text-sm text-ptba-gray">Langkah-langkah untuk menjadi mitra PT Bukit Asam</p>
+          <p className="mt-2 text-center text-sm text-ptba-gray">Langkah-langkah untuk menjadi mitra PT Bukit Asam (Persero) Tbk</p>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {steps.map((step) => (
               <div key={step.num} className="flex items-start gap-4 rounded-xl border border-ptba-light-gray p-5 hover:border-ptba-steel-blue/30 transition-colors">
