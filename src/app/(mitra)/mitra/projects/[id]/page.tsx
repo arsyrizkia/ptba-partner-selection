@@ -996,19 +996,6 @@ export default function MitraProjectDetailPage() {
                         </p>
                       </div>
                     </div>
-                    {project.phase2Deadline && (
-                      <div className="flex items-start gap-3 rounded-lg bg-ptba-steel-blue/5 p-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                          <span className="text-[10px] font-bold text-ptba-steel-blue">T2</span>
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-ptba-gray">{locale === "en" ? "Phase 2 Deadline" : "Deadline Tahap 2"}</p>
-                          <p className="text-xs font-semibold text-ptba-charcoal">
-                            {new Date(project.phase2Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
