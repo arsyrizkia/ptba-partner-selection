@@ -215,22 +215,22 @@ export default function HomePage() {
           </div>
 
           {activeProjects.length > 0 ? (
-            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className={`mt-10 grid grid-cols-1 gap-6 ${activeProjects.length === 1 ? "max-w-2xl mx-auto" : activeProjects.length === 2 ? "md:grid-cols-2 max-w-4xl mx-auto" : "md:grid-cols-2 lg:grid-cols-3"}`}>
               {activeProjects.map((project) => (
                 <div key={project.id} className="group rounded-xl border border-ptba-light-gray bg-white shadow-sm hover:shadow-lg hover:border-ptba-steel-blue/30 transition-all overflow-hidden">
                   {/* Card Header */}
-                  <div className="bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-5">
+                  <div className="bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-6">
                     <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${TYPE_COLORS[project.type] || TYPE_COLORS.others}`}>
                       {TYPE_LABELS[project.type] || project.type}
                     </span>
-                    <h3 className="mt-2.5 text-base font-bold text-white leading-snug line-clamp-2">{project.name}</h3>
+                    <h3 className="mt-2.5 text-lg font-bold text-white leading-snug line-clamp-2">{project.name}</h3>
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-5 space-y-3">
+                  <div className="p-6 space-y-4">
                     {project.description && (
-                      <p className="text-xs text-ptba-gray leading-relaxed line-clamp-3">
-                        {project.description.replace(/<[^>]*>/g, "")}
+                      <p className="text-sm text-ptba-gray leading-relaxed line-clamp-4">
+                        {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
                       </p>
                     )}
 
@@ -258,7 +258,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="px-5 pb-5">
+                  <div className="px-6 pb-6">
                     <button
                       onClick={() => router.push("/register")}
                       className="w-full flex items-center justify-center gap-2 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-navy hover:bg-yellow-400 transition-colors shadow-sm"
