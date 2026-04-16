@@ -280,7 +280,7 @@
       "minEquityPercent": "Minimum Acceptable Equity Percentage",
       "minEquityHint": "The lowest equity percentage your company would accept",
       "cashOnHand": "Cash on Hand",
-      "cashOnHandHint": "Minimum Cash on Hand of 1.5x the proposed equity contribution",
+      "cashOnHandHint": "Minimum Cash on Hand of 1x the proposed equity contribution",
       "errMajority": "Majority shareholder equity must be greater than 50%",
       "errMinority": "Minority shareholder equity must be <50%",
       "errMinMajority": "Minimum equity must be more than 50% (non-negotiable to minority)",
@@ -347,7 +347,7 @@
       "yearRange": "Financial Report Period",
       "yearRangeHint": "Select a 3-year period based on availability of audited financial statements",
       "cashOnHand": "Cash on Hand",
-      "cashOnHandHint": "Min. Cash on Hand of 1.5x equity",
+      "cashOnHandHint": "Min. Cash on Hand of 1x equity",
       "financialDoc": "Financial Document",
       "financialDocLabel": "Financial Overview Report (PDF)"
     },
