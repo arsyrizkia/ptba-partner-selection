@@ -1669,23 +1669,29 @@ export default function MitraProjectApplyPage() {
                   )}
                   {/* Multiplier & Classification */}
                   {cohClass && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs font-semibold text-ptba-charcoal">{cohMultiplier.toFixed(2)}x equity</span>
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${cohClass.color}`}>{cohClass.label}</span>
-                      <div className="relative group">
-                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-ptba-gray/20 text-ptba-gray cursor-help text-[10px] font-bold">i</div>
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-64 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
-                          <p className="font-bold mb-1.5">{locale === "en" ? "Cash on Hand Classification:" : "Klasifikasi Cash on Hand:"}</p>
-                          <div className="space-y-0.5">
-                            <p><span className="font-semibold text-red-300">Class F</span> : 1.00x – 1.10x equity</p>
-                            <p><span className="font-semibold text-orange-300">Class E</span> : 1.11x – 1.20x equity</p>
-                            <p><span className="font-semibold text-amber-300">Class D</span> : 1.21x – 1.30x equity</p>
-                            <p><span className="font-semibold text-yellow-300">Class C</span> : 1.31x – 1.40x equity</p>
-                            <p><span className="font-semibold text-blue-300">Class B</span> : 1.41x – 1.50x equity</p>
-                            <p><span className="font-semibold text-green-300">Class A</span> : &gt; 1.50x equity</p>
+                    <div className="mt-3 rounded-lg border border-ptba-steel-blue/20 bg-ptba-section-bg p-3 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${cohClass.color}`}>{cohClass.label}</span>
+                        <div className="relative group">
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-ptba-gray/20 text-ptba-gray cursor-help text-[10px] font-bold">i</div>
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-64 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
+                            <p className="font-bold mb-1.5">{locale === "en" ? "Cash on Hand Classification:" : "Klasifikasi Cash on Hand:"}</p>
+                            <div className="space-y-0.5">
+                              <p><span className="font-semibold text-red-300">Class F</span> : 1.00x – 1.10x equity</p>
+                              <p><span className="font-semibold text-orange-300">Class E</span> : 1.11x – 1.20x equity</p>
+                              <p><span className="font-semibold text-amber-300">Class D</span> : 1.21x – 1.30x equity</p>
+                              <p><span className="font-semibold text-yellow-300">Class C</span> : 1.31x – 1.40x equity</p>
+                              <p><span className="font-semibold text-blue-300">Class B</span> : 1.41x – 1.50x equity</p>
+                              <p><span className="font-semibold text-green-300">Class A</span> : &gt; 1.50x equity</p>
+                            </div>
                           </div>
                         </div>
                       </div>
+                      <p className="text-[11px] text-ptba-charcoal leading-relaxed">
+                        {locale === "en"
+                          ? `Your Cash on Hand of USD ${fmtUsd(cashNum)} Million is ${cohMultiplier.toFixed(2)}x of your equity contribution (USD ${fmtUsd(mitraContribution)} Million), placing you in ${cohClass.label}.`
+                          : `Cash on Hand Anda sebesar USD ${fmtUsd(cashNum)} Million adalah ${cohMultiplier.toFixed(2)}x dari kontribusi ekuitas Anda (USD ${fmtUsd(mitraContribution)} Million), menempatkan Anda di ${cohClass.label}.`}
+                      </p>
                     </div>
                   )}
                   <div className="mt-3">
