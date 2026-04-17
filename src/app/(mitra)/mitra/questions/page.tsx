@@ -182,7 +182,7 @@ export default function MitraQuestionsPage() {
       if (reply.trim()) formData.append("message", reply.trim());
       if (imageFile) formData.append("image", imageFile);
 
-      await fetchWithAuth(`/api/projects/${projectId}/questions/${selectedId}/messages`, {
+      await fetchWithAuth(`/projects/${projectId}/questions/${selectedId}/messages`, {
         method: "POST",
         token: accessToken,
         body: formData,

@@ -2536,7 +2536,7 @@ export default function ProjectDetailPage({
             const formData = new FormData();
             if (questionReply.trim()) formData.append("message", questionReply.trim());
             if (questionImageFile) formData.append("image", questionImageFile);
-            await fetchWithAuth(`/api/projects/${id}/questions/${selectedQuestionId}/messages`, {
+            await fetchWithAuth(`/projects/${id}/questions/${selectedQuestionId}/messages`, {
               method: "POST",
               token: accessToken,
               body: formData,
