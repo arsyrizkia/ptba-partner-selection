@@ -270,11 +270,16 @@ export default function EditProjectPage({
           if (reqDoc?.id) {
             const fd = new FormData();
             fd.append("file", file);
-            await fetch(`${API_BASE}/projects/${id}/required-documents/${reqDoc.id}/template`, {
+            const resp = await fetch(`${API_BASE}/projects/${id}/required-documents/${reqDoc.id}/template`, {
               method: "POST",
               headers: { Authorization: `Bearer ${freshToken}` },
               body: fd,
             });
+            if (!resp.ok) {
+              console.error(`Template upload failed for ${docTypeId}:`, await resp.text());
+            }
+          } else {
+            console.warn(`No matching reqDoc found for template key: ${templateKey} → docTypeId: ${docTypeId}`);
           }
         }
       }
