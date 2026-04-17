@@ -543,7 +543,7 @@ export default function MitraProjectApplyPage() {
         setCompanyName(p.name || "");
         setCompanyCode(p.code || "");
         // Only set companyStatus if it matches a valid select option
-        const validStatuses = ["BUMN", "Private", "Public"];
+        const validStatuses = ["Swasta", "Swasta Tbk", "BUMN", "BUMN Tbk"];
         setCompanyStatus(validStatuses.includes(p.status) ? p.status : "");
         setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
         // For fields that can be in both partner profile AND form_data, draft takes priority
@@ -1107,15 +1107,19 @@ export default function MitraProjectApplyPage() {
           <div className="rounded-lg bg-ptba-section-bg p-4">
             <p className="text-xs font-semibold text-ptba-navy mb-2">{t("requiredDocs")}</p>
             <ol className="text-xs text-ptba-gray space-y-1.5 list-decimal list-inside">
-              {activeSections.map((sec) => {
-                return (
-                  <li key={sec.docId}>
-                    <strong>{getSectionTitle(sec.sectionKey)}</strong> — {getSectionDesc(sec.sectionKey)}
-                  </li>
-                );
-              })}
+              {activeSections.map((sec) => (
+                <li key={sec.docId}>
+                  <strong>{getSectionTitle(sec.sectionKey)}</strong> — {getSectionDesc(sec.sectionKey)}
+                </li>
+              ))}
+              <li>
+                <strong>{locale === "en" ? "Relevant Supporting Documents" : "Dokumen pendukung yang relevan"}</strong> — {locale === "en" ? "Complete the required documents" : "Lengkapi dokumen yang diperlukan"}
+              </li>
               <li>{t("checkFinalAgreement")}</li>
             </ol>
+            <ul className="text-xs text-ptba-gray space-y-1 list-disc list-inside mt-2">
+              <li>{locale === "en" ? "All fields are required (enter 0 if not applicable)." : "Semua kolom wajib diisi (isi 0 jika tidak ada)."}</li>
+            </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-3">
@@ -1326,9 +1330,10 @@ export default function MitraProjectApplyPage() {
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Company Status" : "Status Perusahaan"} <span className="text-ptba-red">*</span></label>
               <select value={companyStatus} onChange={(e) => setCompanyStatus(e.target.value)} className={cn(inputClass, errBorder(companyStatus))}>
                 <option value="">{locale === "en" ? "Select..." : "Pilih..."}</option>
-                <option value="BUMN">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "BUMN (Badan Usaha Milik Negara)"}</option>
-                <option value="Private">{locale === "en" ? "Private Company" : "Perusahaan Swasta"}</option>
-                <option value="Public">{locale === "en" ? "Public Company (Tbk)" : "Perusahaan Publik (Tbk)"}</option>
+                <option value="Swasta">{locale === "en" ? "Private Company" : "Swasta"}</option>
+                <option value="Swasta Tbk">{locale === "en" ? "Public Listed Company (Tbk)" : "Swasta Terbuka (Tbk)"}</option>
+                <option value="BUMN">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "BUMN"}</option>
+                <option value="BUMN Tbk">{locale === "en" ? "State-Owned Listed Enterprise (BUMN Tbk)" : "BUMN Tbk"}</option>
               </select>
               <ErrText show={errMsg(companyStatus) as boolean} />
             </div>

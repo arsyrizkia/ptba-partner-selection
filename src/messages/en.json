@@ -221,7 +221,7 @@
       "portfolio": "Project Experience & Portfolio (Preferred)",
       "portfolioDesc": "List and summary of relevant projects completed",
       "financialOverview": "Financial Overview",
-      "financialOverviewDesc": "Fill in financial data for the last 3 years. All fields are required (enter 0 if not applicable).",
+      "financialOverviewDesc": "Fill in financial data for the last 3 years.",
       "requirementsFulfillment": "Requirements Fulfillment",
       "requirementsFulfillmentDesc": "Confirm fulfillment of basic project requirements and upload supporting documents.",
       "additionalDocs": "Additional Documents",
