@@ -7,7 +7,10 @@ export const metadata: Metadata = {
   title: "PTBA - Sistem Pemilihan Mitra",
   description: "Sistem Pemilihan Mitra PT Bukit Asam (Persero) Tbk",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
   },
 };
 
