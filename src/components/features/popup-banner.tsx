@@ -50,7 +50,7 @@ export default function PopupBanner({ alwaysShow = false }: { alwaysShow?: boole
         <img
           src={banner.imageUrl}
           alt={banner.title || "Pengumuman"}
-          className={`w-full rounded-xl shadow-2xl${banner.linkUrl ? " cursor-pointer" : ""}`}
+          className={`w-full max-h-[85vh] object-contain rounded-xl shadow-2xl${banner.linkUrl ? " cursor-pointer" : ""}`}
           onClick={() => {
             if (banner.linkUrl) {
               window.open(banner.linkUrl, "_blank", "noopener,noreferrer");
