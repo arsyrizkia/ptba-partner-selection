@@ -155,11 +155,6 @@ export default function MitraProjectDetailPage() {
         </div>
         <h1 className="text-2xl font-bold">{project.name}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
-          {project.startDate && (
-            <span>
-              {locale === "en" ? "Period" : "Periode"}: {new Date(project.startDate).toLocaleDateString(dateLocale)} - {new Date(project.endDate).toLocaleDateString(dateLocale)}
-            </span>
-          )}
           {(() => {
             const deadline = isPhase3 ? project.phase3Deadline : isPhase2 ? project.phase2Deadline : project.phase1Deadline;
             const label = isPhase3 ? (locale === "en" ? "Phase 3 Registration Deadline" : "Deadline Pendaftaran Fase 3") : isPhase2 ? (locale === "en" ? "Phase 2 Registration Deadline" : "Deadline Pendaftaran Fase 2") : (locale === "en" ? "Phase 1 Registration Deadline" : "Deadline Pendaftaran Fase 1");
@@ -384,7 +379,7 @@ export default function MitraProjectDetailPage() {
                 {project.indicativeDisclaimer && (
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                     <p className="text-[11px] text-amber-800 leading-relaxed">
-                      <span className="font-semibold">{locale === "en" ? "Disclaimer:" : "Catatan:"}</span> {project.indicativeDisclaimer}
+                      <span className="font-semibold">Catatan:</span> {project.indicativeDisclaimer}
                     </p>
                   </div>
                 )}

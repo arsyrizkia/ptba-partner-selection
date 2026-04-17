@@ -291,20 +291,6 @@ export default function HomePage() {
                         {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
                       </p>
                     )}
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      {project.location && (
-                        <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-                          <MapPin className="h-4 w-4 text-ptba-gold" />
-                          <span className="text-sm text-white/80">{project.location}</span>
-                        </div>
-                      )}
-                      {project.capacityMw && (
-                        <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-                          <Zap className="h-4 w-4 text-ptba-gold" />
-                          <span className="text-sm text-white/80">{project.capacityMw} MW</span>
-                        </div>
-                      )}
-                    </div>
                     <div className="mt-8">
                       <button
                         onClick={() => router.push("/register")}
