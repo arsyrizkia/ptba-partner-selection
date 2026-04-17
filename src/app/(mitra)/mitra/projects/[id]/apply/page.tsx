@@ -1210,7 +1210,7 @@ export default function MitraProjectApplyPage() {
           {/* Development Plan / Project */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Development Plan / Project" : "Rencana Pengembangan / Proyek"} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Describe your development plan or project approach" : "Jelaskan rencana pengembangan atau pendekatan proyek Anda"}</p>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Describe your company's development plan or approach relevant to this project" : "Jelaskan rencana pengembangan atau pendekatan perusahaan Anda yang relevan terhadap proyek ini"}</p>
             <textarea value={developmentPlan} onChange={(e) => setDevelopmentPlan(e.target.value)} placeholder={locale === "en" ? "Your development plan, timeline, milestones..." : "Rencana pengembangan, timeline, milestone..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(developmentPlan))} />
             <ErrText show={errMsg(developmentPlan) as boolean} />
           </div>
