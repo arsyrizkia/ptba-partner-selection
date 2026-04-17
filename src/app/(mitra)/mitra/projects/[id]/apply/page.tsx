@@ -1115,9 +1115,10 @@ export default function MitraProjectApplyPage() {
               <li>
                 <strong>{locale === "en" ? "Relevant Supporting Documents" : "Dokumen pendukung yang relevan"}</strong> — {locale === "en" ? "Complete the required documents" : "Lengkapi dokumen yang diperlukan"}
               </li>
-              <li>{t("checkFinalAgreement")}</li>
             </ol>
-            <ul className="text-xs text-ptba-gray space-y-1 list-disc list-inside mt-2">
+            <p className="text-xs font-semibold text-ptba-navy mt-3 mb-1">{locale === "en" ? "Additional Notes:" : "Catatan Tambahan:"}</p>
+            <ul className="text-xs text-ptba-gray space-y-1 list-disc list-inside">
+              <li>{t("checkFinalAgreement")}</li>
               <li>{locale === "en" ? "All fields are required (enter 0 if not applicable)." : "Semua kolom wajib diisi (isi 0 jika tidak ada)."}</li>
             </ul>
           </div>
@@ -2013,6 +2014,15 @@ export default function MitraProjectApplyPage() {
           readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.financialOverviewDesc")}</p>
+
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 mt-2">
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              <span className="font-semibold">{locale === "en" ? "Note:" : "Catatan:"}</span>{" "}
+              {locale === "en"
+                ? "If the applicant is a newly established company (3 years or less), the Financial Statements shall be obtained from the controlling shareholder of the applicant."
+                : "Dalam hal Calon Mitra merupakan perusahaan yang baru dibentuk atau kurang dari 3 (tiga) tahun, maka Laporan Keuangan dimaksud didapatkan dari pemegang saham pengendali Calon Mitra."}
+            </p>
+          </div>
 
           {/* Year Range Selector */}
           <div className="mt-3 mb-1">
