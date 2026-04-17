@@ -885,9 +885,7 @@ export default function MitraProjectApplyPage() {
       return false;
     })),
     financial_overview: financialYears.every((f) => f.totalAsset && f.totalDebt && f.totalEquity && f.cashOnHand && f.totalIBD && f.ebitda && f.dscr)
-      && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
-      && !!creditRatingAgency && !!creditRatingValue
-      && isDoc("credit_rating_evidence"),
+      && financialYears.every((f) => isDoc(`audited_financial_${f.year}`)),
     requirements_fulfillment: (projectRequirements.length
       ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
       : true) && isDoc("requirements_fulfillment"),
@@ -2168,7 +2166,7 @@ export default function MitraProjectApplyPage() {
 
           {/* Credit Rating */}
           <div className="space-y-3">
-            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")} <span className="text-ptba-red">*</span></label>
+            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")} <span className="text-[10px] text-ptba-gray font-normal">{locale === "en" ? "(Optional)" : "(Opsional)"}</span></label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {[
                 { value: "DNDB", label: "DNDB" },
@@ -2190,7 +2188,7 @@ export default function MitraProjectApplyPage() {
             </div>
             {creditRatingAgency && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency}) <span className="text-ptba-red">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency})</label>
                 <input
                   type="text"
                   placeholder={creditRatingAgency === "DNDB" ? "e.g. SA2" : creditRatingAgency === "S&P" ? "e.g. AA+" : creditRatingAgency === "Moodys" ? "e.g. Aaa" : creditRatingAgency === "Fitch" ? "e.g. AAA" : "e.g. A+"}
@@ -2205,7 +2203,7 @@ export default function MitraProjectApplyPage() {
 
           {/* Credit Rating Evidence */}
           <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Upload Credit Rating Evidence <span className="text-ptba-red">*</span></p>
+            <p className="text-xs font-semibold text-ptba-charcoal">Upload Credit Rating Evidence <span className="text-[10px] text-ptba-gray font-normal">{locale === "en" ? "(Optional)" : "(Opsional)"}</span></p>
             <p className="text-[10px] text-ptba-gray">Pdf format, Max size 20 MB</p>
             <FileUploadButton
               label="Credit Rating Evidence"
@@ -2217,7 +2215,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("credit_rating_evidence")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("credit_rating_evidence")}
-              error={showErrors && !isDoc("credit_rating_evidence")}
+              error={false}
             />
           </div>
 
