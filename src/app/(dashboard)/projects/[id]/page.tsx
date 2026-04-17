@@ -2348,7 +2348,13 @@ export default function ProjectDetailPage({
           if (!accessToken) return;
           setFaqSaving(true);
           try {
-            const body = { question: faqQuestion, answer: faqAnswer, category: faqCategory, section: activeSection, sort_order: faqs.length };
+            const body = {
+              question: faqQuestion,
+              answer: faqAnswer,
+              category: faqCategory,
+              section: faqSection || activeSection,
+              sort_order: faqEditId ? undefined : faqs.length,
+            };
             if (faqEditId) {
               const res = await api<{ faq: any }>(`/projects/${id}/faqs/${faqEditId}`, { method: "PUT", token: accessToken, body });
               setFaqs((prev) => prev.map((f) => f.id === faqEditId ? res.faq : f));
