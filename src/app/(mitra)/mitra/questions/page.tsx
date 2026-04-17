@@ -222,7 +222,7 @@ export default function MitraQuestionsPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-ptba-navy">Pertanyaan Saya</h1>
-              <p className="text-xs text-ptba-gray">Komunikasi Q&A dengan tim EBD</p>
+              <p className="text-xs text-ptba-gray">Komunikasi Q&A dengan tim PTBA</p>
             </div>
           </div>
         </div>
