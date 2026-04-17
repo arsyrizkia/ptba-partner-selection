@@ -6,6 +6,9 @@ import { LocaleProvider } from "@/lib/i18n/locale-context";
 export const metadata: Metadata = {
   title: "PTBA - Sistem Pemilihan Mitra",
   description: "Sistem Pemilihan Mitra PT Bukit Asam (Persero) Tbk",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
