@@ -146,7 +146,7 @@ export default function MitraProjectsPage() {
               <button
                 key={project.id}
                 onClick={() => router.push(`/mitra/projects/${project.id}`)}
-                className="rounded-xl bg-white shadow-sm border border-ptba-light-gray/50 text-left transition-all hover:shadow-md hover:border-ptba-steel-blue/30 overflow-hidden"
+                className="rounded-xl bg-white shadow-sm border border-ptba-light-gray/50 text-left transition-all hover:shadow-md hover:border-ptba-steel-blue/50 hover:ring-2 hover:ring-ptba-steel-blue/20 cursor-pointer overflow-hidden"
               >
                 <div className={cn("flex flex-col", (project as any).coverImageUrl ? "sm:flex-row" : "")}>
                 {(project as any).coverImageUrl && (

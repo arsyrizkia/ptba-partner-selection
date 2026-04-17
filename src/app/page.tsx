@@ -41,19 +41,19 @@ const i18n = {
     feat_1_title: "Lihat Proyek Tersedia",
     feat_1_desc: "Akses daftar proyek yang sedang membuka pendaftaran mitra baru.",
     feat_2_title: "Upload Dokumen",
-    feat_2_desc: "Unggah dokumen persyaratan seperti SIUP, NPWP, Laporan Keuangan, dan lainnya.",
+    feat_2_desc: "Unggah dokumen persyaratan perusahaan melalui platform.",
     feat_3_title: "Ajukan Pendaftaran",
     feat_3_desc: "Daftarkan perusahaan Anda sebagai calon mitra untuk proyek yang tersedia.",
     feat_4_title: "Pantau Status Evaluasi",
-    feat_4_desc: "Ikuti progres evaluasi pendaftaran Anda secara real-time dari pendaftaran hingga kontrak.",
+    feat_4_desc: "Ikuti progres evaluasi pendaftaran Anda secara real-time melalui dashboard mitra.",
     steps_title: "Alur Pendaftaran Mitra",
     steps_subtitle: "Langkah-langkah untuk menjadi mitra PT Bukit Asam (Persero) Tbk",
     step_1: "Daftar Akun", step_1d: "Buat akun mitra baru dengan data perusahaan Anda",
-    step_2: "Lengkapi Profil & Dokumen", step_2d: "Upload dokumen legalitas, keuangan, dan teknis",
+    step_2: "Lengkapi Profil & Dokumen", step_2d: "Upload dokumen yang dipersyaratkan",
     step_3: "Pilih Proyek", step_3d: "Lihat proyek yang tersedia dan ajukan pendaftaran",
-    step_4: "Upload Dokumen Proyek", step_4d: "Lengkapi dokumen spesifik yang dipersyaratkan proyek",
-    step_5: "Tunggu Evaluasi", step_5d: "Tim PTBA akan mengevaluasi dokumen dan kelayakan Anda",
-    step_6: "Hasil & Kontrak", step_6d: "Jika terpilih, proses penunjukan dan penandatanganan kontrak",
+    step_4: "Upload Dokumen Proyek", step_4d: "Lengkapi dokumen spesifik yang dipersyaratkan",
+    step_5: "Proses Evaluasi", step_5d: "Dokumen dan kelayakan perusahaan Anda akan dievaluasi oleh tim penilai",
+    step_6: "Pengumuman Hasil", step_6d: "Hasil evaluasi akan disampaikan kepada seluruh applicant yang mengikuti proses seleksi",
     cta_title: "Siap Bergabung?",
     cta_subtitle: "Daftarkan perusahaan Anda sekarang dan mulai ikuti proses seleksi mitra.",
     footer: "PT Bukit Asam (Persero) Tbk — PRIMA (Platform Registrasi, Informasi & Manajemen Mitra)",
@@ -77,19 +77,19 @@ const i18n = {
     feat_1_title: "View Available Projects",
     feat_1_desc: "Access the list of projects currently open for new partner registration.",
     feat_2_title: "Upload Documents",
-    feat_2_desc: "Upload required documents such as business licenses, tax IDs, financial reports, and more.",
+    feat_2_desc: "Upload your company's required documents through the platform.",
     feat_3_title: "Submit Registration",
     feat_3_desc: "Register your company as a partner candidate for available projects.",
     feat_4_title: "Track Evaluation Status",
-    feat_4_desc: "Follow the evaluation progress of your registration in real-time from registration to contract.",
+    feat_4_desc: "Follow the evaluation progress of your registration in real-time through the partner dashboard.",
     steps_title: "Partner Registration Process",
     steps_subtitle: "Steps to become a partner of PT Bukit Asam (Persero) Tbk",
     step_1: "Register Account", step_1d: "Create a new partner account with your company data",
     step_2: "Complete Profile & Documents", step_2d: "Upload legal, financial, and technical documents",
     step_3: "Choose Project", step_3d: "View available projects and submit registration",
     step_4: "Upload Project Documents", step_4d: "Complete project-specific required documents",
-    step_5: "Await Evaluation", step_5d: "PTBA team will evaluate your documents and eligibility",
-    step_6: "Results & Contract", step_6d: "If selected, proceed with appointment and contract signing",
+    step_5: "Evaluation Process", step_5d: "Your documents and company eligibility will be evaluated by the assessment team",
+    step_6: "Results Announcement", step_6d: "Evaluation results will be communicated to all applicants participating in the selection process",
     cta_title: "Ready to Join?",
     cta_subtitle: "Register your company now and start the partner selection process.",
     footer: "PT Bukit Asam (Persero) Tbk — PRIMA (Partner Registration, Information & Management Platform)",
@@ -291,20 +291,6 @@ export default function HomePage() {
                         {project.description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")}
                       </p>
                     )}
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      {project.location && (
-                        <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-                          <MapPin className="h-4 w-4 text-ptba-gold" />
-                          <span className="text-sm text-white/80">{project.location}</span>
-                        </div>
-                      )}
-                      {project.capacityMw && (
-                        <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-                          <Zap className="h-4 w-4 text-ptba-gold" />
-                          <span className="text-sm text-white/80">{project.capacityMw} MW</span>
-                        </div>
-                      )}
-                    </div>
                     <div className="mt-8">
                       <button
                         onClick={() => router.push("/register")}

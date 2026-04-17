@@ -146,7 +146,7 @@ export default function MitraProjectDetailPage() {
         <div className="flex-1 p-6">
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{tc(`typeLabels.${project.type}`)}</span>
-          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status}</span>
+          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status === "Berjalan" ? "Ongoing" : project.status}</span>
           {project.phase && project.phase !== "published" && (
             <span className="inline-flex rounded-full bg-white/30 px-2.5 py-0.5 text-xs font-semibold">
               {phaseLabel(project.phase, tc)}
@@ -155,11 +155,6 @@ export default function MitraProjectDetailPage() {
         </div>
         <h1 className="text-2xl font-bold">{project.name}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
-          {project.startDate && (
-            <span>
-              {locale === "en" ? "Period" : "Periode"}: {new Date(project.startDate).toLocaleDateString(dateLocale)} - {new Date(project.endDate).toLocaleDateString(dateLocale)}
-            </span>
-          )}
           {(() => {
             const deadline = isPhase3 ? project.phase3Deadline : isPhase2 ? project.phase2Deadline : project.phase1Deadline;
             const label = isPhase3 ? (locale === "en" ? "Phase 3 Registration Deadline" : "Deadline Pendaftaran Fase 3") : isPhase2 ? (locale === "en" ? "Phase 2 Registration Deadline" : "Deadline Pendaftaran Fase 2") : (locale === "en" ? "Phase 1 Registration Deadline" : "Deadline Pendaftaran Fase 1");
@@ -384,7 +379,7 @@ export default function MitraProjectDetailPage() {
                 {project.indicativeDisclaimer && (
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                     <p className="text-[11px] text-amber-800 leading-relaxed">
-                      <span className="font-semibold">{locale === "en" ? "Disclaimer:" : "Catatan:"}</span> {project.indicativeDisclaimer}
+                      <span className="font-semibold">Disclaimer:</span> {project.indicativeDisclaimer}
                     </p>
                   </div>
                 )}
@@ -604,16 +599,9 @@ export default function MitraProjectDetailPage() {
       )}
 
       {activeTab === "faq" && (() => {
-        const defaultGeneralFaqs = [
-          { question: "Apa itu PRIMA PTBA?", answer: "PRIMA PTBA (Platform Registrasi, Informasi & Manajemen Mitra) adalah sistem seleksi mitra resmi PT Bukit Asam (Persero) Tbk untuk mengelola peluang kemitraan strategis.", category: "umum", section: "general" },
-          { question: "Apa saja tahapan evaluasi?", answer: "Proses evaluasi terdiri dari 2 tahap: Tahap 1 (Pra-Kualifikasi) dan Tahap 2 (Proposal & Peringkat Akhir). Setiap tahap mengevaluasi 6 aspek: Pasar, Teknis, ESG, Keuangan, Hukum, dan Risiko.", category: "evaluasi", section: "general" },
-          { question: "Dokumen apa saja yang diperlukan?", answer: "Dokumen yang diperlukan meliputi Profil Perusahaan, Surat Pernyataan EoI, Portfolio Pengalaman Proyek, Gambaran Umum Keuangan, dan dokumen pendukung lainnya sesuai yang ditentukan di setiap proyek.", category: "dokumen", section: "general" },
-          { question: "Bagaimana proses evaluasi dilakukan?", answer: "Setiap kategori evaluasi dinilai oleh tim evaluator yang ditunjuk. Seluruh 6 kategori harus dinilai 'Layak' agar mitra dapat melanjutkan ke tahap berikutnya.", category: "evaluasi", section: "general" },
-          { question: "Apakah bisa mengedit setelah submit?", answer: "Tidak, setelah dikirim, pendaftaran tidak dapat diubah. Pastikan semua informasi dan dokumen sudah lengkap dan benar sebelum mengirim.", category: "pendaftaran", section: "general" },
-        ];
         const projectFaqs = project.faqs || [];
         const projectGeneralFaqs = projectFaqs.filter((f: any) => (f.section || "general") === "general");
-        const generalFaqs = projectGeneralFaqs.length > 0 ? projectGeneralFaqs : defaultGeneralFaqs;
+        const generalFaqs = projectGeneralFaqs;
         const mitraFaqs = projectFaqs.filter((f: any) => f.section === "mitra");
         const allFaqs = [...generalFaqs, ...mitraFaqs];
         const CAT_COLORS: Record<string, string> = {
@@ -848,11 +836,8 @@ export default function MitraProjectDetailPage() {
                       </div>
                       <div>
                         <h2 className="text-sm font-bold text-ptba-steel-blue">
-                          {locale === "en" ? "Questions from Partners" : "Pertanyaan yang Sering Ditanyakan Mitra"}
+                          {locale === "en" ? "Questions from prospective partners" : "Pertanyaan dari calon mitra lain"}
                         </h2>
-                        <p className="text-[11px] text-ptba-gray mt-0.5">
-                          {locale === "en" ? "Common questions asked by prospective partners" : "Pertanyaan umum dari calon mitra"}
-                        </p>
                       </div>
                       <div className="ml-auto">
                         <span className="inline-flex items-center rounded-full bg-ptba-steel-blue/5 px-2.5 py-0.5 text-[11px] font-medium text-ptba-steel-blue">
@@ -868,58 +853,6 @@ export default function MitraProjectDetailPage() {
 
             {/* Right: Sidebar */}
             <div className="space-y-4">
-              {/* Quick Stats */}
-              <div className="rounded-xl bg-white shadow-sm border border-gray-100 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ptba-gold/10">
-                    <HelpCircle className="h-3.5 w-3.5 text-ptba-gold" />
-                  </div>
-                  <h3 className="text-sm font-bold text-ptba-charcoal">
-                    {locale === "en" ? "FAQ Summary" : "Ringkasan FAQ"}
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-ptba-section-bg p-3 text-center">
-                    <p className="text-lg font-bold text-ptba-navy">{generalFaqs.length}</p>
-                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "General" : "Umum"}</p>
-                  </div>
-                  <div className="rounded-lg bg-ptba-steel-blue/5 p-3 text-center">
-                    <p className="text-lg font-bold text-ptba-steel-blue">{mitraFaqs.length}</p>
-                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Partner" : "Mitra"}</p>
-                  </div>
-                </div>
-                {/* Category breakdown */}
-                {availableCategories.length > 0 && (
-                  <div className="mt-3 space-y-1.5">
-                    {availableCategories.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setFaqFilter(faqFilter === cat ? "all" : cat)}
-                        className={cn(
-                          "flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs transition-all",
-                          faqFilter === cat
-                            ? "bg-ptba-navy/5 text-ptba-navy font-medium"
-                            : "hover:bg-ptba-section-bg text-ptba-gray"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "h-2 w-2 rounded-full",
-                            cat === "pendaftaran" && "bg-blue-500",
-                            cat === "evaluasi" && "bg-purple-500",
-                            cat === "dokumen" && "bg-teal-500",
-                            cat === "keuangan" && "bg-amber-500",
-                            cat === "umum" && "bg-gray-400",
-                          )} />
-                          {CAT_LABELS[cat] || cat}
-                        </div>
-                        <span className="font-medium">{catCounts[cat]}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* Have a Question? CTA */}
               {(() => {
                 const questionsOpen = project.questionsOpen && (!project.questionsCloseAt || new Date(project.questionsCloseAt) > new Date());
@@ -968,6 +901,11 @@ export default function MitraProjectDetailPage() {
                       >
                         {locale === "en" ? "View My Questions" : "Lihat Pertanyaan Saya"}
                       </button>
+                      <p className="pt-1 text-[11px] leading-relaxed text-ptba-gray">
+                        {locale === "en"
+                          ? "Note: Questions you submit can be viewed by other prospective partners."
+                          : "Catatan: Pertanyaan yang Anda ajukan dapat dilihat oleh calon mitra lainnya."}
+                      </p>
                     </div>
                   </div>
                 );

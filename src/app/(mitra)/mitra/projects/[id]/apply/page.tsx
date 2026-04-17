@@ -307,7 +307,7 @@ function Section({
             {isRequired !== undefined && (
               isRequired
                 ? <span className="text-[9px] font-bold text-ptba-red bg-red-50 border border-red-200 rounded px-1.5 py-0.5">{locale === "en" ? "Required" : "Wajib"}</span>
-                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">{locale === "en" ? "Preferable" : "Opsional"}</span>
+                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">{locale === "en" ? "Preferred" : "Opsional"}</span>
             )}
           </div>
         </div>
@@ -542,7 +542,9 @@ export default function MitraProjectApplyPage() {
         // Always set from partner (these are not in form_data)
         setCompanyName(p.name || "");
         setCompanyCode(p.code || "");
-        setCompanyStatus(p.status || "");
+        // Only set companyStatus if it matches a valid select option
+        const validStatuses = ["Swasta", "Swasta Terbuka (Tbk)", "Badan Usaha Milik Negara (BUMN)", "BUMN Terbuka (Tbk)"];
+        setCompanyStatus(validStatuses.includes(p.status) ? p.status : "");
         setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
         // For fields that can be in both partner profile AND form_data, draft takes priority
         setCompanyAddress(fd?.companyAddress || p.address || "");
@@ -883,9 +885,7 @@ export default function MitraProjectApplyPage() {
       return false;
     })),
     financial_overview: financialYears.every((f) => f.totalAsset && f.totalDebt && f.totalEquity && f.cashOnHand && f.totalIBD && f.ebitda && f.dscr)
-      && financialYears.every((f) => isDoc(`audited_financial_${f.year}`))
-      && !!creditRatingAgency && !!creditRatingValue
-      && isDoc("credit_rating_evidence"),
+      && financialYears.every((f) => isDoc(`audited_financial_${f.year}`)),
     requirements_fulfillment: (projectRequirements.length
       ? projectRequirements.every((_: string, i: number) => requirementAnswers[i] === true)
       : true) && isDoc("requirements_fulfillment"),
@@ -1105,15 +1105,20 @@ export default function MitraProjectApplyPage() {
           <div className="rounded-lg bg-ptba-section-bg p-4">
             <p className="text-xs font-semibold text-ptba-navy mb-2">{t("requiredDocs")}</p>
             <ol className="text-xs text-ptba-gray space-y-1.5 list-decimal list-inside">
-              {activeSections.map((sec) => {
-                return (
-                  <li key={sec.docId}>
-                    <strong>{getSectionTitle(sec.sectionKey)}</strong> — {getSectionDesc(sec.sectionKey)}
-                  </li>
-                );
-              })}
-              <li>{t("checkFinalAgreement")}</li>
+              {activeSections.map((sec) => (
+                <li key={sec.docId}>
+                  <strong>{getSectionTitle(sec.sectionKey)}</strong> — {getSectionDesc(sec.sectionKey)}
+                </li>
+              ))}
+              <li>
+                <strong>{locale === "en" ? "Relevant Supporting Documents" : "Dokumen pendukung yang relevan"}</strong> — {locale === "en" ? "Complete the required documents" : "Lengkapi dokumen yang diperlukan"}
+              </li>
             </ol>
+            <p className="text-xs font-semibold text-ptba-navy mt-3 mb-1">{locale === "en" ? "Additional Notes:" : "Catatan Tambahan:"}</p>
+            <ul className="text-xs text-ptba-gray space-y-1 list-disc list-inside">
+              <li>{t("checkFinalAgreement")}</li>
+              <li>{locale === "en" ? "All fields are required (enter 0 if not applicable)." : "Semua kolom wajib diisi (isi 0 jika tidak ada)."}</li>
+            </ul>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 p-3">
@@ -1124,7 +1129,7 @@ export default function MitraProjectApplyPage() {
               <p className="text-xs font-semibold text-ptba-gold">{t("deadline")}</p>
               <p className="text-[11px] text-ptba-gray mt-0.5">
                 {project.phase1Deadline
-                  ? <>{t.rich("deadlineDesc", { date: new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" }), strong: (chunks) => <strong>{chunks}</strong> })}</>
+                  ? <>{t.rich("deadlineDesc", { date: `${new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })} pukul ${new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB`, strong: (chunks) => <strong>{chunks}</strong> })}</>
                   : <>{t("deadlineDescDefault")}</>
                 }
               </p>
@@ -1210,7 +1215,7 @@ export default function MitraProjectApplyPage() {
           {/* Development Plan / Project */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Development Plan / Project" : "Rencana Pengembangan / Proyek"} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Describe your development plan or project approach" : "Jelaskan rencana pengembangan atau pendekatan proyek Anda"}</p>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Describe your company's development plan or approach relevant to this project" : "Jelaskan rencana pengembangan atau pendekatan perusahaan Anda yang relevan terhadap proyek ini"}</p>
             <textarea value={developmentPlan} onChange={(e) => setDevelopmentPlan(e.target.value)} placeholder={locale === "en" ? "Your development plan, timeline, milestones..." : "Rencana pengembangan, timeline, milestone..."} className={cn(inputClass, "min-h-[80px] resize-y", errBorder(developmentPlan))} />
             <ErrText show={errMsg(developmentPlan) as boolean} />
           </div>
@@ -1259,7 +1264,7 @@ export default function MitraProjectApplyPage() {
           {/* Shareholder Composition */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Percentage and holdings structure" : "Persentase dan struktur kepemilikan"}</p>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Percentage and ownership structure of the company's shares" : "Persentase dan struktur kepemilikan saham perusahaan"}</p>
             <textarea value={shareholderComposition} onChange={(e) => setShareholderComposition(e.target.value)} placeholder={locale === "en" ? "e.g. PT ABC 51%, PT XYZ 30%, Public 19%" : "Contoh: PT ABC 51%, PT XYZ 30%, Publik 19%"} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(shareholderComposition))} />
             <ErrText show={errMsg(shareholderComposition) as boolean} />
           </div>
@@ -1324,9 +1329,10 @@ export default function MitraProjectApplyPage() {
               <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Company Status" : "Status Perusahaan"} <span className="text-ptba-red">*</span></label>
               <select value={companyStatus} onChange={(e) => setCompanyStatus(e.target.value)} className={cn(inputClass, errBorder(companyStatus))}>
                 <option value="">{locale === "en" ? "Select..." : "Pilih..."}</option>
-                <option value="BUMN">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "BUMN (Badan Usaha Milik Negara)"}</option>
-                <option value="Private">{locale === "en" ? "Private Company" : "Perusahaan Swasta"}</option>
-                <option value="Public">{locale === "en" ? "Public Company (Tbk)" : "Perusahaan Publik (Tbk)"}</option>
+                <option value="Swasta">{locale === "en" ? "Private Company" : "Swasta"}</option>
+                <option value="Swasta Terbuka (Tbk)">{locale === "en" ? "Public Listed Private Company (Tbk)" : "Swasta Terbuka (Tbk)"}</option>
+                <option value="Badan Usaha Milik Negara (BUMN)">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "Badan Usaha Milik Negara (BUMN)"}</option>
+                <option value="BUMN Terbuka (Tbk)">{locale === "en" ? "State-Owned Listed Enterprise (BUMN Tbk)" : "BUMN Terbuka (Tbk)"}</option>
               </select>
               <ErrText show={errMsg(companyStatus) as boolean} />
             </div>
@@ -1502,12 +1508,12 @@ export default function MitraProjectApplyPage() {
             const cohMultiplier = mitraContribution > 0 ? cashNum / mitraContribution : 0;
             const getCohClass = (m: number) => {
               if (m < 1.0) return null;
-              if (m <= 1.10) return { label: "Class F", color: "text-red-700 bg-red-50 border-red-200" };
-              if (m <= 1.20) return { label: "Class E", color: "text-orange-700 bg-orange-50 border-orange-200" };
-              if (m <= 1.30) return { label: "Class D", color: "text-amber-700 bg-amber-50 border-amber-200" };
-              if (m <= 1.40) return { label: "Class C", color: "text-yellow-700 bg-yellow-50 border-yellow-200" };
-              if (m <= 1.50) return { label: "Class B", color: "text-blue-700 bg-blue-50 border-blue-200" };
-              return { label: "Class A", color: "text-green-700 bg-green-50 border-green-200" };
+              if (m <= 1.10) return { label: "Category F" };
+              if (m <= 1.20) return { label: "Category E" };
+              if (m <= 1.30) return { label: "Category D" };
+              if (m <= 1.40) return { label: "Category C" };
+              if (m <= 1.50) return { label: "Category B" };
+              return { label: "Category A" };
             };
             const cohClass = hasProjectData && jvPercent > 0 && cashNum > 0 ? getCohClass(cohMultiplier) : null;
 
@@ -1671,18 +1677,19 @@ export default function MitraProjectApplyPage() {
                   {cohClass && (
                     <div className="mt-3 rounded-lg border border-ptba-steel-blue/20 bg-ptba-section-bg p-3 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${cohClass.color}`}>{cohClass.label}</span>
+                        <span className="inline-flex items-center rounded-full border border-ptba-steel-blue/30 bg-ptba-steel-blue/10 px-3 py-1 text-xs font-bold text-ptba-steel-blue">{cohClass.label}</span>
                         <div className="relative group">
                           <div className="flex h-4 w-4 items-center justify-center rounded-full bg-ptba-gray/20 text-ptba-gray cursor-help text-[10px] font-bold">i</div>
-                          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-64 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
-                            <p className="font-bold mb-1.5">{locale === "en" ? "Cash on Hand Classification:" : "Klasifikasi Cash on Hand:"}</p>
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-72 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
+                            <p className="font-bold mb-0.5">{locale === "en" ? "Category Cash on Hand" : "Kategori Cash on Hand"}</p>
+                            <p className="text-white/60 mb-2">{locale === "en" ? "(For classification purposes only)" : "(Hanya untuk pengelompokan)"}</p>
                             <div className="space-y-0.5">
-                              <p><span className="font-semibold text-red-300">Class F</span> : 1.00x – 1.10x equity</p>
-                              <p><span className="font-semibold text-orange-300">Class E</span> : 1.11x – 1.20x equity</p>
-                              <p><span className="font-semibold text-amber-300">Class D</span> : 1.21x – 1.30x equity</p>
-                              <p><span className="font-semibold text-yellow-300">Class C</span> : 1.31x – 1.40x equity</p>
-                              <p><span className="font-semibold text-blue-300">Class B</span> : 1.41x – 1.50x equity</p>
-                              <p><span className="font-semibold text-green-300">Class A</span> : &gt; 1.50x equity</p>
+                              <p><span className="font-semibold">Category F</span> : 1.00x – 1.10x equity</p>
+                              <p><span className="font-semibold">Category E</span> : 1.11x – 1.20x equity</p>
+                              <p><span className="font-semibold">Category D</span> : 1.21x – 1.30x equity</p>
+                              <p><span className="font-semibold">Category C</span> : 1.31x – 1.40x equity</p>
+                              <p><span className="font-semibold">Category B</span> : 1.41x – 1.50x equity</p>
+                              <p><span className="font-semibold">Category A</span> : &gt; 1.50x equity</p>
                             </div>
                           </div>
                         </div>
@@ -1782,7 +1789,6 @@ export default function MitraProjectApplyPage() {
             <ul className="text-xs text-ptba-gray space-y-1 list-disc pl-4">
               <li>{t("portfolioFields.note1")}</li>
               <li>{t("portfolioFields.note2")}</li>
-              <li>{t("portfolioFields.note3")}</li>
             </ul>
           </div>
 
@@ -1801,7 +1807,7 @@ export default function MitraProjectApplyPage() {
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Experience Type" : "Tipe Pengalaman"} <span className="text-ptba-red">*</span></label>
                   <select value={(exp as any).experienceType || 'powerplant'} onChange={(e) => changeExperienceType(i, e.target.value as ExperienceType)} className={inputClass}>
-                    <option value="powerplant">{locale === "en" ? "Power Plant (Preferable)" : "Pembangkit Listrik (Preferable)"}</option>
+                    <option value="powerplant">{locale === "en" ? "Power Plant (Preferred)" : "Pembangkit Listrik (Preferred)"}</option>
                     <option value="general">{locale === "en" ? "General Project" : "Proyek Umum"}</option>
                   </select>
                 </div>
@@ -1949,7 +1955,7 @@ export default function MitraProjectApplyPage() {
                   uploaded={isDoc(`credential_exp_${exp.uid}`)}
                   uploading={uploadedDocs[`credential_exp_${exp.uid}`]?.uploading ?? false}
                   fileName={uploadedDocs[`credential_exp_${exp.uid}`]?.name}
-                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Bukti Kontrak & Profil - ${exp.plantName || 'Proyek'}`, f)}
+                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Evidence Project - ${exp.plantName || 'Proyek'}`, f)}
                   onDelete={() => deleteDoc(`credential_exp_${exp.uid}`)}
                   readOnly={readOnly}
                   onDownload={docDownloadHandler(`credential_exp_${exp.uid}`)}
@@ -2006,6 +2012,15 @@ export default function MitraProjectApplyPage() {
           readOnly={readOnly}
         >
           <p className="text-xs text-ptba-gray">{t("sections.financialOverviewDesc")}</p>
+
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 mt-2">
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              <span className="font-semibold">{locale === "en" ? "Note:" : "Catatan:"}</span>{" "}
+              {locale === "en"
+                ? "If the applicant is a newly established company (3 years or less), the Financial Statements shall be obtained from the controlling shareholder of the applicant."
+                : "Dalam hal Calon Mitra merupakan perusahaan yang baru dibentuk atau kurang dari 3 (tiga) tahun, maka Laporan Keuangan dimaksud didapatkan dari pemegang saham pengendali Calon Mitra."}
+            </p>
+          </div>
 
           {/* Year Range Selector */}
           <div className="mt-3 mb-1">
@@ -2151,7 +2166,7 @@ export default function MitraProjectApplyPage() {
 
           {/* Credit Rating */}
           <div className="space-y-3">
-            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")} <span className="text-ptba-red">*</span></label>
+            <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")} <span className="text-[10px] text-ptba-gray font-normal">{locale === "en" ? "(Optional)" : "(Opsional)"}</span></label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {[
                 { value: "DNDB", label: "DNDB" },
@@ -2173,7 +2188,7 @@ export default function MitraProjectApplyPage() {
             </div>
             {creditRatingAgency && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency}) <span className="text-ptba-red">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency})</label>
                 <input
                   type="text"
                   placeholder={creditRatingAgency === "DNDB" ? "e.g. SA2" : creditRatingAgency === "S&P" ? "e.g. AA+" : creditRatingAgency === "Moodys" ? "e.g. Aaa" : creditRatingAgency === "Fitch" ? "e.g. AAA" : "e.g. A+"}
@@ -2188,7 +2203,7 @@ export default function MitraProjectApplyPage() {
 
           {/* Credit Rating Evidence */}
           <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold text-ptba-charcoal">Upload Credit Rating Evidence <span className="text-ptba-red">*</span></p>
+            <p className="text-xs font-semibold text-ptba-charcoal">Upload Credit Rating Evidence <span className="text-[10px] text-ptba-gray font-normal">{locale === "en" ? "(Optional)" : "(Opsional)"}</span></p>
             <p className="text-[10px] text-ptba-gray">Pdf format, Max size 20 MB</p>
             <FileUploadButton
               label="Credit Rating Evidence"
@@ -2200,7 +2215,7 @@ export default function MitraProjectApplyPage() {
               onDelete={() => deleteDoc("credit_rating_evidence")}
               readOnly={readOnly}
               onDownload={docDownloadHandler("credit_rating_evidence")}
-              error={showErrors && !isDoc("credit_rating_evidence")}
+              error={false}
             />
           </div>
 
