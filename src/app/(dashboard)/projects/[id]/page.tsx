@@ -45,6 +45,7 @@ import {
   Unlock,
   CalendarClock,
   ImagePlus,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
@@ -392,7 +393,10 @@ export default function ProjectDetailPage({
   const [faqCategory, setFaqCategory] = useState("umum");
   const [faqSection, setFaqSection] = useState("general");
   const [faqEditId, setFaqEditId] = useState<string | null>(null);
+  const [showFaqEditModal, setShowFaqEditModal] = useState(false);
   const [faqSaving, setFaqSaving] = useState(false);
+  const [faqOrderSaving, setFaqOrderSaving] = useState(false);
+  const [dragFaqId, setDragFaqId] = useState<string | null>(null);
   const faqFormRef = useRef<HTMLDivElement | null>(null);
   const [faqFilter, setFaqFilter] = useState<"all" | "general" | "mitra">("all");
   // Q&A Tickets state
@@ -2344,9 +2348,17 @@ export default function ProjectDetailPage({
           questionStatusFilter === "all" ? questions : questions.filter((q) => q.status === questionStatusFilter);
         const selectedQuestion = questions.find((q) => q.id === selectedQuestionId) || null;
 
-        const resetForm = () => { setFaqEditId(null); setFaqQuestion(""); setFaqAnswer(""); setFaqCategory("umum"); setFaqSection(activeSection); };
+        const resetForm = () => {
+          setFaqEditId(null);
+          setFaqQuestion("");
+          setFaqAnswer("");
+          setFaqCategory("umum");
+          setFaqSection(activeSection);
+          setShowFaqEditModal(false);
+        };
         const saveFaq = async () => {
           if (!accessToken) return;
+          const isEditing = Boolean(faqEditId);
           setFaqSaving(true);
           try {
             const body = {
@@ -2364,8 +2376,83 @@ export default function ProjectDetailPage({
               setFaqs((prev) => [...prev, res.faq]);
             }
             resetForm();
+            if (isEditing) setShowFaqEditModal(false);
           } catch { alert("Gagal menyimpan FAQ"); }
           finally { setFaqSaving(false); }
+        };
+
+        const reorderFaqsInCategory = async (category: string, targetFaqId: string) => {
+          if (!accessToken || !dragFaqId || dragFaqId === targetFaqId || faqOrderSaving) return;
+
+          const categoryItems = sectionFaqs.filter((f) => (f.category || "umum") === category);
+          const fromIndex = categoryItems.findIndex((f) => String(f.id) === dragFaqId);
+          const toIndex = categoryItems.findIndex((f) => String(f.id) === String(targetFaqId));
+          if (fromIndex === -1 || toIndex === -1) return;
+
+          const reorderedCategory = [...categoryItems];
+          const [moved] = reorderedCategory.splice(fromIndex, 1);
+          reorderedCategory.splice(toIndex, 0, moved);
+
+          const categoryIdSet = new Set(categoryItems.map((f) => String(f.id)));
+          const reorderedSectionFaqs: any[] = [];
+          let categoryCursor = 0;
+          for (const faq of sectionFaqs) {
+            if (categoryIdSet.has(String(faq.id))) {
+              reorderedSectionFaqs.push(reorderedCategory[categoryCursor++]);
+            } else {
+              reorderedSectionFaqs.push(faq);
+            }
+          }
+
+          const updatedSortMap = new Map<string, number>();
+          reorderedSectionFaqs.forEach((faq, index) => {
+            updatedSortMap.set(String(faq.id), index);
+          });
+
+          setFaqOrderSaving(true);
+          try {
+            const updates = reorderedSectionFaqs
+              .filter((faq, index) => Number(faq.sort_order ?? 0) !== index)
+              .map((faq, index) =>
+                api(`/projects/${id}/faqs/${faq.id}`, {
+                  method: "PUT",
+                  token: accessToken,
+                  body: { sort_order: index },
+                })
+              );
+            if (updates.length > 0) await Promise.all(updates);
+
+            setFaqs((prev) => {
+              const sectionKey = activeSection;
+              const sectionItems = prev.filter((f) => (f.section || "general") === sectionKey);
+              const sectionIdSet = new Set(sectionItems.map((f) => String(f.id)));
+
+              const sortedSection = [...sectionItems].sort((a, b) => {
+                const aOrder = updatedSortMap.get(String(a.id)) ?? Number(a.sort_order ?? 0);
+                const bOrder = updatedSortMap.get(String(b.id)) ?? Number(b.sort_order ?? 0);
+                return aOrder - bOrder;
+              }).map((f) => ({
+                ...f,
+                sort_order: updatedSortMap.get(String(f.id)) ?? Number(f.sort_order ?? 0),
+              }));
+
+              const result: any[] = [];
+              let sectionCursor = 0;
+              for (const faq of prev) {
+                if (sectionIdSet.has(String(faq.id))) {
+                  result.push(sortedSection[sectionCursor++]);
+                } else {
+                  result.push(faq);
+                }
+              }
+              return result;
+            });
+          } catch {
+            alert("Gagal menyimpan urutan FAQ");
+          } finally {
+            setFaqOrderSaving(false);
+            setDragFaqId(null);
+          }
         };
 
         const fetchQuestions = async () => {
@@ -2517,13 +2604,13 @@ export default function ProjectDetailPage({
             {/* === FAQ VIEWS (general / mitra) === */}
             {faqSubTab !== "tickets" && (
               <>
-                {/* Add / Edit form */}
+                {/* Add form */}
                 {isAdmin && (
                   <div ref={faqFormRef} className="rounded-xl bg-white p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-sm font-bold text-ptba-navy flex items-center gap-2">
-                        {faqEditId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                        {faqEditId ? "Edit FAQ" : `Tambah FAQ ${activeSection === "general" ? "Umum" : "untuk Mitra"}`}
+                        <Plus className="h-4 w-4" />
+                        {`Tambah FAQ ${activeSection === "general" ? "Umum" : "untuk Mitra"}`}
                       </p>
                       <span className="text-[10px] uppercase tracking-wider font-semibold text-ptba-gray bg-ptba-section-bg px-2 py-1 rounded">
                         {activeSection === "general" ? "FAQ UMUM" : "PERTANYAAN MITRA"}
@@ -2577,13 +2664,8 @@ export default function ProjectDetailPage({
                           className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-steel-blue disabled:opacity-50 transition-colors"
                         >
                           {faqSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                          {faqSaving ? "Menyimpan..." : faqEditId ? "Update FAQ" : "Tambahkan FAQ"}
+                          {faqSaving ? "Menyimpan..." : "Tambahkan FAQ"}
                         </button>
-                        {faqEditId && (
-                          <button onClick={resetForm} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm text-ptba-gray hover:bg-ptba-section-bg transition-colors">
-                            Batal
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -2604,6 +2686,11 @@ export default function ProjectDetailPage({
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {isAdmin && (
+                      <div className="rounded-lg border border-dashed border-ptba-light-gray bg-white px-4 py-2 text-xs text-ptba-gray">
+                        Seret dan lepas item FAQ untuk mengubah urutan dalam kategori yang sama.
+                      </div>
+                    )}
                     {groupedFaqs.map((group) => (
                       <div key={group.value} className="rounded-xl bg-white shadow-sm overflow-hidden">
                         <div className="flex items-center justify-between border-b border-ptba-light-gray bg-ptba-section-bg/40 px-5 py-3">
@@ -2616,9 +2703,25 @@ export default function ProjectDetailPage({
                         </div>
                         <div className="divide-y divide-gray-100">
                           {group.items.map((faq) => (
-                            <details key={faq.id} className="group">
+                            <details
+                              key={faq.id}
+                              className="group"
+                              draggable={isAdmin}
+                              onDragStart={() => setDragFaqId(String(faq.id))}
+                              onDragOver={(e) => {
+                                if (!isAdmin || !dragFaqId || dragFaqId === String(faq.id)) return;
+                                e.preventDefault();
+                              }}
+                              onDrop={(e) => {
+                                if (!isAdmin) return;
+                                e.preventDefault();
+                                void reorderFaqsInCategory(group.value, String(faq.id));
+                              }}
+                              onDragEnd={() => setDragFaqId(null)}
+                            >
                               <summary className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-ptba-section-bg/40 transition-colors list-none">
                                 <ChevronDown className="h-4 w-4 text-ptba-gray shrink-0 group-open:rotate-180 transition-transform" />
+                                {isAdmin && <GripVertical className="h-4 w-4 text-ptba-gray/70 shrink-0" />}
                                 <span className="text-sm font-semibold text-ptba-charcoal flex-1">{faq.question}</span>
                                 {isAdmin && (
                                   <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -2633,7 +2736,7 @@ export default function ProjectDetailPage({
                                         setFaqAnswer(faq.answer);
                                         setFaqCategory(faq.category || "umum");
                                         setFaqSection(faq.section || "general");
-                                        faqFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                        setShowFaqEditModal(true);
                                       }}
                                       className="rounded p-1.5 text-ptba-steel-blue hover:bg-ptba-steel-blue/10"
                                     >
@@ -2665,6 +2768,75 @@ export default function ProjectDetailPage({
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {showFaqEditModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={resetForm}>
+                    <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between border-b border-ptba-light-gray px-6 py-4">
+                        <h3 className="text-base font-bold text-ptba-charcoal flex items-center gap-2">
+                          <Pencil className="h-4 w-4 text-ptba-steel-blue" /> Edit FAQ
+                        </h3>
+                        <button type="button" onClick={resetForm} className="rounded-lg p-1.5 text-ptba-gray hover:bg-ptba-section-bg">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="space-y-4 px-6 py-5">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori</label>
+                          <div className="flex flex-wrap gap-2">
+                            {FAQ_CATEGORIES.map((c) => (
+                              <button
+                                key={c.value}
+                                type="button"
+                                onClick={() => setFaqCategory(c.value)}
+                                className={cn(
+                                  "rounded-full px-3 py-1.5 text-xs font-semibold border transition-all",
+                                  faqCategory === c.value
+                                    ? `${c.color} border-current shadow-sm`
+                                    : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
+                                )}
+                              >
+                                {c.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Pertanyaan</label>
+                          <input
+                            type="text"
+                            value={faqQuestion}
+                            onChange={(e) => setFaqQuestion(e.target.value)}
+                            className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Jawaban</label>
+                          <textarea
+                            value={faqAnswer}
+                            onChange={(e) => setFaqAnswer(e.target.value)}
+                            rows={4}
+                            className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm outline-none focus:border-ptba-steel-blue focus:ring-2 focus:ring-ptba-steel-blue/10 resize-y"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 border-t border-ptba-light-gray px-6 py-4">
+                        <button type="button" onClick={resetForm} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!faqQuestion.trim() || !faqAnswer.trim() || faqSaving}
+                          onClick={saveFaq}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-steel-blue disabled:opacity-50 transition-colors"
+                        >
+                          {faqSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          {faqSaving ? "Menyimpan..." : "Simpan Perubahan"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </>
