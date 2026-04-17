@@ -307,7 +307,7 @@ function Section({
             {isRequired !== undefined && (
               isRequired
                 ? <span className="text-[9px] font-bold text-ptba-red bg-red-50 border border-red-200 rounded px-1.5 py-0.5">{locale === "en" ? "Required" : "Wajib"}</span>
-                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">{locale === "en" ? "Preferable" : "Opsional"}</span>
+                : <span className="text-[9px] font-medium text-ptba-gray bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5">{locale === "en" ? "Preferred" : "Opsional"}</span>
             )}
           </div>
         </div>
@@ -1803,7 +1803,7 @@ export default function MitraProjectApplyPage() {
                 <div>
                   <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Experience Type" : "Tipe Pengalaman"} <span className="text-ptba-red">*</span></label>
                   <select value={(exp as any).experienceType || 'powerplant'} onChange={(e) => changeExperienceType(i, e.target.value as ExperienceType)} className={inputClass}>
-                    <option value="powerplant">{locale === "en" ? "Power Plant (Preferable)" : "Pembangkit Listrik (Preferable)"}</option>
+                    <option value="powerplant">{locale === "en" ? "Power Plant (Preferred)" : "Pembangkit Listrik (Preferred)"}</option>
                     <option value="general">{locale === "en" ? "General Project" : "Proyek Umum"}</option>
                   </select>
                 </div>

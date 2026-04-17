@@ -379,7 +379,7 @@ export default function MitraProjectDetailPage() {
                 {project.indicativeDisclaimer && (
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                     <p className="text-[11px] text-amber-800 leading-relaxed">
-                      <span className="font-semibold">Catatan:</span> {project.indicativeDisclaimer}
+                      <span className="font-semibold">Disclaimer:</span> {project.indicativeDisclaimer}
                     </p>
                   </div>
                 )}

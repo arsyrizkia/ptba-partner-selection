@@ -83,7 +83,7 @@ function VerifyEmailContent() {
               onClick={() => window.open("https://mail.google.com", "_blank")}
               className="w-full rounded-lg border border-ptba-navy py-3 text-sm font-medium text-ptba-navy transition-colors hover:bg-ptba-navy/5"
             >
-              Buka Gmail
+              Buka Email
             </button>
           </div>
 
