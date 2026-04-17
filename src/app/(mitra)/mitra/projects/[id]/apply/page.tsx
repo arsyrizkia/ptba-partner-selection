@@ -542,7 +542,9 @@ export default function MitraProjectApplyPage() {
         // Always set from partner (these are not in form_data)
         setCompanyName(p.name || "");
         setCompanyCode(p.code || "");
-        setCompanyStatus(p.status || "");
+        // Only set companyStatus if it matches a valid select option
+        const validStatuses = ["BUMN", "Private", "Public"];
+        setCompanyStatus(validStatuses.includes(p.status) ? p.status : "");
         setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
         // For fields that can be in both partner profile AND form_data, draft takes priority
         setCompanyAddress(fd?.companyAddress || p.address || "");
