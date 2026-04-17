@@ -591,6 +591,11 @@ export default function ProjectDetailPage({
       setApplicationCount(apps.length);
     }).catch(() => {});
 
+    // Fetch Q&A questions count upfront for badge
+    api<{ questions: any[] }>(`/projects/${id}/questions`, { token: accessToken })
+      .then((res) => setQuestions(res.questions || []))
+      .catch(() => {});
+
     // Fetch per-category evaluations for this project and aggregate per mitra.
     // The legacy /evaluations/phase1/:id endpoint reads phase1_evaluations
     // (old score-based flow) which is empty for projects using the new
