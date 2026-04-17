@@ -80,6 +80,7 @@ export default function MitraQuestionsPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selected = questions.find((q) => q.id === selectedId);
 
@@ -152,6 +153,11 @@ export default function MitraQuestionsPage() {
     socket.emit("join-question", selectedId);
     return () => { socket.emit("leave-question", selectedId); };
   }, [socket, selectedId]);
+
+  // Auto-scroll chat to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -265,7 +271,7 @@ export default function MitraQuestionsPage() {
             </div>
 
             {/* Chat view */}
-            <div className="lg:col-span-7 rounded-xl bg-white shadow-sm overflow-hidden flex flex-col" style={{ minHeight: "70vh" }}>
+            <div className="lg:col-span-7 rounded-xl bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: "70vh" }}>
               {selected ? (
                 <>
                   <div className="border-b border-gray-100 px-5 py-3">
@@ -321,6 +327,7 @@ export default function MitraQuestionsPage() {
                         </div>
                       );
                     })}
+                    <div ref={chatEndRef} />
                   </div>
 
                   {selected.status !== "closed" && (

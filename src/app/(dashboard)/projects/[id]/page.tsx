@@ -406,6 +406,7 @@ export default function ProjectDetailPage({
   const [questions, setQuestions] = useState<any[]>([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [questionMessages, setQuestionMessages] = useState<any[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const [questionReply, setQuestionReply] = useState("");
   const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
   const [questionImagePreview, setQuestionImagePreview] = useState<string | null>(null);
@@ -689,6 +690,11 @@ export default function ProjectDetailPage({
     socket.emit("join-question", selectedQuestionId);
     return () => { socket.emit("leave-question", selectedQuestionId); };
   }, [socket, selectedQuestionId]);
+
+  // Auto-scroll chat to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [questionMessages]);
 
 
   if (loading) {
@@ -3066,7 +3072,7 @@ export default function ProjectDetailPage({
                   </div>
 
                   {/* RIGHT: Chat view */}
-                  <div className="lg:col-span-7 rounded-xl bg-white shadow-sm overflow-hidden flex flex-col" style={{ minHeight: 600 }}>
+                  <div className="lg:col-span-7 rounded-xl bg-white shadow-sm overflow-hidden flex flex-col" style={{ height: 600 }}>
                     {!selectedQuestion ? (
                       <div className="flex-1 flex items-center justify-center text-center px-6 py-12">
                         <div>
@@ -3162,6 +3168,7 @@ export default function ProjectDetailPage({
                               );
                             })
                           )}
+                          <div ref={chatEndRef} />
                         </div>
 
                         {/* Reply box */}
