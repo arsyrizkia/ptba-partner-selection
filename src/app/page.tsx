@@ -77,7 +77,7 @@ const i18n = {
     feat_1_title: "View Available Projects",
     feat_1_desc: "Access the list of projects currently open for new partner registration.",
     feat_2_title: "Upload Documents",
-    feat_2_desc: "Upload your company's required documents digitally through the portal to complete the selection process.",
+    feat_2_desc: "Upload your company's required documents through the platform.",
     feat_3_title: "Submit Registration",
     feat_3_desc: "Register your company as a partner candidate for available projects.",
     feat_4_title: "Track Evaluation Status",
