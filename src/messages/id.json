@@ -280,7 +280,7 @@
       "minEquityPercent": "Persentase Ekuitas Minimum yang Diterima",
       "minEquityHint": "Persentase ekuitas terendah yang dapat diterima perusahaan Anda",
       "cashOnHand": "Cash on Hand",
-      "cashOnHandHint": "Minimum Cash on Hand sebesar 1x dari kontribusi ekuitas yang diajukan",
+      "cashOnHandHint": "Masukkan jumlah Cash on Hand perusahaan Anda dalam USD Million",
       "errMajority": "Ekuitas pemegang saham mayoritas harus lebih dari 50%",
       "errMinority": "Ekuitas pemegang saham minoritas harus <50%",
       "errMinMajority": "Ekuitas minimum harus lebih dari 50% (tidak dapat menjadi minoritas)",
@@ -346,7 +346,7 @@
       "yearRange": "Periode Laporan Keuangan",
       "yearRangeHint": "Pilih periode 3 tahun berdasarkan ketersediaan laporan keuangan yang telah diaudit",
       "cashOnHand": "Cash on Hand",
-      "cashOnHandHint": "Min. Cash on Hand of 1x equity",
+      "cashOnHandHint": "Cash on Hand (USD Million)",
       "financialDoc": "Dokumen Keuangan",
       "financialDocLabel": "Laporan Gambaran Umum Keuangan (PDF)"
     },

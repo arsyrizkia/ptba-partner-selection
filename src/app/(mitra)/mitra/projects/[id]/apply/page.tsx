@@ -1660,47 +1660,12 @@ export default function MitraProjectApplyPage() {
                       inputMode="decimal"
                       value={cashOnHand}
                       onChange={(e) => setCashOnHand(e.target.value.replace(/[^0-9.,]/g, ""))}
-                      placeholder={hasProjectData && jvPercent > 0 ? fmtUsd(minCashOnHand) : "350"}
-                      className={cn(inputClass, "pl-12 pr-12", errBorder(cashOnHand), hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && "!border-ptba-red/60 !ring-2 !ring-ptba-red/10")}
+                      placeholder="0"
+                      className={cn(inputClass, "pl-12 pr-12", errBorder(cashOnHand))}
                       disabled={readOnly}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-ptba-gray">Million</span>
                   </div>
-                  {hasProjectData && jvPercent > 0 && cashNum > 0 && cashNum < minCashOnHand && (
-                    <p className="text-[10px] text-ptba-red mt-1">
-                      {locale === "en"
-                        ? `Minimum cash on hand is USD ${fmtUsd(minCashOnHand)} Million (1x equity contribution)`
-                        : `Minimum cash on hand adalah USD ${fmtUsd(minCashOnHand)} Million (1x kontribusi ekuitas)`}
-                    </p>
-                  )}
-                  {/* Multiplier & Classification */}
-                  {cohClass && (
-                    <div className="mt-3 rounded-lg border border-ptba-steel-blue/20 bg-ptba-section-bg p-3 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center rounded-full border border-ptba-steel-blue/30 bg-ptba-steel-blue/10 px-3 py-1 text-xs font-bold text-ptba-steel-blue">{cohClass.label}</span>
-                        <div className="relative group">
-                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-ptba-gray/20 text-ptba-gray cursor-help text-[10px] font-bold">i</div>
-                          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-72 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
-                            <p className="font-bold mb-0.5">{locale === "en" ? "Category Cash on Hand" : "Kategori Cash on Hand"}</p>
-                            <p className="text-white/60 mb-2">{locale === "en" ? "(For classification purposes only)" : "(Hanya untuk pengelompokan)"}</p>
-                            <div className="space-y-0.5">
-                              <p><span className="font-semibold">Category F</span> : 1.00x – 1.10x equity</p>
-                              <p><span className="font-semibold">Category E</span> : 1.11x – 1.20x equity</p>
-                              <p><span className="font-semibold">Category D</span> : 1.21x – 1.30x equity</p>
-                              <p><span className="font-semibold">Category C</span> : 1.31x – 1.40x equity</p>
-                              <p><span className="font-semibold">Category B</span> : 1.41x – 1.50x equity</p>
-                              <p><span className="font-semibold">Category A</span> : &gt; 1.50x equity</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-ptba-charcoal leading-relaxed">
-                        {locale === "en"
-                          ? `Your Cash on Hand of USD ${fmtUsd(cashNum)} Million is ${cohMultiplier.toFixed(2)}x of your equity contribution (USD ${fmtUsd(mitraContribution)} Million), placing you in ${cohClass.label}.`
-                          : `Cash on Hand Anda sebesar USD ${fmtUsd(cashNum)} Million adalah ${cohMultiplier.toFixed(2)}x dari kontribusi ekuitas Anda (USD ${fmtUsd(mitraContribution)} Million), menempatkan Anda di ${cohClass.label}.`}
-                      </p>
-                    </div>
-                  )}
                   <div className="mt-3">
                     <p className="text-xs font-semibold text-ptba-charcoal mb-1">{locale === "en" ? "Cash on Hand Evidence" : "Bukti Cash on Hand"} <span className="text-ptba-red">*</span></p>
                     <p className="text-[10px] text-ptba-gray italic mb-2">{locale === "en" ? "Upload proof of cash on hand (bank statement, financial report, etc.)" : "Unggah bukti cash on hand (rekening koran, laporan keuangan, dll.)"}</p>
@@ -1725,7 +1690,7 @@ export default function MitraProjectApplyPage() {
                     <p className="text-xs font-semibold text-ptba-navy">
                       {locale === "en" ? "Equity Contribution Breakdown" : "Rincian Kontribusi Ekuitas"}
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-lg bg-white p-3 text-center border border-ptba-light-gray">
                         <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Total Project Equity" : "Total Ekuitas Proyek"}</p>
                         <p className="text-sm font-bold text-ptba-navy">USD {fmtUsd(totalEquity)} Million</p>
@@ -1735,11 +1700,6 @@ export default function MitraProjectApplyPage() {
                         <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Your Equity Contribution" : "Kontribusi Ekuitas Anda"}</p>
                         <p className="text-sm font-bold text-ptba-steel-blue">USD {fmtUsd(mitraContribution)} Million</p>
                         <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(totalEquity)} × {jvPercent}%</p>
-                      </div>
-                      <div className="rounded-lg bg-white p-3 text-center border border-ptba-gold/30">
-                        <p className="text-[10px] text-ptba-gray mb-1">{locale === "en" ? "Min. Cash on Hand (1x)" : "Min. Cash on Hand (1x)"}</p>
-                        <p className="text-sm font-bold text-ptba-gold">USD {fmtUsd(minCashOnHand)} Million</p>
-                        <p className="text-[9px] text-ptba-gray mt-0.5">{fmtUsd(mitraContribution)} × 1.0</p>
                       </div>
                     </div>
                   </div>
