@@ -1259,7 +1259,7 @@ export default function MitraProjectApplyPage() {
           {/* Shareholder Composition */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{locale === "en" ? "Shareholder Composition" : "Komposisi Pemegang Saham"} <span className="text-ptba-red">*</span></label>
-            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Percentage and holdings structure" : "Persentase dan struktur kepemilikan"}</p>
+            <p className="mb-1 text-[10px] text-ptba-gray italic">{locale === "en" ? "Percentage and ownership structure of the company's shares" : "Persentase dan struktur kepemilikan saham perusahaan"}</p>
             <textarea value={shareholderComposition} onChange={(e) => setShareholderComposition(e.target.value)} placeholder={locale === "en" ? "e.g. PT ABC 51%, PT XYZ 30%, Public 19%" : "Contoh: PT ABC 51%, PT XYZ 30%, Publik 19%"} className={cn(inputClass, "min-h-[60px] resize-y", errBorder(shareholderComposition))} />
             <ErrText show={errMsg(shareholderComposition) as boolean} />
           </div>
