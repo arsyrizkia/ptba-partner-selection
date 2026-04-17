@@ -543,7 +543,7 @@ export default function MitraProjectApplyPage() {
         setCompanyName(p.name || "");
         setCompanyCode(p.code || "");
         // Only set companyStatus if it matches a valid select option
-        const validStatuses = ["Swasta", "Swasta Tbk", "BUMN", "BUMN Tbk"];
+        const validStatuses = ["Swasta", "Swasta Terbuka (Tbk)", "Badan Usaha Milik Negara (BUMN)", "BUMN Terbuka (Tbk)"];
         setCompanyStatus(validStatuses.includes(p.status) ? p.status : "");
         setYearEstablished(p.registration_date ? new Date(p.registration_date).getFullYear().toString() : "");
         // For fields that can be in both partner profile AND form_data, draft takes priority
@@ -1332,9 +1332,9 @@ export default function MitraProjectApplyPage() {
               <select value={companyStatus} onChange={(e) => setCompanyStatus(e.target.value)} className={cn(inputClass, errBorder(companyStatus))}>
                 <option value="">{locale === "en" ? "Select..." : "Pilih..."}</option>
                 <option value="Swasta">{locale === "en" ? "Private Company" : "Swasta"}</option>
-                <option value="Swasta Tbk">{locale === "en" ? "Public Listed Company (Tbk)" : "Swasta Terbuka (Tbk)"}</option>
-                <option value="BUMN">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "BUMN"}</option>
-                <option value="BUMN Tbk">{locale === "en" ? "State-Owned Listed Enterprise (BUMN Tbk)" : "BUMN Tbk"}</option>
+                <option value="Swasta Terbuka (Tbk)">{locale === "en" ? "Public Listed Private Company (Tbk)" : "Swasta Terbuka (Tbk)"}</option>
+                <option value="Badan Usaha Milik Negara (BUMN)">{locale === "en" ? "State-Owned Enterprise (BUMN)" : "Badan Usaha Milik Negara (BUMN)"}</option>
+                <option value="BUMN Terbuka (Tbk)">{locale === "en" ? "State-Owned Listed Enterprise (BUMN Tbk)" : "BUMN Terbuka (Tbk)"}</option>
               </select>
               <ErrText show={errMsg(companyStatus) as boolean} />
             </div>
