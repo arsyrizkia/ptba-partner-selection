@@ -146,7 +146,7 @@ export default function MitraProjectDetailPage() {
         <div className="flex-1 p-6">
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{tc(`typeLabels.${project.type}`)}</span>
-          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status}</span>
+          <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium">{project.status === "Berjalan" ? "Ongoing" : project.status}</span>
           {project.phase && project.phase !== "published" && (
             <span className="inline-flex rounded-full bg-white/30 px-2.5 py-0.5 text-xs font-semibold">
               {phaseLabel(project.phase, tc)}
