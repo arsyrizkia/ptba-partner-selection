@@ -836,11 +836,8 @@ export default function MitraProjectDetailPage() {
                       </div>
                       <div>
                         <h2 className="text-sm font-bold text-ptba-steel-blue">
-                          {locale === "en" ? "Questions from Partners" : "Pertanyaan yang Sering Ditanyakan Mitra"}
+                          {locale === "en" ? "Questions from prospective partners" : "Pertanyaan dari calon mitra lain"}
                         </h2>
-                        <p className="text-[11px] text-ptba-gray mt-0.5">
-                          {locale === "en" ? "Common questions asked by prospective partners" : "Pertanyaan umum dari calon mitra"}
-                        </p>
                       </div>
                       <div className="ml-auto">
                         <span className="inline-flex items-center rounded-full bg-ptba-steel-blue/5 px-2.5 py-0.5 text-[11px] font-medium text-ptba-steel-blue">
@@ -856,58 +853,6 @@ export default function MitraProjectDetailPage() {
 
             {/* Right: Sidebar */}
             <div className="space-y-4">
-              {/* Quick Stats */}
-              <div className="rounded-xl bg-white shadow-sm border border-gray-100 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-ptba-gold/10">
-                    <HelpCircle className="h-3.5 w-3.5 text-ptba-gold" />
-                  </div>
-                  <h3 className="text-sm font-bold text-ptba-charcoal">
-                    {locale === "en" ? "FAQ Summary" : "Ringkasan FAQ"}
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-ptba-section-bg p-3 text-center">
-                    <p className="text-lg font-bold text-ptba-navy">{generalFaqs.length}</p>
-                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "General" : "Umum"}</p>
-                  </div>
-                  <div className="rounded-lg bg-ptba-steel-blue/5 p-3 text-center">
-                    <p className="text-lg font-bold text-ptba-steel-blue">{mitraFaqs.length}</p>
-                    <p className="text-[10px] text-ptba-gray mt-0.5">{locale === "en" ? "Partner" : "Mitra"}</p>
-                  </div>
-                </div>
-                {/* Category breakdown */}
-                {availableCategories.length > 0 && (
-                  <div className="mt-3 space-y-1.5">
-                    {availableCategories.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setFaqFilter(faqFilter === cat ? "all" : cat)}
-                        className={cn(
-                          "flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-xs transition-all",
-                          faqFilter === cat
-                            ? "bg-ptba-navy/5 text-ptba-navy font-medium"
-                            : "hover:bg-ptba-section-bg text-ptba-gray"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "h-2 w-2 rounded-full",
-                            cat === "pendaftaran" && "bg-blue-500",
-                            cat === "evaluasi" && "bg-purple-500",
-                            cat === "dokumen" && "bg-teal-500",
-                            cat === "keuangan" && "bg-amber-500",
-                            cat === "umum" && "bg-gray-400",
-                          )} />
-                          {CAT_LABELS[cat] || cat}
-                        </div>
-                        <span className="font-medium">{catCounts[cat]}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* Have a Question? CTA */}
               {(() => {
                 const questionsOpen = project.questionsOpen && (!project.questionsCloseAt || new Date(project.questionsCloseAt) > new Date());
@@ -956,6 +901,11 @@ export default function MitraProjectDetailPage() {
                       >
                         {locale === "en" ? "View My Questions" : "Lihat Pertanyaan Saya"}
                       </button>
+                      <p className="pt-1 text-[11px] leading-relaxed text-ptba-gray">
+                        {locale === "en"
+                          ? "Note: Questions you submit can be viewed by other prospective partners."
+                          : "Catatan: Pertanyaan yang Anda ajukan dapat dilihat oleh calon mitra lainnya."}
+                      </p>
                     </div>
                   </div>
                 );
