@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo, useEffect, useCallback } from "react";
+import { use, useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -393,6 +393,7 @@ export default function ProjectDetailPage({
   const [faqSection, setFaqSection] = useState("general");
   const [faqEditId, setFaqEditId] = useState<string | null>(null);
   const [faqSaving, setFaqSaving] = useState(false);
+  const faqFormRef = useRef<HTMLDivElement | null>(null);
   const [faqFilter, setFaqFilter] = useState<"all" | "general" | "mitra">("all");
   // Q&A Tickets state
   const [faqSubTab, setFaqSubTab] = useState<"general" | "mitra" | "tickets">("general");
@@ -2518,7 +2519,7 @@ export default function ProjectDetailPage({
               <>
                 {/* Add / Edit form */}
                 {isAdmin && (
-                  <div className="rounded-xl bg-white p-6 shadow-sm">
+                  <div ref={faqFormRef} className="rounded-xl bg-white p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-sm font-bold text-ptba-navy flex items-center gap-2">
                         {faqEditId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -2622,22 +2623,27 @@ export default function ProjectDetailPage({
                                 {isAdmin && (
                                   <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
+                                      type="button"
                                       onClick={(e) => {
                                         e.preventDefault();
-                                        setFaqEditId(faq.id);
+                                        e.stopPropagation();
+                                        if (!faq.id) return;
+                                        setFaqEditId(String(faq.id));
                                         setFaqQuestion(faq.question);
                                         setFaqAnswer(faq.answer);
                                         setFaqCategory(faq.category || "umum");
                                         setFaqSection(faq.section || "general");
-                                        window.scrollTo({ top: 0, behavior: "smooth" });
+                                        faqFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                                       }}
                                       className="rounded p-1.5 text-ptba-steel-blue hover:bg-ptba-steel-blue/10"
                                     >
                                       <Pencil className="h-3.5 w-3.5" />
                                     </button>
                                     <button
+                                      type="button"
                                       onClick={async (e) => {
                                         e.preventDefault();
+                                        e.stopPropagation();
                                         if (!confirm("Hapus FAQ ini?") || !accessToken) return;
                                         await api(`/projects/${id}/faqs/${faq.id}`, { method: "DELETE", token: accessToken });
                                         setFaqs((prev) => prev.filter((f) => f.id !== faq.id));
