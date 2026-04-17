@@ -41,7 +41,7 @@ const i18n = {
     feat_1_title: "Lihat Proyek Tersedia",
     feat_1_desc: "Akses daftar proyek yang sedang membuka pendaftaran mitra baru.",
     feat_2_title: "Upload Dokumen",
-    feat_2_desc: "Unggah dokumen persyaratan perusahaan secara digital melalui portal untuk kelengkapan proses seleksi.",
+    feat_2_desc: "Unggah dokumen persyaratan perusahaan melalui platform.",
     feat_3_title: "Ajukan Pendaftaran",
     feat_3_desc: "Daftarkan perusahaan Anda sebagai calon mitra untuk proyek yang tersedia.",
     feat_4_title: "Pantau Status Evaluasi",
