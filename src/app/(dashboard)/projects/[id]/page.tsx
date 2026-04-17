@@ -2953,6 +2953,7 @@ export default function ProjectDetailPage({
                                 onChange={(e) => setQuestionsCloseAt(e.target.value)}
                                 className="text-xs text-ptba-charcoal outline-none bg-transparent"
                               />
+                              <span className="text-[10px] text-ptba-gray font-medium shrink-0">WIB</span>
                               {questionsCloseAt && (
                                 <button type="button" onClick={() => setQuestionsCloseAt("")} className="text-ptba-gray hover:text-ptba-red" title="Hapus tanggal">
                                   <X className="h-3 w-3" />
