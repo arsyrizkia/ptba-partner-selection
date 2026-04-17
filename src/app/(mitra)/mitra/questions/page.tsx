@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { MessageSquare, Send, Loader2, ArrowLeft, CheckCircle2, Clock, CheckCheck, ImagePlus, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useSocket } from "@/lib/hooks/use-socket";
 import { api, fetchWithAuth } from "@/lib/api/client";
 import { formatDate, formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 
@@ -62,6 +63,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function MitraQuestionsPage() {
   const { accessToken } = useAuth();
+  const socket = useSocket(accessToken);
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
@@ -117,6 +119,39 @@ export default function MitraQuestionsPage() {
   useEffect(() => {
     if (selectedId) loadMessages(selectedId);
   }, [selectedId, loadMessages]);
+
+  // Socket.IO: real-time Q&A updates
+  useEffect(() => {
+    if (!socket || !projectId) return;
+    socket.emit("join-project", projectId);
+
+    const onNewMessage = (msg: any) => {
+      setMessages((prev) => [...prev, msg]);
+    };
+    const onNewQuestion = () => { loadQuestions(); };
+    const onQuestionUpdated = (data: { questionId: string; status: string }) => {
+      setQuestions((prev) => prev.map((q) => q.id === data.questionId ? { ...q, status: data.status as any } : q));
+    };
+
+    socket.on("new-message", onNewMessage);
+    socket.on("new-question", onNewQuestion);
+    socket.on("question-updated", onQuestionUpdated);
+    socket.on("question-status", onQuestionUpdated);
+
+    return () => {
+      socket.off("new-message", onNewMessage);
+      socket.off("new-question", onNewQuestion);
+      socket.off("question-updated", onQuestionUpdated);
+      socket.off("question-status", onQuestionUpdated);
+    };
+  }, [socket, projectId, loadQuestions]);
+
+  // Join/leave question room
+  useEffect(() => {
+    if (!socket || !selectedId) return;
+    socket.emit("join-question", selectedId);
+    return () => { socket.emit("leave-question", selectedId); };
+  }, [socket, selectedId]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

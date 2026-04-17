@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useSocket } from "@/lib/hooks/use-socket";
 import { api, projectApi, authApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
@@ -385,6 +386,7 @@ export default function ProjectDetailPage({
 }) {
   const { id } = use(params);
   const { role, accessToken, user: authUser } = useAuth();
+  const socket = useSocket(accessToken);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("mitra");
   const [faqs, setFaqs] = useState<any[]>([]);
@@ -647,6 +649,47 @@ export default function ProjectDetailPage({
       .then((res) => setProjectApprovals((res.approvals || []).filter((a: any) => a.project_id === id)))
       .catch(() => {});
   }, [id, accessToken]);
+
+  // Socket.IO: real-time Q&A updates
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit("join-project", id);
+
+    const onNewMessage = (msg: any) => {
+      setQuestionMessages((prev) => [...prev, msg]);
+    };
+    const onNewQuestion = () => {
+      // Refresh questions list
+      if (accessToken) {
+        api<{ questions: any[] }>(`/projects/${id}/questions`, { token: accessToken })
+          .then((res) => setQuestions(res.questions || []))
+          .catch(() => {});
+      }
+    };
+    const onQuestionUpdated = (data: { questionId: string; status: string }) => {
+      setQuestions((prev) => prev.map((q) => q.id === data.questionId ? { ...q, status: data.status } : q));
+    };
+
+    socket.on("new-message", onNewMessage);
+    socket.on("new-question", onNewQuestion);
+    socket.on("question-updated", onQuestionUpdated);
+    socket.on("question-status", onQuestionUpdated);
+
+    return () => {
+      socket.off("new-message", onNewMessage);
+      socket.off("new-question", onNewQuestion);
+      socket.off("question-updated", onQuestionUpdated);
+      socket.off("question-status", onQuestionUpdated);
+    };
+  }, [socket, id, accessToken]);
+
+  // Join/leave question room when viewing a specific question
+  useEffect(() => {
+    if (!socket || !selectedQuestionId) return;
+    socket.emit("join-question", selectedQuestionId);
+    return () => { socket.emit("leave-question", selectedQuestionId); };
+  }, [socket, selectedQuestionId]);
+
 
   if (loading) {
     return (
