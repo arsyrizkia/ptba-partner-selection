@@ -1509,12 +1509,12 @@ export default function MitraProjectApplyPage() {
             const cohMultiplier = mitraContribution > 0 ? cashNum / mitraContribution : 0;
             const getCohClass = (m: number) => {
               if (m < 1.0) return null;
-              if (m <= 1.10) return { label: "Class F", color: "text-red-700 bg-red-50 border-red-200" };
-              if (m <= 1.20) return { label: "Class E", color: "text-orange-700 bg-orange-50 border-orange-200" };
-              if (m <= 1.30) return { label: "Class D", color: "text-amber-700 bg-amber-50 border-amber-200" };
-              if (m <= 1.40) return { label: "Class C", color: "text-yellow-700 bg-yellow-50 border-yellow-200" };
-              if (m <= 1.50) return { label: "Class B", color: "text-blue-700 bg-blue-50 border-blue-200" };
-              return { label: "Class A", color: "text-green-700 bg-green-50 border-green-200" };
+              if (m <= 1.10) return { label: "Category F" };
+              if (m <= 1.20) return { label: "Category E" };
+              if (m <= 1.30) return { label: "Category D" };
+              if (m <= 1.40) return { label: "Category C" };
+              if (m <= 1.50) return { label: "Category B" };
+              return { label: "Category A" };
             };
             const cohClass = hasProjectData && jvPercent > 0 && cashNum > 0 ? getCohClass(cohMultiplier) : null;
 
@@ -1678,18 +1678,19 @@ export default function MitraProjectApplyPage() {
                   {cohClass && (
                     <div className="mt-3 rounded-lg border border-ptba-steel-blue/20 bg-ptba-section-bg p-3 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${cohClass.color}`}>{cohClass.label}</span>
+                        <span className="inline-flex items-center rounded-full border border-ptba-steel-blue/30 bg-ptba-steel-blue/10 px-3 py-1 text-xs font-bold text-ptba-steel-blue">{cohClass.label}</span>
                         <div className="relative group">
                           <div className="flex h-4 w-4 items-center justify-center rounded-full bg-ptba-gray/20 text-ptba-gray cursor-help text-[10px] font-bold">i</div>
-                          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-64 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
-                            <p className="font-bold mb-1.5">{locale === "en" ? "Cash on Hand Classification:" : "Klasifikasi Cash on Hand:"}</p>
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 hidden group-hover:block w-72 rounded-lg bg-ptba-navy text-white p-3 shadow-xl text-[10px] leading-relaxed">
+                            <p className="font-bold mb-0.5">{locale === "en" ? "Category Cash on Hand" : "Kategori Cash on Hand"}</p>
+                            <p className="text-white/60 mb-2">{locale === "en" ? "(For classification purposes only)" : "(Hanya untuk pengelompokan)"}</p>
                             <div className="space-y-0.5">
-                              <p><span className="font-semibold text-red-300">Class F</span> : 1.00x – 1.10x equity</p>
-                              <p><span className="font-semibold text-orange-300">Class E</span> : 1.11x – 1.20x equity</p>
-                              <p><span className="font-semibold text-amber-300">Class D</span> : 1.21x – 1.30x equity</p>
-                              <p><span className="font-semibold text-yellow-300">Class C</span> : 1.31x – 1.40x equity</p>
-                              <p><span className="font-semibold text-blue-300">Class B</span> : 1.41x – 1.50x equity</p>
-                              <p><span className="font-semibold text-green-300">Class A</span> : &gt; 1.50x equity</p>
+                              <p><span className="font-semibold">Category F</span> : 1.00x – 1.10x equity</p>
+                              <p><span className="font-semibold">Category E</span> : 1.11x – 1.20x equity</p>
+                              <p><span className="font-semibold">Category D</span> : 1.21x – 1.30x equity</p>
+                              <p><span className="font-semibold">Category C</span> : 1.31x – 1.40x equity</p>
+                              <p><span className="font-semibold">Category B</span> : 1.41x – 1.50x equity</p>
+                              <p><span className="font-semibold">Category A</span> : &gt; 1.50x equity</p>
                             </div>
                           </div>
                         </div>
@@ -1789,7 +1790,6 @@ export default function MitraProjectApplyPage() {
             <ul className="text-xs text-ptba-gray space-y-1 list-disc pl-4">
               <li>{t("portfolioFields.note1")}</li>
               <li>{t("portfolioFields.note2")}</li>
-              <li>{t("portfolioFields.note3")}</li>
             </ul>
           </div>
 
@@ -1956,7 +1956,7 @@ export default function MitraProjectApplyPage() {
                   uploaded={isDoc(`credential_exp_${exp.uid}`)}
                   uploading={uploadedDocs[`credential_exp_${exp.uid}`]?.uploading ?? false}
                   fileName={uploadedDocs[`credential_exp_${exp.uid}`]?.name}
-                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Bukti Kontrak & Profil - ${exp.plantName || 'Proyek'}`, f)}
+                  onSelect={(f) => uploadDoc(`credential_exp_${exp.uid}`, `Evidence Project - ${exp.plantName || 'Proyek'}`, f)}
                   onDelete={() => deleteDoc(`credential_exp_${exp.uid}`)}
                   readOnly={readOnly}
                   onDownload={docDownloadHandler(`credential_exp_${exp.uid}`)}

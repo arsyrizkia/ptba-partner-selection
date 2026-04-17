@@ -290,11 +290,10 @@
       "eoiDocLabel": "Signed Expression of Interest Letter (PDF, signed by authorized representative)"
     },
     "portfolioFields": {
-      "relevantProjects": "Relevant Projects in the Last 10 Years",
+      "relevantProjects": "Relevant Projects in the Last 15 Years",
       "notes": "Notes:",
       "note1": "Parent Company data may be used if shareholding is min. 51% and accompanied by a Support Letter",
       "note2": "Affiliate data may be used if shareholding is >90%",
-      "note3": "Mixing own company data with parent/affiliate data is not allowed",
       "experienceNumber": "Experience #{number}",
       "experienceCategory": "Experience Category",
       "categoryDeveloper": "As a Successful Developer",
@@ -327,8 +326,8 @@
       "projectDescription": "Brief Description",
       "projectYear": "Completion Year",
       "projectScale": "Project Scale / Capacity",
-      "credentialDoc": "Contract Evidence & Project Profile (PDF)",
-      "credentialDocHint": "Include: contract copy, project photos, technical specifications, reference letter from employer, and other supporting documents.",
+      "credentialDoc": "Evidence Project (PDF)",
+      "credentialDocHint": "You may include contract copies, project photos, technical specifications, reference letters from employers, and other supporting documents.",
       "addExperience": "Add Experience",
       "portfolioDoc": "Portfolio Document",
       "portfolioDocLabel": "Project Experience Portfolio Document (PDF)"

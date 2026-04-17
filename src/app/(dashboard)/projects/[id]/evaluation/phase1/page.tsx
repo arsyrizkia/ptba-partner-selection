@@ -80,12 +80,12 @@ function EvalField({ label, value }: { label: string; value?: string }) {
 
 function getCohClass(m: number) {
   if (m < 1.0) return null;
-  if (m <= 1.10) return { label: "Class F", color: "text-red-700 bg-red-50 border-red-200" };
-  if (m <= 1.20) return { label: "Class E", color: "text-orange-700 bg-orange-50 border-orange-200" };
-  if (m <= 1.30) return { label: "Class D", color: "text-amber-700 bg-amber-50 border-amber-200" };
-  if (m <= 1.40) return { label: "Class C", color: "text-yellow-700 bg-yellow-50 border-yellow-200" };
-  if (m <= 1.50) return { label: "Class B", color: "text-blue-700 bg-blue-50 border-blue-200" };
-  return { label: "Class A", color: "text-green-700 bg-green-50 border-green-200" };
+  if (m <= 1.10) return { label: "Category F" };
+  if (m <= 1.20) return { label: "Category E" };
+  if (m <= 1.30) return { label: "Category D" };
+  if (m <= 1.40) return { label: "Category C" };
+  if (m <= 1.50) return { label: "Category B" };
+  return { label: "Category A" };
 }
 
 function CohBadge({ fd, project }: { fd: any; project: any }) {
@@ -101,7 +101,7 @@ function CohBadge({ fd, project }: { fd: any; project: any }) {
   const mult = cash / mitraEq;
   const cls = getCohClass(mult);
   if (!cls) return <span className="ml-1 text-[10px] text-red-600 font-semibold">({mult.toFixed(2)}x — Below minimum)</span>;
-  return <span className={`ml-1 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${cls.color}`}>{mult.toFixed(2)}x — {cls.label}</span>;
+  return <span className="ml-1 inline-flex items-center rounded-full border border-ptba-steel-blue/30 bg-ptba-steel-blue/10 px-2 py-0.5 text-[10px] font-bold text-ptba-steel-blue">{mult.toFixed(2)}x — {cls.label}</span>;
 }
 
 const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, project?: any) => React.ReactNode }> = {
