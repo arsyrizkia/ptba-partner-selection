@@ -1124,7 +1124,7 @@ export default function MitraProjectApplyPage() {
               <p className="text-xs font-semibold text-ptba-gold">{t("deadline")}</p>
               <p className="text-[11px] text-ptba-gray mt-0.5">
                 {project.phase1Deadline
-                  ? <>{t.rich("deadlineDesc", { date: new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" }), strong: (chunks) => <strong>{chunks}</strong> })}</>
+                  ? <>{t.rich("deadlineDesc", { date: `${new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })} pukul ${new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB`, strong: (chunks) => <strong>{chunks}</strong> })}</>
                   : <>{t("deadlineDescDefault")}</>
                 }
               </p>
