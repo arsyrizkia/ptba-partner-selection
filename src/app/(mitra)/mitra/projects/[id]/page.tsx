@@ -161,7 +161,7 @@ export default function MitraProjectDetailPage() {
             return deadline ? (
               <span className="inline-flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
-                {label}: {new Date(deadline).toLocaleDateString(dateLocale)}
+                {label}: {new Date(deadline).toLocaleDateString(dateLocale)}, {new Date(deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB
               </span>
             ) : null;
           })()}
@@ -930,7 +930,7 @@ export default function MitraProjectDetailPage() {
                       <div>
                         <p className="text-[11px] text-ptba-gray">{locale === "en" ? "Phase 1 Deadline" : "Deadline Tahap 1"}</p>
                         <p className="text-xs font-semibold text-ptba-charcoal">
-                          {new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}
+                          {new Date(project.phase1Deadline).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" })}, {new Date(project.phase1Deadline).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB
                         </p>
                       </div>
                     </div>
