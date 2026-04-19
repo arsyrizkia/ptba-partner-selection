@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, User, LogOut } from "lucide-react";
+import { Bell, ChevronDown, User, LogOut, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Breadcrumb, { type BreadcrumbItem } from "./breadcrumb";
@@ -38,9 +38,10 @@ function toNotification(row: NotificationRow): Notification {
 interface HeaderProps {
   title: string;
   breadcrumbs?: BreadcrumbItem[];
+  onMobileMenuToggle?: () => void;
 }
 
-export default function Header({ title, breadcrumbs }: HeaderProps) {
+export default function Header({ title, breadcrumbs, onMobileMenuToggle }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -105,9 +106,19 @@ export default function Header({ title, breadcrumbs }: HeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 right-0 left-[260px] z-30 flex h-16 items-center justify-between border-b border-ptba-light-gray bg-white px-6">
-      {/* Left: Breadcrumbs */}
-      <Breadcrumb items={items} />
+    <header className="fixed top-0 right-0 left-0 lg:left-[260px] z-30 flex h-16 items-center justify-between border-b border-ptba-light-gray bg-white px-4 lg:px-6">
+      {/* Left: Hamburger + Breadcrumbs */}
+      <div className="flex items-center gap-3">
+        {onMobileMenuToggle && (
+          <button
+            onClick={onMobileMenuToggle}
+            className="rounded-lg p-2 text-ptba-gray hover:bg-ptba-section-bg hover:text-ptba-navy transition-colors lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
+        <Breadcrumb items={items} />
+      </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-4">

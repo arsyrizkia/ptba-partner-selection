@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -41,6 +41,12 @@ export default function DashboardLayout({
   const router = useRouter();
   const { user, role } = useAuth();
   const title = getPageTitle(pathname);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!user) {
@@ -56,9 +62,16 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-ptba-off-white">
-      <Sidebar currentPath={pathname} />
-      <Header title={title} />
-      <main className="ml-[260px] min-h-screen pt-16 p-6">{children}</main>
+      <Sidebar
+        currentPath={pathname}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
+      <Header
+        title={title}
+        onMobileMenuToggle={() => setMobileOpen((prev) => !prev)}
+      />
+      <main className="min-h-screen pt-16 p-4 lg:ml-[260px] lg:p-6">{children}</main>
     </div>
   );
 }
