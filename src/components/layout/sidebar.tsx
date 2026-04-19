@@ -14,6 +14,7 @@ import {
   Settings,
   ImageIcon,
   LogOut,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -35,9 +36,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 interface SidebarProps {
   currentPath: string;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export default function Sidebar({ currentPath }: SidebarProps) {
+export default function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps) {
   const { user, role, logout } = useAuth();
   const router = useRouter();
 
@@ -61,19 +64,30 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     router.push("/login");
   };
 
-  return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col bg-ptba-navy">
+  const sidebarContent = (
+    <>
       {/* Logo Area */}
-      <div className="px-6 pt-6 pb-4">
-        <Image
-          src="/ptba-logo.svg"
-          alt="PT Bukit Asam (Persero) Tbk"
-          width={160}
-          height={29}
-          className="brightness-0 invert mb-2"
-          priority
-        />
-        <p className="text-sm text-ptba-gold">Sistem Pemilihan Mitra</p>
+      <div className="flex items-center justify-between px-6 pt-6 pb-4">
+        <div>
+          <Image
+            src="/ptba-logo.svg"
+            alt="PT Bukit Asam (Persero) Tbk"
+            width={160}
+            height={29}
+            className="brightness-0 invert mb-2"
+            priority
+          />
+          <p className="text-sm text-ptba-gold">Sistem Pemilihan Mitra</p>
+        </div>
+        {/* Mobile close button */}
+        {onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            className="lg:hidden rounded-lg p-1.5 text-white/60 hover:text-white hover:bg-ptba-navy-light transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Gold Divider */}
@@ -93,6 +107,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onMobileClose}
               className={cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
@@ -129,6 +144,28 @@ export default function Sidebar({ currentPath }: SidebarProps) {
           <LogOut className="h-4 w-4" />
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col bg-ptba-navy lg:flex">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay + sidebar */}
+      {mobileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={onMobileClose}
+          />
+          <aside className="fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col bg-ptba-navy lg:hidden">
+            {sidebarContent}
+          </aside>
+        </>
+      )}
+    </>
   );
 }
