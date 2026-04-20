@@ -2129,7 +2129,7 @@ export default function MitraProjectApplyPage() {
             <label className="block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingAgency")} <span className="text-[10px] text-ptba-gray font-normal">{locale === "en" ? "(Optional)" : "(Opsional)"}</span></label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {[
-                { value: "DNDB", label: "DNDB" },
+                { value: "D&B", label: "D&B (Dun & Bradstreet)" },
                 { value: "S&P", label: "S&P (Pefindo)" },
                 { value: "Moodys", label: "Moody's" },
                 { value: "Fitch", label: "Fitch" },
@@ -2151,7 +2151,7 @@ export default function MitraProjectApplyPage() {
                 <label className="mb-1 block text-xs font-medium text-ptba-charcoal">{t("financialFields.ratingValue")} ({creditRatingAgency})</label>
                 <input
                   type="text"
-                  placeholder={creditRatingAgency === "DNDB" ? "e.g. SA2" : creditRatingAgency === "S&P" ? "e.g. AA+" : creditRatingAgency === "Moodys" ? "e.g. Aaa" : creditRatingAgency === "Fitch" ? "e.g. AAA" : "e.g. A+"}
+                  placeholder={creditRatingAgency === "D&B" ? "e.g. SA2" : creditRatingAgency === "S&P" ? "e.g. AA+" : creditRatingAgency === "Moodys" ? "e.g. Aaa" : creditRatingAgency === "Fitch" ? "e.g. AAA" : "e.g. A+"}
                   value={creditRatingValue}
                   onChange={(e) => setCreditRatingValue(e.target.value)}
                   className={cn(inputClass, "max-w-xs")}
