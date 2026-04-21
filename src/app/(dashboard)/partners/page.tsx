@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import { DataTable } from "@/components/ui/data-table";
@@ -19,6 +19,17 @@ interface PartnerRow {
   registration_date: string;
   email: string | null;
   phone: string | null;
+  address: string | null;
+  website: string | null;
+  npwp: string | null;
+  siup: string | null;
+  nib: string | null;
+  contact_person: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  business_overview: string | null;
+  indonesia_office_address: string | null;
+  created_at: string | null;
   logo_url: string | null;
   documents: { id: string; status: string }[];
 }
@@ -40,6 +51,47 @@ const statusOptions = [
   { value: "Dalam Review", label: "Dalam Review" },
   { value: "Tidak Aktif", label: "Tidak Aktif" },
 ];
+
+function exportPartnersCSV(data: PartnerRow[]) {
+  const headers = [
+    "Kode", "Nama Mitra", "Industri / Business Overview", "Status",
+    "Tanggal Registrasi", "Email", "Telepon", "Alamat",
+    "Alamat Kantor Indonesia", "Website", "NPWP", "SIUP", "NIB",
+    "Contact Person", "Telepon CP", "Email CP", "Tanggal Dibuat",
+  ];
+  const escape = (v: string | null | undefined) => {
+    if (v == null) return "";
+    const s = String(v).replace(/"/g, '""');
+    return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s}"` : s;
+  };
+  const rows = data.map((p) => [
+    escape(p.code),
+    escape(p.name),
+    escape(p.industry),
+    escape(p.status),
+    escape(p.registration_date ? new Date(p.registration_date).toLocaleDateString("id-ID") : null),
+    escape(p.email),
+    escape(p.phone),
+    escape(p.address),
+    escape(p.indonesia_office_address),
+    escape(p.website),
+    escape(p.npwp),
+    escape(p.siup),
+    escape(p.nib),
+    escape(p.contact_person),
+    escape(p.contact_phone),
+    escape(p.contact_email),
+    escape(p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID") : null),
+  ]);
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mitra-prima-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function PartnersPage() {
   const router = useRouter();
@@ -143,6 +195,15 @@ export default function PartnersPage() {
       {/* Page Title */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ptba-charcoal">Daftar Mitra</h1>
+        {partners.length > 0 && (
+          <button
+            onClick={() => exportPartnersCSV(partners)}
+            className="inline-flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-white px-4 py-2 text-sm font-medium text-ptba-charcoal shadow-sm hover:bg-ptba-section-bg transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        )}
       </div>
 
       {/* Filters */}
