@@ -71,7 +71,7 @@ export default function DashboardLayout({
         title={title}
         onMobileMenuToggle={() => setMobileOpen((prev) => !prev)}
       />
-      <main className="min-h-screen pt-16 p-4 lg:ml-[260px] lg:p-6">{children}</main>
+      <main className="min-h-screen pt-16 px-4 pb-4 lg:ml-[260px] lg:px-6 lg:pb-6">{children}</main>
     </div>
   );
 }
