@@ -46,13 +46,14 @@ import {
   CalendarClock,
   ImagePlus,
   GripVertical,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSocket } from "@/lib/hooks/use-socket";
-import { api, projectApi, authApi, downloadDocument, fetchWithAuth } from "@/lib/api/client";
+import { api, projectApi, authApi, downloadDocument, fetchWithAuth, sendDraftReminder } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
@@ -512,6 +513,8 @@ export default function ProjectDetailPage({
   const [applicationCount, setApplicationCount] = useState(0);
   const [projectApplications, setProjectApplications] = useState<any[]>([]);
   const [projectEvaluations, setProjectEvaluations] = useState<any[]>([]);
+  const [mitraSubTab, setMitraSubTab] = useState<"submitted" | "draft">("submitted");
+  const [reminderSending, setReminderSending] = useState<string | null>(null);
   const [projectApprovals, setProjectApprovals] = useState<any[]>([]);
 
   // Edit mode state
@@ -589,9 +592,9 @@ export default function ProjectDetailPage({
 
     // Fetch applications for this project
     api<{ applications: any[] }>("/applications", { token: accessToken }).then((res) => {
-      const apps = (res.applications || []).filter((a: any) => a.project_id === id && a.status !== "Draft");
+      const apps = (res.applications || []).filter((a: any) => a.project_id === id);
       setProjectApplications(apps);
-      setApplicationCount(apps.length);
+      setApplicationCount(apps.filter((a: any) => a.status !== "Draft").length);
     }).catch(() => {});
 
     // Fetch Q&A questions count upfront for badge
@@ -720,13 +723,20 @@ export default function ProjectDetailPage({
   const isPhase1 = project.phase?.startsWith("phase1");
   const isPhase2 = project.phase?.startsWith("phase2");
 
-  // Derive partner list from applications + evaluations
+  // Separate submitted from draft applications
+  const submittedApps = projectApplications.filter((a: any) => a.status !== "Draft");
+  const draftApps = projectApplications.filter((a: any) => a.status === "Draft");
+  const isRegistrationOpen = !!project?.isOpenForApplication
+    && (!project?.phase1Deadline || new Date(project.phase1Deadline) > new Date());
+  const showDraftToggle = isRegistrationOpen && (role === "ebd" || role === "super_admin");
+
+  // Derive partner list from submitted applications only + evaluations
   const shortlistedIds = new Set(
-    projectApplications
+    submittedApps
       .filter((a: any) => a.status === "Shortlisted" || a.phase1_result === "Lolos")
       .map((a: any) => a.partner_id)
   );
-  const projectPartners: any[] = projectApplications.map((a: any) => {
+  const projectPartners: any[] = submittedApps.map((a: any) => {
     const evaluation = projectEvaluations.find((e: any) => e.application_id === a.id);
     const allDocs = [
       ...(a.phase1Documents || []),
@@ -1525,6 +1535,102 @@ export default function ProjectDetailPage({
             </div>
           )}
 
+          {/* Sub-tab: Sudah Mendaftar / Masih Draft */}
+          {showDraftToggle && (
+            <div className="flex gap-1 mb-4 border-b border-ptba-light-gray -mx-5 px-5 pb-0">
+              {(["submitted", "draft"] as const).map((tab) => {
+                const isActive = mitraSubTab === tab;
+                const count = tab === "submitted" ? submittedApps.length : draftApps.length;
+                const label = tab === "submitted" ? "Sudah Mendaftar" : "Masih Draft";
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setMitraSubTab(tab)}
+                    className={cn(
+                      "relative inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors",
+                      isActive
+                        ? "border-ptba-navy text-ptba-navy"
+                        : "border-transparent text-ptba-gray hover:text-ptba-charcoal hover:border-ptba-light-gray"
+                    )}
+                  >
+                    {label}
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      isActive ? "bg-ptba-navy/10 text-ptba-navy" : "bg-ptba-section-bg text-ptba-gray"
+                    )}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Draft mitra list */}
+          {mitraSubTab === "draft" && showDraftToggle && (
+            <div className="space-y-3">
+              {draftApps.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Mail className="mx-auto h-10 w-10 text-ptba-light-gray mb-3" />
+                  <p className="text-sm text-ptba-gray">Belum ada mitra yang sedang mengisi draft pendaftaran.</p>
+                </div>
+              ) : (
+                draftApps.map((app: any) => {
+                  const now = new Date();
+                  const updated = new Date(app.updated_at || app.applied_at);
+                  const daysAgo = Math.floor((now.getTime() - updated.getTime()) / 86400000);
+                  const lastUpdated = daysAgo === 0 ? "Hari ini" : daysAgo === 1 ? "1 hari lalu" : `${daysAgo} hari lalu`;
+                  return (
+                    <div key={app.id} className="rounded-xl border border-ptba-light-gray bg-white p-4 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {app.partner_logo_url ? (
+                          <img src={app.partner_logo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover border border-ptba-light-gray" />
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-500">
+                            {(app.partner_name || "?").charAt(0)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-ptba-charcoal truncate">{app.partner_name}</p>
+                          <p className="text-xs text-ptba-gray truncate">{app.partner_id?.substring(0, 8)}</p>
+                          <p className="text-xs text-ptba-gray mt-0.5">Terakhir diubah {lastUpdated}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Draft</span>
+                        <button
+                          onClick={async () => {
+                            if (!accessToken || reminderSending === app.id) return;
+                            setReminderSending(app.id);
+                            try {
+                              const result = await sendDraftReminder(app.id, accessToken);
+                              alert(`Pengingat dikirim ke ${result.toEmail}`);
+                            } catch (err: any) {
+                              alert(err?.message || "Gagal mengirim pengingat");
+                            } finally {
+                              setReminderSending(null);
+                            }
+                          }}
+                          disabled={reminderSending === app.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors disabled:opacity-50"
+                        >
+                          {reminderSending === app.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Mail className="h-3.5 w-3.5" />
+                          )}
+                          Kirim Pengingat
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* Submitted mitra content */}
+          {(mitraSubTab === "submitted" || !showDraftToggle) && (
+            <>
+
           {/* Fase 1 Active: Card-based EBD evaluation */}
           {isPhase1 && !isPhase1Approved && (
             <div className="space-y-3">
@@ -1912,6 +2018,8 @@ export default function ProjectDetailPage({
                   : "Belum ada mitra yang berpartisipasi dalam proyek ini."}
               </p>
             </div>
+          )}
+            </>
           )}
         </div>
       )}

@@ -586,6 +586,13 @@ export async function downloadDocument(fileKey: string, token: string, fileName?
   }
 }
 
+export async function sendDraftReminder(applicationId: string, token: string): Promise<{ sent: boolean; toEmail: string }> {
+  return api<{ sent: boolean; toEmail: string }>(`/applications/${applicationId}/send-draft-reminder`, {
+    method: "POST",
+    token,
+  });
+}
+
 export function partnerApi(token: string) {
   return {
     getById: (id: string) =>
