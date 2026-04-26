@@ -22,7 +22,7 @@ export function generateApplicationPdf(
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Formulir Pendaftaran Fase 1 — ${esc(partnerName)}</title>
+<title>Formulir Pendaftaran Evaluasi Tahap 1 — ${esc(partnerName)}</title>
 <style>
 @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
 @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-break { break-inside: avoid; } }
@@ -75,7 +75,7 @@ tr:nth-child(even) td { background: #fafbfc; }
 <!-- Header -->
 <div class="header">
   <div class="header-left">
-    <h1>Formulir Pendaftaran Fase 1</h1>
+    <h1>Formulir Pendaftaran Evaluasi Tahap 1</h1>
     <p>${esc(partnerName)}</p>
   </div>
   <div class="header-right">

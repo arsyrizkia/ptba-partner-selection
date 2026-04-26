@@ -57,12 +57,12 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
   if (phase === "cancelled") return { label: "Dibatalkan", color: "bg-ptba-red/10 text-ptba-red border-ptba-red/20" };
   if (phase.startsWith("phase1")) {
     const sub: Record<string, string> = {
-      phase1_registration: "PQ · Pendaftaran",
-      phase1_closed: "PQ · Ditutup",
-      phase1_evaluation: "PQ · Penilaian",
-      phase1_approval: "PQ · Persetujuan",
+      phase1_registration: "Pendaftaran",
+      phase1_closed: "Ditutup",
+      phase1_evaluation: "Penilaian",
+      phase1_approval: "Persetujuan",
       phase1_approved: "Berjalan",
-      phase1_announcement: "PQ · Pengumuman",
+      phase1_announcement: "Pengumuman",
     };
     return { label: sub[phase] ?? "Berjalan", color: "bg-ptba-navy/10 text-ptba-navy border-ptba-navy/20" };
   }
@@ -74,7 +74,7 @@ function phaseInfo(phase?: string): { label: string; color: string } | null {
       phase2_announcement: "FRP · Pengumuman",
       phase2_approved: "FRP",
     };
-    return { label: sub2[phase] ?? "PQ", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
+    return { label: sub2[phase] ?? "FRP", color: "bg-ptba-steel-blue/10 text-ptba-steel-blue border-ptba-steel-blue/20" };
   }
   const sub3: Record<string, string> = {
     phase3_registration: "Proposal & FRP · Pendaftaran",
