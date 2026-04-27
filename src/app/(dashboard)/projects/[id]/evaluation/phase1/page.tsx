@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ChevronRight, CheckCircle2, Clock, FileText, Download,
-  Save, Send, ChevronLeft, User, Lock, AlertTriangle, RotateCcw,
+  Save, Send, ChevronLeft, User, Lock, AlertTriangle, Info,
   Loader2, ChevronDown, LockKeyhole, X, Upload, Trash2, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -17,7 +17,6 @@ import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 // ── Document name formatter ──────────────────────────────────────────────────
 const DOC_NAME_MAP: Record<string, string> = {
@@ -317,6 +316,7 @@ interface CatEval {
   finalizedAt?: string;
   evaluatorId?: string;
   evaluatorName?: string;
+  evaluatedAt?: string;
   evidenceFiles: { id: string; fileName: string; fileKey: string }[];
 }
 
@@ -524,6 +524,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       finalizedAt: e.finalizedAt || e.finalized_at,
       evaluatorId: e.evaluatorId || e.evaluator_id,
       evaluatorName: e.evaluatorName || e.evaluator_name,
+      evaluatedAt: e.evaluatedAt || e.evaluated_at,
       evidenceFiles: (e.evidence || e.evidenceFiles || e.evidence_files || []).map((f: any) => ({
         id: f.id,
         fileName: f.fileName || f.file_name || f.name,
@@ -1108,6 +1109,18 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 flex items-center gap-2">
                           <Lock className="h-4 w-4 text-ptba-gray shrink-0" />
                           <p className="text-xs text-ptba-gray">Evaluasi ini telah difinalisasi dan tidak dapat diubah.{myEval?.finalizedAt && ` (${formatDate(myEval.finalizedAt)})`}</p>
+                        </div>
+                      )}
+
+                      {/* Last-edited-by banner — shown when another PIC saved this draft */}
+                      {!isMyFinalized && myEval?.evaluatorId && myEval.evaluatorId !== user?.id && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
+                          <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-800">
+                            Terakhir diedit oleh <span className="font-semibold">{myEval.evaluatorName ?? "PIC lain"}</span>
+                            {myEval.evaluatedAt && <span className="text-amber-700"> · {formatDate(myEval.evaluatedAt)}</span>}.{" "}
+                            Perubahan Anda akan menggantikan draf ini.
+                          </p>
                         </div>
                       )}
 
