@@ -55,16 +55,22 @@ const CATEGORY_LABELS: Record<string, { label: string; labelId: string; color: s
 };
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
-function getUserCategory(project: any, userId: string, role: string): string | null {
-  if (role === "super_admin") return null; // can view/evaluate any
-  const pics = project.phasePics || [];
-  const myPic = pics.find((p: any) => p.userId === userId && p.phase === "phase1");
-  if (!myPic) return null;
-  if (role === "keuangan") return "keuangan";
-  if (role === "hukum") return "hukum";
-  if (role === "risiko") return "risiko";
-  if (role === "ebd" && myPic.subcategory) return myPic.subcategory;
-  return null;
+function getUserCategories(project: any, userId: string, role: string): string[] {
+  if (role === "super_admin") return [];
+  const pics = (project.phasePics || []).filter(
+    (p: any) => p.userId === userId && p.phase === "phase1"
+  );
+  if (pics.length === 0) return [];
+  if (role === "ebd") {
+    const cats = pics
+      .map((p: any) => p.subcategory)
+      .filter((c: any): c is string => typeof c === "string" && c.length > 0);
+    return Array.from(new Set(cats)) as string[];
+  }
+  if (role === "keuangan") return ["keuangan"];
+  if (role === "hukum") return ["hukum"];
+  if (role === "risiko") return ["risiko"];
+  return [];
 }
 
 // ── Form Data Rendering ──────────────────────────────────────────────────────
@@ -382,6 +388,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
 
   // For super_admin: pick which category to evaluate
   const [superAdminCat, setSuperAdminCat] = useState<string>("pasar");
+  // For multi-aspect non-super_admin users: selected category
+  const [myCat, setMyCat] = useState<string | null>(null);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
@@ -400,11 +408,11 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   };
 
   // Access control
-  const myCategory = project && user ? getUserCategory(project, user.id, role || "") : undefined;
+  const myCategories = project && user ? getUserCategories(project, user.id, role || "") : [];
   const phase1Pics = (project?.phasePics || []).filter((p: any) => p.phase === "phase1");
   const isPhase1Pic = phase1Pics.some((p: any) => p.userId === user?.id);
   const isAuthorized = role === "super_admin" || isPhase1Pic;
-  const activeCategory = role === "super_admin" ? superAdminCat : myCategory;
+  const activeCategory = role === "super_admin" ? superAdminCat : (myCat ?? myCategories[0] ?? undefined);
 
   // Phase checks
   const projectPhase = project?.phase as string | undefined;
@@ -448,6 +456,14 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   }, [id, accessToken]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Default myCat to first assigned category when project data loads
+  useEffect(() => {
+    if (myCategories.length > 0 && (!myCat || !myCategories.includes(myCat))) {
+      setMyCat(myCategories[0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myCategories.join(",")]);
 
   // ── Fetch detail for selected app ──────────────────────────────────────────
   useEffect(() => {
@@ -845,6 +861,29 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
           <div className="flex flex-wrap gap-2">
             {ALL_CATEGORIES.map((cat) => (
               <button key={cat} onClick={() => setSuperAdminCat(cat)} className={cn("rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", superAdminCat === cat ? CATEGORY_LABELS[cat].color + " ring-2 ring-offset-1 ring-gray-400" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}>
+                {CATEGORY_LABELS[cat].labelId}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Multi-aspect evaluator: category picker */}
+      {role !== "super_admin" && myCategories.length > 1 && (
+        <div className="rounded-xl bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-ptba-gray mb-2">Evaluasi sebagai kategori:</p>
+          <div className="flex flex-wrap gap-2">
+            {myCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setMyCat(cat)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                  (myCat ?? myCategories[0]) === cat
+                    ? CATEGORY_LABELS[cat].color + " ring-2 ring-offset-1 ring-gray-400"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                )}
+              >
                 {CATEGORY_LABELS[cat].labelId}
               </button>
             ))}
