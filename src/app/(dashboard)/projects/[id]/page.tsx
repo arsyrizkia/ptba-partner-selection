@@ -27,11 +27,7 @@ import {
   Rocket,
   X,
   Calendar,
-  DollarSign,
-  CreditCard,
   Eye,
-  ThumbsUp,
-  ThumbsDown,
   XCircle,
   Download,
   ChevronDown,
@@ -57,11 +53,6 @@ import { api, projectApi, authApi, downloadDocument, fetchWithAuth, sendDraftRem
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
-function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toFixed(1)} T`;
-  if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
-  return `Rp ${(value / 1_000_000).toFixed(0)} Jt`;
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
@@ -497,16 +488,7 @@ export default function ProjectDetailPage({
     const dd = String(d.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}T23:59`;
   });
-  const [phase2Fee, setPhase2Fee] = useState(50000000);
   const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
-
-  // Payment verification state
-  type PaymentDecision = "pending" | "approved" | "rejected";
-  const [paymentDecisions, setPaymentDecisions] = useState<Record<string, PaymentDecision>>({});
-  const [payRejectNotes, setPayRejectNotes] = useState<Record<string, string>>({});
-  const [showPayRejectForm, setShowPayRejectForm] = useState<string | null>(null);
-  const [viewingPayProof, setViewingPayProof] = useState<string | null>(null);
-  const [showUnverifiedWarning, setShowUnverifiedWarning] = useState(false);
   const [showOpenRegModal, setShowOpenRegModal] = useState(false);
   const [showCloseRegModal, setShowCloseRegModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -577,7 +559,6 @@ export default function ProjectDetailPage({
     projectApi(accessToken).getById(id).then((res) => {
       setProject(res.data);
       if (Array.isArray(res.data.faqs)) setFaqs(res.data.faqs);
-      if (res.data.registrationFee) setPhase2Fee(Number(res.data.registrationFee));
       if (typeof res.data.questionsOpen === "boolean") setQuestionsOpen(res.data.questionsOpen);
       const closeAt = (res.data as any).questionsCloseAt as string | null | undefined;
       if (closeAt) {
@@ -939,27 +920,6 @@ export default function ProjectDetailPage({
               />
             </div>
 
-            {/* Registration fee */}
-            <div className="mb-4">
-              <label className="flex items-center gap-1.5 text-sm font-semibold text-ptba-charcoal mb-1.5">
-                <DollarSign className="h-4 w-4 text-ptba-gray" />
-                Commitment Fee Fase 2
-              </label>
-              <p className="text-[10px] text-ptba-gray mb-1.5 italic">Mitra wajib membayar commitment fee untuk melanjutkan proses seleksi ke Fase 2. Biaya ini bersifat non-refundable.</p>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ptba-gray">Rp</span>
-                <input
-                  type="text"
-                  value={phase2Fee.toLocaleString("id-ID")}
-                  onChange={(e) => {
-                    const num = parseInt(e.target.value.replace(/\D/g, ""), 10);
-                    if (!isNaN(num)) setPhase2Fee(num);
-                  }}
-                  className="w-full rounded-lg border border-ptba-light-gray pl-10 pr-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
-                />
-              </div>
-            </div>
-
             {/* Actions */}
             <div className="flex gap-3">
               <button
@@ -977,7 +937,6 @@ export default function ProjectDetailPage({
                       method: "POST",
                       body: {
                         phase2Deadline,
-                        registrationFee: phase2Fee,
                       },
                       token: accessToken,
                     });
@@ -999,93 +958,6 @@ export default function ProjectDetailPage({
           </div>
         </div>
       )}
-
-      {/* Unverified Payment Warning Modal */}
-      {showUnverifiedWarning && (() => {
-        const shortlistedIds = project.shortlistedPartners ?? [];
-        const unverifiedMitra = shortlistedIds.filter((pid: string) => {
-          const app = undefined as any;
-          if (!app) return true;
-          const decision = paymentDecisions[app.id];
-          if (decision === "approved") return false;
-          if (!decision && app.feePaymentStatus === "Sudah Bayar") return false;
-          return true;
-        }).map((pid: string) => (undefined as any)?.name ?? pid);
-
-        const verifiedMitra = shortlistedIds.filter((pid: string) => {
-          const app = undefined as any;
-          if (!app) return false;
-          const decision = paymentDecisions[app.id];
-          if (decision === "approved") return true;
-          if (!decision && app.feePaymentStatus === "Sudah Bayar") return true;
-          return false;
-        }).map((pid: string) => (undefined as any)?.name ?? pid);
-
-        return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setShowUnverifiedWarning(false)}>
-            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-ptba-charcoal">Pembayaran Belum Lengkap</h3>
-                  <p className="text-sm text-ptba-gray mt-1">
-                    Terdapat <span className="font-semibold text-amber-600">{unverifiedMitra.length} mitra</span> yang belum menyelesaikan pembayaran. Mitra tersebut akan <span className="font-semibold text-red-600">gagal</span> melanjutkan ke Fase 2.
-                  </p>
-                </div>
-              </div>
-
-              {/* Unverified list */}
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 mb-3">
-                <p className="text-xs font-semibold text-red-800 mb-1.5">Tidak Dapat Melanjutkan:</p>
-                {unverifiedMitra.map((name: string) => (
-                  <div key={name} className="flex items-center gap-1.5 text-xs text-red-700">
-                    <XCircle className="h-3 w-3 shrink-0" /> {name}
-                  </div>
-                ))}
-              </div>
-
-              {/* Verified list */}
-              {verifiedMitra.length > 0 && (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-3 mb-4">
-                  <p className="text-xs font-semibold text-green-800 mb-1.5">Melanjutkan ke Fase 2:</p>
-                  {verifiedMitra.map((name: string) => (
-                    <div key={name} className="flex items-center gap-1.5 text-xs text-green-700">
-                      <CheckCircle2 className="h-3 w-3 shrink-0" /> {name}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <p className="text-xs text-ptba-gray mb-4">Apakah Anda yakin ingin melanjutkan?</p>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowUnverifiedWarning(false)}
-                  className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                >
-                  Kembali
-                </button>
-                <button
-                  onClick={() => {
-                    const verifiedCount = verifiedMitra.length;
-                    alert(
-                      `Fase 2 berhasil dimulai!\n\nBatas Waktu: ${phase2Deadline}\nBiaya Pendaftaran: Rp ${phase2Fee.toLocaleString("id-ID")}\nDivisi: ${phase2Divisions.join(", ")}\n\nNotifikasi dikirim ke ${verifiedCount} mitra yang terverifikasi.\n${unverifiedMitra.length} mitra gagal melanjutkan.`
-                    );
-                    setShowUnverifiedWarning(false);
-                    setShowPhase2Modal(false);
-                  }}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-700"
-                >
-                  <AlertTriangle className="h-4 w-4" />
-                  Tetap Lanjutkan
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Header Card */}
       <div className="rounded-xl bg-white shadow-sm overflow-hidden">
@@ -1724,221 +1596,8 @@ export default function ProjectDetailPage({
             </div>
           )}
 
-          {/* Fase 1 Approved / Phase 2 Registration: Payment Verification View */}
-          {(isPhase1Approved || project.phase === "phase2_registration") && (() => {
-            const shortlistedApps = projectApplications
-              .filter((a: any) => a.status === "Shortlisted" || a.phase1_result === "Lolos")
-              .map((a: any) => ({
-                partner: { name: a.partner_name, code: a.partner_id?.substring(0, 8) },
-                app: a,
-                pid: a.partner_id,
-              }));
-
-            const getDecision = (appId?: string, status?: string): PaymentDecision => {
-              if (appId && paymentDecisions[appId]) return paymentDecisions[appId];
-              if (status === "Sudah Bayar") return "approved";
-              if (status === "Ditolak") return "rejected";
-              return "pending";
-            };
-
-            const pendingCount = shortlistedApps.filter(
-              ({ app }: any) => app?.fee_payment_status === "Menunggu Verifikasi" && getDecision(app?.id, app?.fee_payment_status) === "pending"
-            ).length;
-            const verifiedCount = shortlistedApps.filter(
-              ({ app }: any) => getDecision(app?.id, app?.fee_payment_status) === "approved"
-            ).length;
-
-            return (
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-ptba-navy" />
-                    <span className="text-sm font-bold text-ptba-charcoal">Verifikasi Pembayaran Fase 2</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="text-amber-600 font-semibold">{pendingCount} Menunggu</span>
-                    <span className="text-green-600 font-semibold">{verifiedCount} Terverifikasi</span>
-                    <span className="text-ptba-gray">Biaya: <span className="font-bold text-ptba-navy">{formatCurrency(project.registrationFee ?? 0)}</span></span>
-                  </div>
-                </div>
-
-                {shortlistedApps.map(({ partner, app, pid }: any) => {
-                  const decision = getDecision(app?.id, app?.fee_payment_status);
-                  const hasPendingPayment = app?.fee_payment_status === "Menunggu Verifikasi" && decision === "pending";
-
-                  return (
-                    <div
-                      key={pid}
-                      className={cn(
-                        "rounded-xl border-2 p-5 transition-colors",
-                        decision === "approved" ? "border-green-200 bg-green-50/30" :
-                        hasPendingPayment ? "border-amber-300 bg-amber-50/30" :
-                        "border-ptba-light-gray bg-white"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className={cn(
-                            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white",
-                            decision === "approved" ? "bg-green-500" :
-                            hasPendingPayment ? "bg-amber-500" :
-                            "bg-ptba-navy"
-                          )}>
-                            {(partner?.name ?? pid).charAt(0)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-ptba-charcoal truncate">{partner?.name ?? pid}</p>
-                            <p className="text-xs text-ptba-gray">{partner?.code ?? pid}</p>
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                                <CheckCircle2 className="h-3 w-3" /> Lolos Fase 1
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          {decision === "approved" ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 border border-green-200 px-3 py-1 text-xs font-semibold text-green-700">
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Terverifikasi
-                            </span>
-                          ) : decision === "rejected" ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 border border-red-200 px-3 py-1 text-xs font-semibold text-red-600">
-                              <XCircle className="h-3.5 w-3.5" /> Ditolak
-                            </span>
-                          ) : hasPendingPayment ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
-                              <Clock className="h-3.5 w-3.5" /> Menunggu Verifikasi
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-ptba-gray">
-                              Belum Bayar
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Payment action area */}
-                      {hasPendingPayment && isAdmin && (
-                        <div className="mt-4 pt-4 border-t border-amber-200/50">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-ptba-gray" />
-                              <div>
-                                <p className="text-sm font-medium text-ptba-charcoal">{app?.fee_payment_proof}</p>
-                                <p className="text-[10px] text-ptba-gray">Diunggah: {app?.feePaymentDate ? formatDate(app.fee_payment_date) : '-'}</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setViewingPayProof(viewingPayProof === pid ? null : pid)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-light-gray px-3 py-1.5 text-xs font-medium text-ptba-navy hover:bg-ptba-section-bg transition-colors"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              Lihat Bukti
-                            </button>
-                          </div>
-
-                          {viewingPayProof === pid && app?.fee_payment_proof && (
-                            <div className="mb-3">
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await downloadDocument(app.fee_payment_proof, accessToken!);
-                                  } catch { /* ignore */ }
-                                }}
-                                className="w-full rounded-lg border border-ptba-light-gray bg-ptba-section-bg p-4 text-center hover:bg-ptba-steel-blue/5 transition-colors"
-                              >
-                                <FileText className="mx-auto h-8 w-8 text-ptba-steel-blue mb-2" />
-                                <p className="text-sm font-medium text-ptba-navy">Klik untuk membuka bukti pembayaran</p>
-                                <p className="text-xs text-ptba-gray mt-0.5">{formatCurrency(project.registrationFee ?? 0)}</p>
-                              </button>
-                            </div>
-                          )}
-
-                          {showPayRejectForm === pid ? (
-                            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                              <p className="text-xs font-semibold text-red-800 mb-2">Alasan Penolakan</p>
-                              <textarea
-                                value={payRejectNotes[pid] ?? ""}
-                                onChange={(e) => setPayRejectNotes((prev) => ({ ...prev, [pid]: e.target.value }))}
-                                placeholder="Jelaskan alasan penolakan..."
-                                className="w-full rounded-lg border border-red-200 px-3 py-2 text-sm text-ptba-charcoal placeholder:text-red-300 focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400 mb-2"
-                                rows={2}
-                              />
-                              <div className="flex gap-2">
-                                <button onClick={() => setShowPayRejectForm(null)} className="rounded-lg border border-ptba-light-gray px-3 py-1.5 text-xs text-ptba-gray hover:bg-white transition-colors">Batal</button>
-                                <button
-                                  onClick={async () => {
-                                    if (!app?.id || !accessToken) return;
-                                    try {
-                                      await api(`/applications/${app.id}/verify-fee`, { method: "PUT", token: accessToken, body: { decision: "reject", notes: payRejectNotes[pid] } });
-                                      setPaymentDecisions((prev) => ({ ...prev, [app.id]: "rejected" }));
-                                      setShowPayRejectForm(null);
-                                    } catch { /* ignore */ }
-                                  }}
-                                  className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors"
-                                >Konfirmasi Tolak</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex gap-3">
-                              <button
-                                onClick={async () => {
-                                  if (!app?.id || !accessToken) return;
-                                  try {
-                                    await api(`/applications/${app.id}/verify-fee`, { method: "PUT", token: accessToken, body: { decision: "approve" } });
-                                    setPaymentDecisions((prev) => ({ ...prev, [app.id]: "approved" }));
-                                  } catch { /* ignore */ }
-                                }}
-                                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
-                              >
-                                <ThumbsUp className="h-4 w-4" /> Verifikasi Pembayaran
-                              </button>
-                              <button
-                                onClick={() => setShowPayRejectForm(pid)}
-                                className="inline-flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
-                              >
-                                <ThumbsDown className="h-4 w-4" /> Tolak
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {decision === "approved" && (
-                        <div className="mt-3 pt-3 border-t border-green-200/50 flex items-center gap-2 text-sm text-green-700">
-                          <CheckCircle2 className="h-4 w-4" />
-                          Pembayaran terverifikasi — mitra dapat melanjutkan Fase 2
-                        </div>
-                      )}
-
-                      {decision === "rejected" && (
-                        <div className="mt-3 pt-3 border-t border-red-200/50 flex items-start gap-2 text-sm text-red-700">
-                          <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                          <div>
-                            <p>Bukti pembayaran ditolak</p>
-                            {payRejectNotes[pid] && <p className="text-xs text-red-600 mt-0.5">{payRejectNotes[pid]}</p>}
-                          </div>
-                        </div>
-                      )}
-
-                      {(!app?.fee_payment_status || app.feePaymentStatus === "Belum Bayar") && decision === "pending" && (
-                        <div className="mt-3 pt-3 border-t border-ptba-light-gray/50 flex items-center gap-2 text-sm text-ptba-gray">
-                          <Clock className="h-4 w-4" />
-                          Mitra belum melakukan pembayaran
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
           {/* Fase 2 View: Full evaluation matrix — only after Phase 2
-              registration closes (phase2_evaluation onward). During
-              phase2_registration the list stays read-only (payment
-              verification card above). */}
+              registration closes (phase2_evaluation onward). */}
           {isPhase2 && project.phase !== "phase2_registration" && (
             <div className="overflow-x-auto">
               <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
@@ -3432,28 +3091,6 @@ export default function ProjectDetailPage({
             ) : null;
           })()}
 
-          {/* Phase 2 Payment History */}
-          {project.phase?.startsWith("phase2") && projectPartners.some((p: any) => p.feePaymentStatus) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-ptba-charcoal mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-ptba-steel-blue" />
-                Pembayaran Commitment Fee
-              </h3>
-              <div className="space-y-2">
-                {projectPartners.filter((p: any) => p.feePaymentStatus).map((p: any) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
-                    <div>
-                      <p className="text-sm font-medium text-ptba-charcoal">{p.name}</p>
-                      <p className="text-[10px] text-ptba-gray">{p.feePaymentStatus}</p>
-                    </div>
-                    <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold", p.feePaymentStatus === "Sudah Bayar" ? "bg-green-100 text-green-700" : p.feePaymentStatus === "Ditolak" ? "bg-red-100 text-ptba-red" : "bg-amber-100 text-amber-700")}>
-                      {p.feePaymentStatus}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 

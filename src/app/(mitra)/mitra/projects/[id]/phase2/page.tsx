@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -8,12 +8,7 @@ import {
   CheckCircle2,
   FileText,
   Download,
-  CreditCard,
   AlertTriangle,
-  Lock,
-  Clock,
-  XCircle,
-  ImageIcon,
   Loader2,
   Trash2,
 } from "lucide-react";
@@ -23,24 +18,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument } from "@/lib/api/client";
 import { PHASE2_DOCUMENT_TYPES } from "@/lib/constants/document-types";
-import { formatCurrency } from "@/lib/utils/format";
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
-
-type PaymentState = "belum" | "uploading" | "pending" | "verified" | "rejected";
-
-function mapPaymentStatus(status: string | null | undefined): PaymentState {
-  switch (status) {
-    case "Sudah Bayar":
-      return "verified";
-    case "Menunggu Verifikasi":
-      return "pending";
-    case "Ditolak":
-      return "rejected";
-    default:
-      return "belum";
-  }
-}
 
 export default function MitraPhase2Page() {
   const router = useRouter();
@@ -56,14 +34,6 @@ export default function MitraPhase2Page() {
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Payment state
-  const [paymentState, setPaymentState] = useState<PaymentState>("belum");
-  const [paymentProofName, setPaymentProofName] = useState("");
-  const [uploadingProof, setUploadingProof] = useState(false);
-  const [selectedProofFile, setSelectedProofFile] = useState<File | null>(null);
-  const feePaid = paymentState === "verified";
-  const paymentProofRef = useRef<HTMLInputElement>(null);
 
   // PTBA doc downloads
   const [downloadedDocs, setDownloadedDocs] = useState<Set<string>>(new Set());
@@ -116,16 +86,6 @@ export default function MitraPhase2Page() {
 
       setApplication(existing);
 
-      // Initialize payment state from API
-      setPaymentState(mapPaymentStatus(existing.fee_payment_status));
-      if (existing.fee_payment_proof) {
-        // Extract a display name from the file key
-        const proofDoc = existing.generalDocuments?.find(
-          (d: any) => d.document_type_id === "fee_payment_proof"
-        );
-        setPaymentProofName(proofDoc?.name || "Bukti Pembayaran");
-      }
-
       // Initialize uploaded phase2 documents
       if (existing.phase2Documents?.length) {
         const restored: Record<string, { name: string; uploading: boolean; dbId?: string }> = {};
@@ -155,83 +115,6 @@ export default function MitraPhase2Page() {
   }, [fetchData]);
 
   // ─── Handlers ───
-
-  const handleUploadProof = async (file: File) => {
-    if (!accessToken || !application?.id) return;
-    setError("");
-    setUploadingProof(true);
-    setPaymentState("uploading");
-
-    try {
-      const autoName = `Bukti_Transfer_${user?.name?.replace(/\s+/g, "_") || "Mitra"}`;
-
-      // Delete existing proof document if any
-      const existingProof = application.generalDocuments?.find(
-        (d: any) => d.document_type_id === "fee_payment_proof"
-      );
-      if (existingProof?.id) {
-        await fetch(
-          `${API_BASE}/applications/${application.id}/documents/${existingProof.id}`,
-          {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-      }
-
-      // Upload the file as a document
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("documentTypeId", "fee_payment_proof");
-      formData.append("name", autoName);
-      formData.append("phase", "general");
-
-      const uploadRes = await fetch(
-        `${API_BASE}/applications/${application.id}/documents`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: formData,
-        }
-      );
-
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) {
-        throw new Error(uploadData.error || t("errors.uploadProofFailed"));
-      }
-
-      const fileKey = uploadData.document?.file_key;
-      if (!fileKey) {
-        throw new Error("File key tidak ditemukan dari response upload");
-      }
-
-      // Update fee payment status on the application
-      await api("/applications/" + application.id + "/fee-payment", {
-        method: "PUT",
-        body: { fileKey },
-        token: accessToken,
-      });
-
-      setPaymentProofName(file.name);
-      setPaymentState("pending");
-
-      // Refresh application data
-      try {
-        const detailRes = await api<{ application: any }>(
-          `/applications/${application.id}`,
-          { token: accessToken }
-        );
-        setApplication(detailRes.application);
-      } catch {
-        // Non-critical
-      }
-    } catch (err: any) {
-      setError(err.message || t("errors.uploadProofFailed"));
-      setPaymentState("belum");
-    } finally {
-      setUploadingProof(false);
-    }
-  };
 
   const handleDownloadDoc = async (docId: string, fileKey: string) => {
     if (!accessToken || !application?.id) return;
@@ -375,7 +258,6 @@ export default function MitraPhase2Page() {
 
   // ─── Derived state ───
 
-  const registrationFee = project?.registrationFee ?? project?.registration_fee ?? 0;
   const allPtbaDocuments: any[] = project?.ptbaDocuments ?? project?.ptba_documents ?? [];
   const ptbaDocuments = allPtbaDocuments.filter((d: any) => d.phase === "phase2");
 
@@ -386,7 +268,7 @@ export default function MitraPhase2Page() {
     (d) => d.required && uploadedDocs[d.id]
   ).length;
   const allRequiredUploaded = uploadedRequiredCount === requiredPhase2Count;
-  const canSubmit = feePaid && allRequiredUploaded && !submitting && !submitted;
+  const canSubmit = allRequiredUploaded && !submitting && !submitted;
 
   // ─── Loading state ───
 
@@ -552,10 +434,6 @@ export default function MitraPhase2Page() {
         </p>
         <div className="mt-4 flex items-center gap-6 text-sm">
           <span className="flex items-center gap-1.5">
-            <CreditCard className="h-4 w-4" />
-            {t("fee")} {formatCurrency(registrationFee)}
-          </span>
-          <span className="flex items-center gap-1.5">
             <FileText className="h-4 w-4" />
             {uploadedRequiredCount}/{requiredPhase2Count} {t("requiredDocs")}
           </span>
@@ -566,10 +444,9 @@ export default function MitraPhase2Page() {
       {!submitted && <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           {[
-            { step: 1, label: paymentState === "pending" ? t("steps.waitingVerification") : t("steps.payFee"), done: feePaid },
-            { step: 2, label: t("steps.downloadDocs"), done: feePaid && downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0 },
-            { step: 3, label: t("steps.uploadDocs"), done: allRequiredUploaded },
-            { step: 4, label: t("steps.waitingEvaluation"), done: submitted },
+            { step: 1, label: t("steps.downloadDocs"), done: downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0 },
+            { step: 2, label: t("steps.uploadDocs"), done: allRequiredUploaded },
+            { step: 3, label: t("steps.waitingEvaluation"), done: submitted },
           ].map((s, idx, arr) => (
             <div key={s.step} className="flex items-center flex-1 last:flex-initial">
               <div className="flex flex-col items-center">
@@ -578,14 +455,12 @@ export default function MitraPhase2Page() {
                     "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors",
                     s.done
                       ? "bg-green-100 text-green-700"
-                      : s.step === 1 && paymentState === "pending"
-                      ? "bg-amber-100 text-amber-700"
                       : idx === 0 || arr[idx - 1].done
                       ? "bg-ptba-navy text-white"
                       : "bg-ptba-light-gray text-ptba-gray"
                   )}
                 >
-                  {s.done ? <CheckCircle2 className="h-4 w-4" /> : s.step === 1 && paymentState === "pending" ? <Clock className="h-4 w-4" /> : s.step}
+                  {s.done ? <CheckCircle2 className="h-4 w-4" /> : s.step}
                 </div>
                 <span className={cn(
                   "mt-1.5 text-[10px] font-medium text-center max-w-[80px]",
@@ -605,215 +480,18 @@ export default function MitraPhase2Page() {
         </div>
       </div>}
 
-      {/* Section 1: Registration Fee Payment */}
+      {/* Section 1: Download PTBA Documents */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-              paymentState === "verified"
-                ? "bg-green-100 text-green-600"
-                : paymentState === "pending"
-                ? "bg-amber-100 text-amber-600"
-                : paymentState === "rejected"
-                ? "bg-red-100 text-red-600"
-                : "bg-ptba-gold-light text-ptba-charcoal"
-            )}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold bg-ptba-gold-light text-ptba-charcoal"
           >
-            {paymentState === "verified" ? <CheckCircle2 className="h-4 w-4" /> : 1}
-          </div>
-          <h2 className="text-lg font-semibold text-ptba-charcoal">
-            {t("payment.title")}
-          </h2>
-        </div>
-
-        {/* Fee amount card */}
-        <div className={cn(
-          "rounded-lg border p-5 mb-4",
-          paymentState === "verified" ? "border-green-200 bg-green-50/50" :
-          paymentState === "pending" ? "border-amber-200 bg-amber-50/50" :
-          paymentState === "rejected" ? "border-red-200 bg-red-50/50" :
-          "border-ptba-light-gray"
-        )}>
-          <div className="flex items-start gap-3">
-            <CreditCard className={cn(
-              "h-5 w-5 mt-0.5 shrink-0",
-              paymentState === "verified" ? "text-green-500" :
-              paymentState === "pending" ? "text-amber-500" :
-              paymentState === "rejected" ? "text-red-500" :
-              "text-ptba-gray"
-            )} />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-ptba-charcoal">{t("payment.feeLabel")}</p>
-              <p className="text-lg font-bold text-ptba-navy mt-0.5">{formatCurrency(registrationFee)}</p>
-              <p className="text-xs text-ptba-gray mt-1">
-                {t("payment.transferInfo")}
-              </p>
-              <p className="text-[10px] text-amber-600 mt-1.5 italic">
-                {t("payment.disclaimer")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Hidden file input for payment proof */}
-        {!submitted && (
-          <input
-            ref={paymentProofRef}
-            type="file"
-            className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) {
-                setSelectedProofFile(f);
-                setPaymentProofName(f.name);
-              }
-              e.target.value = "";
-            }}
-          />
-        )}
-
-        {/* Payment state-specific UI */}
-        {!submitted && paymentState === "belum" && !selectedProofFile && (
-          <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
-            <Upload className="mx-auto h-8 w-8 text-ptba-gray mb-2" />
-            <p className="text-sm font-medium text-ptba-charcoal mb-1">{t("payment.uploadProof")}</p>
-            <p className="text-xs text-ptba-gray mb-4">
-              {t("payment.uploadProofDesc")}
-            </p>
-            <button
-              onClick={() => paymentProofRef.current?.click()}
-              className="inline-flex items-center gap-2 rounded-lg bg-ptba-gold px-5 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
-            >
-              <Upload className="h-4 w-4" />
-              {tc("selectFile")}
-            </button>
-          </div>
-        )}
-
-        {!submitted && paymentState === "belum" && selectedProofFile && (
-          <div className="rounded-lg border border-ptba-steel-blue/30 bg-ptba-section-bg p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className="h-5 w-5 text-ptba-steel-blue shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ptba-charcoal truncate">{selectedProofFile.name}</p>
-                <p className="text-xs text-ptba-gray">{(selectedProofFile.size / 1024).toFixed(0)} KB</p>
-              </div>
-              <button
-                onClick={() => { setSelectedProofFile(null); setPaymentProofName(""); }}
-                className="text-xs text-ptba-gray hover:text-ptba-red transition-colors"
-              >
-                {tc("delete")}
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => paymentProofRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-white transition-colors"
-              >
-                {tc("replace")}
-              </button>
-              <button
-                onClick={() => handleUploadProof(selectedProofFile)}
-                className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-bold text-white hover:bg-ptba-navy/90 transition-colors"
-              >
-                <Upload className="h-4 w-4" />
-                {t("payment.submitProof")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!submitted && paymentState === "uploading" && (
-          <div className="rounded-lg border border-dashed border-ptba-light-gray p-6 text-center">
-            <Loader2 className="mx-auto h-8 w-8 text-ptba-gold animate-spin mb-2" />
-            <p className="text-sm font-medium text-ptba-charcoal mb-1">{t("payment.uploadingProof")}</p>
-            <p className="text-xs text-ptba-gray">{t("payment.uploadingProofDesc")}</p>
-          </div>
-        )}
-
-        {!submitted && paymentState === "pending" && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-            <div className="flex items-start gap-3">
-              <Clock className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-800">{t("payment.waitingVerification")}</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  {t("payment.waitingVerificationDesc")}
-                </p>
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 border border-amber-200">
-                  <ImageIcon className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span className="text-xs text-ptba-charcoal font-medium truncate">{paymentProofName}</span>
-                  <span className="text-[10px] text-amber-600 ml-auto shrink-0">{t("payment.uploaded")}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!submitted && paymentState === "rejected" && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-5">
-            <div className="flex items-start gap-3">
-              <XCircle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-red-800">{t("payment.proofRejected")}</p>
-                <p className="text-xs text-red-700 mt-0.5">
-                  {application?.fee_payment_notes ?? t("payment.proofRejectedDesc")}
-                </p>
-                <button
-                  onClick={() => {
-                    setPaymentState("belum");
-                  }}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-4 py-2 text-xs font-semibold text-white hover:bg-ptba-steel-blue transition-colors"
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  {t("payment.reupload")}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {paymentState === "verified" && (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-5">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-green-800">{t("payment.verified")}</p>
-                <p className="text-xs text-green-700 mt-0.5">
-                  {t("payment.verifiedDesc")}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Section 2: Download PTBA Documents */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-              feePaid
-                ? "bg-ptba-gold-light text-ptba-charcoal"
-                : "bg-ptba-light-gray text-ptba-gray"
-            )}
-          >
-            2
+            1
           </div>
           <h2 className="text-lg font-semibold text-ptba-charcoal">
             {t("ptbaDocs.title")}
           </h2>
         </div>
-
-        {!feePaid && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-off-white p-3 text-sm text-ptba-gray">
-            <Lock className="h-4 w-4 shrink-0" />
-            {t("ptbaDocs.payFirst")}
-          </div>
-        )}
 
         <div className="space-y-3">
           {ptbaDocuments.length === 0 ? (
@@ -852,14 +530,12 @@ export default function MitraPhase2Page() {
                     </div>
                     <button
                       onClick={() => handleDownloadDoc(docId, fileKey)}
-                      disabled={!feePaid || isDownloading}
+                      disabled={isDownloading}
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors shrink-0",
-                        feePaid
-                          ? isDownloaded
-                            ? "border border-green-300 text-green-700 hover:bg-green-50"
-                            : "bg-ptba-navy text-white hover:bg-ptba-navy/90"
-                          : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+                        isDownloaded
+                          ? "border border-green-300 text-green-700 hover:bg-green-50"
+                          : "bg-ptba-navy text-white hover:bg-ptba-navy/90"
                       )}
                     >
                       {isDownloading ? (
@@ -877,18 +553,11 @@ export default function MitraPhase2Page() {
         </div>
       </div>
 
-      {/* Section 3: Upload Fase 2 Documents */}
+      {/* Section 2: Upload Fase 2 Documents */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-2">
-          <div
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-              feePaid
-                ? "bg-ptba-gold-light text-ptba-charcoal"
-                : "bg-ptba-light-gray text-ptba-gray"
-            )}
-          >
-            3
+          <div className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold bg-ptba-gold-light text-ptba-charcoal">
+            2
           </div>
           <h2 className="text-lg font-semibold text-ptba-charcoal">
             {t("uploadDocs.title")}
@@ -920,13 +589,6 @@ export default function MitraPhase2Page() {
             }}
           />
         </div>
-
-        {!feePaid && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-off-white p-3 text-sm text-ptba-gray">
-            <Lock className="h-4 w-4 shrink-0" />
-            {t("ptbaDocs.payFirst")}
-          </div>
-        )}
 
         <div className="space-y-3">
           {PHASE2_DOCUMENT_TYPES.map((doc) => {
@@ -1019,21 +681,13 @@ export default function MitraPhase2Page() {
                         {tc("uploading")}
                       </span>
                     ) : (
-                      <label
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
-                          feePaid
-                            ? "bg-ptba-navy text-white hover:bg-ptba-navy/90"
-                            : "bg-ptba-light-gray text-ptba-gray cursor-not-allowed pointer-events-none"
-                        )}
-                      >
+                      <label className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer bg-ptba-navy text-white hover:bg-ptba-navy/90">
                         <Upload className="h-3.5 w-3.5" />
                         {tc("upload")}
                         <input
                           type="file"
                           className="hidden"
                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                          disabled={!feePaid}
                           onChange={(e) => {
                             const f = e.target.files?.[0];
                             if (f) handleUploadDoc(doc.id, f);
@@ -1053,7 +707,7 @@ export default function MitraPhase2Page() {
       {/* Submit Section */}
       {!submitted && <div className="rounded-xl bg-white p-6 shadow-sm">
         {/* Validation warnings */}
-        {(!feePaid || !allRequiredUploaded) && (
+        {!allRequiredUploaded && (
           <div className="mb-4 rounded-lg border border-ptba-gold/30 bg-ptba-gold-light/30 p-4">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-5 w-5 shrink-0 text-ptba-gold mt-0.5" />
@@ -1062,8 +716,6 @@ export default function MitraPhase2Page() {
                   {t("submit.requirementsNotMet")}
                 </p>
                 <ul className="mt-1.5 list-disc pl-4 space-y-0.5 text-ptba-gray">
-                  {!feePaid && paymentState === "pending" && <li>{t("submit.paymentPending")}</li>}
-                  {!feePaid && paymentState !== "pending" && <li>{t("submit.paymentNotPaid")}</li>}
                   {!allRequiredUploaded && (
                     <li>
                       {t("submit.docsNotUploaded", { count: requiredPhase2Count - uploadedRequiredCount })}

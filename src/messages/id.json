@@ -150,7 +150,7 @@
     "step": "Langkah {current}/{total}",
     "shortlistCongrats": "Selamat! Perusahaan Anda Lolos Fase 1",
     "shortlistDesc": "Anda telah lulus evaluasi Fase 1 dan diundang untuk melanjutkan ke Fase 2.",
-    "shortlistPhase2Ready": "Silakan lengkapi dokumen dan pembayaran commitment fee untuk melanjutkan ke Fase 2.",
+    "shortlistPhase2Ready": "Silakan unduh dokumen PTBA dan unggah dokumen Fase 2 yang diperlukan.",
     "shortlistPhase2Email": "Informasi Fase 2 akan dikomunikasikan melalui email.",
     "continueToPhase2": "Lanjut ke Fase 2",
     "projectDescription": "Deskripsi Proyek",
@@ -386,7 +386,7 @@
   },
   "phase2": {
     "title": "Fase 2 — Penilaian Detail",
-    "description": "Selamat, Anda telah lulus Fase 1 (Shortlisted). Silakan lengkapi pembayaran commitment fee, unduh dokumen PTBA, dan unggah dokumen Fase 2 yang diperlukan.",
+    "description": "Selamat, Anda telah lulus Fase 1 (Shortlisted). Silakan unduh dokumen PTBA dan unggah dokumen Fase 2 yang diperlukan.",
     "fee": "Biaya:",
     "requiredDocs": "dokumen wajib",
     "applicationNotFound": "Lamaran tidak ditemukan",
@@ -398,34 +398,12 @@
     "submittedEvaluation": "Tim evaluasi PTBA akan melakukan penilaian detail.",
     "viewStatus": "Lihat Status Lamaran",
     "steps": {
-      "payFee": "Bayar Biaya",
-      "waitingVerification": "Menunggu Verifikasi",
       "downloadDocs": "Unduh Dokumen PTBA",
       "uploadDocs": "Unggah Dokumen Fase 2",
       "waitingEvaluation": "Menunggu Evaluasi"
     },
-    "payment": {
-      "title": "Pembayaran Commitment Fee",
-      "feeLabel": "Commitment Fee Fase 2",
-      "transferInfo": "Transfer ke rekening PT Bukit Asam (Persero) Tbk — Bank Mandiri 123-456-789",
-      "disclaimer": "Commitment fee bersifat non-refundable dan wajib dibayarkan untuk melanjutkan proses seleksi ke Fase 2.",
-      "uploadProof": "Upload Bukti Pembayaran",
-      "uploadProofDesc": "Lakukan transfer sesuai nominal di atas, lalu unggah bukti transfer (PDF/JPG/PNG)",
-      "submitProof": "Kirim Bukti Pembayaran",
-      "uploadingProof": "Mengunggah Bukti Pembayaran...",
-      "uploadingProofDesc": "Mohon tunggu, file sedang diunggah.",
-      "waitingVerification": "Menunggu Verifikasi",
-      "waitingVerificationDesc": "Bukti pembayaran telah dikirim dan sedang menunggu verifikasi oleh tim EBD PTBA. Proses verifikasi biasanya memakan waktu 1-2 hari kerja.",
-      "uploaded": "Diunggah",
-      "proofRejected": "Bukti Pembayaran Ditolak",
-      "proofRejectedDesc": "Bukti pembayaran tidak valid. Silakan upload ulang bukti yang benar.",
-      "reupload": "Upload Ulang",
-      "verified": "Pembayaran Terverifikasi",
-      "verifiedDesc": "Pembayaran telah diverifikasi oleh tim EBD. Anda dapat melanjutkan ke langkah berikutnya."
-    },
     "ptbaDocs": {
       "title": "Unduh Dokumen PTBA",
-      "payFirst": "Selesaikan pembayaran commitment fee terlebih dahulu untuk mengakses dokumen PTBA.",
       "noDocs": "Tidak ada dokumen PTBA untuk proyek ini."
     },
     "uploadDocs": {
@@ -435,13 +413,10 @@
     },
     "submit": {
       "requirementsNotMet": "Persyaratan belum terpenuhi untuk pengiriman:",
-      "paymentPending": "Bukti pembayaran masih menunggu verifikasi EBD",
-      "paymentNotPaid": "Commitment fee belum dibayar",
       "docsNotUploaded": "{count} dokumen wajib belum diunggah",
       "submitDocs": "Kirim Dokumen Fase 2"
     },
     "errors": {
-      "uploadProofFailed": "Gagal mengunggah bukti pembayaran",
       "uploadDocFailed": "Gagal mengunggah dokumen",
       "downloadFailed": "Gagal mengunduh dokumen",
       "deleteFailed": "Gagal menghapus dokumen",

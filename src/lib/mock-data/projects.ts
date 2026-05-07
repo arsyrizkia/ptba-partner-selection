@@ -49,7 +49,6 @@ export const mockProjects: Project[] = [
       { id: 'PTBA-DOC-003', name: 'Letter of Intent Template', type: 'LoI' },
       { id: 'PTBA-DOC-004', name: 'Request for Proposal (RfP)', type: 'RfP' },
     ],
-    registrationFee: 50000000,
   },
   {
     id: 'P002',
@@ -98,7 +97,6 @@ export const mockProjects: Project[] = [
       { id: 'PTBA-DOC-007', name: 'Letter of Intent Template', type: 'LoI' },
       { id: 'PTBA-DOC-008', name: 'Request for Proposal (RfP)', type: 'RfP' },
     ],
-    registrationFee: 100000000,
   },
   {
     id: 'P003',
@@ -163,7 +161,6 @@ export const mockProjects: Project[] = [
       { id: 'PTBA-DOC-009', name: 'Business Case Coal-to-Methanol', type: 'Business Case' },
       { id: 'PTBA-DOC-010', name: 'Confidential Guarantee Statement', type: 'Confidential Guarantee' },
     ],
-    registrationFee: 150000000,
   },
   {
     id: 'P005',

@@ -150,7 +150,7 @@
     "step": "Step {current}/{total}",
     "shortlistCongrats": "Congratulations! Your Company Passed Phase 1",
     "shortlistDesc": "You have passed the Phase 1 evaluation and are invited to proceed to Phase 2.",
-    "shortlistPhase2Ready": "Please complete documents and commitment fee payment to proceed to Phase 2.",
+    "shortlistPhase2Ready": "Please download PTBA documents and upload the required Phase 2 documents.",
     "shortlistPhase2Email": "Phase 2 information will be communicated via email.",
     "continueToPhase2": "Continue to Phase 2",
     "projectDescription": "Project Description",
@@ -386,7 +386,7 @@
   },
   "phase2": {
     "title": "Phase 2 — Detailed Assessment",
-    "description": "Congratulations, you have passed Phase 1 (Shortlisted). Please complete the commitment fee payment, download PTBA documents, and upload the required Phase 2 documents.",
+    "description": "Congratulations, you have passed Phase 1 (Shortlisted). Please download PTBA documents and upload the required Phase 2 documents.",
     "fee": "Fee:",
     "requiredDocs": "required documents",
     "applicationNotFound": "Application not found",
@@ -398,34 +398,12 @@
     "submittedEvaluation": "The PTBA evaluation team will conduct a detailed assessment.",
     "viewStatus": "View Application Status",
     "steps": {
-      "payFee": "Pay Fee",
-      "waitingVerification": "Awaiting Verification",
       "downloadDocs": "Download PTBA Documents",
       "uploadDocs": "Upload Phase 2 Documents",
       "waitingEvaluation": "Awaiting Evaluation"
     },
-    "payment": {
-      "title": "Commitment Fee Payment",
-      "feeLabel": "Phase 2 Commitment Fee",
-      "transferInfo": "Transfer to PT Bukit Asam (Persero) Tbk account — Bank Mandiri 123-456-789",
-      "disclaimer": "The commitment fee is non-refundable and must be paid to proceed with the Phase 2 selection process.",
-      "uploadProof": "Upload Payment Proof",
-      "uploadProofDesc": "Transfer the amount above, then upload proof of transfer (PDF/JPG/PNG)",
-      "submitProof": "Submit Payment Proof",
-      "uploadingProof": "Uploading Payment Proof...",
-      "uploadingProofDesc": "Please wait, file is being uploaded.",
-      "waitingVerification": "Awaiting Verification",
-      "waitingVerificationDesc": "Payment proof has been submitted and is awaiting verification by the PTBA EBD team. Verification typically takes 1-2 business days.",
-      "uploaded": "Uploaded",
-      "proofRejected": "Payment Proof Rejected",
-      "proofRejectedDesc": "Payment proof is invalid. Please re-upload the correct proof.",
-      "reupload": "Re-upload",
-      "verified": "Payment Verified",
-      "verifiedDesc": "Payment has been verified by the EBD team. You can proceed to the next step."
-    },
     "ptbaDocs": {
       "title": "Download PTBA Documents",
-      "payFirst": "Complete the commitment fee payment first to access PTBA documents.",
       "noDocs": "No PTBA documents available for this project."
     },
     "uploadDocs": {
@@ -435,13 +413,10 @@
     },
     "submit": {
       "requirementsNotMet": "Requirements not met for submission:",
-      "paymentPending": "Payment proof is still awaiting EBD verification",
-      "paymentNotPaid": "Commitment fee has not been paid",
       "docsNotUploaded": "{count} required documents not yet uploaded",
       "submitDocs": "Submit Phase 2 Documents"
     },
     "errors": {
-      "uploadProofFailed": "Failed to upload payment proof",
       "uploadDocFailed": "Failed to upload document",
       "downloadFailed": "Failed to download document",
       "deleteFailed": "Failed to delete document",

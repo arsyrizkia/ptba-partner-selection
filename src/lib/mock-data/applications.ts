@@ -13,7 +13,6 @@ export const mockApplications: PartnerApplication[] = [
     totalEvalSteps: 13,
     phase: 'phase2',
     phase1Result: 'Lolos',
-    feePaymentStatus: 'Sudah Bayar',
     downloadedPTBADocs: ['PTBA-DOC-001', 'PTBA-DOC-002', 'PTBA-DOC-003', 'PTBA-DOC-004'],
     documents: [
       { id: 'AD001', documentTypeId: 'akta_pendirian', name: 'Akta Pendirian PT PGN', status: 'Diunggah', uploadDate: '2026-01-20' },
@@ -57,9 +56,6 @@ export const mockApplications: PartnerApplication[] = [
     totalEvalSteps: 13,
     phase: 'phase1',
     phase1Result: 'Lolos',
-    feePaymentStatus: 'Menunggu Verifikasi',
-    feePaymentProof: 'Bukti_Transfer_PGN_Gasifikasi.pdf',
-    feePaymentDate: '2026-03-08T14:30:00Z',
     documents: [
       { id: 'AD014', documentTypeId: 'akta_pendirian', name: 'Akta Pendirian PT PGN', status: 'Diunggah', uploadDate: '2025-12-10' },
       { id: 'AD015', documentTypeId: 'siup', name: 'SIUP PT PGN', status: 'Diunggah', uploadDate: '2025-12-10' },
@@ -95,7 +91,6 @@ export const mockApplications: PartnerApplication[] = [
     totalEvalSteps: 13,
     phase: 'phase2',
     phase1Result: 'Lolos',
-    feePaymentStatus: 'Sudah Bayar',
     documents: [
       { id: 'AD027', documentTypeId: 'akta_pendirian', name: 'Akta Pendirian INALUM', status: 'Diunggah', uploadDate: '2024-02-01' },
       { id: 'AD028', documentTypeId: 'siup', name: 'SIUP INALUM', status: 'Diunggah', uploadDate: '2024-02-01' },
@@ -115,7 +110,6 @@ export const mockApplications: PartnerApplication[] = [
     totalEvalSteps: 13,
     phase: 'phase2',
     phase1Result: 'Lolos',
-    feePaymentStatus: 'Sudah Bayar',
     downloadedPTBADocs: ['PTBA-DOC-001', 'PTBA-DOC-002', 'PTBA-DOC-003', 'PTBA-DOC-004'],
     documents: [
       { id: 'AD031', documentTypeId: 'akta_pendirian', name: 'Akta Pendirian PNRE', status: 'Diunggah', uploadDate: '2026-02-28' },
@@ -159,7 +153,6 @@ export const mockApplications: PartnerApplication[] = [
     totalEvalSteps: 13,
     phase: 'phase2',
     phase1Result: 'Lolos',
-    feePaymentStatus: 'Sudah Bayar',
     documents: [
       { id: 'AD044', documentTypeId: 'akta_pendirian', name: 'Akta Pendirian PNRE', status: 'Diunggah', uploadDate: '2025-09-15' },
       { id: 'AD045', documentTypeId: 'laporan_keuangan', name: 'Laporan Keuangan PNRE', status: 'Diunggah', uploadDate: '2025-09-15' },
@@ -201,7 +194,6 @@ export const mockApplications: PartnerApplication[] = [
     totalEvalSteps: 13,
     phase: 'phase1',
     phase1Result: 'Lolos',
-    feePaymentStatus: 'Belum Bayar',
     documents: [],
     phase1Documents: [
       { id: 'P1D016', documentTypeId: 'statement_eoi', name: 'Statement EoI INALUM', status: 'Diunggah', uploadDate: '2025-12-12' },

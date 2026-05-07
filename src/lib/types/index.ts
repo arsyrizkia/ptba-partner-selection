@@ -48,7 +48,6 @@ export interface Project {
   phase2Documents?: string[];
   phase3Documents?: string[];
   ptbaDocuments?: PTBADocument[];
-  registrationFee?: number;
 }
 
 export interface Partner {
@@ -366,9 +365,5 @@ export interface PartnerApplication {
   phase1Documents?: ApplicationDocument[];
   phase2Documents?: ApplicationDocument[];
   phase1Result?: 'Lolos' | 'Tidak Lolos';
-  feePaymentStatus?: 'Belum Bayar' | 'Menunggu Verifikasi' | 'Sudah Bayar' | 'Ditolak';
-  feePaymentProof?: string;
-  feePaymentDate?: string;
-  feePaymentNotes?: string;
   downloadedPTBADocs?: string[];
 }
