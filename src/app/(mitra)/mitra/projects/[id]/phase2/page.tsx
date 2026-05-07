@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Loader2,
   Trash2,
+  Lock,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
