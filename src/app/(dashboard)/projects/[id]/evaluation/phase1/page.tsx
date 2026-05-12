@@ -148,6 +148,26 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, proj
   },
 };
 
+// ── Document checklist definitions ────────────────────────────────────────────
+const PHASE1_CHECKLIST_DOCS = [
+  { id: "profil_perusahaan", label: "Informasi / Profil Perusahaan", description: "Penyampaian overview bisnis perusahaan" },
+  { id: "eoi", label: "Express of Interest (EoI)", description: "Dokumen EoI yang ditandatangani oleh representative perusahaan" },
+  { id: "cash_on_hand", label: "Cash On Hand", description: "Berdasarkan Laporan Keuangan atau Bukti Rekening Bank" },
+  { id: "laporan_keuangan", label: "Laporan Keuangan (Audited)", description: "3 tahun terakhir periode 2023–2025 atau 2022–2024" },
+  { id: "esg", label: "Dokumen ESG", description: "Aspek lingkungan, sosial, dan tata kelola" },
+  { id: "confidential_guarantee", label: "Confidential Guarantee", description: "Ditandatangani oleh representative perusahaan" },
+  { id: "adherence_letter", label: "Adherence Letter", description: "Ditandatangani oleh representative perusahaan" },
+] as const;
+
+type ChecklistDocId = typeof PHASE1_CHECKLIST_DOCS[number]["id"];
+type ChecklistVerdict = "lengkap" | "tidak_lengkap" | "perlu_didiskusikan";
+
+const CHECKLIST_CONFIG: Record<ChecklistVerdict, { label: string; color: string; bg: string }> = {
+  lengkap: { label: "Lengkap", color: "text-green-700", bg: "bg-green-100" },
+  tidak_lengkap: { label: "Tidak Lengkap", color: "text-red-700", bg: "bg-red-100" },
+  perlu_didiskusikan: { label: "Perlu Didiskusikan", color: "text-amber-700", bg: "bg-amber-100" },
+};
+
 // ── Verdict config ────────────────────────────────────────────────────────────
 const VERDICT_CONFIG = {
   layak: { label: "Layak", color: "bg-green-100 text-green-700", ring: "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200", icon: CheckCircle2, iconColor: "text-green-500" },
@@ -162,6 +182,7 @@ interface Phase1Eval {
   applicationId: string;
   verdict: Verdict | null;
   description: string | null;
+  documentChecklist: Record<string, ChecklistVerdict>;
   isFinalized: boolean;
   evaluatorId: string | null;
   evaluatorName: string | null;
@@ -188,6 +209,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   const [evals, setEvals] = useState<Record<string, Phase1Eval>>({});
   const [myVerdict, setMyVerdict] = useState<Verdict | null>(null);
   const [myDescription, setMyDescription] = useState("");
+  const [myDocumentChecklist, setMyDocumentChecklist] = useState<Record<string, ChecklistVerdict>>({});
   const [myEvidence, setMyEvidence] = useState<{ id: string; fileName: string; fileKey: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
@@ -264,10 +286,12 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       setEvals((prev) => ({ ...prev, [appId]: ev }));
       setMyVerdict(ev.verdict);
       setMyDescription(ev.description || "");
+      setMyDocumentChecklist(ev.documentChecklist || {});
       setMyEvidence(ev.evidence);
     } catch {
       setMyVerdict(null);
       setMyDescription("");
+      setMyDocumentChecklist({});
       setMyEvidence([]);
     }
   }, [id, accessToken]);
@@ -291,11 +315,17 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   }, [selectedApp?.id, accessToken]);
 
   function mapEval(e: any): Phase1Eval {
+    let checklist: Record<string, ChecklistVerdict> = {};
+    const raw = e.document_checklist || e.documentChecklist;
+    if (raw) {
+      try { checklist = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { /* ignore */ }
+    }
     return {
       id: e.id,
       applicationId: e.application_id,
       verdict: e.verdict || null,
       description: e.description || null,
+      documentChecklist: checklist,
       isFinalized: e.is_finalized || e.isFinalized || false,
       evaluatorId: e.evaluator_id || e.evaluatorId || null,
       evaluatorName: e.evaluator_name || e.evaluatorName || null,
@@ -318,7 +348,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       await api(`/evaluations/phase1/${id}/${selectedApp.id}`, {
         method: "POST",
         token: accessToken,
-        body: { verdict: myVerdict, description: myDescription },
+        body: { verdict: myVerdict, description: myDescription, documentChecklist: myDocumentChecklist },
       });
       showToast("Draft evaluasi berhasil disimpan.");
       await fetchAppEval(selectedApp.id);
@@ -336,7 +366,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       await api(`/evaluations/phase1/${id}/${selectedApp.id}`, {
         method: "POST",
         token: accessToken,
-        body: { verdict: myVerdict, description: myDescription },
+        body: { verdict: myVerdict, description: myDescription, documentChecklist: myDocumentChecklist },
       });
       await api(`/evaluations/phase1/${id}/${selectedApp.id}/finalize`, { method: "POST", token: accessToken });
       showToast("Evaluasi berhasil difinalisasi. Notifikasi email dikirim ke PIC terkait.");
@@ -362,7 +392,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
         await api(`/evaluations/phase1/${id}/${selectedApp.id}`, {
           method: "POST",
           token: accessToken,
-          body: { verdict: myVerdict || undefined, description: myDescription || undefined },
+          body: { verdict: myVerdict || undefined, description: myDescription || undefined, documentChecklist: myDocumentChecklist },
         });
       }
       const formData = new FormData();
@@ -800,9 +830,72 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                       </div>
                     )}
 
+                    {/* Document Checklist */}
+                    <div>
+                      <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Kelengkapan Dokumen</label>
+                      <div className="rounded-xl border border-gray-200 overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-ptba-section-bg border-b border-gray-200">
+                              <th className="text-left py-2.5 px-4 font-semibold text-ptba-navy w-8">#</th>
+                              <th className="text-left py-2.5 px-3 font-semibold text-ptba-navy">Dokumen</th>
+                              {isEditable ? (
+                                <>
+                                  <th className="text-center py-2.5 px-2 font-semibold text-green-700 whitespace-nowrap">Lengkap</th>
+                                  <th className="text-center py-2.5 px-2 font-semibold text-red-700 whitespace-nowrap">Tidak Lengkap</th>
+                                  <th className="text-center py-2.5 px-2 font-semibold text-amber-700 whitespace-nowrap">Perlu Didiskusikan</th>
+                                </>
+                              ) : (
+                                <th className="text-center py-2.5 px-4 font-semibold text-ptba-navy">Status</th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {PHASE1_CHECKLIST_DOCS.map((doc, idx) => {
+                              const val = (isEditable ? myDocumentChecklist : currentEval?.documentChecklist || {})[doc.id] as ChecklistVerdict | undefined;
+                              return (
+                                <tr key={doc.id} className="hover:bg-gray-50/50">
+                                  <td className="py-2.5 px-4 text-ptba-gray text-center">{idx + 1}</td>
+                                  <td className="py-2.5 px-3">
+                                    <p className="font-medium text-ptba-charcoal">{doc.label}</p>
+                                    <p className="text-ptba-gray mt-0.5">{doc.description}</p>
+                                  </td>
+                                  {isEditable ? (
+                                    <>
+                                      {(["lengkap", "tidak_lengkap", "perlu_didiskusikan"] as ChecklistVerdict[]).map((v) => (
+                                        <td key={v} className="py-2.5 px-2 text-center">
+                                          <input
+                                            type="radio"
+                                            name={`doc-${doc.id}`}
+                                            checked={myDocumentChecklist[doc.id] === v}
+                                            onChange={() => setMyDocumentChecklist((prev) => ({ ...prev, [doc.id]: v }))}
+                                            className="h-4 w-4 cursor-pointer accent-ptba-navy"
+                                          />
+                                        </td>
+                                      ))}
+                                    </>
+                                  ) : (
+                                    <td className="py-2.5 px-4 text-center">
+                                      {val ? (
+                                        <span className={cn("inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium", CHECKLIST_CONFIG[val].bg, CHECKLIST_CONFIG[val].color)}>
+                                          {CHECKLIST_CONFIG[val].label}
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-400">—</span>
+                                      )}
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
                     {/* Verdict */}
                     <div>
-                      <label className="text-sm font-medium text-ptba-charcoal mb-3 block">Verdict</label>
+                      <label className="text-sm font-medium text-ptba-charcoal mb-3 block">Verdict Keseluruhan</label>
                       {isEditable ? (
                         <div className="flex gap-3">
                           {(Object.entries(VERDICT_CONFIG) as [Verdict, typeof VERDICT_CONFIG[Verdict]][]).map(([key, cfg]) => {

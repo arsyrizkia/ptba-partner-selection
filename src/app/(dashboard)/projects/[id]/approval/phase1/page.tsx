@@ -41,6 +41,22 @@ const VERDICT_CONFIG = {
   perlu_didiskusikan: { label: "Perlu Didiskusikan", pillClass: "bg-amber-100 text-amber-700 border-amber-200", textClass: "text-amber-700", icon: "warn" },
 } as const;
 
+const PHASE1_CHECKLIST_DOCS = [
+  { id: "profil_perusahaan", label: "Informasi / Profil Perusahaan", description: "Penyampaian overview bisnis perusahaan" },
+  { id: "eoi", label: "Express of Interest (EoI)", description: "Dokumen EoI yang ditandatangani oleh representative perusahaan" },
+  { id: "cash_on_hand", label: "Cash On Hand", description: "Berdasarkan Laporan Keuangan atau Bukti Rekening Bank" },
+  { id: "laporan_keuangan", label: "Laporan Keuangan (Audited)", description: "3 tahun terakhir periode 2023–2025 atau 2022–2024" },
+  { id: "esg", label: "Dokumen ESG", description: "Aspek lingkungan, sosial, dan tata kelola" },
+  { id: "confidential_guarantee", label: "Confidential Guarantee", description: "Ditandatangani oleh representative perusahaan" },
+  { id: "adherence_letter", label: "Adherence Letter", description: "Ditandatangani oleh representative perusahaan" },
+] as const;
+
+const CHECKLIST_LABEL: Record<string, { label: string; color: string; bg: string }> = {
+  lengkap: { label: "Lengkap", color: "text-green-700", bg: "bg-green-100" },
+  tidak_lengkap: { label: "Tidak Lengkap", color: "text-red-700", bg: "bg-red-100" },
+  perlu_didiskusikan: { label: "Perlu Didiskusikan", color: "text-amber-700", bg: "bg-amber-100" },
+};
+
 interface Phase1Summary {
   id: string;
   application_id: string;
@@ -48,6 +64,7 @@ interface Phase1Summary {
   partner_name: string;
   verdict: string | null;
   description: string | null;
+  document_checklist?: Record<string, string> | null;
   is_finalized: boolean;
   evaluator_name: string;
   evaluated_at: string | null;
@@ -55,6 +72,7 @@ interface Phase1Summary {
 }
 
 interface Phase1EvalDetail extends Phase1Summary {
+  document_checklist: Record<string, string> | null;
   evidence: { id: string; fileKey: string; fileName: string; fileType: string | null; url: string | null }[];
 }
 
@@ -1012,6 +1030,45 @@ export default function Phase1ApprovalPage({
                               ) : (
                                 <div className="rounded-lg border border-gray-200 bg-ptba-section-bg p-4 text-center">
                                   <p className="text-sm text-ptba-gray">Belum ada verdict dari EBD.</p>
+                                </div>
+                              )}
+
+                              {/* Document Checklist */}
+                              {selectedPhase1Detail.document_checklist && Object.keys(selectedPhase1Detail.document_checklist).length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1.5">Kelengkapan Dokumen</p>
+                                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <table className="w-full text-xs">
+                                      <thead>
+                                        <tr className="bg-ptba-section-bg border-b border-gray-200">
+                                          <th className="text-left py-2 px-3 font-semibold text-ptba-navy w-6">#</th>
+                                          <th className="text-left py-2 px-2 font-semibold text-ptba-navy">Dokumen</th>
+                                          <th className="text-center py-2 px-3 font-semibold text-ptba-navy">Status</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-gray-100">
+                                        {PHASE1_CHECKLIST_DOCS.map((doc, idx) => {
+                                          const val = (selectedPhase1Detail.document_checklist || {})[doc.id];
+                                          const cfg = val ? CHECKLIST_LABEL[val] : null;
+                                          return (
+                                            <tr key={doc.id} className="hover:bg-gray-50/50">
+                                              <td className="py-2 px-3 text-ptba-gray text-center">{idx + 1}</td>
+                                              <td className="py-2 px-2">
+                                                <p className="font-medium text-ptba-charcoal">{doc.label}</p>
+                                              </td>
+                                              <td className="py-2 px-3 text-center">
+                                                {cfg ? (
+                                                  <span className={cn("inline-block rounded-full px-2 py-0.5 text-[10px] font-medium", cfg.bg, cfg.color)}>{cfg.label}</span>
+                                                ) : (
+                                                  <span className="text-gray-400">—</span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
                                 </div>
                               )}
 
