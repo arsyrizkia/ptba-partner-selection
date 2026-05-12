@@ -266,21 +266,27 @@ export interface PICAssignment {
   userName: string;
 }
 
-export interface Phase1Criterion {
-  name: string;
-  score: number;
-  maxScore: number;
-  notes?: string;
+export interface Phase1Evidence {
+  id: string;
+  fileKey: string;
+  fileName: string;
+  fileType: string | null;
+  url: string | null;
 }
 
 export interface Phase1Evaluation {
+  id: string;
+  applicationId: string;
   partnerId: string;
   partnerName: string;
-  criteria: Phase1Criterion[];
-  overallResult: 'Lolos' | 'Tidak Lolos';
-  evaluatedBy: string;
-  evaluatedAt: string;
-  notes?: string;
+  verdict: 'layak' | 'tidak_layak' | 'perlu_didiskusikan' | null;
+  description: string | null;
+  isFinalized: boolean;
+  evaluatorId: string | null;
+  evaluatorName: string | null;
+  evaluatedAt: string | null;
+  updatedAt: string | null;
+  evidence: Phase1Evidence[];
 }
 
 export interface PTBADocument {

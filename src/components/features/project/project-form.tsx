@@ -35,12 +35,10 @@ const PHASE_PIC_CONFIG = {
   phase1: {
     label: "Fase 1",
     roles: [
-      { role: "ebd" as UserRole, label: "EBD — Pasar", multi: true, subcategory: "pasar", description: "Evaluasi pasar" },
-      { role: "ebd" as UserRole, label: "EBD — Teknis", multi: true, subcategory: "teknis", description: "Evaluasi teknis" },
-      { role: "ebd" as UserRole, label: "EBD — Komersial", multi: true, subcategory: "komersial", description: "Evaluasi ESG/komersial" },
-      { role: "keuangan" as UserRole, label: "Corporate Finance", multi: true, description: "Evaluasi keuangan" },
-      { role: "hukum" as UserRole, label: "Legal & Regulatory Affairs", multi: true, description: "Evaluasi hukum" },
-      { role: "risiko" as UserRole, label: "Risk Management", multi: true, description: "Evaluasi risiko" },
+      { role: "ebd" as UserRole, label: "EBD", multi: true, description: "Penilaian kelengkapan dokumen Fase 1" },
+      { role: "keuangan" as UserRole, label: "Corporate Finance", multi: true, description: "Notifikasi penilaian EBD" },
+      { role: "hukum" as UserRole, label: "Legal & Regulatory Affairs", multi: true, description: "Notifikasi penilaian EBD" },
+      { role: "risiko" as UserRole, label: "Risk Management", multi: true, description: "Notifikasi penilaian EBD" },
       { role: "ketua_tim" as UserRole, label: "Ketua Tim", multi: true, description: "Approver" },
     ],
   },

@@ -583,47 +583,19 @@ export default function ProjectDetailPage({
       .then((res) => setQuestions(res.questions || []))
       .catch(() => {});
 
-    // Fetch per-category evaluations for this project and aggregate per mitra.
-    // The legacy /evaluations/phase1/:id endpoint reads phase1_evaluations
-    // (old score-based flow) which is empty for projects using the new
-    // 6-category flow — so we aggregate phase1_category_evaluations instead.
-    api<{ evaluations: any[] }>(`/evaluations/phase1-cat/${id}`, { token: accessToken })
+    // Fetch Phase 1 evaluations (simplified: one verdict per mitra from EBD)
+    api<{ evaluations: any[] }>(`/evaluations/phase1/${id}`, { token: accessToken })
       .then((res) => {
-        const raw = Array.isArray(res) ? res : (res.evaluations || []);
-        const byPartner = new Map<string, any>();
-        for (const ev of raw) {
-          if (!byPartner.has(ev.partner_id)) {
-            byPartner.set(ev.partner_id, {
-              id: ev.partner_id,
-              partner_id: ev.partner_id,
-              partner_name: ev.partner_name,
-              application_id: ev.application_id,
-              categories: [],
-              evaluator_names: new Set<string>(),
-              last_evaluated_at: null,
-              finalized_count: 0,
-              sesuai_count: 0,
-              tidak_sesuai_count: 0,
-              perlu_diskusi_count: 0,
-            });
-          }
-          const entry = byPartner.get(ev.partner_id)!;
-          const v = (ev.verdict || "").toLowerCase();
-          entry.categories.push({ category: ev.category, verdict: ev.verdict, finalized: ev.is_finalized });
-          if (ev.evaluator_name) entry.evaluator_names.add(ev.evaluator_name);
-          if (ev.is_finalized) entry.finalized_count++;
-          if (v === "sesuai") entry.sesuai_count++;
-          else if (v === "tidak_sesuai") entry.tidak_sesuai_count++;
-          else if (v === "perlu_diskusi") entry.perlu_diskusi_count++;
-          if (ev.evaluated_at && (!entry.last_evaluated_at || ev.evaluated_at > entry.last_evaluated_at)) {
-            entry.last_evaluated_at = ev.evaluated_at;
-          }
-        }
-        const aggregated = Array.from(byPartner.values()).map((e) => ({
-          ...e,
-          evaluator_name: Array.from(e.evaluator_names).join(", "),
-          evaluated_at: e.last_evaluated_at,
-          is_finalized: e.finalized_count === 6,
+        const raw = res.evaluations || [];
+        const aggregated = raw.map((ev: any) => ({
+          id: ev.partner_id,
+          partner_id: ev.partner_id,
+          partner_name: ev.partner_name,
+          application_id: ev.application_id,
+          verdict: ev.verdict,
+          evaluator_name: ev.evaluator_name,
+          evaluated_at: ev.evaluated_at,
+          is_finalized: ev.is_finalized,
         }));
         setProjectEvaluations(aggregated);
       })
@@ -734,7 +706,7 @@ export default function ProjectDetailPage({
       appliedAt: a.applied_at,
       phase1Result: a.phase1_result,
       phase1Score: undefined,
-      hasEvaluation: !!evaluation && evaluation.finalized_count === 6,
+      hasEvaluation: !!evaluation && evaluation.is_finalized,
       phase: a.phase,
       isShortlisted: shortlistedIds.has(a.partner_id),
       documents: allDocs,
@@ -3012,25 +2984,27 @@ export default function ProjectDetailPage({
             {projectEvaluations.length > 0 ? (
               <div className="space-y-3">
                 {projectEvaluations.map((ev: any) => {
-                  const allFinalized = ev.finalized_count === 6;
+                  const verdictLabel: Record<string, { label: string; cls: string }> = {
+                    layak: { label: "Layak", cls: "bg-green-100 text-green-700" },
+                    tidak_layak: { label: "Tidak Layak", cls: "bg-red-100 text-red-700" },
+                    perlu_didiskusikan: { label: "Perlu Diskusi", cls: "bg-amber-100 text-amber-700" },
+                  };
+                  const vd = ev.verdict ? verdictLabel[ev.verdict] : null;
                   return (
-                    <div key={ev.id} className={cn("rounded-lg border p-4", allFinalized ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30")}>
+                    <div key={ev.id} className={cn("rounded-lg border p-4", ev.is_finalized ? "border-green-200 bg-green-50/30" : "border-amber-200 bg-amber-50/30")}>
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="text-sm font-semibold text-ptba-charcoal">{ev.partner_name}</p>
                           <p className="text-[10px] text-ptba-gray">
-                            Evaluator: {ev.evaluator_name || "-"} · {ev.evaluated_at ? formatDate(ev.evaluated_at) : "-"}
-                            {allFinalized ? " · Difinalisasi" : ` · ${ev.finalized_count}/6 difinalisasi`}
+                            EBD: {ev.evaluator_name || "-"} · {ev.evaluated_at ? formatDate(ev.evaluated_at) : "-"}
+                            {ev.is_finalized ? " · Terfinalisasi" : " · Draft"}
                           </p>
                         </div>
-                        <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", allFinalized ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
-                          {ev.finalized_count} / 6 Aspek
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-center gap-3 text-[11px]">
-                        <span className="text-green-700"><span className="font-bold">{ev.sesuai_count}</span> Sesuai</span>
-                        <span className="text-amber-700"><span className="font-bold">{ev.perlu_diskusi_count}</span> Perlu Diskusi</span>
-                        <span className="text-ptba-red"><span className="font-bold">{ev.tidak_sesuai_count}</span> Tidak Sesuai</span>
+                        {vd && (
+                          <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", vd.cls)}>
+                            {vd.label}
+                          </span>
+                        )}
                       </div>
                       <div className="mt-2">
                         <Link

@@ -35,64 +35,27 @@ import FormDataViewer from "@/components/features/project/form-data-viewer";
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-const CATEGORY_LABELS: Record<string, string> = {
-  pasar: "Aspek Pasar", teknis: "Aspek Teknis", komersial: "Aspek ESG",
-  keuangan: "Aspek Keuangan", hukum: "Aspek Legal", risiko: "Aspek Risiko",
-};
-const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
+const VERDICT_CONFIG = {
+  layak: { label: "Layak", pillClass: "bg-green-100 text-green-700 border-green-200", textClass: "text-green-700", icon: "check" },
+  tidak_layak: { label: "Tidak Layak", pillClass: "bg-red-100 text-red-700 border-red-200", textClass: "text-ptba-red", icon: "x" },
+  perlu_didiskusikan: { label: "Perlu Didiskusikan", pillClass: "bg-amber-100 text-amber-700 border-amber-200", textClass: "text-amber-700", icon: "warn" },
+} as const;
 
-/** Normalize verdict for display */
-function normalizeVerdict(v: string | null | undefined): string | null {
-  if (!v) return null;
-  const lower = v.toLowerCase().replace(/_/g, " ");
-  if (lower === "sesuai" || lower === "layak") return "Sesuai";
-  if (lower === "tidak sesuai" || lower === "tidak layak") return "Tidak Sesuai";
-  if (lower === "perlu diskusi" || lower === "perlu_diskusi") return "Perlu Diskusi";
-  return v;
-}
-
-function verdictColor(v: string | null): string {
-  if (v === "Sesuai") return "text-green-600";
-  if (v === "Perlu Diskusi") return "text-amber-600";
-  return "text-ptba-red";
-}
-
-function verdictBg(v: string | null): string {
-  if (v === "Sesuai") return "border-green-200 bg-green-50/50";
-  if (v === "Perlu Diskusi") return "border-amber-200 bg-amber-50/50";
-  return "border-red-200 bg-red-50/50";
-}
-
-interface CatEvalRaw {
+interface Phase1Summary {
   id: string;
   application_id: string;
-  evaluator_id: string;
-  category: string;
+  partner_id: string;
+  partner_name: string;
   verdict: string | null;
+  description: string | null;
   is_finalized: boolean;
-  evaluated_at: string;
-  partner_id: string;
-  partner_name: string;
   evaluator_name: string;
-  application_status: string;
+  evaluated_at: string | null;
+  updated_at: string | null;
 }
 
-interface MitraCatSummary {
-  partner_id: string;
-  partner_name: string;
-  application_id: string;
-  categories: Record<string, { verdict: string | null; isFinalized: boolean; evaluatorName: string; comment?: string; evidence?: any[] }>;
-  allFinalized: boolean;
-}
-
-interface CatEvalDetail {
-  category: string;
-  verdict: string | null;
-  comment: string;
-  notes: string;
-  isFinalized: boolean;
-  evaluatorName: string;
-  evidence: { id: string; fileName: string; fileKey: string }[];
+interface Phase1EvalDetail extends Phase1Summary {
+  evidence: { id: string; fileKey: string; fileName: string; fileType: string | null; url: string | null }[];
 }
 
 interface AppDocument {
@@ -395,11 +358,11 @@ export default function Phase1ApprovalPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [project, setProject] = useState<{ id: string; name: string; [key: string]: unknown } | null>(null);
-  const [mitraSummaries, setMitraSummaries] = useState<MitraCatSummary[]>([]);
+  const [mitraSummaries, setMitraSummaries] = useState<Phase1Summary[]>([]);
   const [approvalRecord, setApprovalRecord] = useState<ApprovalRecord | null>(null);
 
   /* ---- detail loading for selected mitra ---- */
-  const [selectedCatDetails, setSelectedCatDetails] = useState<CatEvalDetail[]>([]);
+  const [selectedPhase1Detail, setSelectedPhase1Detail] = useState<Phase1EvalDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [selectedAppDetail, setSelectedAppDetail] = useState<ApplicationDetail | null>(null);
   const [appDetailLoading, setAppDetailLoading] = useState(false);
@@ -440,9 +403,9 @@ export default function Phase1ApprovalPage({
       setLoading(true);
       setError(null);
       try {
-        const [projectRes, catEvalsRes, approvalsRes] = await Promise.all([
+        const [projectRes, phase1Res, approvalsRes] = await Promise.all([
           projectApi(accessToken!).getById(id),
-          api<CatEvalRaw[]>(`/evaluations/phase1-cat/${id}`, { token: accessToken! }),
+          api<{ evaluations: Phase1Summary[] }>(`/evaluations/phase1/${id}`, { token: accessToken! }),
           api<{ approvals: ApprovalRecord[] }>(`/approvals?project_id=${id}&type=phase1_evaluation`, { token: accessToken! }),
         ]);
 
@@ -450,32 +413,7 @@ export default function Phase1ApprovalPage({
 
         setProject(projectRes.data);
 
-        // Group category evals by partner. NOTE: no auto-computation of an
-        // overall Layak/Tidak Layak verdict — that decision belongs to the
-        // approver and is made manually via the buttons below.
-        const rawEvals = Array.isArray(catEvalsRes) ? catEvalsRes : (catEvalsRes as any).evaluations || [];
-        const byPartner = new Map<string, MitraCatSummary>();
-        for (const ev of rawEvals) {
-          if (!byPartner.has(ev.partner_id)) {
-            byPartner.set(ev.partner_id, {
-              partner_id: ev.partner_id,
-              partner_name: ev.partner_name,
-              application_id: ev.application_id,
-              categories: {},
-              allFinalized: false,
-            });
-          }
-          const entry = byPartner.get(ev.partner_id)!;
-          entry.categories[ev.category] = {
-            verdict: normalizeVerdict(ev.verdict),
-            isFinalized: ev.is_finalized,
-            evaluatorName: ev.evaluator_name,
-          };
-        }
-        const summaries = Array.from(byPartner.values()).map((s) => {
-          s.allFinalized = ALL_CATEGORIES.every((c) => s.categories[c]?.isFinalized);
-          return s;
-        });
+        const summaries: Phase1Summary[] = (phase1Res.evaluations || []);
         setMitraSummaries(summaries);
 
         // Find the approval record for this project
@@ -560,36 +498,23 @@ export default function Phase1ApprovalPage({
     return () => { cancelled = true; };
   }, [id, accessToken]);
 
-  /* ---- Fetch detail evaluations when a mitra is selected ---- */
-  const fetchEvalDetail = useCallback(
+  /* ---- Fetch detail (with evidence) when a mitra is selected ---- */
+  const fetchPhase1Detail = useCallback(
     async (partnerId: string) => {
       if (!accessToken) return;
       const s = mitraSummaries.find((m) => m.partner_id === partnerId);
       if (!s) return;
 
       setDetailLoading(true);
-      setSelectedCatDetails([]);
+      setSelectedPhase1Detail(null);
       try {
-        const res = await api<{ evaluations: any[] }>(
-          `/evaluations/phase1-cat/${id}/${s.application_id}`,
+        const res = await api<{ evaluation: Phase1EvalDetail }>(
+          `/evaluations/phase1/${id}/${s.application_id}`,
           { token: accessToken }
         );
-        const evals = res.evaluations || [];
-        setSelectedCatDetails(evals.map((e: any) => ({
-          category: e.category,
-          verdict: normalizeVerdict(e.verdict),
-          comment: e.comment || "",
-          notes: e.notes || "",
-          isFinalized: e.isFinalized || e.is_finalized || false,
-          evaluatorName: e.evaluatorName || e.evaluator_name || "",
-          evidence: (e.evidence || e.evidenceFiles || []).map((f: any) => ({
-            id: f.id,
-            fileName: f.fileName || f.file_name || f.name,
-            fileKey: f.fileKey || f.file_key,
-          })),
-        })));
+        setSelectedPhase1Detail(res.evaluation || null);
       } catch {
-        setSelectedCatDetails([]);
+        setSelectedPhase1Detail(null);
       } finally {
         setDetailLoading(false);
       }
@@ -624,10 +549,10 @@ export default function Phase1ApprovalPage({
   /* ---- Fetch detail when selectedPartnerId changes ---- */
   useEffect(() => {
     if (selectedPartnerId) {
-      fetchEvalDetail(selectedPartnerId);
+      fetchPhase1Detail(selectedPartnerId);
       fetchAppDetail(selectedPartnerId);
     }
-  }, [selectedPartnerId, fetchEvalDetail, fetchAppDetail]);
+  }, [selectedPartnerId, fetchPhase1Detail, fetchAppDetail]);
 
   const selectedEval = selectedPartnerId
     ? mitraSummaries.find((s) => s.partner_id === selectedPartnerId)
@@ -857,34 +782,33 @@ export default function Phase1ApprovalPage({
           );
         })()}
 
-        {/* Per-aspect breakdown across all mitra */}
+        {/* Rekap per-verdict across all mitra */}
         {(() => {
-          const breakdown = ALL_CATEGORIES.map((cat) => {
-            const counts = { sesuai: 0, tidakSesuai: 0, perluDiskusi: 0, belum: 0 };
-            for (const s of mitraSummaries) {
-              const v = s.categories[cat]?.verdict;
-              if (v === "Sesuai") counts.sesuai++;
-              else if (v === "Tidak Sesuai") counts.tidakSesuai++;
-              else if (v === "Perlu Diskusi") counts.perluDiskusi++;
-              else counts.belum++;
-            }
-            return { cat, counts };
-          });
+          const layakCount = mitraSummaries.filter((s) => s.verdict === "layak" && s.is_finalized).length;
+          const tdkLayakCount = mitraSummaries.filter((s) => s.verdict === "tidak_layak" && s.is_finalized).length;
+          const perluCount = mitraSummaries.filter((s) => s.verdict === "perlu_didiskusikan" && s.is_finalized).length;
+          const belumCount = mitraSummaries.filter((s) => !s.is_finalized).length;
+          if (mitraSummaries.length === 0) return null;
           return (
             <div className="mt-4 rounded-xl border border-ptba-light-gray bg-white p-4">
-              <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide mb-3">Rekap Penilaian Per Aspek</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {breakdown.map(({ cat, counts }) => (
-                  <div key={cat} className="rounded-lg border border-gray-100 bg-ptba-section-bg/40 px-3 py-2">
-                    <p className="text-xs font-semibold text-ptba-charcoal mb-1.5">{CATEGORY_LABELS[cat]}</p>
-                    <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-green-700"><span className="font-bold">{counts.sesuai}</span> Sesuai</span>
-                      <span className="text-amber-700"><span className="font-bold">{counts.perluDiskusi}</span> Diskusi</span>
-                      <span className="text-ptba-red"><span className="font-bold">{counts.tidakSesuai}</span> T. Sesuai</span>
-                      {counts.belum > 0 && <span className="text-ptba-gray"><span className="font-bold">{counts.belum}</span> Belum</span>}
-                    </div>
-                  </div>
-                ))}
+              <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide mb-3">Rekap Penilaian EBD</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="rounded-lg border border-gray-100 bg-green-50/40 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-green-700">{layakCount}</p>
+                  <p className="text-[10px] text-green-700">Layak</p>
+                </div>
+                <div className="rounded-lg border border-gray-100 bg-amber-50/40 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-amber-700">{perluCount}</p>
+                  <p className="text-[10px] text-amber-700">Perlu Diskusi</p>
+                </div>
+                <div className="rounded-lg border border-gray-100 bg-red-50/40 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-red-700">{tdkLayakCount}</p>
+                  <p className="text-[10px] text-red-700">Tidak Layak</p>
+                </div>
+                <div className="rounded-lg border border-gray-100 bg-ptba-section-bg/40 px-3 py-2 text-center">
+                  <p className="text-lg font-bold text-ptba-gray">{belumCount}</p>
+                  <p className="text-[10px] text-ptba-gray">Belum Dinilai</p>
+                </div>
               </div>
             </div>
           );
@@ -1051,125 +975,86 @@ export default function Phase1ApprovalPage({
                           {detailLoading ? (
                             <div className="flex items-center justify-center py-8">
                               <Loader2 className="h-6 w-6 text-ptba-navy animate-spin" />
-                              <span className="ml-2 text-sm text-ptba-gray">Memuat detail penilaian...</span>
+                              <span className="ml-2 text-sm text-ptba-gray">Memuat penilaian EBD...</span>
                             </div>
-                          ) : selectedCatDetails.length > 0 ? (
-                            <>
-                              {/* Section header with collapse-all toggle */}
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide">Penilaian dari 6 Evaluator</p>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const allOpen = ALL_CATEGORIES.every((c) => (expandedDocs[`cat_${c}`] ?? true));
-                                    const next: Record<string, boolean> = { ...expandedDocs };
-                                    for (const c of ALL_CATEGORIES) next[`cat_${c}`] = !allOpen;
-                                    setExpandedDocs(next);
-                                  }}
-                                  className="text-[10px] font-medium text-ptba-steel-blue hover:text-ptba-navy"
-                                >
-                                  Perluas / Tutup Semua
-                                </button>
+                          ) : selectedPhase1Detail ? (
+                            <div className="space-y-4">
+                              {/* Verdict + finalization status */}
+                              <div className="flex items-center gap-3">
+                                <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide">Penilaian EBD</p>
+                                {selectedPhase1Detail.is_finalized ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                                    <CheckCircle2 className="h-3 w-3" /> Terfinalisasi
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                                    <AlertTriangle className="h-3 w-3" /> Draft
+                                  </span>
+                                )}
                               </div>
 
-                              <div className="space-y-3 mb-4">
-                                {ALL_CATEGORIES.map((cat) => {
-                                  const detail = selectedCatDetails.find((d) => d.category === cat);
-                                  const verdict = detail?.verdict;
-                                  const finalized = detail?.isFinalized;
-                                  // Default to expanded
-                                  const isOpen = expandedDocs[`cat_${cat}`] ?? true;
-                                  const verdictPillClass =
-                                    verdict === "Sesuai" ? "bg-green-100 text-green-700 border-green-200" :
-                                    verdict === "Perlu Diskusi" ? "bg-amber-100 text-amber-700 border-amber-200" :
-                                    verdict === "Tidak Sesuai" ? "bg-red-100 text-red-700 border-red-200" :
-                                    "bg-gray-100 text-ptba-gray border-gray-200";
+                              {/* Verdict pill */}
+                              {selectedPhase1Detail.verdict ? (
+                                (() => {
+                                  const cfg = VERDICT_CONFIG[selectedPhase1Detail.verdict as keyof typeof VERDICT_CONFIG];
                                   return (
-                                    <div key={cat} className={cn("rounded-lg border overflow-hidden", verdictBg(verdict || null))}>
-                                      <button
-                                        type="button"
-                                        onClick={() => setExpandedDocs((prev) => ({ ...prev, [`cat_${cat}`]: !isOpen }))}
-                                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/40 transition-colors"
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          {finalized ? (
-                                            verdict === "Sesuai" ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> :
-                                            verdict === "Perlu Diskusi" ? <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" /> :
-                                            <XCircle className="h-4 w-4 text-red-600 shrink-0" />
-                                          ) : (
-                                            <div className="h-4 w-4 rounded-full border-2 border-gray-300 shrink-0" />
-                                          )}
-                                          <span className="text-sm font-semibold text-ptba-charcoal">{CATEGORY_LABELS[cat]}</span>
-                                          {detail?.evaluatorName && <span className="text-[10px] text-ptba-gray">· {detail.evaluatorName}</span>}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold", verdictPillClass)}>
-                                            {verdict || "Belum dinilai"}
-                                          </span>
-                                          <ChevronDown className={cn("h-3.5 w-3.5 text-ptba-gray transition-transform", isOpen && "rotate-180")} />
-                                        </div>
-                                      </button>
-                                      {isOpen && detail && (
-                                        <div className="px-4 pb-3 pt-1 space-y-2 border-t border-white/50 bg-white/30">
-                                          {detail.comment ? (
-                                            <div className="rounded-lg border border-gray-200 bg-white p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: sanitizeHtml(detail.comment) }} />
-                                          ) : (
-                                            <p className="text-[11px] italic text-ptba-gray">Tidak ada komentar.</p>
-                                          )}
-                                          {detail.notes && (
-                                            <div className="rounded-lg border border-gray-200 bg-ptba-section-bg p-2 text-[11px] text-ptba-charcoal">
-                                              <span className="font-semibold text-ptba-gray">Catatan: </span>{detail.notes}
-                                            </div>
-                                          )}
-                                          {detail.evidence.length > 0 && (
-                                            <div className="space-y-1">
-                                              <p className="text-[10px] font-semibold text-ptba-gray uppercase">Bukti Pendukung</p>
-                                              {detail.evidence.map((f) => (
-                                                <div key={f.id} className="flex items-center gap-2 text-xs">
-                                                  <FileText className="h-3.5 w-3.5 text-ptba-steel-blue" />
-                                                  <span className="truncate flex-1">{f.fileName}</span>
-                                                  {f.fileKey && accessToken && (
-                                                    <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy">
-                                                      <Download className="h-3 w-3" />
-                                                    </button>
-                                                  )}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                          {!finalized && <p className="text-[10px] italic text-amber-700">Penilaian belum difinalisasi oleh evaluator.</p>}
-                                        </div>
+                                    <div className={cn("rounded-lg border p-4", cfg?.pillClass.includes("green") ? "border-green-200 bg-green-50/50" : cfg?.pillClass.includes("amber") ? "border-amber-200 bg-amber-50/50" : "border-red-200 bg-red-50/50")}>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        {cfg?.icon === "check" ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : cfg?.icon === "warn" ? <AlertTriangle className="h-5 w-5 text-amber-600" /> : <XCircle className="h-5 w-5 text-red-600" />}
+                                        <span className={cn("text-sm font-bold", cfg?.textClass)}>{cfg?.label ?? selectedPhase1Detail.verdict}</span>
+                                      </div>
+                                      {selectedPhase1Detail.evaluator_name && (
+                                        <p className="text-[10px] text-ptba-gray">Oleh {selectedPhase1Detail.evaluator_name}{selectedPhase1Detail.evaluated_at ? ` · ${formatDate(selectedPhase1Detail.evaluated_at)}` : ""}</p>
                                       )}
                                     </div>
                                   );
-                                })}
-                              </div>
+                                })()
+                              ) : (
+                                <div className="rounded-lg border border-gray-200 bg-ptba-section-bg p-4 text-center">
+                                  <p className="text-sm text-ptba-gray">Belum ada verdict dari EBD.</p>
+                                </div>
+                              )}
 
-                              {/* Per-aspect breakdown for THIS mitra (info only) */}
-                              {(() => {
-                                const sesuai = selectedCatDetails.filter((d) => d.verdict === "Sesuai").length;
-                                const perluDiskusi = selectedCatDetails.filter((d) => d.verdict === "Perlu Diskusi").length;
-                                const tdkSesuai = selectedCatDetails.filter((d) => d.verdict === "Tidak Sesuai").length;
-                                return (
-                                  <div className="rounded-lg bg-ptba-section-bg p-3">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-xs font-medium text-ptba-gray">Rekap Penilaian Mitra Ini</p>
-                                      <p className="text-xs text-ptba-gray">{ALL_CATEGORIES.length} aspek</p>
-                                    </div>
-                                    <div className="mt-1.5 flex items-center gap-3 text-xs">
-                                      <span className="text-green-700"><span className="font-bold">{sesuai}</span> Sesuai</span>
-                                      <span className="text-amber-700"><span className="font-bold">{perluDiskusi}</span> Perlu Diskusi</span>
-                                      <span className="text-ptba-red"><span className="font-bold">{tdkSesuai}</span> Tidak Sesuai</span>
-                                    </div>
-                                    <p className="text-[10px] text-ptba-gray mt-2 italic">Keputusan akhir Layak / Tidak Layak ditentukan oleh approver di bawah.</p>
+                              {/* Description */}
+                              {selectedPhase1Detail.description && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1.5">Deskripsi / Komentar EBD</p>
+                                  <div className="rounded-lg border border-gray-200 bg-white p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedPhase1Detail.description) }} />
+                                </div>
+                              )}
+
+                              {/* Evidence files */}
+                              {(selectedPhase1Detail.evidence || []).length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1.5">Bukti Pendukung ({selectedPhase1Detail.evidence.length})</p>
+                                  <div className="space-y-1.5">
+                                    {selectedPhase1Detail.evidence.map((f) => (
+                                      <div key={f.id} className="flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-2">
+                                        <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                        <span className="truncate flex-1 text-xs text-ptba-charcoal">{f.fileName}</span>
+                                        {(f.url || f.fileKey) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => f.url ? window.open(f.url, "_blank") : downloadDocument(f.fileKey, accessToken!, f.fileName)}
+                                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-[10px] font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors shrink-0"
+                                          >
+                                            <Download className="h-3 w-3" /> Unduh
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
                                   </div>
-                                );
-                              })()}
-                            </>
+                                </div>
+                              )}
+
+                              {!selectedPhase1Detail.is_finalized && (
+                                <p className="text-[10px] italic text-amber-700">Penilaian belum difinalisasi oleh EBD.</p>
+                              )}
+                            </div>
                           ) : (
                             <div className="text-center py-6">
                               <AlertTriangle className="h-8 w-8 text-ptba-gold mx-auto mb-2" />
-                              <p className="text-sm text-ptba-gray">Belum ada evaluasi kategori untuk mitra ini.</p>
+                              <p className="text-sm text-ptba-gray">EBD belum memberikan penilaian untuk mitra ini.</p>
                             </div>
                           )}
                         </div>
@@ -1545,6 +1430,26 @@ export default function Phase1ApprovalPage({
                     </div>
                   );
                 })}
+                {/* Show EBD verdicts for reference */}
+                {ketuaTimMitraStates.some((m) => {
+                  const ev = mitraSummaries.find((s) => s.partner_id === m.partnerId);
+                  return ev?.verdict;
+                }) && (
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <p className="text-[10px] text-ptba-gray mb-1.5">Penilaian EBD sebagai referensi:</p>
+                    {ketuaTimMitraStates.map((m) => {
+                      const ev = mitraSummaries.find((s) => s.partner_id === m.partnerId);
+                      if (!ev?.verdict) return null;
+                      const cfg = VERDICT_CONFIG[ev.verdict as keyof typeof VERDICT_CONFIG];
+                      return (
+                        <div key={m.partnerId} className="flex items-center gap-2 text-[10px]">
+                          <span className="text-ptba-gray w-32 truncate">{ev.partner_name}</span>
+                          <span className={cn("font-medium", cfg?.textClass)}>{cfg?.label ?? ev.verdict}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex gap-3">

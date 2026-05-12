@@ -17,7 +17,6 @@ import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { generateApplicationPdf } from "@/lib/utils/generate-application-pdf";
 
-
 // ── Document name formatter ──────────────────────────────────────────────────
 const DOC_NAME_MAP: Record<string, string> = {
   nib_document: "NIB Document",
@@ -32,48 +31,12 @@ function fmtDocName(name: string, typeId?: string): string {
   if (typeId && DOC_NAME_MAP[typeId]) return DOC_NAME_MAP[typeId];
   if (name.startsWith("credential_exp_")) { const d = name.indexOf(" - "); return d !== -1 ? `Dokumen Kredensial${name.slice(d)}` : "Dokumen Kredensial"; }
   if (name.startsWith("audited_financial_")) { const yr = name.match(/\d{4}/)?.[0] || ""; const d = name.indexOf(" - "); return `Laporan Keuangan Audit ${yr}${d !== -1 ? name.slice(d) : ""}`; }
-  if (typeId && DOC_NAME_MAP[typeId]) return DOC_NAME_MAP[typeId];
   const meta = DOCUMENT_TYPES.find((dt) => dt.id === (typeId || ""));
   if (meta?.name) return meta.name;
   return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// ── Category config ──────────────────────────────────────────────────────────
-const CATEGORY_LABELS: Record<string, { label: string; labelId: string; color: string; description: string }> = {
-  pasar: { label: "Market Aspect", labelId: "Aspek Pasar", color: "bg-blue-100 text-blue-800",
-    description: "Evaluasi kemampuan Calon Mitra dalam penguasaan pasar atas produk atau jasa yang dikerjasamakan, serta kepemilikan spesifikasi produk atau keahlian yang memadai untuk melaksanakan kerja sama yang dibutuhkan." },
-  teknis: { label: "Technical Aspect", labelId: "Aspek Teknis", color: "bg-purple-100 text-purple-800",
-    description: "Evaluasi kemampuan teknis dan usaha Calon Mitra dalam rencana kerja sama, termasuk menilai infrastruktur dan sumber daya teknis yang dimiliki." },
-  komersial: { label: "ESG Aspect", labelId: "Aspek Lingkungan, Sosial & Tata Kelola", color: "bg-teal-100 text-teal-800",
-    description: "Evaluasi keberlanjutan dalam rangka mendukung pencapaian tujuan pembangunan yang berkelanjutan." },
-  keuangan: { label: "Financial Aspect", labelId: "Aspek Ekonomi & Keuangan", color: "bg-amber-100 text-amber-800",
-    description: "Evaluasi ada tidaknya nilai tambah ekonomis bagi PTBA serta pemangku kepentingan, termasuk kelayakan finansial Calon Mitra." },
-  hukum: { label: "Legal Aspect", labelId: "Aspek Legal", color: "bg-red-100 text-red-800",
-    description: "Evaluasi status legalitas Calon Mitra dalam melaksanakan kerja sama, baik berdasarkan perizinan, penugasan area, ataupun dokumen-dokumen hukum lainnya yang dibutuhkan." },
-  risiko: { label: "Risk Aspect", labelId: "Aspek Risiko", color: "bg-orange-100 text-orange-800",
-    description: "Evaluasi potensi risiko yang dapat mempengaruhi ketercapaian tujuan dari Kerja Sama yang dilakukan beserta rencana untuk mitigasinya." },
-};
-const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
-
-function getUserCategories(project: any, userId: string, role: string): string[] {
-  if (role === "super_admin") return [];
-  const pics = (project.phasePics || []).filter(
-    (p: any) => p.userId === userId && p.phase === "phase1"
-  );
-  if (pics.length === 0) return [];
-  if (role === "ebd") {
-    const cats = pics
-      .map((p: any) => p.subcategory)
-      .filter((c: any): c is string => typeof c === "string" && c.length > 0);
-    return Array.from(new Set(cats)) as string[];
-  }
-  if (role === "keuangan") return ["keuangan"];
-  if (role === "hukum") return ["hukum"];
-  if (role === "risiko") return ["risiko"];
-  return [];
-}
-
-// ── Form Data Rendering ──────────────────────────────────────────────────────
+// ── Form Data rendering helpers ──────────────────────────────────────────────
 function EvalField({ label, value }: { label: string; value?: string }) {
   return (
     <div>
@@ -81,32 +44,6 @@ function EvalField({ label, value }: { label: string; value?: string }) {
       <dd className="text-xs text-ptba-charcoal">{value || "-"}</dd>
     </div>
   );
-}
-
-function getCohClass(m: number) {
-  if (m < 1.0) return null;
-  if (m <= 1.10) return { label: "Category F" };
-  if (m <= 1.20) return { label: "Category E" };
-  if (m <= 1.30) return { label: "Category D" };
-  if (m <= 1.40) return { label: "Category C" };
-  if (m <= 1.50) return { label: "Category B" };
-  return { label: "Category A" };
-}
-
-function CohBadge({ fd, project }: { fd: any; project: any }) {
-  if (!fd?.cashOnHand || !fd?.minorityEquityPercent || !project) return null;
-  const capex = parseFloat(String(project.indicativeCapex || project.indicative_capex || "0"));
-  const derParts = String(project.der || "").split(":");
-  const eqRatio = derParts.length === 2 ? parseFloat(derParts[1]) / 100 : 0;
-  const jv = parseFloat(fd.minorityEquityPercent || "0");
-  if (capex <= 0 || eqRatio <= 0 || jv <= 0) return null;
-  const mitraEq = capex * eqRatio * (jv / 100);
-  const cash = parseFloat(String(fd.cashOnHand).replace(/,/g, "") || "0");
-  if (cash <= 0 || mitraEq <= 0) return null;
-  const mult = cash / mitraEq;
-  const cls = getCohClass(mult);
-  if (!cls) return <span className="ml-1 text-[10px] text-red-600 font-semibold">({mult.toFixed(2)}x — Below minimum)</span>;
-  return <span className="ml-1 inline-flex items-center rounded-full border border-ptba-steel-blue/30 bg-ptba-steel-blue/10 px-2 py-0.5 text-[10px] font-bold text-ptba-steel-blue">{mult.toFixed(2)}x — {cls.label}</span>;
 }
 
 const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, project?: any) => React.ReactNode }> = {
@@ -118,43 +55,16 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, proj
           <EvalField label="Nama Perusahaan" value={fd.companyName} />
           <EvalField label="Overview Bidang Usaha" value={fd.businessOverview} />
         </dl>
-        {(fd.companyVision || fd.companyMission) && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <EvalField label="Visi" value={fd.companyVision} />
-            <EvalField label="Misi" value={fd.companyMission} />
-          </dl>
-        )}
-        {fd.companyHistory && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <EvalField label="Sejarah & Milestone" value={fd.companyHistory} />
-          </dl>
-        )}
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <EvalField label="Alamat Kantor Pusat" value={fd.companyAddress} />
-          <EvalField label="Alamat Kantor Rep. Indonesia" value={fd.companyIndonesiaAddress} />
-        </dl>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <EvalField label="Telepon" value={fd.companyPhone} />
           <EvalField label="Email" value={fd.companyEmail} />
-          <EvalField label="Website" value={fd.companyWebsite} />
           <EvalField label="NIB" value={fd.nib} />
         </dl>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
           <EvalField label="Tahun Berdiri" value={fd.yearEstablished} />
           <EvalField label="Negara" value={fd.countryEstablished} />
-          <EvalField label="Status Perusahaan" value={fd.companyStatus} />
         </dl>
-        {fd.shareholderComposition && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <EvalField label="Komposisi Pemegang Saham" value={fd.shareholderComposition} />
-          </dl>
-        )}
-        {(fd.orgStructure || fd.subsidiaries) && (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
-            {fd.orgStructure && <EvalField label="Struktur Organisasi" value={fd.orgStructure} />}
-            {fd.subsidiaries && <EvalField label="Anak Perusahaan / Afiliasi" value={fd.subsidiaries} />}
-          </dl>
-        )}
         <div className="border-t border-gray-200 pt-2">
           <p className="text-[10px] font-semibold text-ptba-gray uppercase mb-1">Contact Person</p>
           <dl className="grid grid-cols-3 gap-x-4 gap-y-2">
@@ -168,27 +78,14 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, proj
   },
   statement_eoi: {
     title: "Surat Pernyataan Expression of Interest",
-    render: (fd, proj) => (
+    render: (fd) => (
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2">
         <EvalField label="Nama Penandatangan" value={fd.signerName} />
         <EvalField label="Jabatan" value={fd.signerPosition} />
         <EvalField label="Tanggal" value={fd.signerDate} />
         <EvalField label="Tipe Pemegang Saham" value={fd.shareholderType === "majority" ? "Pemegang Saham Mayoritas (>50% - 51%)" : fd.shareholderType === "minority" ? "Pemegang Saham Minoritas (45% - 49%)" : fd.shareholderType} />
         <EvalField label="Ekuitas Joint Venture" value={fd.minorityEquityPercent ? `${fd.minorityEquityPercent}%` : undefined} />
-        <EvalField label="Dapat Dinegosiasikan" value={fd.equityNegotiable === "yes" ? "Ya" : fd.equityNegotiable === "no" ? "Tidak" : fd.equityNegotiable} />
-        {fd.equityNegotiable === "yes" && fd.shareholderType === "majority" && (
-          <EvalField label="Dapat Menjadi Minoritas" value={fd.canBecomeMinority === "yes" ? "Ya" : fd.canBecomeMinority === "no" ? "Tidak" : fd.canBecomeMinority} />
-        )}
-        {fd.equityNegotiable === "yes" && (
-          <EvalField label="Ekuitas Minimum yang Diterima" value={fd.equityMinPercent ? `${fd.equityMinPercent}%` : undefined} />
-        )}
-        <div>
-          <dt className="text-[10px] text-ptba-gray">Cash on Hand</dt>
-          <dd className="text-xs text-ptba-charcoal flex items-center flex-wrap gap-1">
-            {fd.cashOnHand ? `$ ${fd.cashOnHand} Mn` : "-"}
-            <CohBadge fd={fd} project={proj} />
-          </dd>
-        </div>
+        <EvalField label="Cash on Hand" value={fd.cashOnHand ? `$ ${fd.cashOnHand} Mn` : undefined} />
         <EvalField label="Menyetujui EoI" value={fd.eoiAgreed ? "Ya" : "Tidak"} />
       </dl>
     ),
@@ -199,39 +96,14 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, proj
       if (fd.noExperience) return <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">Ditandai tidak memiliki pengalaman</p>;
       const exps = fd.experiences || [];
       if (exps.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data pengalaman.</p>;
-      const catLabels: Record<string, string> = { developer: "Developer", om_contractor: "O&M Contractor", financing: "Pembiayaan", general: "Proyek Umum" };
       return (
         <div className="space-y-2">
           {exps.map((exp: any, i: number) => (
             <div key={i} className="rounded-lg border border-ptba-light-gray/50 p-2.5">
-              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1} — {catLabels[exp.category] || exp.category}</p>
+              <p className="text-[10px] font-semibold text-ptba-charcoal mb-1">Pengalaman #{i + 1}</p>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <EvalField label="Nama Proyek / Pembangkit" value={exp.plantName} />
+                <EvalField label="Nama Proyek" value={exp.plantName} />
                 <EvalField label="Lokasi" value={exp.location} />
-                {exp.totalCapacityMW && <EvalField label="Kapasitas (MW)" value={exp.totalCapacityMW} />}
-                {exp.category === "developer" && <>
-                  <EvalField label="Ekuitas (%)" value={exp.equityPercent} />
-                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
-                  <EvalField label="Tahun COD" value={exp.codYear} />
-                </>}
-                {exp.category === "om_contractor" && <>
-                  <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />
-                  <EvalField label="Porsi Kerja (%)" value={exp.workPortionPercent} />
-                  <EvalField label="IPP / Captive" value={exp.ippOrCaptive} />
-                  <EvalField label="Tahun COD" value={exp.codYear} />
-                </>}
-                {exp.category === "financing" && <>
-                  <EvalField label="Tipe Pembiayaan" value={exp.financingType} />
-                  <EvalField label="Jumlah (USD)" value={exp.amountUSD} />
-                  <EvalField label="Tahun COD" value={exp.codYear || exp.year} />
-                </>}
-                {exp.category === "general" && <>
-                  <EvalField label="Jenis Proyek" value={exp.projectType} />
-                  <EvalField label="Peran" value={exp.role} />
-                  {exp.contractValueUSD && <EvalField label="Nilai Kontrak (USD)" value={exp.contractValueUSD} />}
-                  <EvalField label="Tahun COD" value={exp.codYear || exp.year} />
-                  {exp.description && <EvalField label="Deskripsi" value={exp.description} />}
-                </>}
               </dl>
             </div>
           ))}
@@ -243,211 +115,137 @@ const EVAL_FORM_DATA_MAP: Record<string, { title: string; render: (fd: any, proj
     title: "Data Keuangan",
     render: (fd) => {
       const years = fd.financialYears || [];
+      if (years.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data keuangan.</p>;
       return (
-        <div className="space-y-2">
-          {years.length > 0 && (
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-ptba-light-gray">
-                  <th className="py-1 text-left text-ptba-gray font-medium">Tahun</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium">Mata Uang</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium">Total Liability</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium">Total Equity</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium">Total Asset</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium" title="Cash & Cash Equivalents">Cash</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium" title="Interest Bearing Debt">Total IBD</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium">EBITDA</th>
-                  <th className="py-1 text-left text-ptba-gray font-medium">DSCR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {years.map((fy: any, i: number) => (
-                  <tr key={i} className="border-b border-ptba-light-gray/30">
-                    <td className="py-1 text-ptba-charcoal">{fy.year}</td>
-                    <td className="py-1 text-ptba-charcoal font-medium">{fy.currency || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal">{fy.totalDebt || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal">{fy.totalEquity || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal font-medium">{fy.totalAsset || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal">{fy.cashOnHand || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal">{fy.totalIBD || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal">{fy.ebitda || "-"}</td>
-                    <td className="py-1 text-ptba-charcoal">{fy.dscr || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {(fd.creditRatingAgency || fd.creditRatingValue) && (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-              <EvalField label="Lembaga Rating" value={fd.creditRatingAgency} />
-              <EvalField label="Nilai Rating" value={fd.creditRatingValue} />
-            </dl>
-          )}
-        </div>
+        <dl className="grid grid-cols-3 gap-2">
+          {years.map((y: any, i: number) => (
+            <div key={i} className="rounded border border-gray-100 p-2">
+              <dt className="text-[10px] text-ptba-gray">{y.year}</dt>
+              <dd className="text-xs text-ptba-charcoal">Revenue: {y.revenue ?? "-"}</dd>
+            </div>
+          ))}
+        </dl>
       );
     },
   },
   requirements_fulfillment: {
     title: "Pemenuhan Persyaratan",
-    render: (fd) => (
-      <div className="space-y-1">
-        {fd.requirementAnswers && Object.keys(fd.requirementAnswers).length > 0 ? (
-          <p className="text-xs text-green-700">Semua persyaratan telah dikonfirmasi.</p>
-        ) : (
-          <p className="text-xs text-ptba-gray">Tidak ada data persyaratan.</p>
-        )}
-        {fd.requirementNotes && (
-          <div>
-            <span className="text-[10px] text-ptba-gray">Catatan:</span>
-            <p className="text-xs text-ptba-charcoal">{fd.requirementNotes}</p>
-          </div>
-        )}
-      </div>
-    ),
+    render: (fd) => {
+      const answers = fd.requirementAnswers || {};
+      const entries = Object.entries(answers);
+      if (entries.length === 0) return <p className="text-xs text-ptba-gray">Tidak ada data persyaratan.</p>;
+      return (
+        <dl className="space-y-1.5">
+          {entries.map(([k, v]: any) => (
+            <div key={k} className="flex items-start gap-2">
+              <dt className="text-[10px] text-ptba-gray w-1/2">{k}</dt>
+              <dd className="text-xs text-ptba-charcoal">{String(v)}</dd>
+            </div>
+          ))}
+        </dl>
+      );
+    },
   },
-  financial: undefined as any,
-  requirements: undefined as any,
 };
-EVAL_FORM_DATA_MAP.financial = EVAL_FORM_DATA_MAP.financial_overview;
-EVAL_FORM_DATA_MAP.requirements = EVAL_FORM_DATA_MAP.requirements_fulfillment;
 
-// ── Types ────────────────────────────────────────────────────────────────────
-interface CatEval {
-  id?: string;
-  category: string;
-  verdict: string | null;
-  comment: string;
-  notes: string;
-  isFinalized: boolean;
-  finalizedAt?: string;
-  evaluatorId?: string;
-  evaluatorName?: string;
-  evaluatedAt?: string;
-  evidenceFiles: { id: string; fileName: string; fileKey: string }[];
-}
+// ── Verdict config ────────────────────────────────────────────────────────────
+const VERDICT_CONFIG = {
+  layak: { label: "Layak", color: "bg-green-100 text-green-700", ring: "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200", icon: CheckCircle2, iconColor: "text-green-500" },
+  tidak_layak: { label: "Tidak Layak", color: "bg-red-100 text-ptba-red", ring: "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200", icon: X, iconColor: "text-red-500" },
+  perlu_didiskusikan: { label: "Perlu Didiskusikan", color: "bg-amber-100 text-amber-700", ring: "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200", icon: AlertTriangle, iconColor: "text-amber-500" },
+} as const;
 
-interface AppCatStatus {
-  evaluations: CatEval[];
-  allFinalized: boolean;
-  overallResult: string | null;
-}
+type Verdict = keyof typeof VERDICT_CONFIG;
 
-interface ApiApplication {
+interface Phase1Eval {
   id: string;
-  partner_id: string;
-  partner_name: string;
-  project_id: string;
-  project_name: string;
-  status: string;
-  phase: string;
-  applied_at: string;
-  form_data: Record<string, unknown> | null;
-  phase1_result: string | null;
+  applicationId: string;
+  verdict: Verdict | null;
+  description: string | null;
+  isFinalized: boolean;
+  evaluatorId: string | null;
+  evaluatorName: string | null;
+  evaluatedAt: string | null;
+  updatedAt: string | null;
+  evidence: { id: string; fileName: string; fileKey: string; url?: string }[];
 }
 
-interface ApiApplicationDetail extends ApiApplication {
-  phase1Documents: any[];
-  phase2Documents: any[];
-  generalDocuments: any[];
-}
-
-// ── Page Component ───────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default function Phase1EvaluationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { role, accessToken, user } = useAuth();
 
-  // State
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [project, setProject] = useState<any>(null);
-  const [applicants, setApplicants] = useState<ApiApplication[]>([]);
+  const [applicants, setApplicants] = useState<any[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCloseRegModal, setShowCloseRegModal] = useState(false);
   const [closingReg, setClosingReg] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  // Per-application category evaluations
-  const [catEvals, setCatEvals] = useState<Record<string, AppCatStatus>>({});
-  // My draft form state (per appId)
-  const [myComment, setMyComment] = useState("");
-  const [myNotes, setMyNotes] = useState("");
-  const [myVerdict, setMyVerdict] = useState<string | null>(null);
+  const [evals, setEvals] = useState<Record<string, Phase1Eval>>({});
+  const [myVerdict, setMyVerdict] = useState<Verdict | null>(null);
+  const [myDescription, setMyDescription] = useState("");
   const [myEvidence, setMyEvidence] = useState<{ id: string; fileName: string; fileKey: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [submittedForApproval, setSubmittedForApproval] = useState(false);
-
-  // Applicant detail
   const [appDocs, setAppDocs] = useState<any[]>([]);
   const [appFormData, setAppFormData] = useState<any>(null);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [downloadingZip, setDownloadingZip] = useState(false);
 
-  // For super_admin: pick which category to evaluate
-  const [superAdminCat, setSuperAdminCat] = useState<string>("pasar");
-  // For multi-aspect non-super_admin users: selected category
-  const [myCat, setMyCat] = useState<string | null>(null);
-
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Selected mitra
   const selectedPartnerId = searchParams.get("partnerId");
   const selectedApp = selectedPartnerId ? applicants.find((a) => a.partner_id === selectedPartnerId) : null;
   const currentIndex = selectedApp ? applicants.findIndex((a) => a.partner_id === selectedPartnerId) : -1;
   const prevMitra = currentIndex > 0 ? applicants[currentIndex - 1] : null;
   const nextMitra = currentIndex >= 0 && currentIndex < applicants.length - 1 ? applicants[currentIndex + 1] : null;
 
-  const navigateToMitra = (partnerId: string) => {
-    router.push(`/projects/${id}/evaluation/phase1?partnerId=${partnerId}`);
-  };
+  const navigateToMitra = (partnerId: string) => router.push(`/projects/${id}/evaluation/phase1?partnerId=${partnerId}`);
 
-  // Access control
-  const myCategories = project && user ? getUserCategories(project, user.id, role || "") : [];
   const phase1Pics = (project?.phasePics || []).filter((p: any) => p.phase === "phase1");
   const isPhase1Pic = phase1Pics.some((p: any) => p.userId === user?.id);
   const isAuthorized = role === "super_admin" || isPhase1Pic;
-  const activeCategory = role === "super_admin" ? superAdminCat : (myCat ?? myCategories[0] ?? undefined);
+  const canWrite = role === "super_admin" || role === "ebd";
 
-  // Phase checks
   const projectPhase = project?.phase as string | undefined;
   const isEvalPhase = projectPhase === "phase1_closed" || projectPhase === "phase1_evaluation";
   const isRegistrationPhase = projectPhase === "phase1_registration";
   const viewOnly = !!projectPhase && !isEvalPhase;
 
-  // ── Fetch project + applicants ─────────────────────────────────────────────
+  const currentEval = selectedApp ? evals[selectedApp.id] : null;
+  const isFinalized = currentEval?.isFinalized ?? false;
+  const isEditable = canWrite && !isFinalized && !viewOnly;
+
+  // ── Data fetching ─────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!accessToken) return;
     setLoading(true);
     try {
-      const projectRes = await projectApi(accessToken).getById(id);
+      const [projectRes, appsRes] = await Promise.all([
+        projectApi(accessToken).getById(id),
+        api<{ applications: any[] }>("/applications", { token: accessToken }),
+      ]);
       setProject(projectRes.data);
-
-      const appsRes = await api<{ applications: ApiApplication[] }>("/applications", { token: accessToken });
-      const projectApps = appsRes.applications.filter((a) => a.project_id === id && a.status !== "Draft");
+      const projectApps = appsRes.applications.filter((a: any) => a.project_id === id && a.status !== "Draft");
       setApplicants(projectApps);
 
-      // Fetch all category evals summary
       try {
-        const catRes = await api<{ evaluations: any[] }>(`/evaluations/phase1-cat/${id}`, { token: accessToken });
-        const statusMap: Record<string, AppCatStatus> = {};
-        for (const app of projectApps) {
-          const appEvals = (catRes.evaluations || []).filter((e: any) => e.applicationId === app.id || e.application_id === app.id);
-          statusMap[app.id] = {
-            evaluations: appEvals.map(mapCatEval),
-            allFinalized: ALL_CATEGORIES.every((cat) => appEvals.some((e: any) => (e.category === cat) && (e.isFinalized || e.is_finalized))),
-            overallResult: null,
-          };
+        const evalsRes = await api<{ evaluations: any[] }>(`/evaluations/phase1/${id}`, { token: accessToken });
+        const map: Record<string, Phase1Eval> = {};
+        for (const e of evalsRes.evaluations || []) {
+          map[e.application_id] = mapEval(e);
         }
-        setCatEvals(statusMap);
-      } catch {
-        // No evals yet
-      }
+        setEvals(map);
+      } catch { /* no evals yet */ }
     } catch (err) {
       console.error("Failed to load evaluation data:", err);
     } finally {
@@ -457,123 +255,73 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Default myCat to first assigned category when project data loads
-  useEffect(() => {
-    if (myCategories.length > 0 && (!myCat || !myCategories.includes(myCat))) {
-      setMyCat(myCategories[0]);
+  // Fetch detailed eval for selected app
+  const fetchAppEval = useCallback(async (appId: string) => {
+    if (!accessToken) return;
+    try {
+      const res = await api<{ evaluation: any }>(`/evaluations/phase1/${id}/${appId}`, { token: accessToken });
+      const ev = mapEval(res.evaluation);
+      setEvals((prev) => ({ ...prev, [appId]: ev }));
+      setMyVerdict(ev.verdict);
+      setMyDescription(ev.description || "");
+      setMyEvidence(ev.evidence);
+    } catch {
+      setMyVerdict(null);
+      setMyDescription("");
+      setMyEvidence([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myCategories.join(",")]);
+  }, [id, accessToken]);
 
-  // ── Fetch detail for selected app ──────────────────────────────────────────
+  // Fetch applicant docs + form data
   useEffect(() => {
-    if (!selectedApp || !accessToken) {
-      setAppDocs([]);
-      setAppFormData(null);
-      return;
-    }
+    if (!selectedApp || !accessToken) { setAppDocs([]); setAppFormData(null); return; }
     const fetchDetail = async () => {
       setLoadingDocs(true);
+      setExpandedSections({});
       try {
-        const res = await api<{ application: ApiApplicationDetail }>(`/applications/${selectedApp.id}`, { token: accessToken });
+        const res = await api<{ application: any }>(`/applications/${selectedApp.id}`, { token: accessToken });
         setAppDocs(res.application.phase1Documents || []);
-        const fd = (res.application as any).form_data;
+        const fd = res.application.form_data;
         setAppFormData(fd ? (typeof fd === "string" ? JSON.parse(fd) : fd) : null);
-      } catch {
-        setAppDocs([]);
-        setAppFormData(null);
-      } finally {
-        setLoadingDocs(false);
-        setExpandedSections({});
-      }
+      } catch { setAppDocs([]); setAppFormData(null); } finally { setLoadingDocs(false); }
     };
     fetchDetail();
+    fetchAppEval(selectedApp.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedApp?.id, accessToken]);
 
-  // ── Fetch category evals for selected app ──────────────────────────────────
-  useEffect(() => {
-    if (!selectedApp || !accessToken) return;
-    const fetchCatEvals = async () => {
-      try {
-        const res = await api<{ evaluations: any[]; allFinalized: boolean }>(`/evaluations/phase1-cat/${id}/${selectedApp.id}`, { token: accessToken });
-        const evals = (res.evaluations || []).map(mapCatEval);
-        setCatEvals((prev) => ({
-          ...prev,
-          [selectedApp.id]: {
-            evaluations: evals,
-            allFinalized: res.allFinalized ?? ALL_CATEGORIES.every((c) => evals.some((e) => e.category === c && e.isFinalized)),
-            overallResult: null,
-          },
-        }));
-        // Populate my form from my category
-        const mine = evals.find((e) => e.category === activeCategory);
-        if (mine) {
-          setMyComment(mine.comment || "");
-          setMyNotes(mine.notes || "");
-          setMyVerdict(mine.verdict);
-          setMyEvidence(mine.evidenceFiles || []);
-        } else {
-          setMyComment("");
-          setMyNotes("");
-          setMyVerdict(null);
-          setMyEvidence([]);
-        }
-      } catch {
-        setMyComment("");
-        setMyNotes("");
-        setMyVerdict(null);
-        setMyEvidence([]);
-      }
-    };
-    fetchCatEvals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedApp?.id, activeCategory, accessToken]);
-
-  function mapCatEval(e: any): CatEval {
+  function mapEval(e: any): Phase1Eval {
     return {
       id: e.id,
-      category: e.category,
+      applicationId: e.application_id,
       verdict: e.verdict || null,
-      comment: e.comment || "",
-      notes: e.notes || "",
-      isFinalized: e.isFinalized || e.is_finalized || false,
-      finalizedAt: e.finalizedAt || e.finalized_at,
-      evaluatorId: e.evaluatorId || e.evaluator_id,
-      evaluatorName: e.evaluatorName || e.evaluator_name,
-      evaluatedAt: e.evaluatedAt || e.evaluated_at,
-      evidenceFiles: (e.evidence || e.evidenceFiles || e.evidence_files || []).map((f: any) => ({
+      description: e.description || null,
+      isFinalized: e.is_finalized || e.isFinalized || false,
+      evaluatorId: e.evaluator_id || e.evaluatorId || null,
+      evaluatorName: e.evaluator_name || e.evaluatorName || null,
+      evaluatedAt: e.evaluated_at || e.evaluatedAt || null,
+      updatedAt: e.updated_at || e.updatedAt || null,
+      evidence: (e.evidence || []).map((f: any) => ({
         id: f.id,
-        fileName: f.fileName || f.file_name || f.name,
-        fileKey: f.fileKey || f.file_key,
+        fileName: f.file_name || f.fileName || f.name,
+        fileKey: f.file_key || f.fileKey,
+        url: f.url,
       })),
     };
   }
 
-  // ── My evaluation helpers ──────────────────────────────────────────────────
-  const myEval = selectedApp ? (catEvals[selectedApp.id]?.evaluations || []).find((e) => e.category === activeCategory) : null;
-  const isMyFinalized = myEval?.isFinalized ?? false;
-  const isEditable = !isMyFinalized && !viewOnly;
-
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSaveDraft = async () => {
-    if (!selectedApp || !accessToken || !activeCategory) return;
+    if (!selectedApp || !accessToken) return;
     setSaving(true);
     try {
-      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}`, {
+      await api(`/evaluations/phase1/${id}/${selectedApp.id}`, {
         method: "POST",
         token: accessToken,
-        body: { verdict: myVerdict, comment: myComment, notes: myNotes },
+        body: { verdict: myVerdict, description: myDescription },
       });
       showToast("Draft evaluasi berhasil disimpan.");
-      // Re-fetch
-      const res = await api<{ evaluations: any[]; allFinalized: boolean }>(`/evaluations/phase1-cat/${id}/${selectedApp.id}`, { token: accessToken });
-      setCatEvals((prev) => ({
-        ...prev,
-        [selectedApp.id]: {
-          evaluations: (res.evaluations || []).map(mapCatEval),
-          allFinalized: res.allFinalized ?? false,
-          overallResult: null,
-        },
-      }));
+      await fetchAppEval(selectedApp.id);
     } catch (err: any) {
       showToast(err.message || "Gagal menyimpan draft.", "error");
     } finally {
@@ -582,38 +330,21 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   };
 
   const handleFinalize = async () => {
-    if (!selectedApp || !accessToken || !activeCategory) return;
+    if (!selectedApp || !accessToken) return;
     setSaving(true);
     try {
-      // Save first
-      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}`, {
+      await api(`/evaluations/phase1/${id}/${selectedApp.id}`, {
         method: "POST",
         token: accessToken,
-        body: { verdict: myVerdict, comment: myComment, notes: myNotes },
+        body: { verdict: myVerdict, description: myDescription },
       });
-      // Finalize
-      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/finalize`, {
-        method: "POST",
-        token: accessToken,
-      });
-      showToast("Evaluasi berhasil difinalisasi.");
+      await api(`/evaluations/phase1/${id}/${selectedApp.id}/finalize`, { method: "POST", token: accessToken });
+      showToast("Evaluasi berhasil difinalisasi. Notifikasi email dikirim ke PIC terkait.");
       setConfirmFinalize(false);
-      // Re-fetch evals
-      const res = await api<{ evaluations: any[]; allFinalized: boolean }>(`/evaluations/phase1-cat/${id}/${selectedApp.id}`, { token: accessToken });
-      setCatEvals((prev) => ({
-        ...prev,
-        [selectedApp.id]: {
-          evaluations: (res.evaluations || []).map(mapCatEval),
-          allFinalized: res.allFinalized ?? false,
-          overallResult: null,
-        },
-      }));
-      // Auto-navigate to next
+      await fetchAppEval(selectedApp.id);
       const nextUneval = applicants.find((a) => {
         if (a.id === selectedApp.id) return false;
-        const status = catEvals[a.id];
-        if (!status) return true;
-        return !status.evaluations.some((e) => e.category === activeCategory && e.isFinalized);
+        return !evals[a.id]?.isFinalized;
       });
       if (nextUneval) navigateToMitra(nextUneval.partner_id);
     } catch (err: any) {
@@ -624,26 +355,26 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   };
 
   const handleUploadEvidence = async (file: File) => {
-    if (!selectedApp || !accessToken || !activeCategory) return;
+    if (!selectedApp || !accessToken) return;
     setUploading(true);
     try {
-      // Auto-save draft first to ensure evaluation record exists
-      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}`, {
-        method: "POST",
-        body: { verdict: myVerdict || undefined, comment: myComment || undefined, notes: myNotes || undefined },
-        token: accessToken,
-      });
-
+      if (!evals[selectedApp.id]) {
+        await api(`/evaluations/phase1/${id}/${selectedApp.id}`, {
+          method: "POST",
+          token: accessToken,
+          body: { verdict: myVerdict || undefined, description: myDescription || undefined },
+        });
+      }
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetchWithAuth(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/evidence`, {
+      const res = await fetchWithAuth(`/evaluations/phase1/${id}/${selectedApp.id}/evidence`, {
         method: "POST",
         token: accessToken,
         body: formData,
       });
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error((d as any).error || "Upload gagal"); }
       const data = await res.json();
-      const newFile = { id: data.evidence?.id || data.file?.id || data.id, fileName: file.name, fileKey: data.evidence?.fileKey || data.evidence?.file_key || data.file?.fileKey || data.file?.file_key || data.fileKey || "" };
+      const newFile = { id: data.evidence?.id, fileName: file.name, fileKey: data.evidence?.fileKey || data.evidence?.file_key || "" };
       setMyEvidence((prev) => [...prev, newFile]);
       showToast("File bukti berhasil diunggah.");
     } catch (err: any) {
@@ -654,12 +385,9 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
   };
 
   const handleDeleteEvidence = async (fileId: string) => {
-    if (!selectedApp || !accessToken || !activeCategory) return;
+    if (!selectedApp || !accessToken) return;
     try {
-      await api(`/evaluations/phase1-cat/${id}/${selectedApp.id}/${activeCategory}/evidence/${fileId}`, {
-        method: "DELETE",
-        token: accessToken,
-      });
+      await api(`/evaluations/phase1/${id}/${selectedApp.id}/evidence/${fileId}`, { method: "DELETE", token: accessToken });
       setMyEvidence((prev) => prev.filter((f) => f.id !== fileId));
       showToast("File bukti berhasil dihapus.");
     } catch (err: any) {
@@ -681,27 +409,34 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
     }
   };
 
-  // ── Sidebar status helpers ─────────────────────────────────────────────────
-  // Note: this page is the EVALUATION stage. Evaluators give per-aspect
-  // verdicts (sesuai / tidak_sesuai / perlu_diskusi). The final overall
-  // Layak / Tidak Layak call is made by the approver later, NOT inferred
-  // from the aspect verdicts here.
-  const getMitraStatus = (appId: string): { text: string; color: string; icon: "finalized" | "partial" | "none" } => {
-    const status = catEvals[appId];
-    if (!status) return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" };
-    const finCount = status.evaluations.filter((e) => e.isFinalized).length;
-    if (status.allFinalized) {
-      return { text: "Selesai (6/6)", color: "text-ptba-steel-blue", icon: "finalized" };
-    }
-    if (finCount > 0) return { text: `${finCount}/6 selesai`, color: "text-ptba-steel-blue", icon: "partial" };
-    return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" };
+  // ── Status helpers ────────────────────────────────────────────────────────
+  const getMitraStatus = (appId: string) => {
+    const ev = evals[appId];
+    if (!ev) return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" as const };
+    if (ev.isFinalized) return { text: "Selesai", color: "text-green-600", icon: "finalized" as const };
+    if (ev.verdict) return { text: "Draft tersimpan", color: "text-ptba-steel-blue", icon: "partial" as const };
+    return { text: "Belum dinilai", color: "text-ptba-gray", icon: "none" as const };
   };
 
-  // Check if all apps have all 6 finalized
-  const allAppsAllFinalized = applicants.length > 0 && applicants.every((a) => catEvals[a.id]?.allFinalized);
-  const isEbdOrAdmin = role === "super_admin" || role === "ebd";
+  const allAppsFinalized = applicants.length > 0 && applicants.every((a) => evals[a.id]?.isFinalized);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Doc panel config ──────────────────────────────────────────────────────
+  const DOC_SECTION_MAP: Record<string, string[]> = {
+    compro: ["compro", "nib_document", "org_structure", "company_history"],
+    statement_eoi: ["statement_eoi", "cash_on_hand_evidence"],
+    portfolio: ["portfolio", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
+    financial_overview: ["financial_overview", "credit_rating_evidence", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
+    requirements_fulfillment: ["requirements_fulfillment"],
+  };
+  const SECTIONS = [
+    { key: "compro", title: EVAL_FORM_DATA_MAP.compro.title },
+    { key: "statement_eoi", title: EVAL_FORM_DATA_MAP.statement_eoi.title },
+    { key: "portfolio", title: EVAL_FORM_DATA_MAP.portfolio.title },
+    { key: "financial_overview", title: EVAL_FORM_DATA_MAP.financial_overview.title },
+    { key: "requirements_fulfillment", title: EVAL_FORM_DATA_MAP.requirements_fulfillment.title },
+  ];
+
+  // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -712,15 +447,9 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       </div>
     );
   }
-
   if (!project) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-ptba-gray">Proyek tidak ditemukan.</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-[400px]"><p className="text-ptba-gray">Proyek tidak ditemukan.</p></div>;
   }
-
   if (!isAuthorized) {
     return (
       <div className="space-y-6">
@@ -738,32 +467,13 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
             </div>
             <div>
               <h2 className="text-lg font-semibold text-ptba-red">Akses Ditolak</h2>
-              <p className="text-sm text-ptba-gray mt-1">
-                Anda tidak memiliki akses ke halaman evaluasi Fase 1 proyek ini.
-                Role: <span className="font-medium text-ptba-charcoal">{role ?? "Tidak teridentifikasi"}</span>
-              </p>
+              <p className="text-sm text-ptba-gray mt-1">Anda tidak memiliki akses ke halaman evaluasi Fase 1 proyek ini.</p>
             </div>
           </div>
         </div>
       </div>
     );
   }
-
-  // Applicant data sections
-  const DOC_SECTION_MAP: Record<string, string[]> = {
-    compro: ["compro", "nib_document", "org_structure", "company_history"],
-    statement_eoi: ["statement_eoi", "cash_on_hand_evidence"],
-    portfolio: ["portfolio", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("credential_exp_")).map((d: any) => d.document_type_id)],
-    financial_overview: ["financial_overview", "credit_rating_evidence", ...appDocs.filter((d: any) => (d.document_type_id || "").startsWith("audited_financial_")).map((d: any) => d.document_type_id)],
-    requirements_fulfillment: ["requirements_fulfillment"],
-  };
-  const SECTIONS = [
-    { key: "compro", title: EVAL_FORM_DATA_MAP.compro?.title || "Company Profile" },
-    { key: "statement_eoi", title: EVAL_FORM_DATA_MAP.statement_eoi?.title || "Surat Pernyataan EoI" },
-    { key: "portfolio", title: EVAL_FORM_DATA_MAP.portfolio?.title || "Pengalaman Proyek" },
-    { key: "financial_overview", title: EVAL_FORM_DATA_MAP.financial_overview?.title || "Data Keuangan" },
-    { key: "requirements_fulfillment", title: EVAL_FORM_DATA_MAP.requirements_fulfillment?.title || "Pemenuhan Persyaratan" },
-  ];
 
   return (
     <div className="space-y-6">
@@ -839,57 +549,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 — Pra-kualifikasi</h1>
-        {activeCategory && CATEGORY_LABELS[activeCategory] && (
-          <div className="mt-3 rounded-xl border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 px-4 py-3">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className={cn("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory].color)}>
-                {CATEGORY_LABELS[activeCategory].labelId}
-              </span>
-              <span className="text-[10px] text-ptba-gray">Keputusan Direksi No. 091/0100/2024</span>
-            </div>
-            <p className="text-xs text-ptba-charcoal leading-relaxed">
-              {CATEGORY_LABELS[activeCategory].description}
-            </p>
-          </div>
-        )}
+        <p className="text-sm text-ptba-gray mt-1">Divisi EBD memberikan penilaian kelengkapan dokumen (Layak / Tidak Layak / Perlu Didiskusikan) per mitra.</p>
       </div>
-
-      {/* Super admin: category picker */}
-      {role === "super_admin" && (
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-ptba-gray mb-2">Evaluasi sebagai kategori:</p>
-          <div className="flex flex-wrap gap-2">
-            {ALL_CATEGORIES.map((cat) => (
-              <button key={cat} onClick={() => setSuperAdminCat(cat)} className={cn("rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", superAdminCat === cat ? CATEGORY_LABELS[cat].color + " ring-2 ring-offset-1 ring-gray-400" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}>
-                {CATEGORY_LABELS[cat].labelId}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Multi-aspect evaluator: category picker */}
-      {role !== "super_admin" && myCategories.length > 1 && (
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-ptba-gray mb-2">Evaluasi sebagai kategori:</p>
-          <div className="flex flex-wrap gap-2">
-            {myCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setMyCat(cat)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                  (myCat ?? myCategories[0]) === cat
-                    ? CATEGORY_LABELS[cat].color + " ring-2 ring-offset-1 ring-gray-400"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                )}
-              >
-                {CATEGORY_LABELS[cat].labelId}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Summary strip */}
       <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -973,26 +634,13 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                         <p className="text-xs text-ptba-gray">Mitra {currentIndex + 1} dari {applicants.length} · Mendaftar: {formatDate(selectedApp.applied_at)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {(() => {
-                        const status = catEvals[selectedApp.id];
-                        if (!status) return null;
-                        const finCount = status.evaluations.filter((e) => e.isFinalized).length;
-                        // Evaluation stage only surfaces finalization progress.
-                        // Layak / Tidak Layak is the approver's call, not derived
-                        // from per-aspect verdicts.
-                        return finCount > 0 ? (
-                          <span className={cn(
-                            "rounded-full px-3 py-1 text-xs font-semibold",
-                            status.allFinalized ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
-                          )}>
-                            {finCount}/6 Kategori {status.allFinalized ? "Final" : "Selesai"}
-                          </span>
-                        ) : null;
-                      })()}
-                    </div>
+                    {currentEval?.verdict && (
+                      <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", currentEval.isFinalized ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")}>
+                        {currentEval.isFinalized ? "Final" : "Draft"} · {VERDICT_CONFIG[currentEval.verdict as Verdict]?.label}
+                      </span>
+                    )}
                   </div>
-                  {/* PDF/Download/Nav bar */}
+                  {/* Action bar */}
                   <div className="px-6 py-2 bg-ptba-section-bg border-b border-gray-100 flex items-center gap-2 flex-wrap">
                     {appFormData && (
                       <button type="button" onClick={() => { try { generateApplicationPdf(selectedApp.partner_name || "Mitra", appFormData); } catch (err) { alert("Gagal membuat PDF: " + (err instanceof Error ? err.message : String(err))); } }} className="inline-flex items-center gap-1.5 rounded-lg border border-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors">
@@ -1026,7 +674,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
 
-                {/* Applicant Data (collapsible) */}
+                {/* Applicant Data Panel */}
                 <div className="rounded-xl bg-white shadow-sm overflow-hidden">
                   <button type="button" onClick={() => setExpandedSections((p) => ({ ...p, _appData: !(p._appData ?? true) }))} className="w-full flex items-center justify-between px-6 py-4 bg-ptba-section-bg hover:bg-ptba-light-gray/30 transition-colors">
                     <span className="text-sm font-bold text-ptba-navy">Data Pendaftaran Mitra</span>
@@ -1048,7 +696,6 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                                 const matchedDocs = appDocs.filter((d: any) => relDocIds.includes(d.document_type_id));
                                 const formRenderer = EVAL_FORM_DATA_MAP[section.key];
                                 const hasFormData = formRenderer && appFormData;
-                                // Skip empty sections
                                 const isRequirements = section.key === "requirements_fulfillment";
                                 const hasRequirementData = isRequirements && appFormData?.requirementAnswers && Object.keys(appFormData.requirementAnswers).length > 0;
                                 if (isRequirements && !hasRequirementData && matchedDocs.length === 0) return null;
@@ -1126,234 +773,162 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                   )}
                 </div>
 
-                {/* My Evaluation */}
-                {activeCategory && (
-                  <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b bg-white flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", CATEGORY_LABELS[activeCategory]?.color || "bg-gray-100 text-gray-700")}>
-                          {CATEGORY_LABELS[activeCategory]?.labelId || activeCategory}
-                        </span>
-                        <h3 className="text-base font-semibold text-ptba-navy">Evaluasi Saya</h3>
-                      </div>
-                      {isMyFinalized && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-800 px-3 py-1 text-xs font-semibold text-white">
-                          <Lock className="h-3 w-3" /> Final
-                        </span>
-                      )}
-                    </div>
-                    <div className={cn("p-6 space-y-5", isMyFinalized && "opacity-75")}>
-                      {/* Finalized banner */}
-                      {isMyFinalized && (
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 flex items-center gap-2">
-                          <Lock className="h-4 w-4 text-ptba-gray shrink-0" />
-                          <p className="text-xs text-ptba-gray">Evaluasi ini telah difinalisasi dan tidak dapat diubah.{myEval?.finalizedAt && ` (${formatDate(myEval.finalizedAt)})`}</p>
-                        </div>
-                      )}
-
-                      {/* Last-edited-by banner — shown when another PIC saved this draft */}
-                      {!isMyFinalized && myEval?.evaluatorId && myEval.evaluatorId !== user?.id && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
-                          <Info className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                          <p className="text-xs text-amber-800">
-                            Terakhir diedit oleh <span className="font-semibold">{myEval.evaluatorName ?? "PIC lain"}</span>
-                            {myEval.evaluatedAt && <span className="text-amber-700"> · {formatDate(myEval.evaluatedAt)}</span>}.{" "}
-                            Perubahan Anda akan menggantikan draf ini.
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Rich text comment */}
-                      <div>
-                        <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Komentar Evaluasi</label>
-                        {isEditable ? (
-                          <RichTextEditor value={myComment} onChange={setMyComment} placeholder="Tulis komentar evaluasi Anda di sini..." />
-                        ) : (
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: myComment ? sanitizeHtml(myComment) : "<em class='text-gray-400'>Belum ada komentar.</em>" }} />
-                        )}
-                      </div>
-
-                      {/* Evidence files */}
-                      <div>
-                        <label className="text-sm font-medium text-ptba-charcoal mb-2 block">File Bukti / Evidence</label>
-                        <div className="space-y-2">
-                          {myEvidence.map((f) => (
-                            <div key={f.id} className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 bg-gray-50">
-                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
-                              <span className="text-xs text-ptba-charcoal flex-1 truncate">{f.fileName}</span>
-                              {f.fileKey && (
-                                <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy transition-colors">
-                                  <Eye className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                              {isEditable && (
-                                <button type="button" onClick={() => handleDeleteEvidence(f.id)} className="text-red-400 hover:text-ptba-red transition-colors">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                          {isEditable && (
-                            <label className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors cursor-pointer">
-                              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                              {uploading ? "Mengunggah..." : "Unggah File Bukti"}
-                              <input type="file" className="hidden" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadEvidence(f); e.target.value = ""; }} />
-                            </label>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Verdict */}
-                      <div>
-                        <label className="text-sm font-medium text-ptba-charcoal mb-3 block">Verdict</label>
-                        {isEditable ? (
-                          <div className="flex gap-3">
-                            <button type="button" onClick={() => setMyVerdict("sesuai")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "sesuai" ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200" : "border-gray-200 bg-white text-gray-400 hover:border-green-300 hover:bg-green-50/50")}>
-                              <CheckCircle2 className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "sesuai" ? "text-green-500" : "text-gray-300")} />
-                              Sesuai
-                            </button>
-                            <button type="button" onClick={() => setMyVerdict("tidak_sesuai")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "tidak_sesuai" ? "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200" : "border-gray-200 bg-white text-gray-400 hover:border-red-300 hover:bg-red-50/50")}>
-                              <X className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "tidak_sesuai" ? "text-red-500" : "text-gray-300")} />
-                              Tidak Sesuai
-                            </button>
-                            <button type="button" onClick={() => setMyVerdict("perlu_diskusi")} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === "perlu_diskusi" ? "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200" : "border-gray-200 bg-white text-gray-400 hover:border-amber-300 hover:bg-amber-50/50")}>
-                              <AlertTriangle className={cn("h-6 w-6 mx-auto mb-1", myVerdict === "perlu_diskusi" ? "text-amber-500" : "text-gray-300")} />
-                              Perlu Diskusi
-                            </button>
-                          </div>
-                        ) : (
-                          <div className={cn("rounded-xl py-3 px-4 text-center text-sm font-bold", myVerdict === "sesuai" ? "bg-green-100 text-green-700" : myVerdict === "tidak_sesuai" ? "bg-red-100 text-ptba-red" : myVerdict === "perlu_diskusi" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
-                            {myVerdict === "sesuai" ? "Sesuai" : myVerdict === "tidak_sesuai" ? "Tidak Sesuai" : myVerdict === "perlu_diskusi" ? "Perlu Didiskusikan Lebih Lanjut" : "Belum ada verdict"}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action buttons */}
-                      {isEditable && !confirmFinalize && (
-                        <div className="flex items-center gap-3 pt-2">
-                          <button type="button" onClick={handleSaveDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
-                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Draft
-                          </button>
-                          <button type="button" onClick={() => setConfirmFinalize(true)} disabled={!myVerdict || !myComment || saving} className={cn("inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors", myVerdict && myComment ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed")}>
-                            <Lock className="h-4 w-4" /> Finalisasi
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Finalize confirmation */}
-                      {isEditable && confirmFinalize && (
-                        <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold text-amber-800">Konfirmasi Finalisasi</p>
-                              <p className="text-sm text-amber-700 mt-1">Setelah difinalisasi, evaluasi <strong>tidak dapat diubah</strong>.</p>
-                              <div className="mt-3 rounded-lg bg-white/80 p-3">
-                                <p className="text-xs text-ptba-gray mb-1">Verdict Anda:</p>
-                                <p className={cn("text-lg font-bold", myVerdict === "sesuai" ? "text-green-600" : myVerdict === "perlu_diskusi" ? "text-amber-600" : "text-ptba-red")}>
-                                  {selectedApp.partner_name}: {myVerdict === "sesuai" ? "Sesuai" : myVerdict === "perlu_diskusi" ? "Perlu Diskusi" : "Tidak Sesuai"}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-3 mt-4">
-                                <button type="button" onClick={handleFinalize} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-red/90 transition-colors disabled:opacity-50">
-                                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Ya, Finalisasi
-                                </button>
-                                <button type="button" onClick={() => setConfirmFinalize(false)} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-ptba-gray hover:bg-gray-50 transition-colors">Batal</button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Other Evaluations (read-only accordion) */}
+                {/* Evaluation Panel */}
                 <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b">
-                    <h3 className="text-base font-semibold text-ptba-navy">Evaluasi Kategori Lain</h3>
-                    <p className="text-xs text-ptba-gray mt-0.5">Hanya evaluasi yang sudah difinalisasi yang ditampilkan.</p>
+                  <div className="px-6 py-4 border-b flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-semibold text-ptba-navy">Penilaian EBD</h3>
+                      <p className="text-xs text-ptba-gray mt-0.5">Kelengkapan dokumen Fase 1</p>
+                    </div>
+                    {isFinalized && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-800 px-3 py-1 text-xs font-semibold text-white">
+                        <Lock className="h-3 w-3" /> Final
+                      </span>
+                    )}
                   </div>
-                  <div className="divide-y divide-gray-100">
-                    {ALL_CATEGORIES.filter((c) => c !== activeCategory).map((cat) => {
-                      const evalData = (catEvals[selectedApp.id]?.evaluations || []).find((e) => e.category === cat);
-                      const isOpen = expandedSections[`other_${cat}`] ?? false;
-                      const catInfo = CATEGORY_LABELS[cat];
-                      return (
-                        <div key={cat}>
-                          <button type="button" onClick={() => { if (evalData?.isFinalized) setExpandedSections((p) => ({ ...p, [`other_${cat}`]: !isOpen })); }} className={cn("w-full flex items-center justify-between px-6 py-3 transition-colors", evalData?.isFinalized ? "hover:bg-ptba-section-bg cursor-pointer" : "cursor-default")}>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-3">
-                                <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-semibold shrink-0", catInfo.color)}>{catInfo.labelId}</span>
-                                {evalData?.isFinalized ? (
-                                  <span className={cn("text-xs font-semibold", evalData.verdict === "sesuai" || evalData.verdict === "layak" ? "text-green-600" : evalData.verdict === "perlu_diskusi" ? "text-amber-600" : "text-ptba-red")}>
-                                    {evalData.verdict === "sesuai" || evalData.verdict === "layak" ? "Sesuai" : evalData.verdict === "perlu_diskusi" ? "Perlu Diskusi" : "Tidak Sesuai"}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs text-ptba-gray">Belum difinalisasi</span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-ptba-gray/70 italic mt-0.5 truncate">{catInfo.description}</p>
-                            </div>
-                            {evalData?.isFinalized && <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", isOpen && "rotate-180")} />}
-                          </button>
-                          {isOpen && evalData?.isFinalized && (
-                            <div className="px-6 pb-4 space-y-2">
-                              {evalData.evaluatorName && <p className="text-[10px] text-ptba-gray">Evaluator: {evalData.evaluatorName}</p>}
-                              {evalData.comment && (
-                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: sanitizeHtml(evalData.comment) }} />
-                              )}
-                              {evalData.evidenceFiles.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-semibold text-ptba-gray uppercase">Evidence</p>
-                                  {evalData.evidenceFiles.map((f) => (
-                                    <div key={f.id} className="flex items-center gap-2 text-xs">
-                                      <FileText className="h-3.5 w-3.5 text-ptba-steel-blue" />
-                                      <span className="truncate flex-1">{f.fileName}</span>
-                                      {f.fileKey && <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy"><Eye className="h-3 w-3" /></button>}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                  <div className={cn("p-6 space-y-5", isFinalized && !canWrite && "opacity-75")}>
+                    {/* Audit line */}
+                    {currentEval?.evaluatorName && (
+                      <div className={cn("rounded-lg border p-3 flex items-start gap-2", isFinalized ? "border-gray-200 bg-gray-50" : "border-amber-200 bg-amber-50")}>
+                        <Info className={cn("h-4 w-4 shrink-0 mt-0.5", isFinalized ? "text-ptba-gray" : "text-amber-500")} />
+                        <p className={cn("text-xs", isFinalized ? "text-ptba-gray" : "text-amber-800")}>
+                          {isFinalized ? "Difinalisasi" : "Terakhir diedit"} oleh <strong>{currentEval.evaluatorName}</strong>
+                          {currentEval.updatedAt && <span> · {formatDate(currentEval.updatedAt)}</span>}
+                          {isFinalized && <span className="ml-1">(tidak dapat diubah)</span>}
+                          {!isFinalized && canWrite && currentEval.evaluatorId !== user?.id && <span className="ml-1">— perubahan Anda akan menggantikan draf ini.</span>}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Verdict */}
+                    <div>
+                      <label className="text-sm font-medium text-ptba-charcoal mb-3 block">Verdict</label>
+                      {isEditable ? (
+                        <div className="flex gap-3">
+                          {(Object.entries(VERDICT_CONFIG) as [Verdict, typeof VERDICT_CONFIG[Verdict]][]).map(([key, cfg]) => {
+                            const Icon = cfg.icon;
+                            return (
+                              <button key={key} type="button" onClick={() => setMyVerdict(key)} className={cn("flex-1 rounded-xl py-4 text-center text-sm font-bold transition-all border-2", myVerdict === key ? cfg.ring : "border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:bg-gray-50")}>
+                                <Icon className={cn("h-6 w-6 mx-auto mb-1", myVerdict === key ? cfg.iconColor : "text-gray-300")} />
+                                {cfg.label}
+                              </button>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      ) : (
+                        <div className={cn("rounded-xl py-3 px-4 text-center text-sm font-bold", currentEval?.verdict ? VERDICT_CONFIG[currentEval.verdict as Verdict]?.color : "bg-gray-100 text-gray-500")}>
+                          {currentEval?.verdict ? VERDICT_CONFIG[currentEval.verdict as Verdict]?.label : "Belum ada verdict"}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="text-sm font-medium text-ptba-charcoal mb-2 block">Deskripsi / Catatan</label>
+                      {isEditable ? (
+                        <RichTextEditor value={myDescription} onChange={setMyDescription} placeholder="Tulis catatan atau keterangan evaluasi..." />
+                      ) : (
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: currentEval?.description ? sanitizeHtml(currentEval.description) : "<em class='text-gray-400'>Belum ada catatan.</em>" }} />
+                      )}
+                    </div>
+
+                    {/* Evidence files */}
+                    <div>
+                      <label className="text-sm font-medium text-ptba-charcoal mb-2 block">File Bukti / Evidence</label>
+                      <div className="space-y-2">
+                        {(isEditable ? myEvidence : currentEval?.evidence || []).map((f) => (
+                          <div key={f.id} className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 bg-gray-50">
+                            <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                            <span className="text-xs text-ptba-charcoal flex-1 truncate">{f.fileName}</span>
+                            {f.fileKey && (
+                              <button type="button" onClick={() => downloadDocument(f.fileKey, accessToken!, f.fileName)} className="text-ptba-steel-blue hover:text-ptba-navy transition-colors">
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {isEditable && (
+                              <button type="button" onClick={() => handleDeleteEvidence(f.id)} className="text-red-400 hover:text-ptba-red transition-colors">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {isEditable && (
+                          <label className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors cursor-pointer">
+                            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                            {uploading ? "Mengunggah..." : "Unggah File Bukti"}
+                            <input type="file" className="hidden" disabled={uploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadEvidence(f); e.target.value = ""; }} />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    {isEditable && !confirmFinalize && (
+                      <div className="flex items-center gap-3 pt-2">
+                        <button type="button" onClick={handleSaveDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-ptba-navy px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-navy/90 transition-colors disabled:opacity-50">
+                          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan Draft
+                        </button>
+                        <button type="button" onClick={() => setConfirmFinalize(true)} disabled={!myVerdict || saving} className={cn("inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors", myVerdict ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed")}>
+                          <Lock className="h-4 w-4" /> Finalisasi
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Finalize confirm dialog */}
+                    {isEditable && confirmFinalize && (
+                      <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-amber-800">Konfirmasi Finalisasi</p>
+                            <p className="text-sm text-amber-700 mt-1">Setelah difinalisasi, evaluasi <strong>tidak dapat diubah</strong>. Notifikasi akan dikirim ke PIC Keuangan, Hukum, Risiko, dan Ketua Tim.</p>
+                            <div className="mt-3 rounded-lg bg-white/80 p-3">
+                              <p className="text-xs text-ptba-gray mb-1">Verdict Anda:</p>
+                              <p className={cn("text-lg font-bold", myVerdict === "layak" ? "text-green-600" : myVerdict === "perlu_didiskusikan" ? "text-amber-600" : "text-ptba-red")}>
+                                {selectedApp.partner_name}: {myVerdict ? VERDICT_CONFIG[myVerdict].label : "-"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 mt-4">
+                              <button type="button" onClick={handleFinalize} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-ptba-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-ptba-red/90 transition-colors disabled:opacity-50">
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Ya, Finalisasi & Kirim Email
+                              </button>
+                              <button type="button" onClick={() => setConfirmFinalize(false)} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-ptba-gray hover:bg-gray-50 transition-colors">Batal</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
             {/* Submit for Approval */}
-            {!viewOnly && isEbdOrAdmin && (
+            {!viewOnly && (role === "super_admin" || role === "ebd") && (
               <div className="rounded-xl bg-white p-6 shadow-sm mt-6 border border-gray-100">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", allAppsAllFinalized ? "bg-ptba-gold" : "bg-gray-200")}>
-                    <Send className={cn("h-5 w-5", allAppsAllFinalized ? "text-white" : "text-gray-400")} />
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", allAppsFinalized ? "bg-ptba-gold" : "bg-gray-200")}>
+                    <Send className={cn("h-5 w-5", allAppsFinalized ? "text-white" : "text-gray-400")} />
                   </div>
                   <div>
                     <h3 className="text-base font-semibold text-ptba-navy">Kirim Hasil Evaluasi untuk Persetujuan</h3>
                     <p className="text-sm text-ptba-gray mt-0.5">
-                      {allAppsAllFinalized ? "Semua evaluasi (6 kategori) telah difinalisasi untuk semua mitra." : "Semua 6 kategori evaluasi harus difinalisasi untuk setiap mitra sebelum dapat dikirim."}
+                      {allAppsFinalized ? "Semua evaluasi telah difinalisasi." : "Semua mitra harus difinalisasi sebelum dapat dikirim."}
                     </p>
                   </div>
                 </div>
-
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-xs text-ptba-gray mb-1.5">
                     <span>Progress</span>
-                    <span className="font-medium">{applicants.filter((a) => catEvals[a.id]?.allFinalized).length}/{applicants.length} mitra selesai (semua kategori)</span>
+                    <span className="font-medium">{applicants.filter((a) => evals[a.id]?.isFinalized).length}/{applicants.length} mitra selesai</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all", allAppsAllFinalized ? "bg-green-500" : "bg-ptba-steel-blue")} style={{ width: `${applicants.length > 0 ? (applicants.filter((a) => catEvals[a.id]?.allFinalized).length / applicants.length) * 100 : 0}%` }} />
+                    <div className={cn("h-full rounded-full transition-all", allAppsFinalized ? "bg-green-500" : "bg-ptba-steel-blue")} style={{ width: `${applicants.length > 0 ? (applicants.filter((a) => evals[a.id]?.isFinalized).length / applicants.length) * 100 : 0}%` }} />
                   </div>
                 </div>
-
-                <button type="button" onClick={handleSubmitForApproval} disabled={!allAppsAllFinalized || submittedForApproval || saving} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-colors", allAppsAllFinalized && !submittedForApproval && !saving ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed")}>
+                <button type="button" onClick={handleSubmitForApproval} disabled={!allAppsFinalized || submittedForApproval || saving} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-colors", allAppsFinalized && !submittedForApproval && !saving ? "bg-ptba-gold text-white hover:bg-ptba-gold/90 shadow-md" : "bg-gray-200 text-gray-400 cursor-not-allowed")}>
                   {submittedForApproval ? <><CheckCircle2 className="h-4 w-4" /> Sudah Dikirim untuk Persetujuan</> : saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Mengirim...</> : <><Send className="h-4 w-4" /> Kirim untuk Persetujuan</>}
                 </button>
-
                 {submittedForApproval && (
                   <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 text-center">
                     <p className="text-sm text-green-700">Item persetujuan telah dikirim.</p>
@@ -1374,7 +949,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
           <div className={cn("relative overflow-hidden rounded-xl shadow-2xl border min-w-[320px] max-w-[420px]", toast.type === "success" ? "bg-white border-green-200" : "bg-white border-red-200")}>
             <div className="flex items-start gap-3 px-5 py-4">
               <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5", toast.type === "success" ? "bg-green-100" : "bg-red-100")}>
-                {toast.type === "success" ? <CheckCircle2 className="h-4.5 w-4.5 text-green-600" /> : <AlertTriangle className="h-4.5 w-4.5 text-red-600" />}
+                {toast.type === "success" ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4 text-red-600" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={cn("text-xs font-semibold", toast.type === "success" ? "text-green-800" : "text-red-800")}>{toast.type === "success" ? "Berhasil" : "Gagal"}</p>
