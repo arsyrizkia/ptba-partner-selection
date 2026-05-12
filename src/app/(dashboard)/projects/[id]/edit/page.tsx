@@ -284,6 +284,25 @@ export default function EditProjectPage({
         }
       }
 
+      // Handle open/close registration toggle changes
+      const wasOpen = !!projectData?.isOpenForApplication;
+      const wantsOpen = !!formData.isOpenForApplication;
+      if (!wasOpen && wantsOpen) {
+        // Toggle turned on — open registration if project phase allows it
+        try {
+          await projectApi(accessToken).openRegistration(id);
+        } catch {
+          // Ignore if project phase doesn't allow it (e.g. already past step 1)
+        }
+      } else if (wasOpen && !wantsOpen) {
+        // Toggle turned off — close registration if currently open
+        try {
+          await projectApi(accessToken).closeRegistration(id);
+        } catch {
+          // Ignore if project phase doesn't allow it
+        }
+      }
+
       router.push(`/projects/${id}`);
     } catch (err) {
       if (err instanceof ApiClientError) {

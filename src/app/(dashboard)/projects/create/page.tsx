@@ -160,6 +160,11 @@ export default function CreateProjectPage() {
         await projectApi(accessToken).publish(newProjectId);
       }
 
+      // If the open-registration toggle was on, open registration immediately
+      if (newProjectId && formData.isOpenForApplication) {
+        await projectApi(accessToken).openRegistration(newProjectId);
+      }
+
       router.push("/projects");
     } catch (err) {
       if (err instanceof ApiClientError) {

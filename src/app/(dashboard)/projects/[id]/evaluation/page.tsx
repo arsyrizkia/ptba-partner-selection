@@ -125,7 +125,7 @@ export default function EvaluationHubPage({
       hasTechnicalEval: !!phase2Eval?.technical,
       hasEBDEval: !!phase2Eval?.market,
       hasPhase1Eval: !!phase1Eval?.phase1Eval,
-      phase1Result: phase1Eval?.phase1Eval?.overallResult,
+      phase1Result: phase1Eval?.phase1Eval?.verdict,
       financialGrade: phase2Eval?.financial?.grade,
       legalStatus: phase2Eval?.legal?.overallStatus,
       riskLevel: phase2Eval?.risk?.overallLevel,
