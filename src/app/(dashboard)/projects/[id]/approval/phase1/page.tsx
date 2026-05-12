@@ -790,7 +790,7 @@ export default function Phase1ApprovalPage({
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="mt-3 grid grid-cols-4 gap-3">
                 <SummaryBox label="Total Mitra" value={total} />
                 <SummaryBox label="Layak" value={layak} color="green" />
                 <SummaryBox label="Tidak Layak" value={tdkLayak} color="red" />
@@ -810,7 +810,7 @@ export default function Phase1ApprovalPage({
           return (
             <div className="mt-4 rounded-xl border border-ptba-light-gray bg-white p-4">
               <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide mb-3">Rekap Penilaian EBD</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg border border-gray-100 bg-green-50/40 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-green-700">{layakCount}</p>
                   <p className="text-[10px] text-green-700">Layak</p>
