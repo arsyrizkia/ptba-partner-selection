@@ -209,14 +209,14 @@ export default function EvaluationHubPage({
                     {partner.hasPhase1Eval ? (
                       <span className={cn(
                         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
-                        partner.phase1Result === "Lolos"
+                        partner.phase1Result === "layak"
                           ? "bg-green-100 text-green-700"
-                          : partner.phase1Result === "Tidak Lolos"
+                          : partner.phase1Result === "tidak_layak"
                           ? "bg-red-100 text-red-600"
                           : "bg-amber-100 text-amber-700"
                       )}>
-                        {partner.phase1Result === "Lolos" && <CheckCircle2 className="h-3 w-3" />}
-                        {partner.phase1Result ?? "Pending"}
+                        {partner.phase1Result === "layak" && <CheckCircle2 className="h-3 w-3" />}
+                        {partner.phase1Result === "layak" ? "Layak" : partner.phase1Result === "tidak_layak" ? "Tidak Layak" : partner.phase1Result === "perlu_didiskusikan" ? "Perlu Diskusi" : "Pending"}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
