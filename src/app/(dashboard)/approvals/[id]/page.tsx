@@ -101,10 +101,10 @@ export default function ApprovalDetailPage() {
   // Otherwise fall back to the evaluation_summary snapshot.
   const layakCount = approverDecisions.length > 0
     ? approverDecisions.filter((d) => d.decision === "layak").length
-    : evalSummary.filter((e) => e.result === "Lolos").length;
+    : evalSummary.filter((e) => e.verdict === "layak" || e.result === "Lolos").length;
   const tdkLayakCount = approverDecisions.length > 0
     ? approverDecisions.filter((d) => d.decision === "tidak_layak").length
-    : evalSummary.filter((e) => e.result === "Tidak Lolos").length;
+    : evalSummary.filter((e) => e.verdict === "tidak_layak" || e.result === "Tidak Lolos").length;
 
   const handleDisposisi = async (decision: string, notes: string) => {
     if (!accessToken) return;
@@ -250,7 +250,7 @@ export default function ApprovalDetailPage() {
               const persistedDecision = decisionsByAppId.get(ev.applicationId);
               const isLayak = persistedDecision
                 ? persistedDecision.decision === "layak"
-                : ev.result === "Lolos";
+                : ev.verdict === "layak" || ev.result === "Lolos";
               const labelText = isLayak ? "Layak" : "Tidak Layak";
               const decisionNotes = persistedDecision?.notes || ev.notes;
               return (
