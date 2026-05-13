@@ -846,7 +846,7 @@ export default function Phase1ApprovalPage({
           if (mitraSummaries.length === 0) return null;
           return (
             <div className="mt-4 rounded-xl border border-ptba-light-gray bg-white p-4">
-              <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide mb-3">Evaluasi Tahap 1 — {project.name}</p>
+              <p className="text-xs font-semibold text-ptba-navy uppercase tracking-wide mb-3">Penilaian Panitia Pemilihan Mitra Strategis — {project.name}</p>
               <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg border border-gray-100 bg-green-50/40 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-green-700">{layakCount}</p>
