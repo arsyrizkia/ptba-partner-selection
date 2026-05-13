@@ -579,7 +579,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 — Pra-kualifikasi</h1>
-        <p className="text-sm text-ptba-gray mt-1">Divisi EBD memberikan penilaian kelengkapan dokumen (Lengkap / Tidak Lengkap / Perlu Didiskusikan) per mitra.</p>
+        <p className="text-sm text-ptba-gray mt-1">Penilaian kelengkapan dokumen (Lengkap / Tidak Lengkap / Perlu Didiskusikan) per mitra.</p>
       </div>
 
       {/* Summary strip */}
