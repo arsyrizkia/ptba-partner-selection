@@ -807,8 +807,8 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
                 <div className="rounded-xl bg-white shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b flex items-center justify-between">
                     <div>
-                      <h3 className="text-base font-semibold text-ptba-navy">Penilaian EBD</h3>
-                      <p className="text-xs text-ptba-gray mt-0.5">Kelengkapan dokumen Fase 1</p>
+                      <h3 className="text-base font-semibold text-ptba-navy">Penilaian Panitia Pemilihan Mitra Strategis</h3>
+                      <p className="text-xs text-ptba-gray mt-0.5">{project?.name || "Kelengkapan dokumen Fase 1"}</p>
                     </div>
                     {isFinalized && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-gray-800 px-3 py-1 text-xs font-semibold text-white">
