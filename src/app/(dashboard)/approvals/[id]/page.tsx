@@ -24,15 +24,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-function getPriorityVariant(priority: string) {
-  switch (priority) {
-    case "Tinggi": return "error" as const;
-    case "Sedang": return "warning" as const;
-    case "Rendah": return "neutral" as const;
-    default: return "neutral" as const;
-  }
-}
-
 function getStatusVariant(status: string) {
   switch (status) {
     case "Menunggu": return "warning" as const;
@@ -155,7 +146,6 @@ export default function ApprovalDetailPage() {
                 {phase === "phase1" ? "Evaluasi" : phase === "phase2" ? "PQ" : "Proposal & FRP"}
               </span>
             )}
-            <Badge variant={getPriorityVariant(approval.priority)}>{approval.priority}</Badge>
             <Badge variant={getStatusVariant(approval.status)}>{approval.status}</Badge>
           </div>
         </div>

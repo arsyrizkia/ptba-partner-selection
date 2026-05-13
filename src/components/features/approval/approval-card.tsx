@@ -26,17 +26,6 @@ interface ApprovalCardProps {
   approval: Approval;
 }
 
-function getPriorityVariant(priority: Approval["priority"]) {
-  switch (priority) {
-    case "Tinggi":
-      return "error";
-    case "Sedang":
-      return "warning";
-    case "Rendah":
-      return "neutral";
-  }
-}
-
 function getStatusConfig(status: Approval["status"]) {
   switch (status) {
     case "Menunggu":
@@ -92,7 +81,7 @@ export function ApprovalCard({ approval }: ApprovalCardProps) {
         )}
       >
         <div>
-          {/* Top row: phase badge + priority + status */}
+          {/* Top row: phase badge + status */}
           <div className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               {approval.phase && (
@@ -105,9 +94,6 @@ export function ApprovalCard({ approval }: ApprovalCardProps) {
                   {approval.phase === "phase1" ? "Evaluasi" : approval.phase === "phase2" ? "PQ" : "Proposal & FRP"}
                 </span>
               )}
-              <Badge variant={getPriorityVariant(approval.priority)}>
-                {approval.priority}
-              </Badge>
             </div>
             <Badge variant={statusConfig.variant}>
               {statusConfig.label}
