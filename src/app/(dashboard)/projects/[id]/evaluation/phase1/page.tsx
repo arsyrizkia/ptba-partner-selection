@@ -170,8 +170,8 @@ const CHECKLIST_CONFIG: Record<ChecklistVerdict, { label: string; color: string;
 
 // ── Verdict config ────────────────────────────────────────────────────────────
 const VERDICT_CONFIG = {
-  layak: { label: "Layak", color: "bg-green-100 text-green-700", ring: "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200", icon: CheckCircle2, iconColor: "text-green-500" },
-  tidak_layak: { label: "Tidak Layak", color: "bg-red-100 text-ptba-red", ring: "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200", icon: X, iconColor: "text-red-500" },
+  layak: { label: "Lengkap", color: "bg-green-100 text-green-700", ring: "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200", icon: CheckCircle2, iconColor: "text-green-500" },
+  tidak_layak: { label: "Tidak Lengkap", color: "bg-red-100 text-ptba-red", ring: "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200", icon: X, iconColor: "text-red-500" },
   perlu_didiskusikan: { label: "Perlu Didiskusikan", color: "bg-amber-100 text-amber-700", ring: "border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200", icon: AlertTriangle, iconColor: "text-amber-500" },
 } as const;
 
@@ -579,7 +579,7 @@ export default function Phase1EvaluationPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-ptba-navy">Evaluasi Tahap 1 — Pra-kualifikasi</h1>
-        <p className="text-sm text-ptba-gray mt-1">Divisi EBD memberikan penilaian kelengkapan dokumen (Layak / Tidak Layak / Perlu Didiskusikan) per mitra.</p>
+        <p className="text-sm text-ptba-gray mt-1">Divisi EBD memberikan penilaian kelengkapan dokumen (Lengkap / Tidak Lengkap / Perlu Didiskusikan) per mitra.</p>
       </div>
 
       {/* Summary strip */}

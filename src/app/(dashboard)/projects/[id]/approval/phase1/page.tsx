@@ -20,6 +20,7 @@ import {
   ClipboardCheck,
   User,
   Loader2,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -36,8 +37,8 @@ import FormDataViewer from "@/components/features/project/form-data-viewer";
 /* ------------------------------------------------------------------ */
 
 const VERDICT_CONFIG = {
-  layak: { label: "Layak", pillClass: "bg-green-100 text-green-700 border-green-200", textClass: "text-green-700", icon: "check" },
-  tidak_layak: { label: "Tidak Layak", pillClass: "bg-red-100 text-red-700 border-red-200", textClass: "text-ptba-red", icon: "x" },
+  layak: { label: "Lengkap", pillClass: "bg-green-100 text-green-700 border-green-200", textClass: "text-green-700", icon: "check" },
+  tidak_layak: { label: "Tidak Lengkap", pillClass: "bg-red-100 text-red-700 border-red-200", textClass: "text-ptba-red", icon: "x" },
   perlu_didiskusikan: { label: "Perlu Didiskusikan", pillClass: "bg-amber-100 text-amber-700 border-amber-200", textClass: "text-amber-700", icon: "warn" },
 } as const;
 
@@ -395,6 +396,8 @@ export default function Phase1ApprovalPage({
   const [showConfirm, setShowConfirm] = useState(false);
   const [ketuaTimSubmitted, setKetuaTimSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [plenoFile, setPlenoFile] = useState<File | null>(null);
   const [plenoUploading, setPlenoUploading] = useState(false);
   const [plenoUploaded, setPlenoUploaded] = useState<{ fileKey: string; fileName: string } | null>(null);
@@ -487,7 +490,18 @@ export default function Phase1ApprovalPage({
             })
           );
         } else {
-          // Initialize as pending — Ketua Tim must explicitly decide each mitra
+          // Initialize states — restore saved draft decisions if present
+          const draftDecisions = (approval as any)?.decisions as
+            | Array<{ applicationId: string; decision: 'layak' | 'tidak_layak'; notes?: string }>
+            | null | undefined;
+          const draftByPartner = new Map<string, { decision: 'layak' | 'tidak_layak'; notes: string }>();
+          if (draftDecisions && Array.isArray(draftDecisions)) {
+            for (const d of draftDecisions) {
+              const summary = summaries.find((s) => s.application_id === d.applicationId);
+              if (summary) draftByPartner.set(summary.partner_id, { decision: d.decision, notes: d.notes || "" });
+            }
+            if (draftDecisions.length > 0) setDraftSavedAt(approval?.updated_at || null);
+          }
           setMitraStates(
             summaries.map((s) => ({
               partnerId: s.partner_id,
@@ -496,11 +510,14 @@ export default function Phase1ApprovalPage({
             }))
           );
           setKetuaTimMitraStates(
-            summaries.map((s) => ({
-              partnerId: s.partner_id,
-              decision: "pending" as const,
-              notes: "",
-            }))
+            summaries.map((s) => {
+              const draft = draftByPartner.get(s.partner_id);
+              return {
+                partnerId: s.partner_id,
+                decision: draft?.decision ?? ("pending" as const),
+                notes: draft?.notes ?? "",
+              };
+            })
           );
         }
       } catch (err: any) {
@@ -614,6 +631,26 @@ export default function Phase1ApprovalPage({
     );
   };
   const handleKetuaTimSubmit = () => { setShowConfirm(true); };
+
+  const handleSaveDraft = async () => {
+    if (!approvalRecord || !accessToken) return;
+    setSavingDraft(true);
+    try {
+      const decisions = ketuaTimMitraStates
+        .filter((m) => m.decision !== "pending")
+        .map((m) => {
+          const summary = mitraSummaries.find((s) => s.partner_id === m.partnerId);
+          return { applicationId: summary?.application_id || "", decision: m.decision as "layak" | "tidak_layak", notes: m.notes || undefined };
+        })
+        .filter((d) => d.applicationId);
+      await api(`/approvals/${approvalRecord.id}/save-draft`, { method: "PUT", body: { decisions }, token: accessToken });
+      setDraftSavedAt(new Date().toISOString());
+    } catch (err: any) {
+      alert(`Gagal menyimpan draft: ${err.message || "Terjadi kesalahan"}`);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
 
   const handleConfirmFinal = async () => {
     if (!approvalRecord || !accessToken) return;
@@ -738,8 +775,8 @@ export default function Phase1ApprovalPage({
     const picState = mitraStates.find((m) => m.partnerId === partnerId);
 
     if (isKetuaTim && dirState) {
-      if (dirState.decision === "layak") return { text: "Layak", color: "text-green-600" };
-      if (dirState.decision === "tidak_layak") return { text: "Tidak Layak", color: "text-ptba-red" };
+      if (dirState.decision === "layak") return { text: "Lengkap", color: "text-green-600" };
+      if (dirState.decision === "tidak_layak") return { text: "Tidak Lengkap", color: "text-ptba-red" };
       return { text: "Belum Diputuskan", color: "text-ptba-gray" };
     }
     if (isPIC && submitted && picState) {
@@ -765,7 +802,7 @@ export default function Phase1ApprovalPage({
           <div className="flex-1">
             <h1 className="text-xl font-bold text-ptba-navy">Persetujuan Hasil Evaluasi 1</h1>
             <p className="text-sm text-ptba-gray mt-1">
-              Tinjau penilaian seluruh evaluator, lalu putuskan Layak atau Tidak Layak untuk setiap mitra. Mitra yang Anda tandai Layak akan melanjutkan ke Fase 2.
+              Tinjau penilaian seluruh evaluator, lalu putuskan Lengkap atau Tidak Lengkap untuk setiap mitra. Mitra yang Anda tandai Lengkap akan melanjutkan ke Fase 2.
             </p>
           </div>
         </div>
@@ -792,8 +829,8 @@ export default function Phase1ApprovalPage({
               </div>
               <div className="mt-3 grid grid-cols-4 gap-3">
                 <SummaryBox label="Total Mitra" value={total} />
-                <SummaryBox label="Layak" value={layak} color="green" />
-                <SummaryBox label="Tidak Layak" value={tdkLayak} color="red" />
+                <SummaryBox label="Lengkap" value={layak} color="green" />
+                <SummaryBox label="Tidak Lengkap" value={tdkLayak} color="red" />
                 <SummaryBox label="Belum Diputuskan" value={pending} color="gray" />
               </div>
             </div>
@@ -813,7 +850,7 @@ export default function Phase1ApprovalPage({
               <div className="grid grid-cols-4 gap-2">
                 <div className="rounded-lg border border-gray-100 bg-green-50/40 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-green-700">{layakCount}</p>
-                  <p className="text-[10px] text-green-700">Layak</p>
+                  <p className="text-[10px] text-green-700">Lengkap</p>
                 </div>
                 <div className="rounded-lg border border-gray-100 bg-amber-50/40 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-amber-700">{perluCount}</p>
@@ -821,7 +858,7 @@ export default function Phase1ApprovalPage({
                 </div>
                 <div className="rounded-lg border border-gray-100 bg-red-50/40 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-red-700">{tdkLayakCount}</p>
-                  <p className="text-[10px] text-red-700">Tidak Layak</p>
+                  <p className="text-[10px] text-red-700">Tidak Lengkap</p>
                 </div>
                 <div className="rounded-lg border border-gray-100 bg-ptba-section-bg/40 px-3 py-2 text-center">
                   <p className="text-lg font-bold text-ptba-gray">{belumCount}</p>
@@ -925,7 +962,7 @@ export default function Phase1ApprovalPage({
                   : headerIsTdkLayak
                   ? "bg-red-100 text-red-700"
                   : "bg-gray-100 text-ptba-gray";
-                const headerPillText = headerIsLayak ? "Layak" : headerIsTdkLayak ? "Tidak Layak" : "Belum Diputuskan";
+                const headerPillText = headerIsLayak ? "Lengkap" : headerIsTdkLayak ? "Tidak Lengkap" : "Belum Diputuskan";
 
                 return (
                   <>
@@ -1257,13 +1294,13 @@ export default function Phase1ApprovalPage({
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                                 ketuaTimMitraState?.decision === "layak" ? "bg-green-600 text-white shadow-sm" : "bg-white border border-green-300 text-green-700 hover:bg-green-50"
                               )}>
-                              <CheckCircle2 className="h-4 w-4" /> Layak
+                              <CheckCircle2 className="h-4 w-4" /> Lengkap
                             </button>
                             <button type="button" onClick={() => updateKetuaTimMitraDecision(ev.partner_id, "tidak_layak")}
                               className={cn("inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
                                 ketuaTimMitraState?.decision === "tidak_layak" ? "bg-red-600 text-white shadow-sm" : "bg-white border border-red-300 text-red-700 hover:bg-red-50"
                               )}>
-                              <XCircle className="h-4 w-4" /> Tidak Layak
+                              <XCircle className="h-4 w-4" /> Tidak Lengkap
                             </button>
                           </div>
                           <textarea
@@ -1285,7 +1322,7 @@ export default function Phase1ApprovalPage({
                           ? <CheckCircle2 className="h-4 w-4 text-green-600" />
                           : <XCircle className="h-4 w-4 text-red-600" />}
                         <span className={cn("font-medium", ketuaTimMitraState.decision === "layak" ? "text-green-700" : "text-red-700")}>
-                          {ketuaTimMitraState.decision === "layak" ? "Layak" : "Tidak Layak"}
+                          {ketuaTimMitraState.decision === "layak" ? "Lengkap" : "Tidak Lengkap"}
                         </span>
                         {ketuaTimMitraState.notes && <span className="text-ptba-gray ml-2">— {ketuaTimMitraState.notes}</span>}
                       </div>
@@ -1349,11 +1386,11 @@ export default function Phase1ApprovalPage({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-lg bg-white p-3 text-center">
                     <p className="text-2xl font-bold text-green-600">{ketuaTimLayakCount}</p>
-                    <p className="text-xs text-green-700">Layak</p>
+                    <p className="text-xs text-green-700">Lengkap</p>
                   </div>
                   <div className="rounded-lg bg-white p-3 text-center">
                     <p className="text-2xl font-bold text-red-600">{ketuaTimTdkLayakCount}</p>
-                    <p className="text-xs text-red-700">Tidak Layak</p>
+                    <p className="text-xs text-red-700">Tidak Lengkap</p>
                   </div>
                 </div>
               </div>
@@ -1404,8 +1441,16 @@ export default function Phase1ApprovalPage({
                 className="w-full rounded-lg border border-ptba-light-gray bg-white px-3 py-2 text-sm text-ptba-charcoal placeholder:text-ptba-gray/60 focus:outline-none focus:ring-2 focus:ring-ptba-steel-blue/40 mb-4"
               />
 
+              {/* Draft save feedback */}
+              {draftSavedAt && (
+                <p className="text-[11px] text-ptba-gray mb-3">
+                  Draft tersimpan · {formatDate(draftSavedAt)}
+                </p>
+              )}
+
               {(() => {
                 const canSubmit = allKetuaTimDecided && !!plenoUploaded;
+                const hasSomeDraft = ketuaTimMitraStates.some((m) => m.decision !== "pending");
                 let btnLabel: string;
                 if (!allKetuaTimDecided) {
                   const remaining = ketuaTimMitraStates.filter((m) => m.decision === "pending").length;
@@ -1413,16 +1458,25 @@ export default function Phase1ApprovalPage({
                 } else if (!plenoUploaded) {
                   btnLabel = "Upload dokumen pleno terlebih dahulu";
                 } else {
-                  btnLabel = `Finalisasi (${ketuaTimLayakCount} Layak, ${ketuaTimTdkLayakCount} Tidak Layak)`;
+                  btnLabel = `Finalisasi (${ketuaTimLayakCount} Lengkap, ${ketuaTimTdkLayakCount} Tidak Lengkap)`;
                 }
                 return (
-                  <button type="button" onClick={handleKetuaTimSubmit} disabled={!canSubmit}
-                    className={cn("w-full inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-colors shadow-md",
-                      canSubmit ? "bg-ptba-navy text-white hover:bg-ptba-navy/90" : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    )}>
-                    <Send className="h-4 w-4" />
-                    {btnLabel}
-                  </button>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={handleSaveDraft} disabled={savingDraft || !hasSomeDraft}
+                      className={cn("inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors",
+                        hasSomeDraft && !savingDraft ? "border-ptba-steel-blue text-ptba-steel-blue hover:bg-ptba-steel-blue/5" : "border-gray-200 text-gray-400 cursor-not-allowed"
+                      )}>
+                      {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      Simpan Draft
+                    </button>
+                    <button type="button" onClick={handleKetuaTimSubmit} disabled={!canSubmit}
+                      className={cn("flex-1 inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors shadow-md",
+                        canSubmit ? "bg-ptba-navy text-white hover:bg-ptba-navy/90" : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      )}>
+                      <Send className="h-4 w-4" />
+                      {btnLabel}
+                    </button>
+                  </div>
                 );
               })()}
             </div>
@@ -1434,7 +1488,7 @@ export default function Phase1ApprovalPage({
               <div>
                 <p className="text-sm font-semibold text-green-800">Keputusan Dikirim</p>
                 <p className="text-xs mt-1 text-green-700">
-                  {ketuaTimLayakCount} mitra Layak, {ketuaTimTdkLayakCount} mitra Tidak Layak. Mitra yang Layak akan diundang ke Fase 2.
+                  {ketuaTimLayakCount} mitra Lengkap, {ketuaTimTdkLayakCount} mitra Tidak Lengkap. Mitra yang Lengkap akan diundang ke Fase 2.
                 </p>
                 <Link href="/approvals" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-navy hover:text-ptba-steel-blue transition-colors">
                   Kembali ke Antrian Persetujuan <ChevronRight className="h-4 w-4" />
@@ -1462,13 +1516,13 @@ export default function Phase1ApprovalPage({
               {ketuaTimLayakCount > 0 && (
                 <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-3">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                  <p className="text-sm font-medium text-green-800">{ketuaTimLayakCount} mitra Layak — lanjut ke Fase 2</p>
+                  <p className="text-sm font-medium text-green-800">{ketuaTimLayakCount} mitra Lengkap — lanjut ke Fase 2</p>
                 </div>
               )}
               {ketuaTimTdkLayakCount > 0 && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex items-center gap-3">
                   <XCircle className="h-4 w-4 text-red-600 shrink-0" />
-                  <p className="text-sm font-medium text-red-800">{ketuaTimTdkLayakCount} mitra Tidak Layak</p>
+                  <p className="text-sm font-medium text-red-800">{ketuaTimTdkLayakCount} mitra Tidak Lengkap</p>
                 </div>
               )}
             </div>
@@ -1482,7 +1536,7 @@ export default function Phase1ApprovalPage({
                       {m.decision === "layak" ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" /> : <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />}
                       <span className="text-ptba-charcoal font-medium">{mEv?.partner_name ?? m.partnerId}</span>
                       <span className={cn("ml-auto", m.decision === "layak" ? "text-green-700" : "text-red-700")}>
-                        {m.decision === "layak" ? "Layak" : "Tidak Layak"}
+                        {m.decision === "layak" ? "Lengkap" : "Tidak Lengkap"}
                       </span>
                     </div>
                   );

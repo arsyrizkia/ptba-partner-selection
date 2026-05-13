@@ -233,11 +233,11 @@ export default function ApprovalDetailPage() {
             </div>
             <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
               <p className="text-2xl font-bold text-green-600">{layakCount}</p>
-              <p className="text-xs text-green-700">Layak</p>
+              <p className="text-xs text-green-700">Lengkap</p>
             </div>
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
               <p className="text-2xl font-bold text-ptba-red">{tdkLayakCount}</p>
-              <p className="text-xs text-ptba-red">Tidak Layak</p>
+              <p className="text-xs text-ptba-red">Tidak Lengkap</p>
             </div>
           </div>
 
@@ -251,7 +251,7 @@ export default function ApprovalDetailPage() {
               const isLayak = persistedDecision
                 ? persistedDecision.decision === "layak"
                 : ev.verdict === "layak" || ev.result === "Lolos";
-              const labelText = isLayak ? "Layak" : "Tidak Layak";
+              const labelText = isLayak ? "Lengkap" : "Tidak Lengkap";
               const decisionNotes = persistedDecision?.notes || ev.notes;
               return (
                 <div key={ev.applicationId} className="rounded-xl border border-ptba-light-gray p-4">
