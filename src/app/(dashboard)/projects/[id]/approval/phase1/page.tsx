@@ -500,7 +500,7 @@ export default function Phase1ApprovalPage({
               const summary = summaries.find((s) => s.application_id === d.applicationId);
               if (summary) draftByPartner.set(summary.partner_id, { decision: d.decision, notes: d.notes || "" });
             }
-            if (draftDecisions.length > 0) setDraftSavedAt(approval?.updated_at || null);
+            if (draftDecisions.length > 0) setDraftSavedAt((approval?.updated_at as string) || null);
           }
           setMitraStates(
             summaries.map((s) => ({
