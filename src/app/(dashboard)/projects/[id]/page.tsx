@@ -43,6 +43,7 @@ import {
   ImagePlus,
   GripVertical,
   Mail,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
@@ -491,6 +492,8 @@ export default function ProjectDetailPage({
   const [p2Part1End, setP2Part1End] = useState("");
   const [p2Part2Start, setP2Part2Start] = useState("");
   const [p2Part2End, setP2Part2End] = useState("");
+  const [p2DocUploading, setP2DocUploading] = useState(false);
+  const [p2DocDeletingId, setP2DocDeletingId] = useState<string | null>(null);
   const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
   const [showOpenRegModal, setShowOpenRegModal] = useState(false);
   const [showCloseRegModal, setShowCloseRegModal] = useState(false);
@@ -553,6 +556,54 @@ export default function ProjectDetailPage({
       // ignore
     } finally {
       setSaving(false);
+    }
+  };
+
+  const refreshProject = async () => {
+    if (!accessToken) return;
+    const res = await projectApi(accessToken).getById(id);
+    setProject(res.data);
+  };
+
+  const handleUploadPhase2Doc = async (file: File, name: string) => {
+    if (!accessToken) return;
+    setP2DocUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", name);
+      formData.append("type", "supporting");
+      formData.append("phase", "phase2");
+      const res = await fetchWithAuth(`/projects/${id}/documents`, {
+        method: "POST",
+        body: formData,
+        token: accessToken,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal mengunggah dokumen");
+      }
+      await refreshProject();
+    } finally {
+      setP2DocUploading(false);
+    }
+  };
+
+  const handleDeletePhase2Doc = async (docId: string) => {
+    if (!accessToken) return;
+    setP2DocDeletingId(docId);
+    try {
+      const res = await fetchWithAuth(`/projects/${id}/documents/${docId}`, {
+        method: "DELETE",
+        token: accessToken,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal menghapus dokumen");
+      }
+      await refreshProject();
+    } finally {
+      setP2DocDeletingId(null);
     }
   };
 
@@ -1355,6 +1406,91 @@ export default function ProjectDetailPage({
             </div>
           );
         })()
+      )}
+
+      {/* Phase 2 PTBA Document Management (inline, EBD/super_admin only) */}
+      {isPhase2 && (role === "ebd" || role === "super_admin") && (
+        <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-ptba-light-gray bg-ptba-section-bg/50">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-ptba-navy" />
+              <span className="text-sm font-semibold text-ptba-navy">Dokumen PTBA — Fase 2</span>
+              <span className="text-[11px] text-ptba-gray">(Dilihat mitra yang lolos Fase 1)</span>
+            </div>
+            <label className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors",
+              p2DocUploading
+                ? "bg-ptba-light-gray text-ptba-gray cursor-not-allowed"
+                : "bg-ptba-navy text-white hover:bg-ptba-steel-blue"
+            )}>
+              {p2DocUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {p2DocUploading ? "Mengunggah..." : "Upload Dokumen"}
+              <input
+                type="file"
+                className="hidden"
+                disabled={p2DocUploading}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const name = file.name.replace(/\.[^/.]+$/, "");
+                  await handleUploadPhase2Doc(file, name).catch((err) => alert(err.message));
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="p-5">
+            {(() => {
+              const phase2Docs = (project.ptbaDocuments || []).filter((d: any) => d.phase === "phase2");
+              if (phase2Docs.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <FileText className="h-10 w-10 text-ptba-light-gray mb-2" />
+                    <p className="text-sm text-ptba-gray">Belum ada dokumen Fase 2</p>
+                    <p className="text-xs text-ptba-gray mt-0.5">Upload dokumen referensi yang perlu dipelajari mitra sebelum pengiriman</p>
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-2">
+                  {phase2Docs.map((doc: any) => (
+                    <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-ptba-light-gray px-3 py-2.5 hover:bg-ptba-section-bg/30 transition-colors">
+                      <FileText className="h-4 w-4 shrink-0 text-ptba-steel-blue" />
+                      <span className="text-sm text-ptba-charcoal flex-1 min-w-0 truncate font-medium">{doc.name}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {doc.fileKey && accessToken && (
+                          <button
+                            onClick={() => downloadDocument(doc.fileKey, accessToken, doc.name)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                          >
+                            <Download className="h-3 w-3" />
+                            Unduh
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (!confirm(`Hapus dokumen "${doc.name}"?`)) return;
+                            handleDeletePhase2Doc(doc.id).catch((err) => alert(err.message));
+                          }}
+                          disabled={p2DocDeletingId === doc.id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          {p2DocDeletingId === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <p className="mt-3 text-[11px] text-ptba-gray">
+              Setiap kali dokumen diunggah, semua mitra shortlisted akan mendapat notifikasi email otomatis.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Tabs */}
