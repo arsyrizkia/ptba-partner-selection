@@ -482,12 +482,15 @@ export default function ProjectDetailPage({
   const [phase2Deadline, setPhase2Deadline] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    // Default to 23:59 WIB
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}T23:59`;
   });
+  const [p2Part1Start, setP2Part1Start] = useState("");
+  const [p2Part1End, setP2Part1End] = useState("");
+  const [p2Part2Start, setP2Part2Start] = useState("");
+  const [p2Part2End, setP2Part2End] = useState("");
   const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
   const [showOpenRegModal, setShowOpenRegModal] = useState(false);
   const [showCloseRegModal, setShowCloseRegModal] = useState(false);
@@ -853,47 +856,83 @@ export default function ProjectDetailPage({
 
       {/* Fase 2 Configuration Modal */}
       {showPhase2Modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPhase2Modal(false)}>
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowPhase2Modal(false)}>
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-ptba-light-gray">
               <div>
                 <h2 className="text-lg font-bold text-ptba-charcoal">Konfigurasi Fase 2</h2>
-                <p className="text-xs text-ptba-gray mt-0.5">Atur parameter sebelum memulai Fase 2</p>
+                <p className="text-xs text-ptba-gray mt-0.5">Atur jadwal dua bagian sebelum memulai Fase 2</p>
               </div>
               <button onClick={() => setShowPhase2Modal(false)} className="rounded-lg p-1.5 hover:bg-ptba-section-bg transition-colors">
                 <X className="h-5 w-5 text-ptba-gray" />
               </button>
             </div>
 
-            {/* Shortlisted mitra info */}
-            <div className="rounded-lg bg-ptba-section-bg p-3 mb-5">
-              <p className="text-xs font-semibold text-ptba-navy mb-1.5">Mitra yang Lolos Fase 1</p>
-              <div className="flex flex-wrap gap-1.5">
-                {projectPartners.filter((p: any) => p.isShortlisted).map((p: any) => (
-                  <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ptba-charcoal border border-ptba-light-gray">
-                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                    {p.name}
-                  </span>
-                ))}
+            <div className="p-6 space-y-5">
+              {/* Shortlisted mitra info */}
+              <div className="rounded-lg bg-ptba-section-bg p-3">
+                <p className="text-xs font-semibold text-ptba-navy mb-1.5">Mitra yang Lolos Fase 1</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {projectPartners.filter((p: any) => p.isShortlisted).map((p: any) => (
+                    <span key={p.id} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ptba-charcoal border border-ptba-light-gray">
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Deadline */}
-            <div className="mb-4">
-              <label className="flex items-center gap-1.5 text-sm font-semibold text-ptba-charcoal mb-1.5">
-                <Calendar className="h-4 w-4 text-ptba-gray" />
-                Batas Waktu Fase 2 <span className="text-ptba-gray font-normal">(WIB)</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={phase2Deadline}
-                onChange={(e) => setPhase2Deadline(e.target.value)}
-                className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy"
-              />
+              {/* Part 1 */}
+              <div className="rounded-lg border border-ptba-light-gray p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ptba-navy text-white text-xs font-bold">1</span>
+                  <div>
+                    <p className="text-sm font-semibold text-ptba-charcoal">Bagian 1 — Pelajari Dokumen</p>
+                    <p className="text-[11px] text-ptba-gray">Periode mitra mengunduh & mempelajari dokumen PTBA</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-ptba-charcoal mb-1">Mulai <span className="text-ptba-gray">(WIB)</span></label>
+                    <input type="datetime-local" value={p2Part1Start} onChange={(e) => setP2Part1Start(e.target.value)}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ptba-charcoal mb-1">Selesai <span className="text-ptba-gray">(WIB)</span></label>
+                    <input type="datetime-local" value={p2Part1End} onChange={(e) => setP2Part1End(e.target.value)}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Part 2 */}
+              <div className="rounded-lg border border-ptba-light-gray p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ptba-steel-blue text-white text-xs font-bold">2</span>
+                  <div>
+                    <p className="text-sm font-semibold text-ptba-charcoal">Bagian 2 — Pengiriman Dokumen</p>
+                    <p className="text-[11px] text-ptba-gray">Periode mitra mengunggah & mengirimkan dokumen mereka</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-ptba-charcoal mb-1">Mulai <span className="text-ptba-gray">(WIB)</span></label>
+                    <input type="datetime-local" value={p2Part2Start} onChange={(e) => setP2Part2Start(e.target.value)}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ptba-charcoal mb-1">Selesai / Deadline <span className="text-ptba-gray">(WIB)</span></label>
+                    <input type="datetime-local" value={p2Part2End} onChange={(e) => setP2Part2End(e.target.value)}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy" />
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-ptba-gray">Email notifikasi akan dikirim ke semua mitra shortlisted setelah Fase 2 dimulai.</p>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 p-6 border-t border-ptba-light-gray">
               <button
                 onClick={() => setShowPhase2Modal(false)}
                 className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
@@ -907,9 +946,7 @@ export default function ProjectDetailPage({
                   try {
                     await api(`/projects/${id}/start-phase2`, {
                       method: "POST",
-                      body: {
-                        phase2Deadline,
-                      },
+                      body: { part1Start: p2Part1Start, part1End: p2Part1End, part2Start: p2Part2Start, part2End: p2Part2End },
                       token: accessToken,
                     });
                     setShowPhase2Modal(false);
@@ -920,7 +957,7 @@ export default function ProjectDetailPage({
                     setActionLoading(false);
                   }
                 }}
-                disabled={actionLoading || !phase2Deadline}
+                disabled={actionLoading || !p2Part1Start || !p2Part1End || !p2Part2Start || !p2Part2End}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-ptba-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
@@ -1278,6 +1315,47 @@ export default function ProjectDetailPage({
         </div>
         </div>
       </div>
+
+      {/* Phase 2 Timeline Status Card (shown when Phase 2 is active) */}
+      {isPhase2 && project.phase2Config && (
+        (() => {
+          const cfg = project.phase2Config as { part1Start?: string; part1End?: string; part2Start?: string; part2End?: string };
+          const now = new Date();
+          const fmt = (d?: string) => d ? new Date(d).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) + " WIB" : "—";
+          const isPart1Active = cfg.part1Start && cfg.part1End && now >= new Date(cfg.part1Start) && now <= new Date(cfg.part1End);
+          const isPart2Active = cfg.part2Start && cfg.part2End && now >= new Date(cfg.part2Start) && now <= new Date(cfg.part2End);
+          const isPart1Done = cfg.part1End && now > new Date(cfg.part1End);
+          return (
+            <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-ptba-light-gray bg-ptba-section-bg/50">
+                <CalendarClock className="h-4 w-4 text-ptba-navy" />
+                <span className="text-sm font-semibold text-ptba-navy">Jadwal Fase 2</span>
+                {isPart1Active && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700"><CircleDot className="h-2.5 w-2.5" />Bagian 1 Aktif</span>}
+                {isPart2Active && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700"><CircleDot className="h-2.5 w-2.5" />Bagian 2 Aktif</span>}
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-ptba-light-gray">
+                <div className={cn("p-4", isPart1Active ? "bg-blue-50/50" : isPart1Done ? "bg-gray-50" : "")}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white", isPart1Done ? "bg-gray-400" : isPart1Active ? "bg-blue-600" : "bg-ptba-navy")}>1</span>
+                    <p className="text-xs font-semibold text-ptba-charcoal">Pelajari Dokumen</p>
+                    {isPart1Done && <span className="text-[10px] text-ptba-gray">(Selesai)</span>}
+                  </div>
+                  <p className="text-[11px] text-ptba-gray">Mulai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part1Start)}</span></p>
+                  <p className="text-[11px] text-ptba-gray mt-0.5">Selesai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part1End)}</span></p>
+                </div>
+                <div className={cn("p-4", isPart2Active ? "bg-green-50/50" : "")}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white", isPart2Active ? "bg-green-600" : "bg-ptba-steel-blue")}>2</span>
+                    <p className="text-xs font-semibold text-ptba-charcoal">Pengiriman Dokumen</p>
+                  </div>
+                  <p className="text-[11px] text-ptba-gray">Mulai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part2Start)}</span></p>
+                  <p className="text-[11px] text-ptba-gray mt-0.5">Deadline: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part2End)}</span></p>
+                </div>
+              </div>
+            </div>
+          );
+        })()
+      )}
 
       {/* Tabs */}
       <div className="border-b border-ptba-light-gray">
