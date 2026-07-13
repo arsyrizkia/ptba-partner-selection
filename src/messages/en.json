@@ -409,7 +409,8 @@
     "uploadDocs": {
       "title": "Upload Phase 2 Documents",
       "description": "Upload all required documents for the detailed assessment.",
-      "fulfilled": "required fulfilled"
+      "fulfilled": "required fulfilled",
+      "noDocs": "No documents need to be uploaded for Phase 2 at this time. Further information will be provided by the Committee."
     },
     "submit": {
       "requirementsNotMet": "Requirements not met for submission:",

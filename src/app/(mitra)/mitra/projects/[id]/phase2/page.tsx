@@ -18,7 +18,7 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument } from "@/lib/api/client";
-import { PHASE2_DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 export default function MitraPhase2Page() {
@@ -49,6 +49,26 @@ export default function MitraPhase2Page() {
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Phase 2 upload document types — driven by the project's
+  // project_required_documents rows (phase2), editable by admin
+  const phase2DocTypes: { id: string; name: string; description: string; required: boolean }[] =
+    (project?.requiredDocuments || [])
+      .filter((d: any) => d.phase === "phase2")
+      .map((d: any) => {
+        const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
+        return {
+          id: d.documentTypeId,
+          name:
+            meta?.name ||
+            (d.documentTypeId.startsWith("custom_")
+              ? d.documentTypeId.slice(7)
+              : d.documentTypeId
+            ).replace(/_/g, " "),
+          description: d.description || meta?.description || "",
+          required: d.isRequired !== false,
+        };
+      });
 
   // ─── Fetch Data ───
 
@@ -144,7 +164,7 @@ export default function MitraPhase2Page() {
     if (!accessToken || !application?.id) return;
     setError("");
 
-    const docTypeMeta = PHASE2_DOCUMENT_TYPES.find((d) => d.id === docTypeId);
+    const docTypeMeta = phase2DocTypes.find((d) => d.id === docTypeId);
     const autoName = `${docTypeMeta?.name || docTypeId} - ${user?.name || "Mitra"}`;
 
     const existingDoc = uploadedDocs[docTypeId];
@@ -275,14 +295,14 @@ export default function MitraPhase2Page() {
   const isAfterPart1 = phase2Config?.part1End ? now > new Date(phase2Config.part1End) : false;
   const canUpload = isPart2Period && !submitted;
 
-  const requiredPhase2Count = PHASE2_DOCUMENT_TYPES.filter(
+  const requiredPhase2Count = phase2DocTypes.filter(
     (d) => d.required
   ).length;
-  const uploadedRequiredCount = PHASE2_DOCUMENT_TYPES.filter(
+  const uploadedRequiredCount = phase2DocTypes.filter(
     (d) => d.required && uploadedDocs[d.id]
   ).length;
   const allRequiredUploaded = uploadedRequiredCount === requiredPhase2Count;
-  const canSubmit = allRequiredUploaded && !submitting && !submitted;
+  const canSubmit = phase2DocTypes.length > 0 && allRequiredUploaded && !submitting && !submitted;
 
   // ─── Loading state ───
 
@@ -489,7 +509,7 @@ export default function MitraPhase2Page() {
         <div className="flex items-center justify-between">
           {[
             { step: 1, label: "Pelajari Dokumen PTBA", done: downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0 },
-            { step: 2, label: "Unggah Dokumen", done: allRequiredUploaded },
+            { step: 2, label: "Unggah Dokumen", done: phase2DocTypes.length > 0 && allRequiredUploaded },
             { step: 3, label: "Menunggu Evaluasi", done: submitted },
           ].map((s, idx, arr) => (
             <div key={s.step} className="flex items-center flex-1 last:flex-initial">
@@ -618,13 +638,15 @@ export default function MitraPhase2Page() {
           <p className="text-sm text-ptba-gray">
             {t("uploadDocs.description")}
           </p>
-          <span className="text-sm text-ptba-gray">
-            {uploadedRequiredCount}/{requiredPhase2Count} {t("uploadDocs.fulfilled")}
-          </span>
+          {phase2DocTypes.length > 0 && (
+            <span className="text-sm text-ptba-gray">
+              {uploadedRequiredCount}/{requiredPhase2Count} {t("uploadDocs.fulfilled")}
+            </span>
+          )}
         </div>
 
         {/* Progress bar */}
-        <div className="mb-6 h-2 overflow-hidden rounded-full bg-ptba-light-gray">
+        {phase2DocTypes.length > 0 && <div className="mb-6 h-2 overflow-hidden rounded-full bg-ptba-light-gray">
           <div
             className={cn(
               "h-full rounded-full transition-all",
@@ -638,10 +660,15 @@ export default function MitraPhase2Page() {
               }%`,
             }}
           />
-        </div>
+        </div>}
 
         <div className="space-y-3">
-          {PHASE2_DOCUMENT_TYPES.map((doc) => {
+          {phase2DocTypes.length === 0 && (
+            <p className="text-sm text-ptba-gray py-4 text-center">
+              {t("uploadDocs.noDocs")}
+            </p>
+          )}
+          {phase2DocTypes.map((doc) => {
             const docState = uploadedDocs[doc.id];
             const isUploaded = !!docState && !docState.uploading;
             const isUploading = !!docState?.uploading;
@@ -760,7 +787,7 @@ export default function MitraPhase2Page() {
       </div>
 
       {/* Submit Section */}
-      {!submitted && canUpload && <div className="rounded-xl bg-white p-6 shadow-sm">
+      {!submitted && canUpload && phase2DocTypes.length > 0 && <div className="rounded-xl bg-white p-6 shadow-sm">
         {/* Validation warnings */}
         {!allRequiredUploaded && (
           <div className="mb-4 rounded-lg border border-ptba-gold/30 bg-ptba-gold-light/30 p-4">

@@ -409,7 +409,8 @@
     "uploadDocs": {
       "title": "Unggah Dokumen Fase 2",
       "description": "Unggah seluruh dokumen yang diperlukan untuk penilaian detail.",
-      "fulfilled": "wajib terpenuhi"
+      "fulfilled": "wajib terpenuhi",
+      "noDocs": "Belum ada dokumen yang perlu diunggah untuk Fase 2 saat ini. Informasi lebih lanjut akan disampaikan oleh Panitia."
     },
     "submit": {
       "requirementsNotMet": "Persyaratan belum terpenuhi untuk pengiriman:",

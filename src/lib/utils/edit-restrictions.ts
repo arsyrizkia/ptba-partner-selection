@@ -19,13 +19,14 @@ export function getLockedSections(
   const isPhase2 = phase?.startsWith("phase2");
 
   if (isPhase2) {
-    // Phase 2: lock everything except PICs
+    // Phase 2: lock everything except PICs and Phase 2 docs —
+    // admin may still adjust the Phase 2 upload requirements while
+    // registration is running (mitra are notified of doc changes)
     locked.add("general");
     locked.add("phase1Deadline");
     locked.add("phase2Deadline");
     locked.add("requirements");
     locked.add("phase1Docs");
-    locked.add("phase2Docs");
     locked.add("customDocs");
   } else {
     // Phase 1 active: lock phase 1 specific sections
