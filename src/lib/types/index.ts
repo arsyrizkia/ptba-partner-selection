@@ -43,6 +43,7 @@ export interface Project {
   shortlistedPartners?: string[];
   phase1Deadline?: string;
   phase2Deadline?: string;
+  phase2Config?: { part1Start?: string | null; part1End?: string | null; part2Start?: string | null; part2End?: string | null; part2Tentative?: boolean } | null;
   phase3Deadline?: string;
   phase1Documents?: string[];
   phase2Documents?: string[];

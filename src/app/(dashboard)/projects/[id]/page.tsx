@@ -492,6 +492,12 @@ export default function ProjectDetailPage({
   const [p2Part1End, setP2Part1End] = useState("");
   const [p2Part2Start, setP2Part2Start] = useState("");
   const [p2Part2End, setP2Part2End] = useState("");
+  const [p2Part2Tentative, setP2Part2Tentative] = useState(false);
+  // Edit Bagian 2 schedule after Phase 2 started
+  const [showP2ScheduleModal, setShowP2ScheduleModal] = useState(false);
+  const [editP2Start, setEditP2Start] = useState("");
+  const [editP2End, setEditP2End] = useState("");
+  const [editP2Tentative, setEditP2Tentative] = useState(false);
   const [p2DocUploading, setP2DocUploading] = useState(false);
   const [p2DocDeletingId, setP2DocDeletingId] = useState<string | null>(null);
   const [phase2Divisions, setPhase2Divisions] = useState<string[]>(["keuangan", "hukum", "risiko", "ebd"]);
@@ -968,15 +974,23 @@ export default function ProjectDetailPage({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-ptba-charcoal mb-1">Mulai <span className="text-ptba-gray">(WIB)</span></label>
-                    <input type="datetime-local" value={p2Part2Start} onChange={(e) => setP2Part2Start(e.target.value)}
-                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy" />
+                    <input type="datetime-local" value={p2Part2Start} onChange={(e) => setP2Part2Start(e.target.value)} disabled={p2Part2Tentative}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy disabled:opacity-50 disabled:bg-ptba-section-bg" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-ptba-charcoal mb-1">Selesai / Deadline <span className="text-ptba-gray">(WIB)</span></label>
-                    <input type="datetime-local" value={p2Part2End} onChange={(e) => setP2Part2End(e.target.value)}
-                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy" />
+                    <input type="datetime-local" value={p2Part2End} onChange={(e) => setP2Part2End(e.target.value)} disabled={p2Part2Tentative}
+                      className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy disabled:opacity-50 disabled:bg-ptba-section-bg" />
                   </div>
                 </div>
+                <label className="mt-3 flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={p2Part2Tentative} onChange={(e) => setP2Part2Tentative(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy" />
+                  <span className="text-xs text-ptba-charcoal">
+                    <span className="font-semibold">Jadwal Bagian 2 masih tentatif</span>
+                    <span className="block text-[11px] text-ptba-gray">Mitra akan melihat &quot;akan diinformasikan lebih lanjut (tentatif)&quot;. Jadwal dapat ditetapkan kemudian melalui tombol Ubah Jadwal.</span>
+                  </span>
+                </label>
               </div>
 
               <p className="text-[11px] text-ptba-gray">Email notifikasi akan dikirim ke semua mitra shortlisted setelah Fase 2 dimulai.</p>
@@ -997,7 +1011,13 @@ export default function ProjectDetailPage({
                   try {
                     await api(`/projects/${id}/start-phase2`, {
                       method: "POST",
-                      body: { part1Start: p2Part1Start, part1End: p2Part1End, part2Start: p2Part2Start, part2End: p2Part2End },
+                      body: {
+                        part1Start: p2Part1Start,
+                        part1End: p2Part1End,
+                        part2Start: p2Part2Tentative ? undefined : p2Part2Start,
+                        part2End: p2Part2Tentative ? undefined : p2Part2End,
+                        part2Tentative: p2Part2Tentative,
+                      },
                       token: accessToken,
                     });
                     setShowPhase2Modal(false);
@@ -1008,7 +1028,7 @@ export default function ProjectDetailPage({
                     setActionLoading(false);
                   }
                 }}
-                disabled={actionLoading || !p2Part1Start || !p2Part1End || !p2Part2Start || !p2Part2End}
+                disabled={actionLoading || !p2Part1Start || !p2Part1End || (!p2Part2Tentative && (!p2Part2Start || !p2Part2End))}
                 className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-ptba-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
@@ -1370,12 +1390,14 @@ export default function ProjectDetailPage({
       {/* Phase 2 Timeline Status Card (shown when Phase 2 is active) */}
       {isPhase2 && project.phase2Config && (
         (() => {
-          const cfg = project.phase2Config as { part1Start?: string; part1End?: string; part2Start?: string; part2End?: string };
+          const cfg = project.phase2Config as { part1Start?: string; part1End?: string; part2Start?: string; part2End?: string; part2Tentative?: boolean };
           const now = new Date();
           const fmt = (d?: string) => d ? new Date(d).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) + " WIB" : "—";
+          const part2Tentative = cfg.part2Tentative === true;
           const isPart1Active = cfg.part1Start && cfg.part1End && now >= new Date(cfg.part1Start) && now <= new Date(cfg.part1End);
-          const isPart2Active = cfg.part2Start && cfg.part2End && now >= new Date(cfg.part2Start) && now <= new Date(cfg.part2End);
+          const isPart2Active = !part2Tentative && cfg.part2Start && cfg.part2End && now >= new Date(cfg.part2Start) && now <= new Date(cfg.part2End);
           const isPart1Done = cfg.part1End && now > new Date(cfg.part1End);
+          const canEditSchedule = (role === "ebd" || role === "super_admin") && project.currentStep === 8;
           return (
             <div className="rounded-xl bg-white shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3.5 border-b border-ptba-light-gray bg-ptba-section-bg/50">
@@ -1383,6 +1405,29 @@ export default function ProjectDetailPage({
                 <span className="text-sm font-semibold text-ptba-navy">Jadwal Fase 2</span>
                 {isPart1Active && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700"><CircleDot className="h-2.5 w-2.5" />Bagian 1 Aktif</span>}
                 {isPart2Active && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700"><CircleDot className="h-2.5 w-2.5" />Bagian 2 Aktif</span>}
+                {part2Tentative && <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Bagian 2 Tentatif</span>}
+                {canEditSchedule && (
+                  <button
+                    onClick={() => {
+                      const toLocal = (d?: string) => {
+                        if (!d) return "";
+                        const dt = new Date(d);
+                        // datetime-local in WIB
+                        const wib = new Date(dt.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+                        const p = (n: number) => String(n).padStart(2, "0");
+                        return `${wib.getFullYear()}-${p(wib.getMonth() + 1)}-${p(wib.getDate())}T${p(wib.getHours())}:${p(wib.getMinutes())}`;
+                      };
+                      setEditP2Start(toLocal(cfg.part2Start ?? undefined));
+                      setEditP2End(toLocal(cfg.part2End ?? undefined));
+                      setEditP2Tentative(part2Tentative);
+                      setShowP2ScheduleModal(true);
+                    }}
+                    className="ml-auto inline-flex items-center gap-1 rounded-lg border border-ptba-navy px-2.5 py-1 text-[11px] font-semibold text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                  >
+                    <CalendarClock className="h-3 w-3" />
+                    Ubah Jadwal Bagian 2
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-2 divide-x divide-ptba-light-gray">
                 <div className={cn("p-4", isPart1Active ? "bg-blue-50/50" : isPart1Done ? "bg-gray-50" : "")}>
@@ -1394,18 +1439,95 @@ export default function ProjectDetailPage({
                   <p className="text-[11px] text-ptba-gray">Mulai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part1Start)}</span></p>
                   <p className="text-[11px] text-ptba-gray mt-0.5">Selesai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part1End)}</span></p>
                 </div>
-                <div className={cn("p-4", isPart2Active ? "bg-green-50/50" : "")}>
+                <div className={cn("p-4", isPart2Active ? "bg-green-50/50" : part2Tentative ? "bg-amber-50/50" : "")}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white", isPart2Active ? "bg-green-600" : "bg-ptba-steel-blue")}>2</span>
+                    <span className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white", isPart2Active ? "bg-green-600" : part2Tentative ? "bg-amber-500" : "bg-ptba-steel-blue")}>2</span>
                     <p className="text-xs font-semibold text-ptba-charcoal">Pengiriman Dokumen</p>
                   </div>
-                  <p className="text-[11px] text-ptba-gray">Mulai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part2Start)}</span></p>
-                  <p className="text-[11px] text-ptba-gray mt-0.5">Deadline: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part2End)}</span></p>
+                  {part2Tentative ? (
+                    <p className="text-[11px] font-medium text-amber-700">Tentatif — akan diinformasikan lebih lanjut</p>
+                  ) : (
+                    <>
+                      <p className="text-[11px] text-ptba-gray">Mulai: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part2Start)}</span></p>
+                      <p className="text-[11px] text-ptba-gray mt-0.5">Deadline: <span className="font-medium text-ptba-charcoal">{fmt(cfg.part2End)}</span></p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           );
         })()
+      )}
+
+      {/* Edit Bagian 2 Schedule Modal */}
+      {showP2ScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
+            <div className="p-6 border-b border-ptba-light-gray">
+              <h3 className="text-lg font-semibold text-ptba-charcoal">Ubah Jadwal Bagian 2 — Pengiriman Dokumen</h3>
+              <p className="text-xs text-ptba-gray mt-1">Perubahan jadwal akan diinformasikan ke mitra shortlisted.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-ptba-charcoal mb-1">Mulai <span className="text-ptba-gray">(WIB)</span></label>
+                  <input type="datetime-local" value={editP2Start} onChange={(e) => setEditP2Start(e.target.value)} disabled={editP2Tentative}
+                    className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy disabled:opacity-50 disabled:bg-ptba-section-bg" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ptba-charcoal mb-1">Selesai / Deadline <span className="text-ptba-gray">(WIB)</span></label>
+                  <input type="datetime-local" value={editP2End} onChange={(e) => setEditP2End(e.target.value)} disabled={editP2Tentative}
+                    className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm text-ptba-charcoal focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy disabled:opacity-50 disabled:bg-ptba-section-bg" />
+                </div>
+              </div>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" checked={editP2Tentative} onChange={(e) => setEditP2Tentative(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-ptba-light-gray text-ptba-navy focus:ring-ptba-navy" />
+                <span className="text-xs text-ptba-charcoal">
+                  <span className="font-semibold">Tandai sebagai tentatif</span>
+                  <span className="block text-[11px] text-ptba-gray">Mitra akan melihat &quot;akan diinformasikan lebih lanjut (tentatif)&quot; dan pengiriman dokumen tetap terkunci hingga jadwal ditetapkan.</span>
+                </span>
+              </label>
+              <p className="text-[11px] text-ptba-gray">1 email notifikasi akan dikirim ke setiap mitra shortlisted.</p>
+            </div>
+            <div className="flex gap-3 p-6 border-t border-ptba-light-gray">
+              <button
+                onClick={() => setShowP2ScheduleModal(false)}
+                className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={async () => {
+                  if (!accessToken) return;
+                  setActionLoading(true);
+                  try {
+                    await api(`/projects/${id}/phase2-schedule`, {
+                      method: "PATCH",
+                      body: {
+                        part2Start: editP2Tentative ? undefined : editP2Start,
+                        part2End: editP2Tentative ? undefined : editP2End,
+                        part2Tentative: editP2Tentative,
+                      },
+                      token: accessToken,
+                    });
+                    setShowP2ScheduleModal(false);
+                    window.location.reload();
+                  } catch (err: any) {
+                    alert(err?.message || "Gagal memperbarui jadwal Bagian 2");
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={actionLoading || (!editP2Tentative && (!editP2Start || !editP2End))}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-ptba-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
+                {actionLoading ? "Menyimpan..." : "Simpan Jadwal"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Phase 2 PTBA Document Management (inline, EBD/super_admin only) */}

@@ -422,6 +422,12 @@
       "downloadFailed": "Failed to download document",
       "deleteFailed": "Failed to delete document",
       "submitFailed": "Failed to submit Phase 2 documents"
+    },
+    "tentative": {
+      "waitingTitle": "Awaiting Submission Schedule (Tentative)",
+      "scheduleInfo": "The document submission schedule will be announced later (tentative)",
+      "badge": "Tentative",
+      "lockChip": "Schedule to be announced (Tentative)"
     }
   },
   "negotiation": {

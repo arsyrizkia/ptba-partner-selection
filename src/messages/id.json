@@ -422,6 +422,12 @@
       "downloadFailed": "Gagal mengunduh dokumen",
       "deleteFailed": "Gagal menghapus dokumen",
       "submitFailed": "Gagal mengirim dokumen Fase 2"
+    },
+    "tentative": {
+      "waitingTitle": "Menunggu Jadwal Pengiriman (Tentatif)",
+      "scheduleInfo": "Jadwal pengiriman dokumen akan diinformasikan lebih lanjut (tentatif)",
+      "badge": "Tentatif",
+      "lockChip": "Jadwal akan diinformasikan (Tentatif)"
     }
   },
   "negotiation": {

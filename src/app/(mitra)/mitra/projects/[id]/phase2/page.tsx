@@ -283,12 +283,15 @@ export default function MitraPhase2Page() {
   const ptbaDocuments = allPtbaDocuments.filter((d: any) => d.phase === "phase2");
 
   // Phase 2 part timelines
-  const phase2Config = project?.phase2Config as { part1Start?: string; part1End?: string; part2Start?: string; part2End?: string } | null;
+  const phase2Config = project?.phase2Config as { part1Start?: string; part1End?: string; part2Start?: string; part2End?: string; part2Tentative?: boolean } | null;
   const now = new Date();
+  const part2Tentative = phase2Config?.part2Tentative === true;
   const isPart1Period = phase2Config?.part1Start && phase2Config?.part1End
     ? now >= new Date(phase2Config.part1Start) && now <= new Date(phase2Config.part1End)
     : !phase2Config; // fallback: no config → allow both (legacy)
-  const isPart2Period = phase2Config?.part2Start && phase2Config?.part2End
+  const isPart2Period = part2Tentative
+    ? false // tentative schedule: submission stays locked until dates are fixed
+    : phase2Config?.part2Start && phase2Config?.part2End
     ? now >= new Date(phase2Config.part2Start) && now <= new Date(phase2Config.part2End)
     : !phase2Config;
   const isBeforePhase2 = phase2Config?.part1Start ? now < new Date(phase2Config.part1Start) : false;
@@ -482,23 +485,35 @@ export default function MitraPhase2Page() {
               {isBeforePhase2 && <Lock className="h-4 w-4 text-ptba-gray shrink-0" />}
               {isPart1Period && <FileText className="h-4 w-4 text-blue-600 shrink-0" />}
               {isPart2Period && <Upload className="h-4 w-4 text-green-600 shrink-0" />}
-              {!isPart1Period && !isPart2Period && !isBeforePhase2 && <CheckCircle2 className="h-4 w-4 text-ptba-gray shrink-0" />}
+              {!isPart1Period && !isPart2Period && !isBeforePhase2 && (
+                part2Tentative
+                  ? <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                  : <CheckCircle2 className="h-4 w-4 text-ptba-gray shrink-0" />
+              )}
               <div>
                 {isBeforePhase2 && <p className="text-sm font-semibold text-ptba-charcoal">Fase 2 Belum Dimulai</p>}
                 {isPart1Period && <p className="text-sm font-semibold text-blue-800">Bagian 1: Pelajari Dokumen</p>}
                 {isPart2Period && <p className="text-sm font-semibold text-green-800">Bagian 2: Pengiriman Dokumen</p>}
-                {!isPart1Period && !isPart2Period && !isBeforePhase2 && <p className="text-sm font-semibold text-ptba-charcoal">Periode Pengiriman Telah Berakhir</p>}
+                {!isPart1Period && !isPart2Period && !isBeforePhase2 && (
+                  part2Tentative
+                    ? <p className="text-sm font-semibold text-amber-800">{t("tentative.waitingTitle")}</p>
+                    : <p className="text-sm font-semibold text-ptba-charcoal">Periode Pengiriman Telah Berakhir</p>
+                )}
                 <p className="text-xs text-ptba-gray mt-0.5">
                   {isBeforePhase2 && `Bagian 1 (Pelajari Dokumen) dimulai pada ${fmtDate(phase2Config?.part1Start)}`}
-                  {isPart1Period && `Berlangsung hingga ${fmtDate(phase2Config?.part1End)} — Pengiriman dibuka ${fmtDate(phase2Config?.part2Start)}`}
+                  {isPart1Period && (part2Tentative
+                    ? `Berlangsung hingga ${fmtDate(phase2Config?.part1End)} — ${t("tentative.scheduleInfo")}`
+                    : `Berlangsung hingga ${fmtDate(phase2Config?.part1End)} — Pengiriman dibuka ${fmtDate(phase2Config?.part2Start)}`)}
                   {isPart2Period && `Deadline pengiriman: ${fmtDate(phase2Config?.part2End)}`}
-                  {!isPart1Period && !isPart2Period && !isBeforePhase2 && "Dokumen tidak dapat diubah lagi."}
+                  {!isPart1Period && !isPart2Period && !isBeforePhase2 && (part2Tentative
+                    ? t("tentative.scheduleInfo")
+                    : "Dokumen tidak dapat diubah lagi.")}
                 </p>
               </div>
             </div>
             <div className="flex gap-3 text-[11px] font-medium shrink-0">
               <div className={cn("rounded-full px-2.5 py-1", isAfterPart1 || isPart2Period ? "bg-green-100 text-green-700" : isPart1Period ? "bg-blue-600 text-white" : "bg-ptba-light-gray text-ptba-gray")}>Bagian 1</div>
-              <div className={cn("rounded-full px-2.5 py-1", submitted ? "bg-green-100 text-green-700" : isPart2Period ? "bg-green-600 text-white" : "bg-ptba-light-gray text-ptba-gray")}>Bagian 2</div>
+              <div className={cn("rounded-full px-2.5 py-1", submitted ? "bg-green-100 text-green-700" : isPart2Period ? "bg-green-600 text-white" : part2Tentative ? "bg-amber-100 text-amber-700" : "bg-ptba-light-gray text-ptba-gray")}>Bagian 2{part2Tentative ? ` (${t("tentative.badge")})` : ""}</div>
             </div>
           </div>
         </div>
@@ -627,9 +642,14 @@ export default function MitraPhase2Page() {
             {t("uploadDocs.title")}
           </h2>
           {phase2Config && !isPart2Period && !submitted && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-ptba-light-gray px-2.5 py-0.5 text-xs font-medium text-ptba-gray">
+            <span className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+              part2Tentative ? "bg-amber-100 text-amber-700" : "bg-ptba-light-gray text-ptba-gray"
+            )}>
               <Lock className="h-3 w-3" />
-              {isPart1Period ? `Dibuka ${fmtDate(phase2Config?.part2Start)}` : "Terkunci"}
+              {part2Tentative
+                ? t("tentative.lockChip")
+                : isPart1Period ? `Dibuka ${fmtDate(phase2Config?.part2Start)}` : "Terkunci"}
             </span>
           )}
         </div>
