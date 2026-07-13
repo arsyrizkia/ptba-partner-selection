@@ -233,9 +233,15 @@ export default function EditProjectPage({
         }
       }
 
-      // Sync phase changes on existing PTBA documents
+      // Sync phase changes on existing PTBA documents — only PATCH docs
+      // whose phase actually changed (a phase2 PATCH emails all
+      // shortlisted mitra, so no-op updates must not be sent)
+      const originalPhases: Record<string, string> = {};
+      for (const d of projectData?.ptbaDocuments || []) {
+        originalPhases[d.id] = d.phase || "phase1";
+      }
       for (const sf of formData.supportingFiles) {
-        if ("id" in sf && sf.id && sf.phase) {
+        if ("id" in sf && sf.id && sf.phase && originalPhases[sf.id] !== sf.phase) {
           await fetch(`${API_BASE}/projects/${id}/documents/${sf.id}`, {
             method: "PATCH",
             headers: {
