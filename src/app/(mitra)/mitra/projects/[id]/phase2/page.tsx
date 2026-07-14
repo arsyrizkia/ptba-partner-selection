@@ -17,7 +17,7 @@ import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi, downloadDocument } from "@/lib/api/client";
+import { api, projectApi, downloadDocument, downloadFromUrl } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -143,14 +143,15 @@ export default function MitraPhase2Page() {
     setError("");
 
     try {
-      // Record the download via API
-      await api<{ url: string; document: any }>(
+      // Record the download via API — the response includes a presigned URL
+      const res = await api<{ url: string; document: any }>(
         `/applications/${application.id}/download-ptba-doc/${docId}`,
         { method: "POST", token: accessToken }
       );
+      if (!res.url) throw new Error("URL unduhan tidak tersedia");
 
-      // Download through the helper
-      await downloadDocument(fileKey, accessToken!);
+      // Download directly from the presigned URL (throws on failure)
+      await downloadFromUrl(res.url, res.document?.name, fileKey);
 
       setDownloadedDocs((prev) => new Set(prev).add(docId));
     } catch (err: any) {
