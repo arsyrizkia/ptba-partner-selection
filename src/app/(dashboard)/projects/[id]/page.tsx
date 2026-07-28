@@ -2485,23 +2485,55 @@ export default function ProjectDetailPage({
           setFaqNewCatName("");
           setFaqNewCatMode(false);
         };
+        const deleteCustomCategory = async (cat: string) => {
+          const affected = faqs.filter((f) => (f.category || "umum") === cat);
+          if (affected.length > 0) {
+            if (!accessToken) return;
+            if (!confirm(`Hapus kategori "${catLabel(cat)}"? ${affected.length} FAQ akan dipindahkan ke kategori Umum.`)) return;
+            try {
+              for (const f of affected) {
+                const res = await api<{ faq: any }>(`/projects/${id}/faqs/${f.id}`, { method: "PUT", token: accessToken, body: { category: "umum" } });
+                setFaqs((prev) => prev.map((x) => (x.id === f.id ? res.faq : x)));
+              }
+            } catch { alert("Gagal menghapus kategori"); return; }
+          }
+          setCustomFaqCats((prev) => prev.filter((c) => c !== cat));
+          if (faqCategory === cat) setFaqCategory("umum");
+        };
         const categoryPills = (
           <div className="flex flex-wrap items-center gap-2">
-            {ALL_CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => setFaqCategory(c.value)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-semibold border transition-all",
-                  faqCategory === c.value
-                    ? `${c.color} border-current shadow-sm`
-                    : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
+            {ALL_CATEGORIES.map((c) => {
+              const isCustom = !FAQ_CATEGORIES.some((b) => b.value === c.value);
+              return (
+                <span
+                  key={c.value}
+                  className={cn(
+                    "inline-flex items-center rounded-full border text-xs font-semibold transition-all",
+                    faqCategory === c.value
+                      ? `${c.color} border-current shadow-sm`
+                      : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setFaqCategory(c.value)}
+                    className={cn("py-1.5", isCustom ? "pl-3 pr-1" : "px-3")}
+                  >
+                    {c.label}
+                  </button>
+                  {isCustom && (
+                    <button
+                      type="button"
+                      onClick={() => deleteCustomCategory(c.value)}
+                      className="rounded-full p-1 mr-1 hover:bg-red-50 hover:text-red-600"
+                      title={`Hapus kategori ${c.label}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </span>
+              );
+            })}
             {faqNewCatMode ? (
               <span className="inline-flex items-center gap-1">
                 <input
