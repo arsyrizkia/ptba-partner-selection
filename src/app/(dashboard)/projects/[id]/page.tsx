@@ -2647,16 +2647,8 @@ export default function ProjectDetailPage({
 
           setFaqOrderSaving(true);
           try {
-            const updates = reorderedSectionFaqs
-              .filter((faq, index) => Number(faq.sort_order ?? 0) !== index)
-              .map((faq, index) =>
-                api(`/projects/${id}/faqs/${faq.id}`, {
-                  method: "PUT",
-                  token: accessToken,
-                  body: { sort_order: index },
-                })
-              );
-            if (updates.length > 0) await Promise.all(updates);
+            const orders = reorderedSectionFaqs.map((faq, index) => ({ id: faq.id, sort_order: index }));
+            await api(`/projects/${id}/faqs/reorder`, { method: "PUT", token: accessToken, body: { orders } });
 
             setFaqs((prev) => {
               const sectionKey = activeSection;
