@@ -101,6 +101,8 @@ export default function MitraProjectDetailPage() {
   const isPhase3 = false; // 2-phase system — Phase 3 removed
   const isShortlisted = application?.status === "Shortlisted";
   const isPassedPhase2 = application?.status === "Diterima" || application?.status === "Terpilih";
+  // Mitra yang gagal (Tidak Lolos / Ditolak) tidak boleh melihat FAQ
+  const isFailed = application?.phase1_result === "Tidak Lolos" || application?.status === "Ditolak";
   const canAccessPhase2 = isShortlisted && isPhase2;
 
   // Required documents from project - grouped by phase
@@ -223,7 +225,8 @@ export default function MitraProjectDetailPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs — FAQ disembunyikan untuk mitra yang gagal */}
+      {!isFailed && (
       <div className="flex gap-1 border-b border-gray-200">
         {(["overview", "faq"] as const).map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
@@ -234,6 +237,7 @@ export default function MitraProjectDetailPage() {
           </button>
         ))}
       </div>
+      )}
 
       {activeTab === "overview" && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -607,7 +611,7 @@ export default function MitraProjectDetailPage() {
       </div>
       )}
 
-      {activeTab === "faq" && (() => {
+      {activeTab === "faq" && !isFailed && (() => {
         const projectFaqs = project.faqs || [];
         const projectGeneralFaqs = projectFaqs.filter((f: any) => (f.section || "general") === "general");
         const generalFaqs = projectGeneralFaqs;
