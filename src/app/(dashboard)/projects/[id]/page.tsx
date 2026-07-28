@@ -387,6 +387,9 @@ export default function ProjectDetailPage({
   const [faqAnswer, setFaqAnswer] = useState("");
   const [faqCategory, setFaqCategory] = useState("umum");
   const [faqSection, setFaqSection] = useState("general");
+  const [faqNewCatMode, setFaqNewCatMode] = useState(false);
+  const [faqNewCatName, setFaqNewCatName] = useState("");
+  const [customFaqCats, setCustomFaqCats] = useState<string[]>([]);
   const [faqEditId, setFaqEditId] = useState<string | null>(null);
   const [showFaqEditModal, setShowFaqEditModal] = useState(false);
   const [faqSaving, setFaqSaving] = useState(false);
@@ -2460,15 +2463,84 @@ export default function ProjectDetailPage({
           { value: "keuangan", label: "Keuangan", color: "bg-amber-100 text-amber-700" },
           { value: "umum", label: "Umum", color: "bg-gray-100 text-gray-700" },
         ];
-        const catColor = (cat: string) => FAQ_CATEGORIES.find((c) => c.value === cat)?.color || "bg-gray-100 text-gray-700";
-        const catLabel = (cat: string) => FAQ_CATEGORIES.find((c) => c.value === cat)?.label || cat;
+        // Kategori custom: gabungan dari FAQ yang sudah tersimpan + yang baru dibuat sesi ini
+        const derivedCats = Array.from(new Set([
+          ...faqs.map((f) => f.category || "umum"),
+          ...customFaqCats,
+        ])).filter((c) => !FAQ_CATEGORIES.some((b) => b.value === c)).sort();
+        const ALL_CATEGORIES = [
+          ...FAQ_CATEGORIES,
+          ...derivedCats.map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1), color: "bg-gray-100 text-gray-700" })),
+        ];
+        const catColor = (cat: string) => ALL_CATEGORIES.find((c) => c.value === cat)?.color || "bg-gray-100 text-gray-700";
+        const catLabel = (cat: string) => ALL_CATEGORIES.find((c) => c.value === cat)?.label || cat;
+
+        const addCustomCategory = () => {
+          const slug = faqNewCatName.trim().toLowerCase();
+          if (slug) {
+            if (!ALL_CATEGORIES.some((c) => c.value === slug)) setCustomFaqCats((prev) => [...prev, slug]);
+            setFaqCategory(slug);
+          }
+          setFaqNewCatName("");
+          setFaqNewCatMode(false);
+        };
+        const categoryPills = (
+          <div className="flex flex-wrap items-center gap-2">
+            {ALL_CATEGORIES.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => setFaqCategory(c.value)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-semibold border transition-all",
+                  faqCategory === c.value
+                    ? `${c.color} border-current shadow-sm`
+                    : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+            {faqNewCatMode ? (
+              <span className="inline-flex items-center gap-1">
+                <input
+                  type="text"
+                  autoFocus
+                  value={faqNewCatName}
+                  onChange={(e) => setFaqNewCatName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); addCustomCategory(); }
+                    if (e.key === "Escape") { setFaqNewCatName(""); setFaqNewCatMode(false); }
+                  }}
+                  placeholder="Kategori baru"
+                  className="w-32 rounded-full border border-ptba-steel-blue px-3 py-1.5 text-xs focus:outline-none"
+                />
+                <button type="button" onClick={addCustomCategory} className="rounded-full p-1.5 text-green-600 hover:bg-green-50" title="Tambah">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => { setFaqNewCatName(""); setFaqNewCatMode(false); }} className="rounded-full p-1.5 text-ptba-gray hover:bg-gray-100" title="Batal">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setFaqNewCatMode(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-ptba-steel-blue px-3 py-1.5 text-xs font-semibold text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-all"
+                title="Tambah kategori baru"
+              >
+                <Plus className="h-3.5 w-3.5" /> Kategori
+              </button>
+            )}
+          </div>
+        );
 
         const generalFaqs = faqs.filter((f) => (f.section || "general") === "general");
         const mitraFaqs = faqs.filter((f) => (f.section || "general") === "mitra");
         const activeSection: "general" | "mitra" = faqSubTab === "mitra" ? "mitra" : "general";
         const sectionFaqs = activeSection === "general" ? generalFaqs : mitraFaqs;
-        // Group by category preserving FAQ_CATEGORIES order
-        const groupedFaqs = FAQ_CATEGORIES
+        // Group by category preserving ALL_CATEGORIES order (built-in + custom)
+        const groupedFaqs = ALL_CATEGORIES
           .map((c) => ({ ...c, items: sectionFaqs.filter((f) => (f.category || "umum") === c.value) }))
           .filter((g) => g.items.length > 0);
 
@@ -2483,6 +2555,8 @@ export default function ProjectDetailPage({
           setFaqAnswer("");
           setFaqCategory("umum");
           setFaqSection(activeSection);
+          setFaqNewCatMode(false);
+          setFaqNewCatName("");
           setShowFaqEditModal(false);
         };
         const saveFaq = async () => {
@@ -2748,23 +2822,7 @@ export default function ProjectDetailPage({
                     <div className="space-y-3">
                       <div>
                         <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori</label>
-                        <div className="flex flex-wrap gap-2">
-                          {FAQ_CATEGORIES.map((c) => (
-                            <button
-                              key={c.value}
-                              type="button"
-                              onClick={() => setFaqCategory(c.value)}
-                              className={cn(
-                                "rounded-full px-3 py-1.5 text-xs font-semibold border transition-all",
-                                faqCategory === c.value
-                                  ? `${c.color} border-current shadow-sm`
-                                  : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
-                              )}
-                            >
-                              {c.label}
-                            </button>
-                          ))}
-                        </div>
+                        {categoryPills}
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Pertanyaan</label>
@@ -2914,23 +2972,7 @@ export default function ProjectDetailPage({
                       <div className="space-y-4 px-6 py-5">
                         <div>
                           <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Kategori</label>
-                          <div className="flex flex-wrap gap-2">
-                            {FAQ_CATEGORIES.map((c) => (
-                              <button
-                                key={c.value}
-                                type="button"
-                                onClick={() => setFaqCategory(c.value)}
-                                className={cn(
-                                  "rounded-full px-3 py-1.5 text-xs font-semibold border transition-all",
-                                  faqCategory === c.value
-                                    ? `${c.color} border-current shadow-sm`
-                                    : "bg-white text-ptba-gray border-ptba-light-gray hover:border-ptba-steel-blue"
-                                )}
-                              >
-                                {c.label}
-                              </button>
-                            ))}
-                          </div>
+                          {categoryPills}
                         </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-ptba-charcoal">Pertanyaan</label>
