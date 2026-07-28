@@ -56,6 +56,19 @@ import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/c
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 
 
+const QA_DOC_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+const isImageAttachment = (url: string) => /\.(png|jpe?g|gif|webp)$/i.test(url.split("?")[0]);
+const attachmentName = (url: string) => {
+  const base = decodeURIComponent(url.split("?")[0].split("/").pop() || "Lampiran");
+  return base.replace(/^\d+-?/, "") || "Lampiran";
+};
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -3292,14 +3305,27 @@ export default function ProjectDetailPage({
                                         <p className="text-[10px] font-bold mb-0.5 opacity-80">
                                           {isMitra ? (m.sender_name || "Mitra") : (m.sender_name || "Admin PTBA")}
                                         </p>
-                                        {m.image_url && (
+                                        {m.image_url && (isImageAttachment(m.image_url) ? (
                                           <img
                                             src={m.image_url}
                                             alt=""
                                             className="rounded-lg max-w-full max-h-48 object-contain cursor-pointer mb-1.5 hover:opacity-90 transition-opacity"
                                             onClick={() => setQuestionLightboxSrc(m.image_url)}
                                           />
-                                        )}
+                                        ) : (
+                                          <a
+                                            href={m.image_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={cn(
+                                              "flex items-center gap-2 rounded-lg px-3 py-2 mb-1.5 border transition-colors text-sm",
+                                              isMitra ? "bg-ptba-section-bg border-ptba-light-gray hover:bg-gray-100" : "bg-white/10 border-white/20 hover:bg-white/20"
+                                            )}
+                                          >
+                                            <FileText className={cn("h-4 w-4 shrink-0", isMitra ? "text-ptba-steel-blue" : "text-white")} />
+                                            <span className="truncate underline">{attachmentName(m.image_url)}</span>
+                                          </a>
+                                        ))}
                                         {m.message && <p className="text-sm whitespace-pre-line leading-relaxed">{m.message}</p>}
                                       </div>
                                       <p className={cn("text-[10px] text-ptba-gray mt-1 px-1", isMitra ? "text-left" : "text-right")}>
@@ -3324,21 +3350,31 @@ export default function ProjectDetailPage({
                               </div>
                             ) : (
                               <div className="space-y-2">
-                                {questionImagePreview && (
+                                {questionImageFile && (
                                   <div className="relative inline-block">
-                                    <img src={questionImagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
-                                    <button onClick={() => { setQuestionImageFile(null); URL.revokeObjectURL(questionImagePreview); setQuestionImagePreview(null); }} className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
+                                    {questionImagePreview ? (
+                                      <img src={questionImagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
+                                    ) : (
+                                      <div className="flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-ptba-section-bg px-3 py-2">
+                                        <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                                        <span className="text-xs text-ptba-charcoal max-w-[200px] truncate">{questionImageFile.name}</span>
+                                      </div>
+                                    )}
+                                    <button onClick={() => { setQuestionImageFile(null); if (questionImagePreview) URL.revokeObjectURL(questionImagePreview); setQuestionImagePreview(null); }} className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
                                       <X className="h-3 w-3" />
                                     </button>
                                   </div>
                                 )}
                                 <div className="flex gap-2 items-end">
-                                  <input type="file" accept="image/*" className="hidden" id="admin-qa-image" onChange={(e) => {
+                                  <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden" id="admin-qa-image" onChange={(e) => {
                                     const f = e.target.files?.[0];
-                                    if (f && f.type.startsWith("image/")) { setQuestionImageFile(f); setQuestionImagePreview(URL.createObjectURL(f)); }
+                                    if (f && (f.type.startsWith("image/") || QA_DOC_TYPES.includes(f.type))) {
+                                      setQuestionImageFile(f);
+                                      setQuestionImagePreview(f.type.startsWith("image/") ? URL.createObjectURL(f) : null);
+                                    }
                                     e.target.value = "";
                                   }} />
-                                  <button onClick={() => document.getElementById("admin-qa-image")?.click()} className="rounded-lg border border-ptba-light-gray px-2.5 py-2.5 text-ptba-gray hover:bg-ptba-section-bg transition-colors" title="Lampirkan gambar">
+                                  <button onClick={() => document.getElementById("admin-qa-image")?.click()} className="rounded-lg border border-ptba-light-gray px-2.5 py-2.5 text-ptba-gray hover:bg-ptba-section-bg transition-colors" title="Lampirkan gambar atau dokumen">
                                     <ImagePlus className="h-4 w-4" />
                                   </button>
                                   <textarea

@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MessageSquare, Send, Loader2, ArrowLeft, CheckCircle2, Clock, CheckCheck, ImagePlus, X } from "lucide-react";
+import { MessageSquare, Send, Loader2, ArrowLeft, CheckCircle2, Clock, CheckCheck, ImagePlus, X, FileText } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSocket } from "@/lib/hooks/use-socket";
 import { api, fetchWithAuth } from "@/lib/api/client";
 import { formatDate, formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
+
+const isImageAttachment = (url: string) => /\.(png|jpe?g|gif|webp)$/i.test(url.split("?")[0]);
+const attachmentName = (url: string) => {
+  const base = decodeURIComponent(url.split("?")[0].split("/").pop() || "Lampiran");
+  return base.replace(/^\d+-?/, "") || "Lampiran";
+};
 
 interface Question {
   id: string;
@@ -159,12 +165,23 @@ export default function MitraQuestionsPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const ALLOWED_DOC_TYPES = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ];
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { setError("Hanya file gambar yang diperbolehkan"); return; }
+    if (!file.type.startsWith("image/") && !ALLOWED_DOC_TYPES.includes(file.type)) {
+      setError("Hanya gambar, PDF, Word, atau Excel yang diperbolehkan");
+      return;
+    }
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
   };
 
   const clearImage = () => {
@@ -310,14 +327,27 @@ export default function MitraQuestionsPage() {
                               <p className="text-[10px] font-semibold mb-0.5 opacity-70">
                                 {isMitra ? "Anda" : (m.sender_name || "Admin")}
                               </p>
-                              {m.image_url && (
+                              {m.image_url && (isImageAttachment(m.image_url) ? (
                                 <img
                                   src={m.image_url}
                                   alt=""
                                   className="rounded-lg max-w-full max-h-48 object-contain cursor-pointer mb-1.5 hover:opacity-90 transition-opacity"
                                   onClick={() => setLightboxSrc(m.image_url!)}
                                 />
-                              )}
+                              ) : (
+                                <a
+                                  href={m.image_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-lg px-3 py-2 mb-1.5 border transition-colors",
+                                    isMitra ? "bg-white/10 border-white/20 hover:bg-white/20" : "bg-white border-ptba-light-gray hover:bg-gray-50"
+                                  )}
+                                >
+                                  <FileText className={cn("h-4 w-4 shrink-0", isMitra ? "text-white" : "text-ptba-steel-blue")} />
+                                  <span className="truncate underline">{attachmentName(m.image_url)}</span>
+                                </a>
+                              ))}
                               {m.message && <p className="leading-relaxed whitespace-pre-wrap">{m.message}</p>}
                               <p className={cn("text-[9px] mt-1 text-right", isMitra ? "text-white/60" : "text-ptba-gray")}>
                                 {formatChatTime(m.created_at)}
@@ -332,20 +362,27 @@ export default function MitraQuestionsPage() {
 
                   {selected.status !== "closed" && (
                     <div className="border-t border-gray-100 p-3">
-                      {imagePreview && (
+                      {imageFile && (
                         <div className="mb-2 relative inline-block">
-                          <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
+                          {imagePreview ? (
+                            <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-ptba-light-gray object-cover" />
+                          ) : (
+                            <div className="flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-ptba-section-bg px-3 py-2">
+                              <FileText className="h-4 w-4 text-ptba-steel-blue shrink-0" />
+                              <span className="text-xs text-ptba-charcoal max-w-[200px] truncate">{imageFile.name}</span>
+                            </div>
+                          )}
                           <button onClick={clearImage} className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600">
                             <X className="h-3 w-3" />
                           </button>
                         </div>
                       )}
                       <div className="flex gap-2">
-                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                        <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={handleImageSelect} />
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           className="rounded-lg border border-ptba-light-gray px-2.5 text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                          title="Lampirkan gambar"
+                          title="Lampirkan gambar atau dokumen"
                         >
                           <ImagePlus className="h-4 w-4" />
                         </button>
