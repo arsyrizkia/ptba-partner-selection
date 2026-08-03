@@ -79,6 +79,45 @@ export function formatChatDaySeparator(date: string | Date): string {
   return `${dayNum} ${monthName}`;
 }
 
+/** String datetime tanpa offset timezone (hasil input datetime-local) dianggap WIB */
+const HAS_TZ_OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/;
+
+function asWibDate(value: string | Date): Date {
+  if (typeof value !== 'string') return value;
+  return new Date(HAS_TZ_OFFSET.test(value) ? value : `${value}:00+07:00`);
+}
+
+/**
+ * Konversi timestamp (ISO/offset apapun) ke nilai input datetime-local
+ * dalam wall-clock WIB, independen dari timezone browser.
+ * Contoh: "2026-08-03T05:00:00.000Z" -> "2026-08-03T12:00"
+ */
+export function toWibInputValue(value: string | Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(asWibDate(value));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  const hour = get('hour') === '24' ? '00' : get('hour');
+  return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
+}
+
+/**
+ * Format timestamp ke teks lengkap WIB 24 jam.
+ * Contoh: "2026-08-03T12:00" -> "Senin, 3 Agustus 2026 pukul 12.00 WIB"
+ */
+export function formatWibDateTime(value: string | Date): string {
+  const d = asWibDate(value);
+  if (isNaN(d.getTime())) return '';
+  const text = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(d);
+  return `${text} WIB`;
+}
+
 /**
  * Check if two dates are on the same calendar day
  */

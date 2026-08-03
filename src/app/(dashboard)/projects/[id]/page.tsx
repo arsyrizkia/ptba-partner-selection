@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
-import { formatChatTime, formatChatDaySeparator, isSameDay } from "@/lib/utils/format";
+import { formatChatTime, formatChatDaySeparator, isSameDay, toWibInputValue, formatWibDateTime } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSocket } from "@/lib/hooks/use-socket";
 import { api, projectApi, authApi, downloadDocument, fetchWithAuth, sendDraftReminder } from "@/lib/api/client";
@@ -424,6 +424,8 @@ export default function ProjectDetailPage({
   const [questionStatusFilter, setQuestionStatusFilter] = useState<"all" | "open" | "answered" | "closed">("all");
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questionsCloseAt, setQuestionsCloseAt] = useState("");
+  // Nilai tutup-otomatis yang tersimpan di server (bukan draft picker) — dasar status "Ditutup (Otomatis)"
+  const [savedQuestionsCloseAt, setSavedQuestionsCloseAt] = useState("");
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionMessagesLoading, setQuestionMessagesLoading] = useState(false);
   const [questionReplyLoading, setQuestionReplyLoading] = useState(false);
@@ -638,12 +640,10 @@ export default function ProjectDetailPage({
       if (Array.isArray(res.data.faqs)) setFaqs(res.data.faqs);
       if (typeof res.data.questionsOpen === "boolean") setQuestionsOpen(res.data.questionsOpen);
       const closeAt = (res.data as any).questionsCloseAt as string | null | undefined;
-      if (closeAt) {
-        // Format to datetime-local "YYYY-MM-DDTHH:mm"
-        const d = new Date(closeAt);
-        const pad = (n: number) => String(n).padStart(2, "0");
-        setQuestionsCloseAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
-      }
+      setSavedQuestionsCloseAt(closeAt || "");
+      // Render sebagai wall-clock WIB (API menyimpan +07:00), bukan timezone browser,
+      // supaya buka → Simpan tidak menggeser nilai tersimpan
+      if (closeAt) setQuestionsCloseAt(toWibInputValue(closeAt));
     }).catch(() => {
       setProject(null);
     }).finally(() => setLoading(false));
@@ -2761,9 +2761,14 @@ export default function ProjectDetailPage({
                 questions_close_at: questionsCloseAt || null,
               },
             });
+            setSavedQuestionsCloseAt(questionsCloseAt ? `${questionsCloseAt}:00+07:00` : "");
           } catch { alert("Gagal menyimpan konfigurasi"); }
           finally { setQuestionConfigSaving(false); }
         };
+
+        const questionsAutoClosed =
+          questionsOpen && !!savedQuestionsCloseAt && new Date(savedQuestionsCloseAt) <= new Date();
+        const questionsEffectiveOpen = questionsOpen && !questionsAutoClosed;
 
         const subTabs = [
           { key: "general" as const, label: "FAQ Umum", icon: HelpCircle, count: generalFaqs.length },
@@ -3057,25 +3062,31 @@ export default function ProjectDetailPage({
                 {/* Config bar */}
                 <div className={cn(
                   "rounded-xl shadow-sm overflow-hidden border",
-                  questionsOpen ? "border-green-200 bg-gradient-to-r from-green-50 to-white" : "border-gray-200 bg-white"
+                  questionsEffectiveOpen ? "border-green-200 bg-gradient-to-r from-green-50 to-white" : "border-gray-200 bg-white"
                 )}>
                   <div className="p-5">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <div className={cn(
                           "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
-                          questionsOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                          questionsEffectiveOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                         )}>
-                          {questionsOpen ? <Unlock className="h-6 w-6" /> : <Lock className="h-6 w-6" />}
+                          {questionsEffectiveOpen ? <Unlock className="h-6 w-6" /> : <Lock className="h-6 w-6" />}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-ptba-charcoal">
-                            {questionsOpen ? "Pertanyaan Dibuka" : "Pertanyaan Ditutup"}
+                            {questionsEffectiveOpen
+                              ? "Pertanyaan Dibuka"
+                              : questionsAutoClosed
+                                ? "Pertanyaan Ditutup (Otomatis)"
+                                : "Pertanyaan Ditutup"}
                           </p>
                           <p className="text-xs text-ptba-gray">
-                            {questionsOpen
+                            {questionsEffectiveOpen
                               ? "Mitra dapat mengirim pertanyaan baru ke proyek ini."
-                              : "Mitra tidak dapat mengirim pertanyaan baru saat ini."}
+                              : questionsAutoClosed
+                                ? `Ditutup otomatis pada ${formatWibDateTime(savedQuestionsCloseAt)}.`
+                                : "Mitra tidak dapat mengirim pertanyaan baru saat ini."}
                           </p>
                         </div>
                       </div>
@@ -3115,6 +3126,11 @@ export default function ProjectDetailPage({
                                 </button>
                               )}
                             </div>
+                            {questionsCloseAt && (
+                              <p className="text-[10px] text-ptba-gray">
+                                Ditutup otomatis: <span className="font-semibold">{formatWibDateTime(questionsCloseAt)}</span>
+                              </p>
+                            )}
                           </div>
                           <button
                             disabled={questionConfigSaving}

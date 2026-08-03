@@ -885,9 +885,10 @@ export default function MitraProjectDetailPage() {
                           <Clock className="h-3 w-3 text-ptba-gold" />
                           <span className="text-[11px] text-white/90 font-medium">
                             {locale === "en" ? "Closes" : "Ditutup"}{" "}
-                            {new Date(project.questionsCloseAt).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                            {new Date(project.questionsCloseAt).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}
                             {" "}
-                            {new Date(project.questionsCloseAt).toLocaleTimeString(locale === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(project.questionsCloseAt).toLocaleTimeString(locale === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })}
+                            {" WIB"}
                           </span>
                         </div>
                       )}
