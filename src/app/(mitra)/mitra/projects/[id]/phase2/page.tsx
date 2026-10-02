@@ -789,7 +789,7 @@ export default function MitraPhase2Page() {
                             type="file"
                             disabled={isPreview}
                             className="hidden"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
                             onChange={(e) => {
                               const f = e.target.files?.[0];
                               if (f) handleUploadDoc(doc.id, f);
@@ -811,7 +811,7 @@ export default function MitraPhase2Page() {
                           type="file"
                           disabled={isPreview}
                           className="hidden"
-                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
                           onChange={(e) => {
                             const f = e.target.files?.[0];
                             if (f) handleUploadDoc(doc.id, f);
