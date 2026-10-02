@@ -541,7 +541,8 @@ export default function MitraPhase2Page() {
       {!submitted && <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           {[
-            { step: 1, label: "Pelajari Dokumen PTBA", done: downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0 },
+            // Study step is over once Bagian 1 has ended / Bagian 2 is open, or every PTBA doc was downloaded
+            { step: 1, label: "Pelajari Dokumen PTBA", done: isAfterPart1 || isPart2Period || (downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0) },
             { step: 2, label: "Unggah Dokumen", done: phase2DocTypes.length > 0 && allRequiredUploaded },
             { step: 3, label: "Menunggu Evaluasi", done: submitted },
           ].map((s, idx, arr) => (
