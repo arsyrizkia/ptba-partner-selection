@@ -152,6 +152,8 @@ export interface ProjectFormProps {
   lockedSections?: Set<string>;
   /** Custom doc IDs (e.g. "custom_dokumen_sponsor") that pre-existed and cannot be deleted/moved off phase 1 */
   lockedCustomDocs?: Set<string>;
+  /** Phase 2 with registered mitra: new custom docs are Phase 2 only, existing locked ones are fully frozen */
+  customDocsPhase2Only?: boolean;
 }
 
 function formatDateForInput(dateStr: string | null | undefined): string {
@@ -207,6 +209,7 @@ export default function ProjectForm({
   cancelHref,
   lockedSections = new Set(),
   lockedCustomDocs,
+  customDocsPhase2Only = false,
 }: ProjectFormProps) {
   const router = useRouter();
   const { accessToken } = useAuth();
@@ -516,7 +519,7 @@ export default function ProjectForm({
   };
 
   // ── Custom document handlers ───────────────────────────────────
-  const addCustomDocument = () => setCustomDocuments((prev) => [...prev, { name: "", phase: "both", required: true, description: "" }]);
+  const addCustomDocument = () => setCustomDocuments((prev) => [...prev, { name: "", phase: customDocsPhase2Only ? "phase2" : "both", required: true, description: "" }]);
   const removeCustomDocument = (index: number) => {
     setCustomDocuments((prev) => prev.filter((_, i) => i !== index));
   };
@@ -1462,6 +1465,8 @@ export default function ProjectForm({
                 <div className="space-y-2">
                   {customDocuments.map((doc, index) => {
                     const docLocked = isCustomDocLocked(doc);
+                    // In phase 2, docs already active in phase 1 can't change at all
+                    const docFrozen = docLocked && customDocsPhase2Only;
                     return (
                     <div key={index} className="space-y-1.5">
                       <div className="flex items-center gap-2">
@@ -1481,7 +1486,8 @@ export default function ProjectForm({
                         <button
                           type="button"
                           onClick={() => setCustomDocuments((prev) => prev.map((d, i) => i === index ? { ...d, required: !d.required } : d))}
-                          className={cn("text-[10px] font-semibold rounded-full px-2 py-0.5 transition-colors shrink-0",
+                          disabled={docFrozen}
+                          className={cn("text-[10px] font-semibold rounded-full px-2 py-0.5 transition-colors shrink-0 disabled:cursor-not-allowed disabled:opacity-60",
                             doc.required
                               ? "bg-red-50 text-ptba-red hover:bg-red-100"
                               : "bg-gray-100 text-ptba-gray hover:bg-gray-200"
@@ -1492,11 +1498,12 @@ export default function ProjectForm({
                         <select
                           value={doc.phase}
                           onChange={(e) => updateCustomDocPhase(index, e.target.value as "phase1" | "phase2" | "phase3" | "both")}
-                          className="shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none"
+                          disabled={docFrozen}
+                          className="disabled:opacity-60 shrink-0 rounded-md border border-ptba-light-gray bg-white px-2 py-1 text-xs font-medium text-ptba-charcoal outline-none"
                         >
-                          <option value="phase1">Fase 1</option>
+                          {(!customDocsPhase2Only || docLocked) && <option value="phase1">Fase 1</option>}
                           {!docLocked && <option value="phase2">Fase 2</option>}
-                          <option value="both">Semua Fase</option>
+                          {(!customDocsPhase2Only || docLocked) && <option value="both">Semua Fase</option>}
                         </select>
                         {docLocked ? (
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-300" title="Dokumen tidak dapat dihapus karena mitra sudah mendaftar">
@@ -1518,7 +1525,8 @@ export default function ProjectForm({
                           placeholder="Keterangan / deskripsi dokumen (opsional)"
                           value={doc.description}
                           onChange={(e) => updateCustomDocDescription(index, e.target.value)}
-                          className={cn(inputClass, "text-xs !py-1.5")}
+                          disabled={docFrozen}
+                          className={cn(inputClass, "text-xs !py-1.5", docFrozen && "opacity-70")}
                         />
                       )}
                       {doc.name.trim() && (

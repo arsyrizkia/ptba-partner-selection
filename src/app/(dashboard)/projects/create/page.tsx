@@ -136,7 +136,7 @@ export default function CreateProjectPage() {
         const customDocIdMap: Record<string, string> = {};
         formData.customDocuments.forEach((d, i) => {
           if (d.name.trim()) {
-            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`;
+            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
           }
         });
 

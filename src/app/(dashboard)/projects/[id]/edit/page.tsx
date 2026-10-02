@@ -62,11 +62,10 @@ export default function EditProjectPage({
 
   // Per-item locking for custom docs: pre-existing custom docs that are
   // tagged as phase1/both/general can't be deleted or moved off phase 1
-  // once mitra have applied. Only applies in phase 1 (phase 2 locks the
-  // entire customDocs section via lockedSections).
+  // once mitra have applied. In phase 2 they are fully frozen, while
+  // phase 2 custom docs stay editable and new ones may be added.
   const lockedCustomDocs = (() => {
     if (!projectData || applicationCount === 0) return new Set<string>();
-    if (projectData.phase?.startsWith("phase2")) return new Set<string>(); // already covered by section lock
     const set = new Set<string>();
     for (const d of projectData.requiredDocuments || []) {
       const id = d.documentTypeId || "";
@@ -263,7 +262,8 @@ export default function EditProjectPage({
         const customDocIdMap: Record<string, string> = {};
         formData.customDocuments.forEach((d, i) => {
           if (d.name.trim()) {
-            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/\s+/g, "_").toLowerCase()}`;
+            // Must match the documentTypeId format used when saving required docs
+            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
           }
         });
 
@@ -362,6 +362,7 @@ export default function EditProjectPage({
       cancelHref={`/projects/${id}`}
       lockedSections={lockedSections}
       lockedCustomDocs={lockedCustomDocs}
+      customDocsPhase2Only={!!projectData?.phase?.startsWith("phase2") && applicationCount > 0}
     />
   );
 }
