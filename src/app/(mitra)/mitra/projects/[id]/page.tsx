@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Calendar, FileText, CheckCircle2, ArrowRight, ShieldCheck, Loader2, Download, MapPin, Zap, DollarSign, TrendingUp, ChevronDown, HelpCircle, MessageCircle, Filter, Search, Clock } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, projectApi } from "@/lib/api/client";
+import { api, projectApi, downloadFromUrl } from "@/lib/api/client";
+import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { formatDate } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
@@ -35,6 +36,7 @@ export default function MitraProjectDetailPage() {
   const params = useParams();
   const { user, accessToken } = useAuth();
   const projectId = params.id as string;
+  const { isPreview, previewAppId, withPreview } = useMitraPreview();
   const t = useTranslations("projectDetail");
   const tc = useTranslations("common");
   const { locale } = useLocale();
@@ -60,17 +62,23 @@ export default function MitraProjectDetailPage() {
   useEffect(() => {
     if (!accessToken) return;
     setLoading(true);
+    // Preview mode (PIC "Lihat sebagai Mitra"): load the previewed mitra's application directly
+    const appPromise = previewAppId
+      ? api<{ application: any }>(`/applications/${previewAppId}`, { token: accessToken })
+          .then((r) => (r.application?.project_id === projectId ? r.application : null))
+          .catch(() => null)
+      : api<{ applications: any[] }>("/applications", { token: accessToken })
+          .then((r) => (r.applications || []).find((a: any) => a.project_id === projectId) || null);
     Promise.all([
       projectApi(accessToken).getById(projectId),
-      api<{ applications: any[] }>("/applications", { token: accessToken }),
-    ]).then(([projRes, appRes]) => {
+      appPromise,
+    ]).then(([projRes, app]) => {
       setProject(projRes.data);
-      const apps = appRes.applications || [];
-      setApplication(apps.find((a: any) => a.project_id === projectId) || null);
+      setApplication(app);
     }).catch(() => {
       setProject(null);
     }).finally(() => setLoading(false));
-  }, [projectId, accessToken]);
+  }, [projectId, accessToken, previewAppId]);
 
   if (loading) {
     return (
@@ -133,7 +141,7 @@ export default function MitraProjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => router.push("/mitra/projects")} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
+      <button onClick={() => router.push(isPreview ? `/projects/${projectId}` : "/mitra/projects")} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
         <ArrowLeft className="h-4 w-4" /> {tc("backToProjects")}
       </button>
 
@@ -214,7 +222,7 @@ export default function MitraProjectDetailPage() {
               </p>
               {canAccessPhase2 && (
                 <button
-                  onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
+                  onClick={() => router.push(withPreview(`/mitra/projects/${projectId}/phase2`))}
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
                 >
                   {t("continueToPhase2")} <ArrowRight className="h-4 w-4" />
@@ -438,13 +446,8 @@ export default function MitraProjectDetailPage() {
                       <button
                         onClick={async () => {
                           try {
-                            const res = await fetch(`/api/projects/${projectId}/documents/${doc.id}`, {
-                              headers: { Authorization: `Bearer ${accessToken}` },
-                            });
-                            if (!res.ok) return;
-                            const blob = await res.blob();
-                            const url = URL.createObjectURL(blob);
-                            window.open(url, "_blank");
+                            const res = await api<{ url: string }>(`/projects/${projectId}/documents/${doc.id}/url`, { token: accessToken });
+                            if (res.url) await downloadFromUrl(res.url, doc.name, doc.fileKey);
                           } catch { /* ignore */ }
                         }}
                         className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
@@ -488,13 +491,15 @@ export default function MitraProjectDetailPage() {
               <div className="mt-3 space-y-2">
                 <button
                   onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
-                  className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                  disabled={isPreview}
+                  title={isPreview ? "Tidak tersedia dalam mode pratinjau" : undefined}
+                  className="w-full rounded-lg border disabled:cursor-not-allowed disabled:opacity-50 border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
                 >
                   {locale === "en" ? "View Submission" : "Lihat Pendaftaran"}
                 </button>
                 {canAccessPhase2 && (
                   <button
-                    onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
+                    onClick={() => router.push(withPreview(`/mitra/projects/${projectId}/phase2`))}
                     className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
                   >
                     {t("continueToPhase2")}
@@ -502,7 +507,7 @@ export default function MitraProjectDetailPage() {
                 )}
                 {isPassedPhase2 && (
                   <button
-                    onClick={() => router.push(`/mitra/projects/${projectId}/phase2`)}
+                    onClick={() => router.push(withPreview(`/mitra/projects/${projectId}/phase2`))}
                     className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
                   >
                     {locale === "en" ? "View Phase 2 Submission" : "Lihat Dokumen Fase 2"}
@@ -520,7 +525,8 @@ export default function MitraProjectDetailPage() {
                   </p>
                   <button
                     onClick={() => router.push(`/mitra/projects/${project.id}/apply`)}
-                    className="w-full rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
+                    disabled={isPreview}
+                    className="w-full rounded-lg bg-ptba-gold disabled:cursor-not-allowed disabled:opacity-50 px-4 py-2.5 text-sm font-bold text-ptba-charcoal hover:bg-ptba-gold-light transition-colors"
                   >
                     {t("applyEoi")}
                   </button>
@@ -897,7 +903,9 @@ export default function MitraProjectDetailPage() {
                       {questionsOpen ? (
                         <button
                           onClick={() => setShowAskModal(true)}
-                          className="flex w-full items-center justify-center gap-2 rounded-lg bg-ptba-gold py-2.5 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 active:scale-[0.98] transition-all shadow-sm"
+                          disabled={isPreview}
+                          title={isPreview ? "Tidak tersedia dalam mode pratinjau" : undefined}
+                          className="disabled:cursor-not-allowed disabled:opacity-50 flex w-full items-center justify-center gap-2 rounded-lg bg-ptba-gold py-2.5 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 active:scale-[0.98] transition-all shadow-sm"
                         >
                           {locale === "en" ? "Ask a Question" : "Ajukan Pertanyaan"}
                           <ArrowRight className="h-4 w-4" />
@@ -911,7 +919,8 @@ export default function MitraProjectDetailPage() {
                       )}
                       <button
                         onClick={() => router.push(`/mitra/questions?project=${projectId}`)}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-ptba-light-gray py-2 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                        disabled={isPreview}
+                        className="disabled:cursor-not-allowed disabled:opacity-50 flex w-full items-center justify-center gap-2 rounded-lg border border-ptba-light-gray py-2 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
                       >
                         {locale === "en" ? "View My Questions" : "Lihat Pertanyaan Saya"}
                       </button>

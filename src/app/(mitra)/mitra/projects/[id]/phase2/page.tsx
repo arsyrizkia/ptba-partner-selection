@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument, downloadFromUrl } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 export default function MitraPhase2Page() {
@@ -26,6 +27,7 @@ export default function MitraPhase2Page() {
   const params = useParams();
   const { user, accessToken } = useAuth();
   const projectId = params.id as string;
+  const { isPreview, previewAppId, withPreview } = useMitraPreview();
   const t = useTranslations("phase2");
   const tc = useTranslations("common");
   const { locale } = useLocale();
@@ -77,9 +79,12 @@ export default function MitraPhase2Page() {
     setLoading(true);
     setError("");
     try {
+      // Preview mode (PIC "Lihat sebagai Mitra"): use the previewed mitra's application id
       const [projRes, appRes] = await Promise.all([
         projectApi(accessToken).getById(projectId),
-        api<{ applications: any[] }>("/applications", { token: accessToken }),
+        previewAppId
+          ? Promise.resolve({ applications: [{ id: previewAppId, project_id: projectId }] })
+          : api<{ applications: any[] }>("/applications", { token: accessToken }),
       ]);
       setProject(projRes.data);
 
@@ -103,6 +108,11 @@ export default function MitraPhase2Page() {
         existing = detailRes.application;
       } catch {
         // Fall back to basic
+      }
+      if (previewAppId && existing?.project_id !== projectId) {
+        setApplication(null);
+        setLoading(false);
+        return;
       }
 
       setApplication(existing);
@@ -129,7 +139,7 @@ export default function MitraPhase2Page() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, accessToken]);
+  }, [projectId, accessToken, previewAppId]);
 
   useEffect(() => {
     fetchData();
@@ -144,10 +154,16 @@ export default function MitraPhase2Page() {
 
     try {
       // Record the download via API — the response includes a presigned URL
-      const res = await api<{ url: string; document: any }>(
-        `/applications/${application.id}/download-ptba-doc/${docId}`,
-        { method: "POST", token: accessToken }
-      );
+      // Preview uses the PIC-accessible URL endpoint so no download is recorded for the mitra
+      const res = isPreview
+        ? await api<{ url: string; document: any }>(
+            `/projects/${projectId}/documents/${docId}/url`,
+            { token: accessToken }
+          )
+        : await api<{ url: string; document: any }>(
+            `/applications/${application.id}/download-ptba-doc/${docId}`,
+            { method: "POST", token: accessToken }
+          );
       if (!res.url) throw new Error("URL unduhan tidak tersedia");
 
       // Download directly from the presigned URL (throws on failure)
@@ -162,7 +178,7 @@ export default function MitraPhase2Page() {
   };
 
   const handleUploadDoc = async (docTypeId: string, file: File) => {
-    if (!accessToken || !application?.id) return;
+    if (isPreview || !accessToken || !application?.id) return;
     setError("");
 
     const docTypeMeta = phase2DocTypes.find((d) => d.id === docTypeId);
@@ -225,6 +241,7 @@ export default function MitraPhase2Page() {
   };
 
   const handleDeleteDoc = async (docTypeId: string) => {
+    if (isPreview) return;
     if (!accessToken || !application?.id) return;
     const doc = uploadedDocs[docTypeId];
     if (!doc?.dbId) return;
@@ -374,7 +391,7 @@ export default function MitraPhase2Page() {
           <Lock className="mx-auto h-12 w-12 text-ptba-gray" />
           <p className="mt-3 text-lg font-semibold text-ptba-charcoal">Fase 2 Belum Dibuka</p>
           <p className="mt-1 text-sm text-ptba-gray">Proses Fase 2 belum dimulai untuk proyek ini. Silakan tunggu pemberitahuan dari tim PTBA.</p>
-          <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
+          <button onClick={() => router.push(withPreview(`/mitra/projects/${projectId}`))} className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors">
             {tc("backToProjectDetail")}
           </button>
         </div>
@@ -402,7 +419,7 @@ export default function MitraPhase2Page() {
             {t("accessDeniedDesc")}
           </p>
           <button
-            onClick={() => router.push(`/mitra/projects/${projectId}`)}
+            onClick={() => router.push(withPreview(`/mitra/projects/${projectId}`))}
             className="mt-4 rounded-lg bg-ptba-navy px-4 py-2 text-sm font-medium text-white hover:bg-ptba-navy/90 transition-colors"
           >
             {tc("backToProjectDetail")}
@@ -436,7 +453,7 @@ export default function MitraPhase2Page() {
 
       {/* Back button */}
       <button
-        onClick={() => router.push(`/mitra/projects/${projectId}`)}
+        onClick={() => router.push(withPreview(`/mitra/projects/${projectId}`))}
         className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy"
       >
         <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
@@ -758,6 +775,7 @@ export default function MitraPhase2Page() {
                       <>
                         <button
                           onClick={() => handleDeleteDoc(doc.id)}
+                          disabled={isPreview}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -768,6 +786,7 @@ export default function MitraPhase2Page() {
                           {tc("replace")}
                           <input
                             type="file"
+                            disabled={isPreview}
                             className="hidden"
                             accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                             onChange={(e) => {
@@ -789,6 +808,7 @@ export default function MitraPhase2Page() {
                         {tc("upload")}
                         <input
                           type="file"
+                          disabled={isPreview}
                           className="hidden"
                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                           onChange={(e) => {
@@ -832,14 +852,14 @@ export default function MitraPhase2Page() {
 
         <div className="flex justify-end gap-3">
           <button
-            onClick={() => router.push(`/mitra/projects/${projectId}`)}
+            onClick={() => router.push(withPreview(`/mitra/projects/${projectId}`))}
             className="rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
           >
             {tc("cancel")}
           </button>
           <button
             onClick={() => setShowSubmitConfirm(true)}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isPreview}
             className={cn(
               "rounded-lg px-6 py-2 text-sm font-bold transition-colors inline-flex items-center gap-2",
               canSubmit

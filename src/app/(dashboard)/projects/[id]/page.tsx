@@ -856,6 +856,21 @@ export default function ProjectDetailPage({
   const isPhase2Pic = projectPhasePics.some((p: any) => p.phase === "phase2" && p.userId === authUser?.id);
   const canEvaluate = role === "super_admin" || isPhase1Pic || isPhase2Pic;
 
+  // Read-only preview of the mitra-facing project page as this applicant sees it
+  function PreviewAsMitraButton({ applicationId }: { applicationId: string }) {
+    return (
+      <a
+        href={`/mitra/projects/${project.id}?preview=${applicationId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Pratinjau halaman proyek seperti yang dilihat mitra ini"
+        className="inline-flex items-center gap-1 rounded border border-ptba-steel-blue/40 px-2.5 py-1 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors whitespace-nowrap"
+      >
+        <Eye className="h-3 w-3" /> Lihat sebagai Mitra
+      </a>
+    );
+  }
+
   function EvalActionButton({ partnerId, evalDone }: { partnerId: string; evalDone: boolean }) {
     if (!canEvaluate) return null;
     const registrationClosed = project.phase !== "phase1_registration";
@@ -1921,6 +1936,43 @@ export default function ProjectDetailPage({
             </div>
           )}
 
+          {/* Fase 2 Registration: shortlisted mitra list with "Lihat sebagai Mitra" preview */}
+          {(project.phase === "phase2_registration" || isPhase1Approved) && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
+                <Eye className="h-4 w-4 text-ptba-steel-blue" />
+                <span className="text-sm font-medium text-ptba-steel-blue">Mitra Lolos Fase 1</span>
+                <span className="text-xs text-ptba-gray ml-1">— Pratinjau tampilan Fase 2 dari sisi mitra</span>
+              </div>
+              {projectPartners.filter((p) => p.isShortlisted).length === 0 ? (
+                <p className="py-6 text-center text-sm text-ptba-gray">Belum ada mitra yang lolos Fase 1.</p>
+              ) : (
+                projectPartners
+                  .filter((p) => p.isShortlisted)
+                  .map((partner) => {
+                    const phase2Submitted = partner.phase === "phase2" && partner.status === "Dikirim";
+                    return (
+                      <div key={partner.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ptba-light-gray p-4">
+                        <div className="min-w-0">
+                          <p className="font-medium text-ptba-charcoal truncate">{partner.name}</p>
+                          <p className="text-xs text-ptba-gray">{partner.code}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                            phase2Submitted ? "bg-green-100 text-green-700" : "bg-ptba-gold/15 text-ptba-gold"
+                          )}>
+                            {phase2Submitted ? "Dokumen Fase 2 Terkirim" : "Belum Kirim Fase 2"}
+                          </span>
+                          <PreviewAsMitraButton applicationId={partner.applicationId} />
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          )}
+
           {/* Fase 2 View: Full evaluation matrix — only after Phase 2
               registration closes (phase2_evaluation onward). */}
           {isPhase2 && project.phase !== "phase2_registration" && (
@@ -1983,7 +2035,10 @@ export default function ProjectDetailPage({
                           <td className="py-3 pr-4 text-center"><EvalStatusCell done={partner.hasLegalEval} /></td>
                           <td className="py-3 pr-4 text-center"><EvalStatusCell done={partner.hasRiskEval} /></td>
                           <td className="py-3">
-                            <EvalActionButton partnerId={partner.id} evalDone={!!evalDone} />
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <EvalActionButton partnerId={partner.id} evalDone={!!evalDone} />
+                              <PreviewAsMitraButton applicationId={partner.applicationId} />
+                            </div>
                           </td>
                         </tr>
                       );
