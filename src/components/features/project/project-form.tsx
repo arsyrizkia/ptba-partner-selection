@@ -418,9 +418,11 @@ export default function ProjectForm({
         }
       }
 
-      if (p1Docs.length > 0) setSelectedPhase1Docs(p1Docs);
-      if (p2Docs.length > 0) setSelectedPhase2Docs(p2Docs);
-      if (p3Docs.length > 0) setSelectedPhase3Docs(p3Docs);
+      // Stored list is the source of truth in edit mode — an empty phase means the
+      // admin removed every doc, so don't fall back to the create-mode defaults
+      setSelectedPhase1Docs(p1Docs);
+      setSelectedPhase2Docs(p2Docs);
+      setSelectedPhase3Docs(p3Docs);
       if (initialOptionalIds.size > 0) setOptionalDocIds(initialOptionalIds);
       if (customDocs.length > 0) setCustomDocuments(customDocs);
 
