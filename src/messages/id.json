@@ -18,6 +18,8 @@
     "download": "Unduh",
     "downloading": "Mengunduh...",
     "redownload": "Unduh Ulang",
+    "lastDownloaded": "Terakhir diunduh: {date}",
+    "notDownloaded": "Belum diunduh",
     "view": "Lihat",
     "viewAll": "Lihat Semua",
     "retry": "Coba lagi",

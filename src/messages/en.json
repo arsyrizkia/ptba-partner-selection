@@ -18,6 +18,8 @@
     "download": "Download",
     "downloading": "Downloading...",
     "redownload": "Re-download",
+    "lastDownloaded": "Last downloaded: {date}",
+    "notDownloaded": "Not downloaded yet",
     "view": "View",
     "viewAll": "View All",
     "retry": "Try again",

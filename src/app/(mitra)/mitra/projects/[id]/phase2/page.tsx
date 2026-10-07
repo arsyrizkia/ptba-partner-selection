@@ -16,6 +16,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { cn } from "@/lib/utils/cn";
+import { formatWibDateTime } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument, downloadFromUrl } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
@@ -39,7 +40,8 @@ export default function MitraPhase2Page() {
   const [error, setError] = useState("");
 
   // PTBA doc downloads
-  const [downloadedDocs, setDownloadedDocs] = useState<Set<string>>(new Set());
+  // PTBA doc id → last time this mitra downloaded it
+  const [downloadedDocs, setDownloadedDocs] = useState<Map<string, string>>(new Map());
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
 
   // Phase 2 document uploads: docTypeId -> { name, uploading, dbId }
@@ -117,6 +119,10 @@ export default function MitraPhase2Page() {
 
       setApplication(existing);
 
+      setDownloadedDocs(
+        new Map((existing.ptbaDocDownloads || []).map((d: any) => [d.ptbaDocumentId, d.downloadedAt]))
+      );
+
       // Initialize uploaded phase2 documents
       if (existing.phase2Documents?.length) {
         const restored: Record<string, { name: string; uploading: boolean; dbId?: string }> = {};
@@ -169,7 +175,10 @@ export default function MitraPhase2Page() {
       // Download directly from the presigned URL (throws on failure)
       await downloadFromUrl(res.url, res.document?.name, fileKey);
 
-      setDownloadedDocs((prev) => new Set(prev).add(docId));
+      // Preview downloads aren't recorded for the mitra, so don't mark them
+      if (!isPreview) {
+        setDownloadedDocs((prev) => new Map(prev).set(docId, new Date().toISOString()));
+      }
     } catch (err: any) {
       setError(err.message || t("errors.downloadFailed"));
     } finally {
@@ -542,7 +551,7 @@ export default function MitraPhase2Page() {
         <div className="flex items-center justify-between">
           {[
             // Study step is over once Bagian 1 has ended / Bagian 2 is open, or every PTBA doc was downloaded
-            { step: 1, label: "Pelajari Dokumen PTBA", done: isAfterPart1 || isPart2Period || (downloadedDocs.size === ptbaDocuments.length && ptbaDocuments.length > 0) },
+            { step: 1, label: "Pelajari Dokumen PTBA", done: isAfterPart1 || isPart2Period || (ptbaDocuments.length > 0 && ptbaDocuments.every((d: any) => downloadedDocs.has(d.id))) },
             { step: 2, label: "Unggah Dokumen", done: phase2DocTypes.length > 0 && allRequiredUploaded },
             { step: 3, label: "Menunggu Evaluasi", done: submitted },
           ].map((s, idx, arr) => (
@@ -624,6 +633,11 @@ export default function MitraPhase2Page() {
                           {doc.name}
                         </p>
                         <p className="text-xs text-ptba-gray">{doc.type}</p>
+                        <p className={cn("text-xs mt-0.5", isDownloaded ? "text-green-700" : "text-ptba-gray")}>
+                          {isDownloaded
+                            ? tc("lastDownloaded", { date: formatWibDateTime(downloadedDocs.get(docId)!) })
+                            : tc("notDownloaded")}
+                        </p>
                       </div>
                     </div>
                     <button

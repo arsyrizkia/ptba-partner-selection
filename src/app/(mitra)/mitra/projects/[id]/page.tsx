@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadFromUrl } from "@/lib/api/client";
 import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
-import { formatDate } from "@/lib/utils/format";
+import { formatDate, formatWibDateTime } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
@@ -43,6 +43,8 @@ export default function MitraProjectDetailPage() {
 
   const [project, setProject] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
+  // PTBA doc id → last time this mitra downloaded it
+  const [downloadedDocs, setDownloadedDocs] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "faq">("overview");
@@ -68,13 +70,22 @@ export default function MitraProjectDetailPage() {
           .then((r) => (r.application?.project_id === projectId ? r.application : null))
           .catch(() => null)
       : api<{ applications: any[] }>("/applications", { token: accessToken })
-          .then((r) => (r.applications || []).find((a: any) => a.project_id === projectId) || null);
+          .then((r) => (r.applications || []).find((a: any) => a.project_id === projectId) || null)
+          // Detail includes ptbaDocDownloads (last-downloaded timestamps)
+          .then((basic) => basic
+            ? api<{ application: any }>(`/applications/${basic.id}`, { token: accessToken })
+                .then((r) => r.application || basic)
+                .catch(() => basic)
+            : null);
     Promise.all([
       projectApi(accessToken).getById(projectId),
       appPromise,
     ]).then(([projRes, app]) => {
       setProject(projRes.data);
       setApplication(app);
+      setDownloadedDocs(
+        new Map((app?.ptbaDocDownloads || []).map((d: any) => [d.ptbaDocumentId, d.downloadedAt]))
+      );
     }).catch(() => {
       setProject(null);
     }).finally(() => setLoading(false));
@@ -441,6 +452,13 @@ export default function MitraProjectDetailPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-ptba-charcoal truncate">{doc.name}</p>
                       <p className="text-xs text-ptba-gray">{doc.type}</p>
+                      {application && (
+                        <p className={cn("text-xs mt-0.5", downloadedDocs.has(doc.id) ? "text-green-700" : "text-ptba-gray")}>
+                          {downloadedDocs.has(doc.id)
+                            ? tc("lastDownloaded", { date: formatWibDateTime(downloadedDocs.get(doc.id)!) })
+                            : tc("notDownloaded")}
+                        </p>
+                      )}
                     </div>
                     {doc.fileKey && accessToken && (
                       <button
@@ -448,6 +466,10 @@ export default function MitraProjectDetailPage() {
                           try {
                             const res = await api<{ url: string }>(`/projects/${projectId}/documents/${doc.id}/url`, { token: accessToken });
                             if (res.url) await downloadFromUrl(res.url, doc.name, doc.fileKey);
+                            // API records the download only for the mitra (and only once applied)
+                            if (!isPreview && application) {
+                              setDownloadedDocs((prev) => new Map(prev).set(doc.id, new Date().toISOString()));
+                            }
                           } catch { /* ignore */ }
                         }}
                         className="inline-flex items-center gap-1 rounded-lg bg-ptba-steel-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-ptba-steel-blue/90 transition-colors shrink-0"
