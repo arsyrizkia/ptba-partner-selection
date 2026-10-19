@@ -51,6 +51,9 @@ export default function MitraPhase2Page() {
     Record<string, { name: string; uploading: boolean; dbId?: string; fileKey?: string }>
   >({});
 
+  // Document type awaiting delete confirmation
+  const [deleteConfirmDocId, setDeleteConfirmDocId] = useState<string | null>(null);
+
   // Index into previewItems of the document open in the preview overlay
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -851,7 +854,7 @@ export default function MitraPhase2Page() {
                       <>
                         {renderPreviewButton(docState?.fileKey)}
                         <button
-                          onClick={() => handleDeleteDoc(doc.id)}
+                          onClick={() => setDeleteConfirmDocId(doc.id)}
                           disabled={isPreview}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                         >
@@ -984,6 +987,52 @@ export default function MitraPhase2Page() {
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {submitting ? (locale === "en" ? "Submitting..." : "Mengirim...") : (locale === "en" ? "Submit" : "Kirim Dokumen")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmDocId && uploadedDocs[deleteConfirmDocId] && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDeleteConfirmDocId(null)}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                <Trash2 className="h-7 w-7 text-red-600" />
+              </div>
+              <h2 className="text-lg font-bold text-ptba-charcoal">
+                {locale === "en" ? "Delete Document?" : "Hapus Dokumen?"}
+              </h2>
+              <p className="mt-2 text-sm text-ptba-gray">
+                {locale === "en"
+                  ? "This file will be removed and you will need to upload it again:"
+                  : "File ini akan dihapus dan Anda perlu mengunggahnya kembali:"}
+              </p>
+              <div className="mt-3 rounded-lg bg-ptba-section-bg px-4 py-3 text-left">
+                <p className="text-xs text-ptba-gray">
+                  {phase2DocTypes.find((d) => d.id === deleteConfirmDocId)?.name}
+                </p>
+                <p className="text-sm font-medium text-ptba-charcoal break-all">
+                  {uploadedDocs[deleteConfirmDocId].name}
+                </p>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmDocId(null)}
+                  className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-charcoal hover:bg-ptba-section-bg transition-colors"
+                >
+                  {locale === "en" ? "Cancel" : "Batal"}
+                </button>
+                <button
+                  onClick={() => {
+                    const docId = deleteConfirmDocId;
+                    setDeleteConfirmDocId(null);
+                    handleDeleteDoc(docId);
+                  }}
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-colors"
+                >
+                  {locale === "en" ? "Delete" : "Hapus"}
                 </button>
               </div>
             </div>
