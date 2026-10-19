@@ -12,6 +12,7 @@ import {
   Loader2,
   Trash2,
   Lock,
+  Eye,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
@@ -276,6 +277,18 @@ export default function MitraPhase2Page() {
       setError(err.message || t("errors.downloadFailed"));
     }
   };
+
+  const renderPreviewButton = (fileKey: string | undefined, fileName: string) =>
+    fileKey && !/\.zip$/i.test(fileKey) ? (
+      <button
+        type="button"
+        onClick={() => handlePreviewDoc(fileKey, fileName)}
+        className="inline-flex items-center gap-1 rounded-lg border border-ptba-steel-blue/40 px-2 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+      >
+        <Eye className="h-3 w-3" />
+        {tc("preview")}
+      </button>
+    ) : null;
 
   const handleDeleteDoc = async (docTypeId: string) => {
     if (isPreview) return;
@@ -811,13 +824,16 @@ export default function MitraPhase2Page() {
                       (() => {
                         const fileKey = getPhase2DocFileKey(doc.id);
                         return fileKey ? (
-                          <button
-                            type="button"
-                            onClick={() => downloadDocument(fileKey, accessToken!, docState?.name)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                          >
-                            <Download className="h-3 w-3" /> {tc("download")}
-                          </button>
+                          <>
+                            {renderPreviewButton(fileKey, docState?.name || doc.name)}
+                            <button
+                              type="button"
+                              onClick={() => downloadDocument(fileKey, accessToken!, docState?.name)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                            >
+                              <Download className="h-3 w-3" /> {tc("download")}
+                            </button>
+                          </>
                         ) : null;
                       })()
                     ) : !canUpload ? (
@@ -827,6 +843,7 @@ export default function MitraPhase2Page() {
                       </span>
                     ) : isUploaded ? (
                       <>
+                        {renderPreviewButton(docState?.fileKey, docState?.name || doc.name)}
                         <button
                           onClick={() => handleDeleteDoc(doc.id)}
                           disabled={isPreview}
