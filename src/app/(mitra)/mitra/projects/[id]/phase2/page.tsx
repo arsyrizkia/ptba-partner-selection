@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { api, projectApi, downloadDocument, downloadFromUrl } from "@/lib/api/client";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
+import { FilePreviewOverlay } from "@/components/ui/file-preview-overlay";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 export default function MitraPhase2Page() {
@@ -49,6 +50,9 @@ export default function MitraPhase2Page() {
   const [uploadedDocs, setUploadedDocs] = useState<
     Record<string, { name: string; uploading: boolean; dbId?: string; fileKey?: string }>
   >({});
+
+  // Index into previewItems of the document open in the preview overlay
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   // Submission
   const [submitting, setSubmitting] = useState(false);
@@ -257,32 +261,34 @@ export default function MitraPhase2Page() {
     }
   };
 
-  const handlePreviewDoc = async (fileKey: string, fileName: string) => {
-    if (!accessToken) return;
-    // Archives can't be shown in a browser tab, so download them instead
-    if (/\.zip$/i.test(fileKey)) {
-      await downloadDocument(fileKey, accessToken, fileName);
-      return;
-    }
-    // Open the tab before the request so the browser doesn't block it as a popup
-    const win = window.open("", "_blank");
-    try {
-      const res = await api<{ url: string }>(
-        `/documents/download/${encodeURIComponent(fileKey)}`,
-        { token: accessToken }
-      );
-      if (win) win.location.href = res.url;
-    } catch (err: any) {
-      win?.close();
-      setError(err.message || t("errors.downloadFailed"));
-    }
+  // Uploaded documents in page order, browsable left/right in the preview overlay
+  const previewItems = phase2DocTypes
+    .filter((d) => uploadedDocs[d.id]?.fileKey && !uploadedDocs[d.id]?.uploading)
+    .map((d) => ({ fileKey: uploadedDocs[d.id].fileKey!, fileName: uploadedDocs[d.id].name, title: d.name }));
+
+  const openPreview = (fileKey: string) => {
+    const index = previewItems.findIndex((p) => p.fileKey === fileKey);
+    if (index !== -1) setPreviewIndex(index);
   };
 
-  const renderPreviewButton = (fileKey: string | undefined, fileName: string) =>
-    fileKey && !/\.zip$/i.test(fileKey) ? (
+  const closePreview = useCallback(() => setPreviewIndex(null), []);
+
+  const getFileUrl = useCallback(
+    async (fileKey: string) => {
+      const res = await api<{ url: string }>(
+        `/documents/download/${encodeURIComponent(fileKey)}`,
+        { token: accessToken! }
+      );
+      return res.url;
+    },
+    [accessToken]
+  );
+
+  const renderPreviewButton = (fileKey: string | undefined) =>
+    fileKey ? (
       <button
         type="button"
-        onClick={() => handlePreviewDoc(fileKey, fileName)}
+        onClick={() => openPreview(fileKey)}
         className="inline-flex items-center gap-1 rounded-lg border border-ptba-steel-blue/40 px-2 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
       >
         <Eye className="h-3 w-3" />
@@ -801,7 +807,7 @@ export default function MitraPhase2Page() {
                         docState.fileKey ? (
                           <button
                             type="button"
-                            onClick={() => handlePreviewDoc(docState.fileKey!, docState.name)}
+                            onClick={() => openPreview(docState.fileKey!)}
                             title="Klik untuk melihat dokumen"
                             className="text-left text-xs text-green-600 mt-1 underline-offset-2 hover:underline break-all"
                           >
@@ -825,7 +831,7 @@ export default function MitraPhase2Page() {
                         const fileKey = getPhase2DocFileKey(doc.id);
                         return fileKey ? (
                           <>
-                            {renderPreviewButton(fileKey, docState?.name || doc.name)}
+                            {renderPreviewButton(docState?.fileKey || fileKey)}
                             <button
                               type="button"
                               onClick={() => downloadDocument(fileKey, accessToken!, docState?.name)}
@@ -843,7 +849,7 @@ export default function MitraPhase2Page() {
                       </span>
                     ) : isUploaded ? (
                       <>
-                        {renderPreviewButton(docState?.fileKey, docState?.name || doc.name)}
+                        {renderPreviewButton(docState?.fileKey)}
                         <button
                           onClick={() => handleDeleteDoc(doc.id)}
                           disabled={isPreview}
@@ -983,6 +989,16 @@ export default function MitraPhase2Page() {
             </div>
           </div>
         </div>
+      )}
+
+      {previewIndex !== null && previewItems[previewIndex] && (
+        <FilePreviewOverlay
+          items={previewItems}
+          index={previewIndex}
+          onIndexChange={setPreviewIndex}
+          onClose={closePreview}
+          getUrl={getFileUrl}
+        />
       )}
     </div>
   );
