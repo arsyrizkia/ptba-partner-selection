@@ -188,8 +188,9 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   daftar_tenaga_ahli: "Daftar Tenaga Ahli",
 };
 
-function formatDocTypeLabel(typeId: string): string {
+function formatDocTypeLabel(typeId: string, customNames?: Record<string, string>): string {
   if (DOC_TYPE_LABELS[typeId]) return DOC_TYPE_LABELS[typeId];
+  if (customNames?.[typeId]) return customNames[typeId];
   if (typeId.startsWith("credential_exp_")) return "Dokumen Kredensial";
   if (typeId.startsWith("custom_")) return typeId.slice(7).replace(/_/g, " ");
   return typeId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -229,7 +230,7 @@ function formatDocName(name: string): string {
   return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: string | null }) {
+function DokumenTab({ partners, accessToken, customDocNames }: { partners: any[]; accessToken: string | null; customDocNames?: Record<string, string> }) {
   const [partnerDocs, setPartnerDocs] = useState<Record<string, any[]>>({});
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -333,7 +334,7 @@ function DokumenTab({ partners, accessToken }: { partners: any[]; accessToken: s
                       return (
                         <tr key={doc.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
                           <td className="py-2 pr-4 font-medium text-ptba-charcoal">{formatDocName(doc.name)}</td>
-                          <td className="py-2 pr-4 text-ptba-gray text-xs">{formatDocTypeLabel(doc.document_type_id)}</td>
+                          <td className="py-2 pr-4 text-ptba-gray text-xs">{formatDocTypeLabel(doc.document_type_id, customDocNames)}</td>
                           <td className="py-2 pr-4">
                             <span className={cn(
                               "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
@@ -2064,7 +2065,13 @@ export default function ProjectDetailPage({
       )}
 
       {/* Tab B: Dokumen */}
-      {activeTab === "dokumen" && <DokumenTab partners={projectPartners} accessToken={accessToken} />}
+      {activeTab === "dokumen" && <DokumenTab
+          partners={projectPartners}
+          accessToken={accessToken}
+          customDocNames={Object.fromEntries(
+            (project?.requiredDocuments || []).filter((d: any) => d.name).map((d: any) => [d.documentTypeId, d.name])
+          )}
+        />}
 
       {/* Tab C: Informasi */}
       {activeTab === "informasi" && (() => {

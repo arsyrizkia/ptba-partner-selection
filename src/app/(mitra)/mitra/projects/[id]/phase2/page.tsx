@@ -26,7 +26,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 export default function MitraPhase2Page() {
   const router = useRouter();
   const params = useParams();
-  const { user, accessToken } = useAuth();
+  const { accessToken } = useAuth();
   const projectId = params.id as string;
   const { isPreview, previewAppId, withPreview } = useMitraPreview();
   const t = useTranslations("phase2");
@@ -44,9 +44,9 @@ export default function MitraPhase2Page() {
   const [downloadedDocs, setDownloadedDocs] = useState<Map<string, string>>(new Map());
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
 
-  // Phase 2 document uploads: docTypeId -> { name, uploading, dbId }
+  // Phase 2 document uploads: docTypeId -> { name, uploading, dbId, fileKey }
   const [uploadedDocs, setUploadedDocs] = useState<
-    Record<string, { name: string; uploading: boolean; dbId?: string }>
+    Record<string, { name: string; uploading: boolean; dbId?: string; fileKey?: string }>
   >({});
 
   // Submission
@@ -65,6 +65,7 @@ export default function MitraPhase2Page() {
           id: d.documentTypeId,
           name:
             meta?.name ||
+            d.name ||
             (d.documentTypeId.startsWith("custom_")
               ? d.documentTypeId.slice(7)
               : d.documentTypeId
@@ -125,12 +126,13 @@ export default function MitraPhase2Page() {
 
       // Initialize uploaded phase2 documents
       if (existing.phase2Documents?.length) {
-        const restored: Record<string, { name: string; uploading: boolean; dbId?: string }> = {};
+        const restored: Record<string, { name: string; uploading: boolean; dbId?: string; fileKey?: string }> = {};
         for (const doc of existing.phase2Documents) {
           restored[doc.document_type_id] = {
             name: doc.name,
             uploading: false,
             dbId: doc.id,
+            fileKey: doc.file_key,
           };
         }
         setUploadedDocs(restored);
@@ -190,31 +192,33 @@ export default function MitraPhase2Page() {
     if (isPreview || !accessToken || !application?.id) return;
     setError("");
 
-    const docTypeMeta = phase2DocTypes.find((d) => d.id === docTypeId);
-    const autoName = `${docTypeMeta?.name || docTypeId} - ${user?.name || "Mitra"}`;
-
     const existingDoc = uploadedDocs[docTypeId];
     setUploadedDocs((prev) => ({
       ...prev,
-      [docTypeId]: { name: autoName, uploading: true },
+      [docTypeId]: { name: file.name, uploading: true },
     }));
 
     try {
-      // Delete old document if replacing
+      // Delete old document if replacing; stop if that fails so the old file
+      // isn't left behind next to the new one
       if (existingDoc?.dbId) {
-        await fetch(
+        const delRes = await fetch(
           `${API_BASE}/applications/${application.id}/documents/${existingDoc.dbId}`,
           {
             method: "DELETE",
             headers: { Authorization: `Bearer ${accessToken}` },
           }
         );
+        if (!delRes.ok) {
+          const delData = await delRes.json().catch(() => ({}));
+          throw new Error(delData.error || t("errors.deleteFailed"));
+        }
       }
 
       const formData = new FormData();
       formData.append("file", file);
       formData.append("documentTypeId", docTypeId);
-      formData.append("name", autoName);
+      formData.append("name", file.name);
       formData.append("phase", "phase2");
 
       const res = await fetch(
@@ -234,18 +238,42 @@ export default function MitraPhase2Page() {
       setUploadedDocs((prev) => ({
         ...prev,
         [docTypeId]: {
-          name: autoName,
+          name: file.name,
           uploading: false,
           dbId: resData.document?.id,
+          fileKey: resData.document?.file_key,
         },
       }));
     } catch (err: any) {
       setError(err.message || t("errors.uploadDocFailed"));
       setUploadedDocs((prev) => {
         const next = { ...prev };
-        delete next[docTypeId];
+        // Old document is still there if deleting it failed
+        if (existingDoc?.dbId) next[docTypeId] = existingDoc;
+        else delete next[docTypeId];
         return next;
       });
+    }
+  };
+
+  const handlePreviewDoc = async (fileKey: string, fileName: string) => {
+    if (!accessToken) return;
+    // Archives can't be shown in a browser tab, so download them instead
+    if (/\.zip$/i.test(fileKey)) {
+      await downloadDocument(fileKey, accessToken, fileName);
+      return;
+    }
+    // Open the tab before the request so the browser doesn't block it as a popup
+    const win = window.open("", "_blank");
+    try {
+      const res = await api<{ url: string }>(
+        `/documents/download/${encodeURIComponent(fileKey)}`,
+        { token: accessToken }
+      );
+      if (win) win.location.href = res.url;
+    } catch (err: any) {
+      win?.close();
+      setError(err.message || t("errors.downloadFailed"));
     }
   };
 
@@ -757,9 +785,20 @@ export default function MitraPhase2Page() {
                         {doc.description}
                       </p>
                       {isUploaded && docState && (
-                        <p className="text-xs text-green-600 mt-1">
-                          {docState.name}
-                        </p>
+                        docState.fileKey ? (
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewDoc(docState.fileKey!, docState.name)}
+                            title="Klik untuk melihat dokumen"
+                            className="text-left text-xs text-green-600 mt-1 underline-offset-2 hover:underline break-all"
+                          >
+                            {docState.name}
+                          </button>
+                        ) : (
+                          <p className="text-xs text-green-600 mt-1">
+                            {docState.name}
+                          </p>
+                        )
                       )}
                       {isUploading && (
                         <p className="text-xs text-ptba-gold mt-1">{tc("uploading")}</p>

@@ -108,7 +108,8 @@ export interface ProjectFormData {
   selectedPhase2Docs: string[];
   selectedPhase3Docs: string[];
   optionalDocIds: string[];
-  customDocuments: { name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[];
+  /** id: documentTypeId of a saved custom doc, kept when the name is edited so mitra uploads stay linked */
+  customDocuments: { id?: string; name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[];
   picAssignments: Record<string, string>;
   phasePics: PhasePicEntry[];
   supportingFiles: SupportingFile[];
@@ -218,8 +219,8 @@ export default function ProjectForm({
   // Generate the same custom doc ID format used by the create/edit pages
   const customDocId = (name: string) =>
     `custom_${name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
-  const isCustomDocLocked = (doc: { name: string }) =>
-    lockedCustomDocs?.has(customDocId(doc.name)) ?? false;
+  const isCustomDocLocked = (doc: { id?: string; name: string }) =>
+    lockedCustomDocs?.has(doc.id || customDocId(doc.name)) ?? false;
 
   // Internal users for PIC
   const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
@@ -280,7 +281,7 @@ export default function ProjectForm({
     PHASE3_DOCUMENT_TYPES.filter((d) => d.required).map((d) => d.id)
   );
   const [optionalDocIds, setOptionalDocIds] = useState<Set<string>>(new Set());
-  const [customDocuments, setCustomDocuments] = useState<{ name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[]>([]);
+  const [customDocuments, setCustomDocuments] = useState<{ id?: string; name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[]>([]);
 
   // Template files per document type ID
   const [templateFiles, setTemplateFiles] = useState<Record<string, File>>({});
@@ -391,7 +392,7 @@ export default function ProjectForm({
       const phase1Ids = new Set(PHASE1_DOCUMENT_TYPES.map((d) => d.id));
       const phase2Ids = new Set(PHASE2_DOCUMENT_TYPES.map((d) => d.id));
       const phase3Ids = new Set(PHASE3_DOCUMENT_TYPES.map((d) => d.id));
-      const customDocs: { name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[] = [];
+      const customDocs: { id?: string; name: string; phase: "phase1" | "phase2" | "phase3" | "both"; required: boolean; description: string }[] = [];
 
       for (const doc of project.requiredDocuments) {
         const docId = doc.documentTypeId;
@@ -415,9 +416,9 @@ export default function ProjectForm({
         } else {
           // Custom document — not in any predefined list
           const docPhase = phase === "general" ? "both" : (phase as "phase1" | "phase2" | "phase3" | "both") || "both";
-          // Strip "custom_" prefix and convert underscores to spaces
-          const displayName = docId.startsWith("custom_") ? docId.slice(7).replace(/_/g, " ") : docId.replace(/_/g, " ");
-          customDocs.push({ name: displayName, phase: docPhase, required: doc.isRequired !== false, description: doc.description || "" });
+          // Prefer the stored name; older docs only have the slug, so strip "custom_" and convert underscores to spaces
+          const displayName = doc.name || (docId.startsWith("custom_") ? docId.slice(7).replace(/_/g, " ") : docId.replace(/_/g, " "));
+          customDocs.push({ id: docId, name: displayName, phase: docPhase, required: doc.isRequired !== false, description: doc.description || "" });
         }
       }
 

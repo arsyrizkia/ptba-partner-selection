@@ -38,6 +38,7 @@ export default function CreateProjectPage() {
         .filter((d) => d.name.trim())
         .map((d) => ({
           documentTypeId: `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`,
+          name: d.name.trim(),
           phase: d.phase,
           isRequired: d.required !== false,
           description: d.description || "",

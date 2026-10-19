@@ -178,11 +178,11 @@ export default function EditProjectPage({
 
       // Update required documents (phase1 + phase2 + phase3 + custom)
       const optSet = new Set(formData.optionalDocIds || []);
-      const allDocs: { documentTypeId: string; phase: string; isRequired: boolean }[] = [
+      const allDocs: { documentTypeId: string; name?: string; phase: string; isRequired: boolean }[] = [
         ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
         ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
         // Phase 3 docs removed — 2-phase system
-        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`, phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
+        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: d.id || `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`, name: d.name.trim(), phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
@@ -263,7 +263,7 @@ export default function EditProjectPage({
         formData.customDocuments.forEach((d, i) => {
           if (d.name.trim()) {
             // Must match the documentTypeId format used when saving required docs
-            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
+            customDocIdMap[`custom_${i}`] = d.id || `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
           }
         });
 

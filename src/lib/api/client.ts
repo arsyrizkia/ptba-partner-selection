@@ -437,7 +437,7 @@ export interface CreateProjectInput {
   phase2Config?: { part1Start?: string | null; part1End?: string | null; part2Start?: string | null; part2End?: string | null; part2Tentative?: boolean } | null;
   phase3Deadline?: string;
   requirements?: string[];
-  requiredDocuments?: { documentTypeId: string; phase?: string }[];
+  requiredDocuments?: { documentTypeId: string; name?: string; phase?: string }[];
   phase1Documents?: { documentTypeId: string }[];
   phase2Documents?: { documentTypeId: string }[];
   phase3Documents?: { documentTypeId: string }[];
@@ -500,7 +500,7 @@ export function projectApi(token: string) {
     updateRequirements: (id: string, requirements: string[]) =>
       api<ProjectResponse>(`/projects/${id}/requirements`, { method: "PUT", body: { requirements }, token }),
 
-    updateRequiredDocuments: (id: string, documents: { documentTypeId: string; phase: string }[]) =>
+    updateRequiredDocuments: (id: string, documents: { documentTypeId: string; name?: string; phase: string }[]) =>
       api<ProjectResponse>(`/projects/${id}/required-documents`, { method: "PUT", body: { documents }, token }),
 
     delete: (id: string) =>
