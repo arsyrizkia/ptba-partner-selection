@@ -7,7 +7,9 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { projectApi, api, ApiClientError } from "@/lib/api/client";
 import { getLockedSections } from "@/lib/utils/edit-restrictions";
+import { normalizeRichText } from "@/lib/utils/rich-text";
 import ProjectForm, {
+  customDocTypeId,
   type ProjectFormData,
   type SupportingFileExisting,
 } from "@/components/features/project/project-form";
@@ -187,7 +189,7 @@ export default function EditProjectPage({
         ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
         ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
         // Phase 3 docs removed — 2-phase system
-        ...formData.customDocuments.filter((d) => d.name.trim()).map((d) => ({ documentTypeId: d.id || `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`, name: d.name.trim(), phase: d.phase, isRequired: d.required !== false, description: d.description || "" })),
+        ...formData.customDocuments.filter((d) => normalizeRichText(d.name)).map((d) => ({ documentTypeId: d.id || customDocTypeId(d.name), name: normalizeRichText(d.name), phase: d.phase, isRequired: d.required !== false, description: normalizeRichText(d.description) })),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
@@ -266,9 +268,9 @@ export default function EditProjectPage({
         // Build mapping from custom_N index keys to actual document type IDs
         const customDocIdMap: Record<string, string> = {};
         formData.customDocuments.forEach((d, i) => {
-          if (d.name.trim()) {
+          if (normalizeRichText(d.name)) {
             // Must match the documentTypeId format used when saving required docs
-            customDocIdMap[`custom_${i}`] = d.id || `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
+            customDocIdMap[`custom_${i}`] = d.id || customDocTypeId(d.name);
           }
         });
 

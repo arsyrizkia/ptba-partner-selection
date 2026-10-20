@@ -19,3 +19,17 @@ export function sanitizeHtml(html: string | null | undefined): string {
     FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
   });
 }
+
+/**
+ * Sanitize rich text to inline formatting only (bold/italic/underline/strike),
+ * for one-line labels such as custom document names. Paragraphs become spaces.
+ */
+export function sanitizeInlineHtml(html: string | null | undefined): string {
+  if (!html) return "";
+  const flat = html.replace(/<\/p>\s*<p[^>]*>/gi, " ");
+  if (typeof window === "undefined") return flat;
+  return DOMPurify.sanitize(flat, {
+    ALLOWED_TAGS: ["strong", "b", "em", "i", "u", "s"],
+    ALLOWED_ATTR: [],
+  });
+}

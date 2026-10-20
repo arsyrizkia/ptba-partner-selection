@@ -94,3 +94,23 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ptba-navy);
 }
+
+/* Saved rich text (custom document descriptions) — compact, keeps lists and links */
+.rich-text p {
+  margin: 0;
+}
+.rich-text ul,
+.rich-text ol {
+  margin: 0.125rem 0;
+  padding-left: 1.25em;
+}
+.rich-text ul {
+  list-style: disc;
+}
+.rich-text ol {
+  list-style: decimal;
+}
+.rich-text a {
+  color: var(--ptba-steel-blue);
+  text-decoration: underline;
+}

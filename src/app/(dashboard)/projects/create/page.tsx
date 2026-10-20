@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { projectApi, ApiClientError } from "@/lib/api/client";
 import ProjectForm, {
+  customDocTypeId,
   type ProjectFormData,
   type SupportingFileNew,
 } from "@/components/features/project/project-form";
+import { normalizeRichText } from "@/lib/utils/rich-text";
 
 function isNewFile(f: { file?: File; name: string }): f is SupportingFileNew {
   return "file" in f && f.file instanceof File;
@@ -35,13 +37,13 @@ export default function CreateProjectPage() {
       const p3Docs: { documentTypeId: string; isRequired: boolean }[] = []; // 2-phase system
       // Custom documents added by admin
       const customDocs = formData.customDocuments
-        .filter((d) => d.name.trim())
+        .filter((d) => normalizeRichText(d.name))
         .map((d) => ({
-          documentTypeId: `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`,
-          name: d.name.trim(),
+          documentTypeId: customDocTypeId(d.name),
+          name: normalizeRichText(d.name),
           phase: d.phase,
           isRequired: d.required !== false,
-          description: d.description || "",
+          description: normalizeRichText(d.description),
         }));
       const pics = Object.entries(formData.picAssignments)
         .filter(([, userId]) => userId)
@@ -136,8 +138,8 @@ export default function CreateProjectPage() {
         // Build mapping from custom_N index keys to actual document type IDs
         const customDocIdMap: Record<string, string> = {};
         formData.customDocuments.forEach((d, i) => {
-          if (d.name.trim()) {
-            customDocIdMap[`custom_${i}`] = `custom_${d.name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
+          if (normalizeRichText(d.name)) {
+            customDocIdMap[`custom_${i}`] = customDocTypeId(d.name);
           }
         });
 

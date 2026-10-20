@@ -16,6 +16,8 @@ import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { downloadDocument } from "@/lib/api/client";
 import { UploadConfirmDialog } from "@/components/ui/upload-confirm-dialog";
+import { RichText } from "@/components/ui/rich-text";
+import { richTextToPlain } from "@/lib/utils/rich-text";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -2345,15 +2347,16 @@ export default function MitraProjectApplyPage() {
                   {doc.isRequired !== false
                     ? <span className="text-[10px] text-ptba-red font-semibold">*{locale === "en" ? "Required" : "Wajib"}</span>
                     : <span className="text-[10px] text-ptba-gray font-medium">{locale === "en" ? "Optional" : "Opsional"}</span>}
-                  <span className="text-xs font-semibold text-ptba-charcoal">{doc.name}</span>
+                  <RichText inline html={doc.name} className="text-xs font-semibold text-ptba-charcoal" />
                 </div>
                 {doc.description && (
                   <div className="rounded-lg bg-ptba-section-bg border border-ptba-steel-blue/10 px-3 py-2">
-                    <p className="text-[11px] text-ptba-gray leading-relaxed"><span className="font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</span> {doc.description}</p>
+                    <p className="text-[11px] font-semibold text-ptba-charcoal">{locale === "en" ? "Notes:" : "Keterangan:"}</p>
+                    <RichText html={doc.description} className="text-[11px] text-ptba-gray leading-relaxed" />
                   </div>
                 )}
                 <FileUploadButton
-                  label={doc.name}
+                  label={richTextToPlain(doc.name)}
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                   uploaded={isDoc(doc.id)}
                   uploading={uploadedDocs[doc.id]?.uploading ?? false}

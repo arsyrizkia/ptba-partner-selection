@@ -24,6 +24,8 @@ import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
 import { FilePreviewOverlay } from "@/components/ui/file-preview-overlay";
 import { UploadConfirmDialog } from "@/components/ui/upload-confirm-dialog";
+import { RichText } from "@/components/ui/rich-text";
+import { richTextToPlain } from "@/lib/utils/rich-text";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 export default function MitraPhase2Page() {
@@ -274,7 +276,7 @@ export default function MitraPhase2Page() {
   // Uploaded documents in page order, browsable left/right in the preview overlay
   const previewItems = phase2DocTypes
     .filter((d) => uploadedDocs[d.id]?.fileKey && !uploadedDocs[d.id]?.uploading)
-    .map((d) => ({ fileKey: uploadedDocs[d.id].fileKey!, fileName: uploadedDocs[d.id].name, title: d.name }));
+    .map((d) => ({ fileKey: uploadedDocs[d.id].fileKey!, fileName: uploadedDocs[d.id].name, title: richTextToPlain(d.name) }));
 
   const openPreview = (fileKey: string) => {
     const index = previewItems.findIndex((p) => p.fileKey === fileKey);
@@ -803,16 +805,14 @@ export default function MitraPhase2Page() {
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ptba-charcoal">
-                        {doc.name}
+                        <RichText inline html={doc.name} />
                         {doc.required && (
                           <span className="ml-1 text-[10px] text-ptba-red font-medium">
                             {tc("requiredMark")}
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-ptba-gray mt-0.5">
-                        {doc.description}
-                      </p>
+                      <RichText html={doc.description} className="text-xs text-ptba-gray mt-0.5" />
                       {isUploaded && docState && (
                         docState.fileKey ? (
                           <button
@@ -1046,7 +1046,7 @@ export default function MitraPhase2Page() {
               </p>
               <div className="mt-3 rounded-lg bg-ptba-section-bg px-4 py-3 text-left">
                 <p className="text-xs text-ptba-gray">
-                  {phase2DocTypes.find((d) => d.id === deleteConfirmDocId)?.name}
+                  {richTextToPlain(phase2DocTypes.find((d) => d.id === deleteConfirmDocId)?.name)}
                 </p>
                 <p className="text-sm font-medium text-ptba-charcoal break-all">
                   {uploadedDocs[deleteConfirmDocId].name}
@@ -1077,7 +1077,7 @@ export default function MitraPhase2Page() {
 
       <UploadConfirmDialog
         file={pendingUpload?.file ?? null}
-        title={phase2DocTypes.find((d) => d.id === pendingUpload?.docTypeId)?.name}
+        title={richTextToPlain(phase2DocTypes.find((d) => d.id === pendingUpload?.docTypeId)?.name)}
         replacing={!!(pendingUpload && uploadedDocs[pendingUpload.docTypeId]?.dbId)}
         onCancel={cancelPendingUpload}
         onConfirm={() => {

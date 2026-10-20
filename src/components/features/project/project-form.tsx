@@ -9,9 +9,16 @@ import { PHASE1_DOCUMENT_TYPES, PHASE2_DOCUMENT_TYPES, PHASE3_DOCUMENT_TYPES } f
 import { useAuth } from "@/lib/auth/auth-context";
 import { authApi } from "@/lib/api/client";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { RichText } from "@/components/ui/rich-text";
+import { richTextToPlain } from "@/lib/utils/rich-text";
 import type { UserRole } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────
+/** documentTypeId for a custom document, from its (rich-text) name */
+export function customDocTypeId(name: string): string {
+  return `custom_${richTextToPlain(name).replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
+}
+
 const STEPS = [
   { key: 1, label: "Informasi Dasar" },
   { key: 2, label: "Timeline & Pendaftaran" },
@@ -216,11 +223,8 @@ export default function ProjectForm({
   const { accessToken } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const isLocked = (section: string) => lockedSections.has(section);
-  // Generate the same custom doc ID format used by the create/edit pages
-  const customDocId = (name: string) =>
-    `custom_${name.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
   const isCustomDocLocked = (doc: { id?: string; name: string }) =>
-    lockedCustomDocs?.has(doc.id || customDocId(doc.name)) ?? false;
+    lockedCustomDocs?.has(doc.id || customDocTypeId(doc.name)) ?? false;
 
   // Internal users for PIC
   const [internalUsers, setInternalUsers] = useState<InternalUser[]>([]);
@@ -1468,17 +1472,23 @@ export default function ProjectForm({
                     const docLocked = isCustomDocLocked(doc);
                     // In phase 2, docs already active in phase 1 can't change at all
                     const docFrozen = docLocked && customDocsPhase2Only;
+                    const hasName = !!richTextToPlain(doc.name);
                     return (
                     <div key={index} className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Contoh: Sertifikat K3, Izin Lingkungan, dll."
-                          value={doc.name}
-                          onChange={(e) => updateCustomDocName(index, e.target.value)}
-                          disabled={docLocked}
-                          className={cn(inputClass, "flex-1", docLocked && "opacity-70")}
-                        />
+                        {docLocked || isLocked("customDocs") ? (
+                          <div className={cn(inputClass, "flex-1 opacity-70")}>
+                            <RichText inline html={doc.name} />
+                          </div>
+                        ) : (
+                          <RichTextEditor
+                            variant="inline"
+                            placeholder="Contoh: Sertifikat K3, Izin Lingkungan, dll."
+                            value={doc.name}
+                            onChange={(v) => updateCustomDocName(index, v)}
+                            className="flex-1 min-w-0"
+                          />
+                        )}
                         {docLocked && (
                           <span title="Dokumen sudah aktif di Fase 1 dan tidak dapat dihapus" className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 shrink-0">
                             <Lock className="h-2.5 w-2.5" /> Terkunci
@@ -1520,17 +1530,21 @@ export default function ProjectForm({
                           </button>
                         )}
                       </div>
-                      {doc.name.trim() && (
-                        <input
-                          type="text"
+                      {hasName && (docFrozen || isLocked("customDocs") ? (
+                        doc.description && (
+                          <div className={cn(inputClass, "text-xs !py-1.5 opacity-70")}>
+                            <RichText html={doc.description} />
+                          </div>
+                        )
+                      ) : (
+                        <RichTextEditor
+                          variant="basic"
                           placeholder="Keterangan / deskripsi dokumen (opsional)"
                           value={doc.description}
-                          onChange={(e) => updateCustomDocDescription(index, e.target.value)}
-                          disabled={docFrozen}
-                          className={cn(inputClass, "text-xs !py-1.5", docFrozen && "opacity-70")}
+                          onChange={(v) => updateCustomDocDescription(index, v)}
                         />
-                      )}
-                      {doc.name.trim() && (
+                      ))}
+                      {hasName && (
                         <div className="ml-1">
                           {templateFiles[`custom_${index}`] ? (
                             <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50/50 px-2 py-1">

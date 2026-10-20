@@ -48,6 +48,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { sanitizeHtml } from "@/lib/utils/sanitize";
+import { richTextToPlain } from "@/lib/utils/rich-text";
+import { RichText } from "@/components/ui/rich-text";
 import { formatChatTime, formatChatDaySeparator, isSameDay, toWibInputValue, formatWibDateTime } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSocket } from "@/lib/hooks/use-socket";
@@ -2069,7 +2071,7 @@ export default function ProjectDetailPage({
           partners={projectPartners}
           accessToken={accessToken}
           customDocNames={Object.fromEntries(
-            (project?.requiredDocuments || []).filter((d: any) => d.name).map((d: any) => [d.documentTypeId, d.name])
+            (project?.requiredDocuments || []).filter((d: any) => d.name).map((d: any) => [d.documentTypeId, richTextToPlain(d.name)])
           )}
         />}
 
@@ -2301,8 +2303,8 @@ export default function ProjectDetailPage({
                         <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
                           <FileText className={cn("h-4 w-4 shrink-0 mt-0.5", iconColor)} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d)}</p>
-                            <p className="text-xs text-ptba-gray">{getDocDesc(d)}</p>
+                            <p className="text-sm font-medium text-ptba-charcoal"><RichText inline html={getDocName(d)} /></p>
+                            <RichText html={getDocDesc(d)} className="text-xs text-ptba-gray" />
                             {d.templateFileName && (
                               <p className="text-[10px] text-ptba-steel-blue mt-0.5">Template: {d.templateFileName}</p>
                             )}
