@@ -126,7 +126,7 @@ export function UploadConfirmDialog({ file, title, replacing, onCancel, onConfir
               onClick={onCancel}
               className="flex-1 rounded-lg border border-ptba-light-gray px-4 py-2.5 text-sm font-medium text-ptba-charcoal hover:bg-ptba-section-bg transition-colors"
             >
-              {tc("cancel")}
+              {tc("uploadConfirmCancel")}
             </button>
             <button
               type="button"
