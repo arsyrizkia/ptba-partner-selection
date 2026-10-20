@@ -7,6 +7,8 @@ import { SearchInput } from "@/components/ui/search-input";
 import { FilterDropdown } from "@/components/ui/filter-dropdown";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs } from "@/components/ui/tabs";
+import { PartnerLeadsTab } from "@/components/features/partner/partner-leads-tab";
 import { useAuth } from "@/lib/auth/auth-context";
 import { api } from "@/lib/api/client";
 
@@ -44,6 +46,11 @@ function getStatusVariant(status: string): "success" | "warning" | "error" {
       return "error";
   }
 }
+
+const pageTabs = [
+  { key: "partners", label: "Daftar Mitra" },
+  { key: "leads", label: "Penjajakan Mitra" },
+];
 
 const statusOptions = [
   { value: "", label: "Semua" },
@@ -100,6 +107,7 @@ export default function PartnersPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [partners, setPartners] = useState<PartnerRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("partners");
 
   useEffect(() => {
     if (!accessToken) return;
@@ -181,21 +189,12 @@ export default function PartnersPage() {
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-ptba-navy mb-4" />
-        <p className="text-sm text-ptba-gray">Memuat data mitra...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Page Title */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ptba-charcoal">Daftar Mitra</h1>
-        {partners.length > 0 && (
+        <h1 className="text-2xl font-bold text-ptba-charcoal">Mitra</h1>
+        {activeTab === "partners" && partners.length > 0 && (
           <button
             onClick={() => exportPartnersCSV(partners)}
             className="inline-flex items-center gap-2 rounded-lg border border-ptba-light-gray bg-white px-4 py-2 text-sm font-medium text-ptba-charcoal shadow-sm hover:bg-ptba-section-bg transition-colors"
@@ -206,35 +205,48 @@ export default function PartnersPage() {
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Cari mitra..."
-          className="w-72"
-        />
-        <FilterDropdown
-          label="Status"
-          options={statusOptions}
-          value={statusFilter}
-          onChange={setStatusFilter}
-        />
-      </div>
+      <Tabs tabs={pageTabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Data Table */}
-      {tableData.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-sm text-ptba-gray">Belum ada mitra terdaftar.</p>
+      {activeTab === "leads" ? (
+        <PartnerLeadsTab />
+      ) : loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-ptba-navy mb-4" />
+          <p className="text-sm text-ptba-gray">Memuat data mitra...</p>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={tableData}
-          onRowClick={(item) => {
-            router.push(`/partners/${item.id}`);
-          }}
-        />
+        <>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Cari mitra..."
+              className="w-72"
+            />
+            <FilterDropdown
+              label="Status"
+              options={statusOptions}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
+          </div>
+
+          {/* Data Table */}
+          {tableData.length === 0 ? (
+            <div className="rounded-xl bg-white p-10 text-center shadow-sm">
+              <p className="text-sm text-ptba-gray">Belum ada mitra terdaftar.</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={tableData}
+              onRowClick={(item) => {
+                router.push(`/partners/${item.id}`);
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );
