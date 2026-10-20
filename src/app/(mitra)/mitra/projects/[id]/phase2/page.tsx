@@ -60,6 +60,8 @@ export default function MitraPhase2Page() {
   // Submission
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  // Submission notice shown each time the page opens while upload is open
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   // Phase 2 upload document types — driven by the project's
@@ -952,6 +954,34 @@ export default function MitraPhase2Page() {
           </button>
         </div>
       </div>}
+
+      {/* Document Submission Notice */}
+      {canUpload && !noticeDismissed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl mx-4" role="dialog" aria-modal="true">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle className="h-7 w-7 text-amber-600" />
+              </div>
+              <h2 className="text-lg font-bold text-ptba-charcoal">
+                {locale === "en" ? "Important Notice – Document Submission" : "Pemberitahuan Penting – Pengunggahan Dokumen"}
+              </h2>
+              <p className="mt-2 text-sm text-ptba-gray">
+                {locale === "en"
+                  ? "Please ensure that all required documents are uploaded correctly in their respective designated fields and comply with the specified submission requirements. Kindly review each document carefully before submission to avoid any errors or discrepancies."
+                  : "Mohon pastikan seluruh dokumen yang dipersyaratkan telah diunggah dengan benar pada kolom yang telah ditentukan dan sesuai dengan ketentuan pengajuan yang berlaku. Mohon periksa kembali setiap dokumen dengan saksama sebelum dikirim untuk menghindari kesalahan atau ketidaksesuaian."}
+              </p>
+              <button
+                onClick={() => setNoticeDismissed(true)}
+                autoFocus
+                className="mt-6 w-full rounded-lg bg-ptba-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-ptba-navy/90 transition-colors"
+              >
+                {locale === "en" ? "I Understand" : "Saya Mengerti"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Submit Confirmation Modal */}
       {!submitted && canUpload && showSubmitConfirm && (
