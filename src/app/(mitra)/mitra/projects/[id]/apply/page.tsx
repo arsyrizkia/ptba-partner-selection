@@ -15,6 +15,7 @@ import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { downloadDocument } from "@/lib/api/client";
+import { UploadConfirmDialog } from "@/components/ui/upload-confirm-dialog";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
@@ -141,6 +142,9 @@ function FileUploadButton({
   error?: boolean;
 }) {
   const tc = useTranslations("common");
+  // File picked by the mitra, previewed and confirmed before it is uploaded
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const cancelPending = useCallback(() => setPendingFile(null), []);
 
   // Read-only mode: show uploaded doc with download button, or nothing
   if (readOnly) {
@@ -232,7 +236,7 @@ function FileUploadButton({
                     accept={accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
-                      if (f) onSelect(f);
+                      if (f) setPendingFile(f);
                       e.target.value = "";
                     }}
                   />
@@ -249,7 +253,7 @@ function FileUploadButton({
                   accept={accept || ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"}
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) onSelect(f);
+                    if (f) setPendingFile(f);
                     e.target.value = "";
                   }}
                 />
@@ -258,6 +262,17 @@ function FileUploadButton({
           </div>
         </div>
       </div>
+      <UploadConfirmDialog
+        file={pendingFile}
+        title={label}
+        replacing={uploaded}
+        onCancel={cancelPending}
+        onConfirm={() => {
+          const f = pendingFile;
+          setPendingFile(null);
+          if (f) onSelect(f);
+        }}
+      />
     </div>
   );
 }

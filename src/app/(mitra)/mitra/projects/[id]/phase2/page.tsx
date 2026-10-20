@@ -23,6 +23,7 @@ import { api, projectApi, downloadDocument, downloadFromUrl } from "@/lib/api/cl
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
 import { FilePreviewOverlay } from "@/components/ui/file-preview-overlay";
+import { UploadConfirmDialog } from "@/components/ui/upload-confirm-dialog";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
 export default function MitraPhase2Page() {
@@ -53,6 +54,10 @@ export default function MitraPhase2Page() {
 
   // Document type awaiting delete confirmation
   const [deleteConfirmDocId, setDeleteConfirmDocId] = useState<string | null>(null);
+
+  // File picked for a document type, previewed and confirmed before it is uploaded
+  const [pendingUpload, setPendingUpload] = useState<{ docTypeId: string; file: File } | null>(null);
+  const cancelPendingUpload = useCallback(() => setPendingUpload(null), []);
 
   // Index into previewItems of the document open in the preview overlay
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -873,7 +878,7 @@ export default function MitraPhase2Page() {
                             accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
                             onChange={(e) => {
                               const f = e.target.files?.[0];
-                              if (f) handleUploadDoc(doc.id, f);
+                              if (f) setPendingUpload({ docTypeId: doc.id, file: f });
                               e.target.value = "";
                             }}
                           />
@@ -895,7 +900,7 @@ export default function MitraPhase2Page() {
                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
                           onChange={(e) => {
                             const f = e.target.files?.[0];
-                            if (f) handleUploadDoc(doc.id, f);
+                            if (f) setPendingUpload({ docTypeId: doc.id, file: f });
                             e.target.value = "";
                           }}
                         />
@@ -1069,6 +1074,18 @@ export default function MitraPhase2Page() {
           </div>
         </div>
       )}
+
+      <UploadConfirmDialog
+        file={pendingUpload?.file ?? null}
+        title={phase2DocTypes.find((d) => d.id === pendingUpload?.docTypeId)?.name}
+        replacing={!!(pendingUpload && uploadedDocs[pendingUpload.docTypeId]?.dbId)}
+        onCancel={cancelPendingUpload}
+        onConfirm={() => {
+          const pending = pendingUpload;
+          setPendingUpload(null);
+          if (pending) handleUploadDoc(pending.docTypeId, pending.file);
+        }}
+      />
 
       {previewIndex !== null && previewItems[previewIndex] && (
         <FilePreviewOverlay
