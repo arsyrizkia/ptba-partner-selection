@@ -2271,13 +2271,14 @@ export default function ProjectDetailPage({
               const phase3Docs = requiredDocs.filter((d: any) => d.phase === "phase3");
               const generalDocs = requiredDocs.filter((d: any) => !["phase1", "phase2"].includes(d.phase));
 
-              const getDocName = (typeId: string) => {
-                const dt = DOCUMENT_TYPES.find((d) => d.id === typeId);
-                return dt ? dt.name : typeId;
+              // Custom docs show the name the admin typed; their id is a lowercased slug
+              const getDocName = (doc: any) => {
+                const dt = DOCUMENT_TYPES.find((d) => d.id === doc.documentTypeId);
+                return dt?.name || doc.name || formatDocTypeLabel(doc.documentTypeId);
               };
-              const getDocDesc = (typeId: string) => {
-                const dt = DOCUMENT_TYPES.find((d) => d.id === typeId);
-                return dt?.description || "";
+              const getDocDesc = (doc: any) => {
+                const dt = DOCUMENT_TYPES.find((d) => d.id === doc.documentTypeId);
+                return doc.description || dt?.description || "";
               };
 
               if (requiredDocs.length === 0) {
@@ -2300,8 +2301,8 @@ export default function ProjectDetailPage({
                         <div key={d.id} className="px-4 py-2.5 flex items-start gap-2">
                           <FileText className={cn("h-4 w-4 shrink-0 mt-0.5", iconColor)} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d.documentTypeId)}</p>
-                            <p className="text-xs text-ptba-gray">{getDocDesc(d.documentTypeId)}</p>
+                            <p className="text-sm font-medium text-ptba-charcoal">{getDocName(d)}</p>
+                            <p className="text-xs text-ptba-gray">{getDocDesc(d)}</p>
                             {d.templateFileName && (
                               <p className="text-[10px] text-ptba-steel-blue mt-0.5">Template: {d.templateFileName}</p>
                             )}
