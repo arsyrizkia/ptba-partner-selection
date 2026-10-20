@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -30,9 +30,13 @@ export default function EditProjectPage({
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api";
 
+  // Project id already loaded into the form. A token refresh changes accessToken;
+  // refetching then would remount the form and throw away what the admin typed.
+  const loadedIdRef = useRef<string | null>(null);
+
   // Fetch existing project data + application count
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || loadedIdRef.current === id) return;
     setLoadingProject(true);
     setLoadError("");
     Promise.all([
@@ -45,6 +49,7 @@ export default function EditProjectPage({
         return;
       }
       setProjectData(project);
+      loadedIdRef.current = id;
       const appCount = (appsRes.applications || []).filter((a: any) => a.project_id === id && a.status !== "Draft").length;
       setApplicationCount(appCount);
     }).catch((err) => {
