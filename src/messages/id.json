@@ -435,7 +435,8 @@
       "uploadDocFailed": "Gagal mengunggah dokumen",
       "downloadFailed": "Gagal mengunduh dokumen",
       "deleteFailed": "Gagal menghapus dokumen",
-      "submitFailed": "Gagal mengirim dokumen Fase 2"
+      "submitFailed": "Gagal mengirim dokumen Fase 2",
+      "templateFailed": "Gagal mengunduh template"
     },
     "tentative": {
       "waitingTitle": "Menunggu Jadwal Pengiriman (Tentatif)",

@@ -435,7 +435,8 @@
       "uploadDocFailed": "Failed to upload document",
       "downloadFailed": "Failed to download document",
       "deleteFailed": "Failed to delete document",
-      "submitFailed": "Failed to submit Phase 2 documents"
+      "submitFailed": "Failed to submit Phase 2 documents",
+      "templateFailed": "Failed to download template"
     },
     "tentative": {
       "waitingTitle": "Awaiting Submission Schedule (Tentative)",

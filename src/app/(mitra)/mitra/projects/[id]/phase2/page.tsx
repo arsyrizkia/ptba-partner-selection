@@ -73,13 +73,24 @@ export default function MitraPhase2Page() {
 
   // Phase 2 upload document types — driven by the project's
   // project_required_documents rows (phase2), editable by admin
-  const phase2DocTypes: { id: string; name: string; description: string; required: boolean }[] =
+  const phase2DocTypes: {
+    id: string;
+    reqDocId: string;
+    name: string;
+    description: string;
+    required: boolean;
+    templateFileKey: string | null;
+    templateFileName: string | null;
+  }[] =
     (project?.requiredDocuments || [])
       .filter((d: any) => d.phase === "phase2")
       .map((d: any) => {
         const meta = DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId);
         return {
           id: d.documentTypeId,
+          reqDocId: d.id,
+          templateFileKey: d.templateFileKey || null,
+          templateFileName: d.templateFileKey ? d.templateFileName || "Template" : null,
           name:
             meta?.name ||
             d.name ||
@@ -202,6 +213,22 @@ export default function MitraPhase2Page() {
       setError(err.message || t("errors.downloadFailed"));
     } finally {
       setDownloadingDoc(null);
+    }
+  };
+
+  // Download the template admin attached to a required document
+  const downloadTemplate = async (doc: { reqDocId: string; templateFileKey: string | null; templateFileName: string | null }) => {
+    if (!accessToken || !doc.templateFileKey) return;
+    setError("");
+    try {
+      const res = await api<{ url: string }>(
+        `/projects/${projectId}/required-documents/${doc.reqDocId}/template-url`,
+        { token: accessToken }
+      );
+      if (!res.url) throw new Error("URL unduhan tidak tersedia");
+      await downloadFromUrl(res.url, doc.templateFileName || undefined, doc.templateFileKey);
+    } catch (err: any) {
+      setError(err.message || t("errors.templateFailed"));
     }
   };
 
@@ -813,6 +840,21 @@ export default function MitraPhase2Page() {
                         )}
                       </p>
                       <RichText html={doc.description} className="text-xs text-ptba-gray mt-0.5" />
+                      {doc.templateFileName && (
+                        <div className="mt-2 flex items-center gap-2 rounded-lg border border-ptba-steel-blue/20 bg-ptba-steel-blue/5 px-3 py-2">
+                          <Download className="h-3.5 w-3.5 text-ptba-steel-blue shrink-0" />
+                          <span className="text-[11px] text-ptba-gray flex-1 min-w-0 break-all">
+                            Template: {doc.templateFileName}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => downloadTemplate(doc)}
+                            className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors shrink-0"
+                          >
+                            {tc("download")}
+                          </button>
+                        </div>
+                      )}
                       {isUploaded && docState && (
                         docState.fileKey ? (
                           <button
