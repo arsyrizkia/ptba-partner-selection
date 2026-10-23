@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { projectApi, ApiClientError } from "@/lib/api/client";
 import ProjectForm, {
-  customDocTypeId,
+  customDocTypeIds,
   type ProjectFormData,
   type SupportingFileNew,
 } from "@/components/features/project/project-form";
@@ -36,15 +36,15 @@ export default function CreateProjectPage() {
       const p2Docs = formData.selectedPhase2Docs.map((id) => ({ documentTypeId: id, isRequired: !optSet.has(id) }));
       const p3Docs: { documentTypeId: string; isRequired: boolean }[] = []; // 2-phase system
       // Custom documents added by admin
+      const customIds = customDocTypeIds(formData.customDocuments);
       const customDocs = formData.customDocuments
-        .filter((d) => normalizeRichText(d.name))
-        .map((d) => ({
-          documentTypeId: customDocTypeId(d.name),
+        .flatMap((d, i) => customIds[i] ? [{
+          documentTypeId: customIds[i]!,
           name: normalizeRichText(d.name),
           phase: d.phase,
           isRequired: d.required !== false,
           description: normalizeRichText(d.description),
-        }));
+        }] : []);
       const pics = Object.entries(formData.picAssignments)
         .filter(([, userId]) => userId)
         .map(([role, userId]) => {
@@ -137,10 +137,8 @@ export default function CreateProjectPage() {
 
         // Build mapping from custom_N index keys to actual document type IDs
         const customDocIdMap: Record<string, string> = {};
-        formData.customDocuments.forEach((d, i) => {
-          if (normalizeRichText(d.name)) {
-            customDocIdMap[`custom_${i}`] = customDocTypeId(d.name);
-          }
+        customIds.forEach((docTypeId, i) => {
+          if (docTypeId) customDocIdMap[`custom_${i}`] = docTypeId;
         });
 
         const freshToken = typeof window !== "undefined" ? localStorage.getItem("ptba_access_token") : accessToken;

@@ -9,7 +9,7 @@ import { projectApi, api, ApiClientError } from "@/lib/api/client";
 import { getLockedSections } from "@/lib/utils/edit-restrictions";
 import { normalizeRichText } from "@/lib/utils/rich-text";
 import ProjectForm, {
-  customDocTypeId,
+  customDocTypeIds,
   type ProjectFormData,
   type SupportingFileExisting,
 } from "@/components/features/project/project-form";
@@ -185,11 +185,12 @@ export default function EditProjectPage({
 
       // Update required documents (phase1 + phase2 + phase3 + custom)
       const optSet = new Set(formData.optionalDocIds || []);
+      const customIds = customDocTypeIds(formData.customDocuments);
       const allDocs: { documentTypeId: string; name?: string; phase: string; isRequired: boolean }[] = [
         ...formData.selectedPhase1Docs.map((docId) => ({ documentTypeId: docId, phase: "phase1", isRequired: !optSet.has(docId) })),
         ...formData.selectedPhase2Docs.map((docId) => ({ documentTypeId: docId, phase: "phase2", isRequired: !optSet.has(docId) })),
         // Phase 3 docs removed — 2-phase system
-        ...formData.customDocuments.filter((d) => normalizeRichText(d.name)).map((d) => ({ documentTypeId: d.id || customDocTypeId(d.name), name: normalizeRichText(d.name), phase: d.phase, isRequired: d.required !== false, description: normalizeRichText(d.description) })),
+        ...formData.customDocuments.flatMap((d, i) => customIds[i] ? [{ documentTypeId: customIds[i]!, name: normalizeRichText(d.name), phase: d.phase, isRequired: d.required !== false, description: normalizeRichText(d.description) }] : []),
       ];
       await projectApi(accessToken).updateRequiredDocuments(id, allDocs);
 
@@ -267,11 +268,9 @@ export default function EditProjectPage({
 
         // Build mapping from custom_N index keys to actual document type IDs
         const customDocIdMap: Record<string, string> = {};
-        formData.customDocuments.forEach((d, i) => {
-          if (normalizeRichText(d.name)) {
-            // Must match the documentTypeId format used when saving required docs
-            customDocIdMap[`custom_${i}`] = d.id || customDocTypeId(d.name);
-          }
+        customIds.forEach((docTypeId, i) => {
+          // Same ids used when saving required docs
+          if (docTypeId) customDocIdMap[`custom_${i}`] = docTypeId;
         });
 
         // Get fresh token (accessToken may have expired during save)

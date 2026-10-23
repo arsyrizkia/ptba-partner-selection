@@ -10,13 +10,31 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { authApi } from "@/lib/api/client";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { RichText } from "@/components/ui/rich-text";
-import { richTextToPlain } from "@/lib/utils/rich-text";
+import { normalizeRichText, richTextToPlain } from "@/lib/utils/rich-text";
 import type { UserRole } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────
 /** documentTypeId for a custom document, from its (rich-text) name */
 export function customDocTypeId(name: string): string {
   return `custom_${richTextToPlain(name).replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase()}`;
+}
+
+/**
+ * documentTypeIds for the form's custom documents, by index (null for a blank name).
+ * Saved docs keep their stored id; a new doc gets the slug of its name, suffixed
+ * _2, _3, … when another doc already uses it (e.g. a renamed doc keeping its old slug).
+ */
+export function customDocTypeIds(docs: { id?: string; name: string }[]): (string | null)[] {
+  const taken = new Set(docs.filter((d) => d.id && normalizeRichText(d.name)).map((d) => d.id!));
+  return docs.map((d) => {
+    if (!normalizeRichText(d.name)) return null;
+    if (d.id) return d.id;
+    const base = customDocTypeId(d.name);
+    let id = base;
+    for (let n = 2; taken.has(id); n++) id = `${base}_${n}`;
+    taken.add(id);
+    return id;
+  });
 }
 
 const STEPS = [
