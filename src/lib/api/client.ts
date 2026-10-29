@@ -78,6 +78,21 @@ function forceLogout() {
   window.location.href = "/login";
 }
 
+const RATE_LIMIT_RETRIES = 3;
+
+// nginx rate-limits /api/ per IP and rejects the request before it reaches the
+// API, so a 429 is safe to retry. Pages that fan out many requests at once
+// would otherwise render as if the data did not exist. Auth endpoints are
+// excluded: their 429 is a deliberate login-attempt limit.
+async function fetchRetryingRateLimit(url: string, init: RequestInit): Promise<Response> {
+  const retry = !url.includes("/auth/");
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, init);
+    if (res.status !== 429 || !retry || attempt >= RATE_LIMIT_RETRIES) return res;
+    await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt + Math.random() * 500));
+  }
+}
+
 async function rawFetch<T>(path: string, options: ApiOptions): Promise<T> {
   const { method = "GET", body, token } = options;
 
@@ -89,16 +104,15 @@ async function rawFetch<T>(path: string, options: ApiOptions): Promise<T> {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetchRetryingRateLimit(`${API_BASE}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
-
   if (!res.ok) {
-    const errData = data as Record<string, unknown>;
+    // nginx error pages (e.g. 429, 502) are HTML, not JSON
+    const errData = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     throw new ApiClientError(
       (errData.error as string) || "Terjadi kesalahan",
       res.status,
@@ -107,7 +121,7 @@ async function rawFetch<T>(path: string, options: ApiOptions): Promise<T> {
     );
   }
 
-  return data as T;
+  return (await res.json()) as T;
 }
 
 export async function api<T = unknown>(
@@ -153,7 +167,7 @@ export async function fetchWithAuth(
       ? url
       : `${API_BASE}${url}`;
   const doFetch = (t: string) =>
-    fetch(resolvedUrl, {
+    fetchRetryingRateLimit(resolvedUrl, {
       ...fetchOpts,
       headers: { ...fetchOpts.headers as Record<string, string>, Authorization: `Bearer ${t}` },
     });
