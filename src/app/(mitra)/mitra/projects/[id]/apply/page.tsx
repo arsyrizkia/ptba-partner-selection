@@ -15,6 +15,7 @@ import { PHASE1_DOCUMENT_TYPES, DOCUMENT_TYPES } from "@/lib/constants/document-
 import { useTranslations } from "next-intl";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { downloadDocument } from "@/lib/api/client";
+import { useMitraPreview } from "@/lib/hooks/use-mitra-preview";
 import { UploadConfirmDialog } from "@/components/ui/upload-confirm-dialog";
 import { RichText } from "@/components/ui/rich-text";
 import { richTextToPlain } from "@/lib/utils/rich-text";
@@ -347,6 +348,7 @@ export default function MitraProjectApplyPage() {
   const params = useParams();
   const { user, accessToken } = useAuth();
   const projectId = params.id as string;
+  const { isPreview, previewAppId, withPreview } = useMitraPreview();
 
   const t = useTranslations("apply");
   const tc = useTranslations("common");
@@ -485,9 +487,12 @@ export default function MitraProjectApplyPage() {
     if (!accessToken) return;
     setLoading(true);
     try {
+      // Preview mode (PIC "Lihat sebagai Mitra"): use the previewed mitra's application id
       const [projRes, appRes] = await Promise.all([
         projectApi(accessToken).getById(projectId),
-        api<{ applications: any[] }>("/applications", { token: accessToken }),
+        previewAppId
+          ? Promise.resolve({ applications: [{ id: previewAppId, project_id: projectId }] })
+          : api<{ applications: any[] }>("/applications", { token: accessToken }),
       ]);
       setProject(projRes.data);
       const existingBasic = (appRes.applications || []).find((a: any) => a.project_id === projectId);
@@ -502,6 +507,7 @@ export default function MitraProjectApplyPage() {
           // Fall back to basic if detail fails
         }
       }
+      if (previewAppId && existing?.project_id !== projectId) existing = undefined;
       setApplication(existing || null);
 
       // Restore uploaded documents from server
@@ -551,8 +557,10 @@ export default function MitraProjectApplyPage() {
       }
 
       // Load partner profile — only use as defaults when no draft data exists
-      if (user?.partnerId) {
-        const p = await partnerApi(accessToken).getById(user.partnerId);
+      // (in preview mode, the previewed mitra's profile)
+      const partnerId = previewAppId ? existing?.partner_id : user?.partnerId;
+      if (partnerId) {
+        const p = await partnerApi(accessToken).getById(partnerId);
         setPartner(p);
         const hasDraft = !!existing?.form_data;
         const fd = hasDraft ? (typeof existing.form_data === "string" ? JSON.parse(existing.form_data) : existing.form_data) : null;
@@ -592,7 +600,7 @@ export default function MitraProjectApplyPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, accessToken, user?.partnerId]);
+  }, [projectId, accessToken, user?.partnerId, previewAppId]);
 
   useEffect(() => {
     fetchData();
@@ -996,8 +1004,8 @@ export default function MitraProjectApplyPage() {
     }));
   };
 
-  // Read-only mode: form already submitted
-  const readOnly = !!(application && application.status !== "Draft");
+  // Read-only mode: form already submitted, or PIC preview
+  const readOnly = isPreview || !!(application && application.status !== "Draft");
 
   // Helper to get file_key for a document type (for download in readOnly mode)
   const getDocFileKey = (docTypeId: string): string | undefined => {
@@ -1078,7 +1086,7 @@ export default function MitraProjectApplyPage() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => router.push(`/mitra/projects/${projectId}`)} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
+      <button onClick={() => router.push(withPreview(`/mitra/projects/${projectId}`))} className="inline-flex items-center gap-1.5 text-sm text-ptba-steel-blue hover:text-ptba-navy">
         <ArrowLeft className="h-4 w-4" /> {tc("backToProjectDetail")}
       </button>
 

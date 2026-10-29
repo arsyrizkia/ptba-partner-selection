@@ -120,6 +120,8 @@ export default function MitraProjectDetailPage() {
   const isPhase3 = false; // 2-phase system — Phase 3 removed
   const isShortlisted = application?.status === "Shortlisted";
   const isPassedPhase2 = application?.status === "Diterima" || application?.status === "Terpilih";
+  // Phase 2 documents submitted and awaiting evaluation
+  const isPhase2Submitted = application?.phase === "phase2" && application?.status === "Dikirim";
   // Mitra yang gagal (Tidak Lolos / Ditolak) tidak boleh melihat FAQ
   const isFailed = application?.phase1_result === "Tidak Lolos" || application?.status === "Ditolak";
   const canAccessPhase2 = isShortlisted && isPhase2;
@@ -512,10 +514,8 @@ export default function MitraProjectDetailPage() {
 
               <div className="mt-3 space-y-2">
                 <button
-                  onClick={() => router.push(`/mitra/projects/${projectId}/apply`)}
-                  disabled={isPreview}
-                  title={isPreview ? "Tidak tersedia dalam mode pratinjau" : undefined}
-                  className="w-full rounded-lg border disabled:cursor-not-allowed disabled:opacity-50 border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
+                  onClick={() => router.push(withPreview(`/mitra/projects/${projectId}/apply`))}
+                  className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
                 >
                   {locale === "en" ? "View Submission" : "Lihat Pendaftaran"}
                 </button>
@@ -527,7 +527,7 @@ export default function MitraProjectDetailPage() {
                     {t("continueToPhase2")}
                   </button>
                 )}
-                {isPassedPhase2 && (
+                {(isPhase2Submitted || isPassedPhase2) && (
                   <button
                     onClick={() => router.push(withPreview(`/mitra/projects/${projectId}/phase2`))}
                     className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"

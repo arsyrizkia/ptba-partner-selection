@@ -13,7 +13,7 @@ import PopupBanner from "@/components/features/popup-banner";
 import { MitraIntlProvider } from "@/components/providers/mitra-intl-provider";
 
 // Mitra pages an internal PIC may open in read-only preview mode
-const PREVIEW_PATH = /^\/mitra\/projects\/([^/]+)(\/phase2)?\/?$/;
+const PREVIEW_PATH = /^\/mitra\/projects\/([^/]+)(\/phase2|\/apply)?\/?$/;
 
 function PreviewBanner({ projectId, applicationId }: { projectId: string; applicationId: string }) {
   const pathname = usePathname();
@@ -28,6 +28,7 @@ function PreviewBanner({ projectId, applicationId }: { projectId: string; applic
   }, [applicationId, accessToken]);
 
   const isPhase2 = pathname.endsWith("/phase2");
+  const isPhase1 = pathname.endsWith("/apply");
   const q = `?preview=${encodeURIComponent(applicationId)}`;
 
   return (
@@ -41,9 +42,15 @@ function PreviewBanner({ projectId, applicationId }: { projectId: string; applic
         <div className="flex items-center gap-1 rounded-lg bg-white/10 p-1 text-xs font-medium">
           <Link
             href={`/mitra/projects/${projectId}${q}`}
-            className={cn("rounded-md px-3 py-1.5 transition-colors", !isPhase2 ? "bg-white text-ptba-navy" : "hover:bg-white/10")}
+            className={cn("rounded-md px-3 py-1.5 transition-colors", !isPhase1 && !isPhase2 ? "bg-white text-ptba-navy" : "hover:bg-white/10")}
           >
             Detail Proyek
+          </Link>
+          <Link
+            href={`/mitra/projects/${projectId}/apply${q}`}
+            className={cn("rounded-md px-3 py-1.5 transition-colors", isPhase1 ? "bg-white text-ptba-navy" : "hover:bg-white/10")}
+          >
+            Fase 1
           </Link>
           <Link
             href={`/mitra/projects/${projectId}/phase2${q}`}
