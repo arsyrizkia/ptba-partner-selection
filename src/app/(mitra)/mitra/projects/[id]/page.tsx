@@ -505,11 +505,32 @@ export default function MitraProjectDetailPage() {
                   application.status === "Shortlisted" ? "text-green-700" :
                   application.status === "Ditolak" ? "text-ptba-red" : "text-ptba-steel-blue"
                 )}>
-                  {tc(`status.${application.status}`)}
+                  {isPhase2Submitted
+                    ? (locale === "en" ? "Phase 2 Documents Submitted" : "Dokumen Fase 2 Dikirim")
+                    : tc(`status.${application.status}`)}
                 </p>
-                <p className="mt-1 text-xs text-ptba-gray">
-                  {tc("submitted")}: {new Date(application.applied_at).toLocaleDateString(dateLocale)} {new Date(application.applied_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
-                </p>
+                {(() => {
+                  const fmt = (d: string) => `${new Date(d).toLocaleDateString(dateLocale)} ${new Date(d).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}`;
+                  // Once Phase 2 docs are in, the latest submission is Phase 2 — applied_at is the Phase 1 date
+                  if (application.phase === "phase2") {
+                    const phase2At = application.phase2_submitted_at || application.updated_at;
+                    return (
+                      <>
+                        <p className="mt-1 text-xs text-ptba-gray">
+                          {locale === "en" ? "Phase 2 submitted" : "Fase 2 dikirim"}: {fmt(phase2At)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-ptba-gray/80">
+                          {locale === "en" ? "Phase 1 submitted" : "Fase 1 diajukan"}: {fmt(application.applied_at)}
+                        </p>
+                      </>
+                    );
+                  }
+                  return (
+                    <p className="mt-1 text-xs text-ptba-gray">
+                      {tc("submitted")}: {fmt(application.applied_at)}
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="mt-3 space-y-2">
@@ -517,7 +538,9 @@ export default function MitraProjectDetailPage() {
                   onClick={() => router.push(withPreview(`/mitra/projects/${projectId}/apply`))}
                   className="w-full rounded-lg border border-ptba-navy px-4 py-2 text-sm font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors"
                 >
-                  {locale === "en" ? "View Submission" : "Lihat Pendaftaran"}
+                  {application.phase === "phase2"
+                    ? (locale === "en" ? "View Phase 1 Submission" : "Lihat Pendaftaran Fase 1")
+                    : (locale === "en" ? "View Submission" : "Lihat Pendaftaran")}
                 </button>
                 {canAccessPhase2 && (
                   <button

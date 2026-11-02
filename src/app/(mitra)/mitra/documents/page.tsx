@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { FileText, FolderKanban, Loader2, CheckCircle2, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/auth-context";
-import { api, downloadDocument } from "@/lib/api/client";
+import { api, projectApi, downloadDocument } from "@/lib/api/client";
+import { richTextToPlain } from "@/lib/utils/rich-text";
 import { formatDate } from "@/lib/utils/format";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { useTranslations } from "next-intl";
@@ -227,6 +228,9 @@ export default function MitraDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [application, setApplication] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [phase2Docs, setPhase2Docs] = useState<any[]>([]);
+  // documentTypeId → display name of the project's Phase 2 required documents
+  const [phase2DocNames, setPhase2DocNames] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<any>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -245,13 +249,21 @@ export default function MitraDocumentsPage() {
         const latest = apps[0];
         setApplication(latest);
 
-        const detail = await api<{ application: any }>(`/applications/${latest.id}`, { token: accessToken });
-        const allDocs = [
+        const [detail, projRes] = await Promise.all([
+          api<{ application: any }>(`/applications/${latest.id}`, { token: accessToken }),
+          projectApi(accessToken).getById(latest.project_id).catch(() => null),
+        ]);
+        // Phase 2 docs get their own section; the grouped sections below follow the Phase 1 form
+        setDocuments([
           ...(detail.application.phase1Documents || []),
-          ...(detail.application.phase2Documents || []),
           ...(detail.application.generalDocuments || []),
-        ];
-        setDocuments(allDocs);
+        ]);
+        setPhase2Docs(detail.application.phase2Documents || []);
+        setPhase2DocNames(Object.fromEntries(
+          ((projRes?.data as any)?.requiredDocuments || [])
+            .filter((d: any) => d.phase === "phase2" && d.name)
+            .map((d: any) => [d.documentTypeId, richTextToPlain(d.name)])
+        ));
 
         // Parse form data
         const fd = detail.application.form_data;
@@ -279,7 +291,7 @@ export default function MitraDocumentsPage() {
     );
   }
 
-  if (!application || documents.length === 0) {
+  if (!application || documents.length + phase2Docs.length === 0) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-ptba-charcoal">{t("title")}</h1>
@@ -311,7 +323,7 @@ export default function MitraDocumentsPage() {
             onClick={() => {
               const allCollapsed = Object.keys(expanded).filter(k => k.startsWith("sec_")).every(k => expanded[k] === false);
               const next: Record<string, boolean> = { ...expanded };
-              ["compro", "eoi", "portfolio", "financial", "requirements", "additional"].forEach(id => { next[`sec_${id}`] = allCollapsed; });
+              ["phase2", "compro", "eoi", "portfolio", "financial", "requirements", "additional"].forEach(id => { next[`sec_${id}`] = allCollapsed; });
               setExpanded(next);
             }}
             className="text-xs font-medium text-ptba-steel-blue hover:text-ptba-navy transition-colors"
@@ -320,7 +332,7 @@ export default function MitraDocumentsPage() {
               ? (locale === "en" ? "Expand All" : "Buka Semua")
               : (locale === "en" ? "Collapse All" : "Tutup Semua")}
           </button>
-          <span className="text-sm text-ptba-gray">{documents.length} {tc("documents")}</span>
+          <span className="text-sm text-ptba-gray">{documents.length + phase2Docs.length} {tc("documents")}</span>
         </div>
       </div>
 
@@ -328,8 +340,67 @@ export default function MitraDocumentsPage() {
       <div className="rounded-xl bg-gradient-to-r from-ptba-navy to-ptba-steel-blue p-4 text-white">
         <p className="text-xs text-white/60">{t("project")}</p>
         <p className="font-semibold">{application.project_name}</p>
-        <p className="text-xs text-white/60 mt-1">{t("submittedAt", { date: formatDate(application.applied_at) })} · {tc("status.label")}: {tc(`status.${application.status}`)}</p>
+        <p className="text-xs text-white/60 mt-1">
+          {application.phase === "phase2"
+            ? `${locale === "en" ? "Phase 2 submitted" : "Fase 2 dikirim"}: ${formatDate(application.phase2_submitted_at || application.updated_at)} · ${locale === "en" ? "Phase 1 submitted" : "Fase 1 diajukan"}: ${formatDate(application.applied_at)}`
+            : t("submittedAt", { date: formatDate(application.applied_at) })}
+          {" · "}{tc("status.label")}: {tc(`status.${application.status}`)}
+        </p>
       </div>
+
+      {/* Phase 2 documents */}
+      {phase2Docs.length > 0 && (
+        <div className="rounded-xl bg-white shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setExpanded(prev => ({ ...prev, sec_phase2: !(prev.sec_phase2 ?? true) }))}
+            className="w-full flex items-center justify-between p-4 text-left hover:bg-ptba-section-bg/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-ptba-charcoal">{locale === "en" ? "Phase 2 Documents" : "Dokumen Fase 2"}</h3>
+              <span className="text-[10px] text-ptba-gray bg-ptba-section-bg rounded-full px-2 py-0.5">{phase2Docs.length}</span>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-ptba-gray transition-transform", (expanded.sec_phase2 !== false) && "rotate-180")} />
+          </button>
+          {expanded.sec_phase2 !== false && (
+            <div className="border-t border-ptba-light-gray/50 divide-y divide-ptba-light-gray/30">
+              {phase2Docs.map(doc => {
+                const meta = DOCUMENT_TYPES.find((dt) => dt.id === doc.document_type_id);
+                const docName = phase2DocNames[doc.document_type_id] || meta?.name
+                  || doc.document_type_id.replace(/^custom_/, "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+                return (
+                  <div key={doc.id} className="flex items-center gap-4 px-5 py-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ptba-steel-blue/10">
+                      <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ptba-charcoal truncate" title={docName}>{docName}</p>
+                      <p className="text-[11px] text-ptba-gray mt-0.5 truncate">
+                        {doc.name}{doc.upload_date ? ` · ${t("uploadedAt", { date: formatDate(doc.upload_date) })}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {tc(`status.${doc.status}`)}
+                      </span>
+                      {doc.file_key && (
+                        <button onClick={() => handleView(doc)} className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
+                          <Eye className="h-3 w-3" /> {tc("view")}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {phase2Docs.length > 0 && documents.length > 0 && (
+        <h2 className="pt-2 text-sm font-semibold text-ptba-gray">{locale === "en" ? "Phase 1 Documents" : "Dokumen Fase 1"}</h2>
+      )}
 
       {/* Documents grouped by section */}
       {(() => {

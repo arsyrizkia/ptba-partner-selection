@@ -17,7 +17,6 @@ import {
   Building2,
   FileText,
   Info,
-  BarChart3,
   ExternalLink,
   LockKeyhole,
   Send,
@@ -372,18 +371,134 @@ function DokumenTab({ partners, accessToken, customDocNames }: { partners: any[]
   );
 }
 
-function EvalStatusCell({ done }: { done: boolean }) {
-  if (done) {
-    return (
-      <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium">
-        <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
-      </span>
-    );
-  }
+// A mitra that sent its Phase 2 documents; "Lihat Detail" lists what it
+// uploaded against each Phase 2 required document.
+function Phase2SubmissionCard({
+  partner,
+  accessToken,
+  requiredDocs,
+  actions,
+}: {
+  partner: any;
+  accessToken: string | null;
+  requiredDocs: { id: string; name: string; required: boolean }[];
+  actions?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [docs, setDocs] = useState<any[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    api<{ application: any }>(`/applications/${partner.applicationId}`, { token: accessToken })
+      .then((res) => { if (!cancelled) setDocs(res.application?.phase2Documents || []); })
+      .catch(() => { if (!cancelled) setLoadFailed(true); });
+    return () => { cancelled = true; };
+  }, [accessToken, partner.applicationId]);
+
+  const uploadedByType = new Map((docs || []).filter((d: any) => d.file_key).map((d: any) => [d.document_type_id, d]));
+  const requiredIds = new Set(requiredDocs.map((d) => d.id));
+  const rows = [
+    ...requiredDocs.map((req) => ({ key: req.id, name: req.name, required: req.required, doc: uploadedByType.get(req.id) })),
+    // Uploads whose requirement was removed from the project after the fact
+    ...(docs || [])
+      .filter((d: any) => d.file_key && !requiredIds.has(d.document_type_id))
+      .map((d: any) => ({ key: d.id, name: formatDocTypeLabel(d.document_type_id), required: false, doc: d })),
+  ];
+  const uploadedCount = rows.filter((r) => r.doc).length;
+  const submittedAt = partner.phase2SubmittedAt || partner.updatedAt;
+
   return (
-    <span className="inline-flex items-center gap-1 text-amber-500 text-xs">
-      <Clock className="h-3.5 w-3.5" /> Pending
-    </span>
+    <div className="rounded-xl border-2 border-ptba-light-gray bg-white p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          {partner.logoUrl ? (
+            <img src={partner.logoUrl} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover border border-ptba-light-gray" />
+          ) : (
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ptba-navy text-sm font-bold text-white">
+              {partner.name.charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-ptba-charcoal truncate">{partner.name}</p>
+            <p className="text-xs text-ptba-gray">{partner.code}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                <CheckCircle2 className="h-3 w-3" /> Dokumen Fase 2 Terkirim
+              </span>
+              {submittedAt && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-ptba-section-bg px-2 py-0.5 text-[11px] text-ptba-gray">
+                  <Clock className="h-3 w-3" /> {formatDateTime(submittedAt)}
+                </span>
+              )}
+              {docs && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-ptba-section-bg px-2 py-0.5 text-[11px] text-ptba-gray">
+                  <FileText className="h-3 w-3" /> {uploadedCount}/{rows.length} dokumen
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium bg-ptba-navy text-white hover:bg-ptba-navy/90 transition-colors"
+          >
+            <FileText className="h-3 w-3" /> {open ? "Tutup Detail" : "Lihat Detail"}
+            <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+          </button>
+          {actions}
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-4 border-t border-ptba-light-gray/50 pt-3">
+          {loadFailed ? (
+            <p className="py-3 text-sm text-ptba-red">Gagal memuat dokumen mitra.</p>
+          ) : !docs ? (
+            <div className="flex items-center gap-2 py-3 text-sm text-ptba-gray">
+              <Loader2 className="h-4 w-4 animate-spin" /> Memuat dokumen...
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-3 text-sm text-ptba-gray">Tidak ada dokumen Fase 2 yang dipersyaratkan.</p>
+          ) : (
+            <div className="divide-y divide-ptba-light-gray/40">
+              {rows.map((row, i) => (
+                <div key={row.key} className="flex items-center gap-3 py-2.5">
+                  <span className="w-5 shrink-0 text-xs text-ptba-gray">{i + 1}.</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-ptba-charcoal truncate" title={row.name}>
+                      {row.name}
+                      {row.required && <span className="ml-1 text-ptba-red">*</span>}
+                    </p>
+                    {row.doc ? (
+                      <p className="text-[11px] text-ptba-gray truncate" title={row.doc.name}>
+                        {row.doc.name}{row.doc.upload_date ? ` · Diunggah ${formatDate(row.doc.upload_date)}` : ""}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-ptba-gray">Belum diunggah</p>
+                    )}
+                  </div>
+                  {row.doc ? (
+                    <button
+                      type="button"
+                      onClick={() => { if (accessToken) downloadDocument(row.doc.file_key, accessToken, row.doc.name).catch(() => {}); }}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                    >
+                      <Eye className="h-3 w-3" /> Lihat
+                    </button>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Kosong</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -784,6 +899,8 @@ export default function ProjectDetailPage({
       code: a.partner_id.substring(0, 8),
       status: a.status,
       appliedAt: a.applied_at,
+      updatedAt: a.updated_at,
+      phase2SubmittedAt: a.phase2_submitted_at,
       phase1Result: a.phase1_result,
       phase1Score: undefined,
       hasEvaluation: !!evaluation && evaluation.is_finalized,
@@ -854,6 +971,15 @@ export default function ProjectDetailPage({
     if (role === "super_admin") return `${base}/ebd?partnerId=${partnerId}`;
     return base;
   }
+
+  // Phase 2 required documents, in the order the mitra sees them
+  const phase2RequiredDocs = (project.requiredDocuments || [])
+    .filter((d: any) => d.phase === "phase2")
+    .map((d: any) => ({
+      id: d.documentTypeId,
+      name: richTextToPlain(d.name) || DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId)?.name || formatDocTypeLabel(d.documentTypeId),
+      required: d.isRequired !== false,
+    }));
 
   // Can evaluate: super_admin, or user assigned as PIC for the relevant phase
   const isPhase2Pic = projectPhasePics.some((p: any) => p.phase === "phase2" && p.userId === authUser?.id);
@@ -1727,26 +1853,15 @@ export default function ProjectDetailPage({
       {/* Tab A: Mitra */}
       {activeTab === "mitra" && (
         <div className="rounded-xl bg-white p-5 shadow-sm">
-          {(role === "ebd" || role === "super_admin") && (
-            <div className="mb-4 flex justify-between items-center">
-              <div className="flex gap-2">
-                {isPhase1 && !isPhase1Approved && (
-                  <Link
-                    href={`/projects/${id}/evaluation/phase1`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-steel-blue/10 px-3 py-1.5 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/20 transition-colors"
-                  >
-                    <ShieldCheck className="h-4 w-4" /> Evaluasi Fase 1
-                  </Link>
-                )}
-              </div>
-              {isPhase2 && (
-                <Link
-                  href={`/projects/${id}/ranking`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold/10 px-3 py-1.5 text-sm font-medium text-ptba-gold hover:bg-ptba-gold/20 transition-colors"
-                >
-                  <BarChart3 className="h-4 w-4" /> Lihat Ranking
-                </Link>
-              )}
+          {/* Phase 2 ranking is hidden until Phase 2 scoring exists (the ranking page is still mock data) */}
+          {(role === "ebd" || role === "super_admin") && isPhase1 && !isPhase1Approved && (
+            <div className="mb-4 flex gap-2">
+              <Link
+                href={`/projects/${id}/evaluation/phase1`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-steel-blue/10 px-3 py-1.5 text-sm font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/20 transition-colors"
+              >
+                <ShieldCheck className="h-4 w-4" /> Evaluasi Fase 1
+              </Link>
             </div>
           )}
 
@@ -1976,80 +2091,43 @@ export default function ProjectDetailPage({
             </div>
           )}
 
-          {/* Fase 2 View: Full evaluation matrix — only after Phase 2
-              registration closes (phase2_evaluation onward). */}
-          {isPhase2 && project.phase !== "phase2_registration" && (
-            <div className="overflow-x-auto">
-              <div className="mb-4 flex items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
-                <BarChart3 className="h-4 w-4 text-ptba-steel-blue" />
-                <span className="text-sm font-medium text-ptba-steel-blue">Fase 2: Evaluasi Multi-Divisi</span>
-                <span className="text-xs text-ptba-gray ml-1">— Hanya mitra shortlisted yang ditampilkan</span>
+          {/* Fase 2 after registration closes (phase2_evaluation onward): only
+              mitra that actually sent Phase 2 documents. Per-division scoring
+              isn't built yet, so no Teknis/Keuangan/Hukum/Risiko columns. */}
+          {isPhase2 && project.phase !== "phase2_registration" && (() => {
+            const shortlisted = projectPartners.filter((p) => p.isShortlisted);
+            const phase2Submitters = shortlisted.filter((p) => p.phase === "phase2");
+            const notSubmitted = shortlisted.filter((p) => p.phase !== "phase2");
+            return (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
+                  <FileText className="h-4 w-4 text-ptba-steel-blue" />
+                  <span className="text-sm font-medium text-ptba-steel-blue">Fase 2: Mitra yang Mengirim Dokumen</span>
+                  <span className="text-xs text-ptba-gray ml-1">
+                    — {phase2Submitters.length} dari {shortlisted.length} mitra shortlisted telah mengirim dokumen Fase 2
+                  </span>
+                </div>
+                {phase2Submitters.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-ptba-gray">Belum ada mitra yang mengirim dokumen Fase 2.</p>
+                ) : (
+                  phase2Submitters.map((partner) => (
+                    <Phase2SubmissionCard
+                      key={partner.id}
+                      partner={partner}
+                      accessToken={accessToken}
+                      requiredDocs={phase2RequiredDocs}
+                      actions={<PreviewAsMitraButton applicationId={partner.applicationId} />}
+                    />
+                  ))
+                )}
+                {notSubmitted.length > 0 && (
+                  <p className="text-xs text-ptba-gray">
+                    Tidak mengirim dokumen Fase 2: {notSubmitted.map((p) => p.name).join(", ")}
+                  </p>
+                )}
               </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-ptba-light-gray text-left">
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray">Mitra</th>
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray">Kelengkapan Dok</th>
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray text-center">Teknis</th>
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray text-center">Keuangan</th>
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray text-center">Hukum</th>
-                    <th className="pb-3 pr-4 font-semibold text-ptba-gray text-center">Risiko</th>
-                    <th className="pb-3 font-semibold text-ptba-gray">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projectPartners
-                    .filter((p) => !isPhase2 || p.isShortlisted)
-                    .map((partner) => {
-                      const evalDone =
-                        role === "keuangan" ? partner.hasFinancialEval :
-                        role === "hukum" ? partner.hasLegalEval :
-                        role === "risiko" ? partner.hasRiskEval :
-                        partner.hasTechnicalEval;
-
-                      return (
-                        <tr key={partner.id} className="border-b border-ptba-light-gray/50 last:border-b-0">
-                          <td className="py-3 pr-4">
-                            <div className="font-medium text-ptba-charcoal">{partner.name}</div>
-                            <div className="text-xs text-ptba-gray">{partner.code}</div>
-                            {partner.isShortlisted && (
-                              <span className="inline-flex items-center gap-1 mt-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                                <CheckCircle2 className="h-2.5 w-2.5" /> Shortlisted
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 pr-4">
-                            <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-ptba-light-gray">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full",
-                                    partner.docPct === 100 ? "bg-green-500" :
-                                    partner.docPct >= 70 ? "bg-ptba-steel-blue" : "bg-ptba-gold"
-                                  )}
-                                  style={{ width: `${partner.docPct}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-ptba-gray">{partner.docPct}%</span>
-                            </div>
-                          </td>
-                          <td className="py-3 pr-4 text-center"><EvalStatusCell done={partner.hasTechnicalEval} /></td>
-                          <td className="py-3 pr-4 text-center"><EvalStatusCell done={partner.hasFinancialEval} /></td>
-                          <td className="py-3 pr-4 text-center"><EvalStatusCell done={partner.hasLegalEval} /></td>
-                          <td className="py-3 pr-4 text-center"><EvalStatusCell done={partner.hasRiskEval} /></td>
-                          <td className="py-3">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <EvalActionButton partnerId={partner.id} evalDone={!!evalDone} />
-                              <PreviewAsMitraButton applicationId={partner.applicationId} />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          )}
+            );
+          })()}
 
           {projectPartners.length === 0 && (
             <div className="py-12 text-center">

@@ -145,7 +145,10 @@ export default function MitraDashboardPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-ptba-charcoal truncate">{app.project_name}</p>
                       <p className="text-xs text-ptba-gray mt-0.5">
-                        {t("appliedAt", { date: formatDate(app.applied_at), phase: app.phase === "phase1" ? "1" : "2" })}
+                        {t("appliedAt", {
+                          date: formatDate(app.phase === "phase2" ? (app.phase2_submitted_at || app.updated_at) : app.applied_at),
+                          phase: app.phase === "phase2" ? "2" : "1",
+                        })}
                       </p>
                     </div>
                     <span className={cn(
