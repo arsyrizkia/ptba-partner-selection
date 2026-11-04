@@ -17,6 +17,12 @@ const pageTitleMap: Record<string, string> = {
   "/users": "Pengguna",
 };
 
+// Konsultan only get the project list, the read-only project view and their account
+function isKonsultanPath(pathname: string): boolean {
+  if (pathname === "/projects" || pathname === "/account") return true;
+  return /^\/projects\/[^/]+$/.test(pathname) && pathname !== "/projects/create";
+}
+
 function getPageTitle(pathname: string): string {
   if (pageTitleMap[pathname]) {
     return pageTitleMap[pathname];
@@ -53,10 +59,12 @@ export default function DashboardLayout({
       router.replace("/login");
     } else if (role === "mitra") {
       router.replace("/mitra/dashboard");
+    } else if (role === "konsultan" && !isKonsultanPath(pathname)) {
+      router.replace("/projects");
     }
-  }, [user, role, router]);
+  }, [user, role, router, pathname]);
 
-  if (!user || role === "mitra") {
+  if (!user || role === "mitra" || (role === "konsultan" && !isKonsultanPath(pathname))) {
     return null;
   }
 

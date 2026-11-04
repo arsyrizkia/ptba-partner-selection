@@ -30,6 +30,8 @@ function getRoleBadgeVariant(role: UserRole) {
       return "info" as const;
     case "viewer":
       return "neutral" as const;
+    case "konsultan":
+      return "warning" as const;
     default:
       return "neutral" as const;
   }
@@ -73,6 +75,7 @@ const rbacMatrix: Record<string, boolean[]> = {
   ketua_tim:     [true,  true,  false, true,  true,  true,  true,  false],
   mitra:       [true,  false, false, false, false, true,  false, false],
   viewer:      [true,  false, false, false, false, false, true,  false],
+  konsultan:   [false, true,  false, false, false, false, false, false],
 };
 
 function getStatusBadge(status: string) {
@@ -115,6 +118,7 @@ export default function UsersPage() {
     risiko: "Manajemen Risiko",
     ketua_tim: "Ketua Tim",
     viewer: "Sekretaris Perusahaan",
+    konsultan: "Konsultan Eksternal",
     mitra: "Mitra Eksternal",
   };
 

@@ -6,7 +6,8 @@ export type UserRole =
   | 'risiko'
   | 'ketua_tim'
   | 'mitra'
-  | 'viewer';
+  | 'viewer'
+  | 'konsultan';
 
 export interface User {
   id: string;

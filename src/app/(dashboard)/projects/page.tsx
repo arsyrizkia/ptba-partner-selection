@@ -92,6 +92,7 @@ const STATUS_TABS = ["Semua", "Draft", "Dipublikasikan", "Berjalan", "Menunggu P
 export default function ProjectsPage() {
   const { user, role, accessToken } = useAuth();
   const isEvaluator = EVALUATOR_ROLES.includes(role as typeof EVALUATOR_ROLES[number]);
+  const isKonsultan = role === "konsultan";
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,8 +163,11 @@ export default function ProjectsPage() {
           {isEvaluator && (
             <p className="mt-0.5 text-sm text-ptba-gray">Menampilkan proyek yang memerlukan evaluasi</p>
           )}
+          {isKonsultan && (
+            <p className="mt-0.5 text-sm text-ptba-gray">Proyek yang ditugaskan kepada Anda sebagai konsultan (lihat saja)</p>
+          )}
         </div>
-        {!isEvaluator && (
+        {!isEvaluator && !isKonsultan && (
           <Link
             href="/projects/create"
             className="flex items-center gap-2 rounded-lg bg-ptba-gold px-4 py-2.5 text-sm font-bold text-ptba-charcoal shadow-md hover:bg-ptba-gold-light transition-colors"

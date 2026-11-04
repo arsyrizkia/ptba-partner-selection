@@ -23,7 +23,7 @@ export const NAVIGATION: NavigationItem[] = [
     icon: 'FolderKanban',
     label: 'Proyek',
     href: '/projects',
-    allowedRoles: ['super_admin', 'ebd', 'ketua_tim', 'keuangan', 'hukum', 'risiko'],
+    allowedRoles: ['super_admin', 'ebd', 'ketua_tim', 'keuangan', 'hukum', 'risiko', 'konsultan'],
   },
   {
     icon: 'Users',

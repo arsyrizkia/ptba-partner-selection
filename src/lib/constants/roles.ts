@@ -15,7 +15,8 @@ export const ROLES: RoleDefinition[] = [
   { value: 'ketua_tim', label: 'Ketua Tim', description: 'Persetujuan dan disposisi ketua tim' },
   { value: 'mitra', label: 'Mitra', description: 'Akses portal mitra eksternal' },
   { value: 'viewer', label: 'Viewer / Auditor', description: 'Akses baca saja' },
+  { value: 'konsultan', label: 'Konsultan', description: 'Lihat saja dokumen Fase 2 proyek yang ditugaskan, tanpa unduh' },
 ];
 
-export const INTERNAL_ROLES: UserRole[] = ['super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'ketua_tim', 'viewer'];
-export const ALL_INTERNAL_ROLES: UserRole[] = ['super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'ketua_tim', 'viewer'];
+export const INTERNAL_ROLES: UserRole[] = ['super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'ketua_tim', 'viewer', 'konsultan'];
+export const ALL_INTERNAL_ROLES: UserRole[] = ['super_admin', 'ebd', 'keuangan', 'hukum', 'risiko', 'ketua_tim', 'viewer', 'konsultan'];

@@ -378,6 +378,17 @@ function DokumenTab({ partners, accessToken, customDocNames }: { partners: any[]
   );
 }
 
+// Phase 2 required documents, in the order the mitra sees them
+function toPhase2RequiredDocs(requiredDocuments: any[] | undefined) {
+  return (requiredDocuments || [])
+    .filter((d: any) => d.phase === "phase2")
+    .map((d: any) => ({
+      id: d.documentTypeId,
+      name: richTextToPlain(d.name) || DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId)?.name || formatDocTypeLabel(d.documentTypeId),
+      required: d.isRequired !== false,
+    }));
+}
+
 // A mitra that sent its Phase 2 documents; "Lihat Detail" lists what it
 // uploaded against each Phase 2 required document.
 function Phase2SubmissionCard({
@@ -385,11 +396,14 @@ function Phase2SubmissionCard({
   accessToken,
   requiredDocs,
   actions,
+  readOnly = false,
 }: {
   partner: any;
   accessToken: string | null;
   requiredDocs: { id: string; name: string; required: boolean }[];
   actions?: React.ReactNode;
+  /** Konsultan: preview only, no "Unduh Semua" or per-document "Unduh" */
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState<any[] | null>(null);
@@ -528,7 +542,7 @@ function Phase2SubmissionCard({
             <FileText className="h-3 w-3" /> {open ? "Tutup Detail" : "Lihat Detail"}
             <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
           </button>
-          {uploadedCount > 0 && (
+          {uploadedCount > 0 && !readOnly && (
             <button
               type="button"
               onClick={downloadAll}
@@ -584,13 +598,15 @@ function Phase2SubmissionCard({
                       >
                         <Eye className="h-3 w-3" /> Lihat
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => { if (accessToken) downloadDocument(row.doc.file_key, accessToken, row.doc.name).catch(() => {}); }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                      >
-                        <Download className="h-3 w-3" /> Unduh
-                      </button>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          onClick={() => { if (accessToken) downloadDocument(row.doc.file_key, accessToken, row.doc.name).catch(() => {}); }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                        >
+                          <Download className="h-3 w-3" /> Unduh
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Kosong</span>
@@ -618,6 +634,207 @@ function Phase2SubmissionCard({
   );
 }
 
+// Konsultan see a project as a read-only list of the mitra that sent Phase 2
+// documents; the API only returns those applications and their Phase 2 files
+function KonsultanProjectView({ id }: { id: string }) {
+  const { accessToken } = useAuth();
+  const [project, setProject] = useState<any>(null);
+  const [apps, setApps] = useState<any[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    Promise.all([
+      projectApi(accessToken).getById(id),
+      api<{ applications: any[] }>("/applications", { token: accessToken }),
+    ])
+      .then(([projRes, appRes]) => {
+        if (cancelled) return;
+        setProject(projRes.data);
+        setApps((appRes.applications || []).filter((a: any) => a.project_id === id && a.phase === "phase2"));
+      })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [accessToken, id]);
+
+  if (failed) {
+    return (
+      <div className="rounded-xl bg-white p-12 text-center shadow-sm">
+        <LockKeyhole className="mx-auto mb-3 h-10 w-10 text-ptba-light-gray" />
+        <p className="text-sm text-ptba-gray">Proyek tidak ditemukan atau belum ditugaskan kepada Anda.</p>
+        <Link href="/projects" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-ptba-steel-blue hover:underline">
+          <ArrowLeft className="h-4 w-4" /> Kembali ke daftar proyek
+        </Link>
+      </div>
+    );
+  }
+  if (!project || !apps) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-ptba-steel-blue" />
+      </div>
+    );
+  }
+
+  const requiredDocs = toPhase2RequiredDocs(project.requiredDocuments);
+  const partners = apps.map((a: any) => ({
+    id: a.partner_id,
+    applicationId: a.id,
+    name: a.partner_name,
+    logoUrl: a.partner_logo_url,
+    code: a.partner_id.substring(0, 8),
+    phase2SubmittedAt: a.phase2_submitted_at,
+    updatedAt: a.updated_at,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-ptba-gray hover:text-ptba-navy transition-colors">
+        <ArrowLeft className="h-4 w-4" /> Kembali ke daftar proyek
+      </Link>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h1 className="text-xl font-bold text-ptba-charcoal">{project.name}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-ptba-steel-blue/10 px-2.5 py-0.5 text-xs font-medium text-ptba-steel-blue">
+            <Eye className="h-3 w-3" /> Akses Konsultan · Lihat Saja
+          </span>
+          {project.location && <span className="text-xs text-ptba-gray">{project.location}</span>}
+        </div>
+        <p className="mt-3 text-xs text-ptba-gray">
+          Dokumen mitra hanya dapat dilihat melalui pratinjau dan tidak dapat diunduh.
+        </p>
+      </div>
+
+      <div className="rounded-xl bg-white p-5 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-ptba-steel-blue/5 border border-ptba-steel-blue/20 px-4 py-2.5">
+          <FileText className="h-4 w-4 text-ptba-steel-blue" />
+          <span className="text-sm font-medium text-ptba-steel-blue">Fase 2: Mitra yang Mengirim Dokumen</span>
+          <span className="text-xs text-ptba-gray ml-1">— {partners.length} mitra</span>
+        </div>
+        {partners.length === 0 ? (
+          <p className="py-6 text-center text-sm text-ptba-gray">Belum ada mitra yang mengirim dokumen Fase 2.</p>
+        ) : (
+          partners.map((partner) => (
+            <Phase2SubmissionCard
+              key={partner.applicationId}
+              partner={partner}
+              accessToken={accessToken}
+              requiredDocs={requiredDocs}
+              readOnly
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Admin side: which Konsultan accounts may view this project's Phase 2 documents
+function KonsultanAccessPanel({ projectId, accessToken }: { projectId: string; accessToken: string | null }) {
+  const [data, setData] = useState<{ assigned: any[]; available: any[] } | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    api<{ assigned: any[]; available: any[] }>(`/projects/${projectId}/consultants`, { token: accessToken })
+      .then((res) => { if (!cancelled) setData(res); })
+      .catch(() => { if (!cancelled) setLoadFailed(true); });
+    return () => { cancelled = true; };
+  }, [accessToken, projectId]);
+
+  const save = async (userIds: string[]) => {
+    if (!accessToken) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api<{ assigned: any[]; available: any[] }>(`/projects/${projectId}/consultants`, {
+        method: "PUT",
+        token: accessToken,
+        body: { userIds },
+      });
+      setData(res);
+    } catch (err: any) {
+      setError(err?.message || "Gagal menyimpan akses konsultan");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const assignedIds = (data?.assigned || []).map((u: any) => u.id);
+  const addable = (data?.available || []).filter((u: any) => !assignedIds.includes(u.id));
+
+  return (
+    <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
+      <div className="mb-1 flex items-center gap-2">
+        <Eye className="h-4 w-4 text-ptba-steel-blue" />
+        <h3 className="font-semibold text-ptba-charcoal">Akses Konsultan</h3>
+        {saving && <Loader2 className="h-4 w-4 animate-spin text-ptba-gray" />}
+      </div>
+      <p className="mb-4 text-xs text-ptba-gray">
+        Konsultan hanya dapat melihat daftar mitra dan dokumen Fase 2 proyek ini melalui pratinjau, tanpa bisa mengunduh.
+      </p>
+      {loadFailed ? (
+        <p className="text-sm text-ptba-red">Gagal memuat data konsultan.</p>
+      ) : !data ? (
+        <div className="flex items-center gap-2 text-sm text-ptba-gray"><Loader2 className="h-4 w-4 animate-spin" /> Memuat...</div>
+      ) : (
+        <div className="space-y-3">
+          {data.assigned.length === 0 ? (
+            <p className="text-sm text-ptba-gray italic">Belum ada konsultan yang diberi akses.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {data.assigned.map((u: any) => (
+                <div key={u.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ptba-steel-blue/10">
+                    <Eye className="h-4 w-4 text-ptba-steel-blue" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ptba-charcoal">{u.name}</p>
+                    <p className="truncate text-xs text-ptba-gray">{u.email}</p>
+                    {u.status === "invited" && <p className="text-[10px] text-amber-600">Belum aktivasi akun</p>}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => save(assignedIds.filter((x) => x !== u.id))}
+                    title="Cabut akses"
+                    className="shrink-0 rounded-lg p-1.5 text-ptba-gray hover:bg-red-50 hover:text-ptba-red transition-colors disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.available.length === 0 ? (
+            <p className="text-xs text-ptba-gray">
+              Belum ada akun Konsultan. Buat dulu di Manajemen Pengguna dengan role Konsultan.
+            </p>
+          ) : addable.length > 0 && (
+            <select
+              value=""
+              disabled={saving}
+              onChange={(e) => { if (e.target.value) save([...assignedIds, e.target.value]); }}
+              className="w-full max-w-md rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy disabled:opacity-50"
+            >
+              <option value="">Tambah konsultan...</option>
+              {addable.map((u: any) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+              ))}
+            </select>
+          )}
+          {error && <p className="text-xs text-ptba-red">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type Tab = "mitra" | "dokumen" | "informasi" | "faq" | "riwayat";
 
 export default function ProjectDetailPage({
@@ -626,6 +843,12 @@ export default function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { role } = useAuth();
+  if (role === "konsultan") return <KonsultanProjectView id={id} />;
+  return <AdminProjectDetailPage id={id} />;
+}
+
+function AdminProjectDetailPage({ id }: { id: string }) {
   const { role, accessToken, user: authUser } = useAuth();
   const socket = useSocket(accessToken);
   const router = useRouter();
@@ -1088,14 +1311,7 @@ export default function ProjectDetailPage({
     return base;
   }
 
-  // Phase 2 required documents, in the order the mitra sees them
-  const phase2RequiredDocs = (project.requiredDocuments || [])
-    .filter((d: any) => d.phase === "phase2")
-    .map((d: any) => ({
-      id: d.documentTypeId,
-      name: richTextToPlain(d.name) || DOCUMENT_TYPES.find((dt) => dt.id === d.documentTypeId)?.name || formatDocTypeLabel(d.documentTypeId),
-      required: d.isRequired !== false,
-    }));
+  const phase2RequiredDocs = toPhase2RequiredDocs(project.requiredDocuments);
 
   // Can evaluate: super_admin, or user assigned as PIC for the relevant phase
   const isPhase2Pic = projectPhasePics.some((p: any) => p.phase === "phase2" && p.userId === authUser?.id);
@@ -2611,6 +2827,10 @@ export default function ProjectDetailPage({
               <p className="text-sm text-ptba-gray italic">Belum ada PIC yang ditunjuk.</p>
             )}
           </div>
+
+          {(role === "super_admin" || role === "ebd") && (
+            <KonsultanAccessPanel projectId={id} accessToken={accessToken} />
+          )}
           </div>
 
           {/* Bottom save bar in edit mode */}
