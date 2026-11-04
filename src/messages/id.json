@@ -23,6 +23,7 @@
     "view": "Lihat",
     "preview": "Pratinjau",
     "previewUnavailable": "Pratinjau tidak tersedia untuk jenis file ini. Silakan unduh untuk membukanya.",
+    "previewUnavailableViewOnly": "Pratinjau tidak tersedia untuk jenis file ini.",
     "previewFailed": "Gagal memuat dokumen.",
     "uploadConfirmTitle": "Konfirmasi Unggah Dokumen",
     "uploadConfirmMessage": "Apakah Anda yakin dokumen yang Anda unggah sudah benar?",

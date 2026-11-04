@@ -23,6 +23,7 @@
     "view": "View",
     "preview": "Preview",
     "previewUnavailable": "Preview isn't available for this file type. Download it to open.",
+    "previewUnavailableViewOnly": "Preview isn't available for this file type.",
     "previewFailed": "Failed to load the document.",
     "uploadConfirmTitle": "Confirm Document Upload",
     "uploadConfirmMessage": "Are you sure you have uploaded the correct document?",

@@ -55,6 +55,7 @@ import { useSocket } from "@/lib/hooks/use-socket";
 import { api, projectApi, authApi, downloadDocument, fetchWithAuth, sendDraftReminder } from "@/lib/api/client";
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
+import { FilePreviewOverlay } from "@/components/ui/file-preview-overlay";
 
 
 const QA_DOC_TYPES = [
@@ -387,6 +388,8 @@ function Phase2SubmissionCard({
   const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState<any[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -406,8 +409,61 @@ function Phase2SubmissionCard({
       .filter((d: any) => d.file_key && !requiredIds.has(d.document_type_id))
       .map((d: any) => ({ key: d.id, name: formatDocTypeLabel(d.document_type_id), required: false, doc: d })),
   ];
-  const uploadedCount = rows.filter((r) => r.doc).length;
+  const uploadedRows = rows.filter((r) => r.doc);
+  const uploadedCount = uploadedRows.length;
   const submittedAt = partner.phase2SubmittedAt || partner.updatedAt;
+
+  // Uploaded documents in list order, browsable left/right in the preview
+  const previewItems = uploadedRows.map((r) => ({ fileKey: r.doc.file_key, fileName: r.doc.name || r.name, title: r.name }));
+  const openPreview = (fileKey: string) => {
+    const index = previewItems.findIndex((p) => p.fileKey === fileKey);
+    if (index !== -1) setPreviewIndex(index);
+  };
+  const closePreview = useCallback(() => setPreviewIndex(null), []);
+  const getFileUrl = useCallback(async (fileKey: string) => {
+    const res = await api<{ url: string }>(`/documents/download/${encodeURIComponent(fileKey)}`, { token: accessToken! });
+    return res.url;
+  }, [accessToken]);
+
+  // Same as "Unduh Semua Dokumen" in Phase 1: every uploaded file in one zip,
+  // numbered in list order so files with the same requirement name don't collide
+  const downloadAll = async () => {
+    if (!accessToken || uploadedCount === 0) return;
+    setDownloadingZip(true);
+    let failed = 0;
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      for (const [i, row] of uploadedRows.entries()) {
+        try {
+          const fileKey: string = row.doc.file_key;
+          const url = await getFileUrl(fileKey);
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(String(res.status));
+          const ext = fileKey.split(".").pop() || "pdf";
+          const base = row.name.replace(/[\\/:*?"<>|\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "Dokumen";
+          zip.file(`${String(i + 1).padStart(2, "0")}_${base}.${ext}`, await res.blob());
+        } catch {
+          failed++;
+        }
+      }
+      if (failed === uploadedCount) throw new Error("all failed");
+      const content = await zip.generateAsync({ type: "blob" });
+      const href = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `Dokumen_Fase2_${(partner.name || "Mitra").replace(/[^a-zA-Z0-9]+/g, "_")}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(href);
+      if (failed > 0) alert(`${failed} dokumen gagal diunduh dan tidak masuk ke file zip.`);
+    } catch {
+      alert("Gagal mengunduh dokumen. Silakan coba lagi.");
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
 
   return (
     <div className="rounded-xl border-2 border-ptba-light-gray bg-white p-5">
@@ -449,6 +505,17 @@ function Phase2SubmissionCard({
             <FileText className="h-3 w-3" /> {open ? "Tutup Detail" : "Lihat Detail"}
             <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
           </button>
+          {uploadedCount > 0 && (
+            <button
+              type="button"
+              onClick={downloadAll}
+              disabled={downloadingZip}
+              className="inline-flex items-center gap-1 rounded border border-ptba-navy px-2.5 py-1 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50"
+            >
+              {downloadingZip ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+              {downloadingZip ? "Mengunduh..." : `Unduh Semua (${uploadedCount})`}
+            </button>
+          )}
           {actions}
         </div>
       </div>
@@ -482,13 +549,22 @@ function Phase2SubmissionCard({
                     )}
                   </div>
                   {row.doc ? (
-                    <button
-                      type="button"
-                      onClick={() => { if (accessToken) downloadDocument(row.doc.file_key, accessToken, row.doc.name).catch(() => {}); }}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
-                    >
-                      <Eye className="h-3 w-3" /> Lihat
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openPreview(row.doc.file_key)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-ptba-steel-blue/40 px-2.5 py-1.5 text-xs font-medium text-ptba-steel-blue hover:bg-ptba-steel-blue/5 transition-colors"
+                      >
+                        <Eye className="h-3 w-3" /> Lihat
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { if (accessToken) downloadDocument(row.doc.file_key, accessToken, row.doc.name).catch(() => {}); }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-ptba-light-gray px-2.5 py-1.5 text-xs font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors"
+                      >
+                        <Download className="h-3 w-3" /> Unduh
+                      </button>
+                    </div>
                   ) : (
                     <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Kosong</span>
                   )}
@@ -497,6 +573,17 @@ function Phase2SubmissionCard({
             </div>
           )}
         </div>
+      )}
+
+      {previewIndex !== null && previewItems[previewIndex] && (
+        <FilePreviewOverlay
+          items={previewItems}
+          index={previewIndex}
+          onIndexChange={setPreviewIndex}
+          onClose={closePreview}
+          getUrl={getFileUrl}
+          allowDownload={false}
+        />
       )}
     </div>
   );

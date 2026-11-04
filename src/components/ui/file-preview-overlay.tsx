@@ -19,12 +19,14 @@ interface FilePreviewOverlayProps {
   onClose: () => void;
   /** Resolves a file key to a viewable (presigned) URL */
   getUrl: (fileKey: string) => Promise<string>;
+  /** When false, the viewer is view-only: no download buttons and no PDF toolbar */
+  allowDownload?: boolean;
 }
 
 const SWIPE_THRESHOLD = 50;
 
 // Full-screen dark viewer for PDFs and images, with prev/next between items
-export function FilePreviewOverlay({ items, index, onIndexChange, onClose, getUrl }: FilePreviewOverlayProps) {
+export function FilePreviewOverlay({ items, index, onIndexChange, onClose, getUrl, allowDownload = true }: FilePreviewOverlayProps) {
   const tc = useTranslations("common");
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [failed, setFailed] = useState<Record<string, boolean>>({});
@@ -92,15 +94,17 @@ export function FilePreviewOverlay({ items, index, onIndexChange, onClose, getUr
         {items.length > 1 && (
           <span className="shrink-0 text-xs text-white/60">{index + 1} / {items.length}</span>
         )}
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={!url}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium hover:bg-white/20 disabled:opacity-50 transition-colors"
-        >
-          <Download className="h-3.5 w-3.5" />
-          {tc("download")}
-        </button>
+        {allowDownload && (
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={!url}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium hover:bg-white/20 disabled:opacity-50 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {tc("download")}
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -128,22 +132,25 @@ export function FilePreviewOverlay({ items, index, onIndexChange, onClose, getUr
         ) : !url ? (
           <Loader2 className="h-8 w-8 animate-spin text-white/70" />
         ) : isPdf ? (
-          <iframe key={url} src={url} title={item.fileName} className="h-full w-full max-w-5xl rounded bg-white" />
+          // toolbar=0 hides the browser PDF viewer's own download/print bar (Chrome/Edge)
+          <iframe key={url} src={allowDownload ? url : `${url}#toolbar=0&navpanes=0`} title={item.fileName} className="h-full w-full max-w-5xl rounded bg-white" />
         ) : isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={item.fileName} className="max-h-full max-w-full object-contain" />
         ) : (
           <div className="flex max-w-sm flex-col items-center gap-4 text-center text-white/80">
             <FileText className="h-12 w-12 text-white/50" />
-            <p className="text-sm">{tc("previewUnavailable")}</p>
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              {tc("download")}
-            </button>
+            <p className="text-sm">{tc(allowDownload ? "previewUnavailable" : "previewUnavailableViewOnly")}</p>
+            {allowDownload && (
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-gold px-4 py-2 text-sm font-semibold text-ptba-navy hover:bg-ptba-gold/90 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                {tc("download")}
+              </button>
+            )}
           </div>
         )}
 
