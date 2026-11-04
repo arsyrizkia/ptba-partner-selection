@@ -56,6 +56,12 @@ import { api, projectApi, authApi, downloadDocument, fetchWithAuth, sendDraftRem
 import { PROJECT_STEPS, PHASE1_STEPS, PHASE2_STEPS, PHASE3_STEPS } from "@/lib/constants/project-steps";
 import { DOCUMENT_TYPES } from "@/lib/constants/document-types";
 import { FilePreviewOverlay } from "@/components/ui/file-preview-overlay";
+import { NextIntlClientProvider } from "next-intl";
+import idMessages from "@/messages/id.json";
+
+// The admin area has no next-intl provider (only mitra pages do), and
+// FilePreviewOverlay reads its labels through useTranslations("common")
+const PREVIEW_MESSAGES = { common: idMessages.common };
 
 
 const QA_DOC_TYPES = [
@@ -390,6 +396,8 @@ function Phase2SubmissionCard({
   const [loadFailed, setLoadFailed] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  // Files fetched so far while building the zip; "zipping" once all are in
+  const [zipProgress, setZipProgress] = useState<{ done: number; total: number; zipping?: boolean } | null>(null);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -430,24 +438,38 @@ function Phase2SubmissionCard({
   const downloadAll = async () => {
     if (!accessToken || uploadedCount === 0) return;
     setDownloadingZip(true);
+    const total = uploadedRows.length;
+    let done = 0;
     let failed = 0;
+    setZipProgress({ done, total });
     try {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
-      for (const [i, row] of uploadedRows.entries()) {
-        try {
-          const fileKey: string = row.doc.file_key;
-          const url = await getFileUrl(fileKey);
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(String(res.status));
-          const ext = fileKey.split(".").pop() || "pdf";
-          const base = row.name.replace(/[\\/:*?"<>|\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "Dokumen";
-          zip.file(`${String(i + 1).padStart(2, "0")}_${base}.${ext}`, await res.blob());
-        } catch {
-          failed++;
+      // A mitra can have ~50 files and 100+ MB, so fetch a few at a time
+      // instead of one by one, and report progress so the button doesn't look stuck
+      let next = 0;
+      const worker = async () => {
+        while (next < total) {
+          const i = next++;
+          const row = uploadedRows[i];
+          try {
+            const fileKey: string = row.doc.file_key;
+            const url = await getFileUrl(fileKey);
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(String(res.status));
+            const ext = fileKey.split(".").pop() || "pdf";
+            const base = row.name.replace(/[\\/:*?"<>|\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80) || "Dokumen";
+            zip.file(`${String(i + 1).padStart(2, "0")}_${base}.${ext}`, await res.blob());
+          } catch {
+            failed++;
+          }
+          done++;
+          setZipProgress({ done, total });
         }
-      }
-      if (failed === uploadedCount) throw new Error("all failed");
+      };
+      await Promise.all(Array.from({ length: Math.min(4, total) }, worker));
+      if (failed === total) throw new Error("all failed");
+      setZipProgress({ done, total, zipping: true });
       const content = await zip.generateAsync({ type: "blob" });
       const href = URL.createObjectURL(content);
       const a = document.createElement("a");
@@ -456,12 +478,13 @@ function Phase2SubmissionCard({
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(href);
+      setTimeout(() => URL.revokeObjectURL(href), 10000);
       if (failed > 0) alert(`${failed} dokumen gagal diunduh dan tidak masuk ke file zip.`);
     } catch {
       alert("Gagal mengunduh dokumen. Silakan coba lagi.");
     } finally {
       setDownloadingZip(false);
+      setZipProgress(null);
     }
   };
 
@@ -513,7 +536,11 @@ function Phase2SubmissionCard({
               className="inline-flex items-center gap-1 rounded border border-ptba-navy px-2.5 py-1 text-xs font-medium text-ptba-navy hover:bg-ptba-navy/5 transition-colors disabled:opacity-50"
             >
               {downloadingZip ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-              {downloadingZip ? "Mengunduh..." : `Unduh Semua (${uploadedCount})`}
+              {!downloadingZip
+                ? `Unduh Semua (${uploadedCount})`
+                : zipProgress?.zipping
+                  ? "Menyusun zip..."
+                  : `Mengunduh ${zipProgress?.done ?? 0}/${zipProgress?.total ?? uploadedCount}...`}
             </button>
           )}
           {actions}
@@ -576,14 +603,16 @@ function Phase2SubmissionCard({
       )}
 
       {previewIndex !== null && previewItems[previewIndex] && (
-        <FilePreviewOverlay
-          items={previewItems}
-          index={previewIndex}
-          onIndexChange={setPreviewIndex}
-          onClose={closePreview}
-          getUrl={getFileUrl}
-          allowDownload={false}
-        />
+        <NextIntlClientProvider locale="id" messages={PREVIEW_MESSAGES} timeZone="Asia/Jakarta">
+          <FilePreviewOverlay
+            items={previewItems}
+            index={previewIndex}
+            onIndexChange={setPreviewIndex}
+            onClose={closePreview}
+            getUrl={getFileUrl}
+            allowDownload={false}
+          />
+        </NextIntlClientProvider>
       )}
     </div>
   );
