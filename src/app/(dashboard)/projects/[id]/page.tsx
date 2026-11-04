@@ -731,110 +731,6 @@ function KonsultanProjectView({ id }: { id: string }) {
   );
 }
 
-// Admin side: which Konsultan accounts may view this project's Phase 2 documents
-function KonsultanAccessPanel({ projectId, accessToken }: { projectId: string; accessToken: string | null }) {
-  const [data, setData] = useState<{ assigned: any[]; available: any[] } | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    api<{ assigned: any[]; available: any[] }>(`/projects/${projectId}/consultants`, { token: accessToken })
-      .then((res) => { if (!cancelled) setData(res); })
-      .catch(() => { if (!cancelled) setLoadFailed(true); });
-    return () => { cancelled = true; };
-  }, [accessToken, projectId]);
-
-  const save = async (userIds: string[]) => {
-    if (!accessToken) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await api<{ assigned: any[]; available: any[] }>(`/projects/${projectId}/consultants`, {
-        method: "PUT",
-        token: accessToken,
-        body: { userIds },
-      });
-      setData(res);
-    } catch (err: any) {
-      setError(err?.message || "Gagal menyimpan akses konsultan");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const assignedIds = (data?.assigned || []).map((u: any) => u.id);
-  const addable = (data?.available || []).filter((u: any) => !assignedIds.includes(u.id));
-
-  return (
-    <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
-      <div className="mb-1 flex items-center gap-2">
-        <Eye className="h-4 w-4 text-ptba-steel-blue" />
-        <h3 className="font-semibold text-ptba-charcoal">Akses Konsultan</h3>
-        {saving && <Loader2 className="h-4 w-4 animate-spin text-ptba-gray" />}
-      </div>
-      <p className="mb-4 text-xs text-ptba-gray">
-        Konsultan hanya dapat melihat daftar mitra dan dokumen Fase 2 proyek ini melalui pratinjau, tanpa bisa mengunduh.
-      </p>
-      {loadFailed ? (
-        <p className="text-sm text-ptba-red">Gagal memuat data konsultan.</p>
-      ) : !data ? (
-        <div className="flex items-center gap-2 text-sm text-ptba-gray"><Loader2 className="h-4 w-4 animate-spin" /> Memuat...</div>
-      ) : (
-        <div className="space-y-3">
-          {data.assigned.length === 0 ? (
-            <p className="text-sm text-ptba-gray italic">Belum ada konsultan yang diberi akses.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {data.assigned.map((u: any) => (
-                <div key={u.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ptba-steel-blue/10">
-                    <Eye className="h-4 w-4 text-ptba-steel-blue" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ptba-charcoal">{u.name}</p>
-                    <p className="truncate text-xs text-ptba-gray">{u.email}</p>
-                    {u.status === "invited" && <p className="text-[10px] text-amber-600">Belum aktivasi akun</p>}
-                  </div>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => save(assignedIds.filter((x) => x !== u.id))}
-                    title="Cabut akses"
-                    className="shrink-0 rounded-lg p-1.5 text-ptba-gray hover:bg-red-50 hover:text-ptba-red transition-colors disabled:opacity-50"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {data.available.length === 0 ? (
-            <p className="text-xs text-ptba-gray">
-              Belum ada akun Konsultan. Buat dulu di Manajemen Pengguna dengan role Konsultan.
-            </p>
-          ) : addable.length > 0 && (
-            <select
-              value=""
-              disabled={saving}
-              onChange={(e) => { if (e.target.value) save([...assignedIds, e.target.value]); }}
-              className="w-full max-w-md rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy disabled:opacity-50"
-            >
-              <option value="">Tambah konsultan...</option>
-              {addable.map((u: any) => (
-                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-              ))}
-            </select>
-          )}
-          {error && <p className="text-xs text-ptba-red">{error}</p>}
-        </div>
-      )}
-    </div>
-  );
-}
-
 type Tab = "mitra" | "dokumen" | "informasi" | "faq" | "riwayat";
 
 export default function ProjectDetailPage({
@@ -898,6 +794,20 @@ function AdminProjectDetailPage({ id }: { id: string }) {
   const [picUsers, setPicUsers] = useState<{ id: string; name: string; role: string }[]>([]);
   const [picSaving, setPicSaving] = useState(false);
   const [picEditTab, setPicEditTab] = useState<"phase1" | "phase2">("phase1");
+  const [picSaveError, setPicSaveError] = useState<string | null>(null);
+  // Konsultan (view-only on Phase 2 documents) are edited in the Fase 2 tab of
+  // Edit PIC but stored apart from PICs: no PIC notifications or evaluation rights
+  const canManageKonsultan = role === "super_admin" || role === "ebd";
+  const [konsultan, setKonsultan] = useState<{ assigned: any[]; available: any[] } | null>(null);
+  const [konsultanDraft, setKonsultanDraft] = useState<string[]>([]);
+  useEffect(() => {
+    if (!accessToken || !canManageKonsultan) return;
+    let cancelled = false;
+    api<{ assigned: any[]; available: any[] }>(`/projects/${id}/consultants`, { token: accessToken })
+      .then((res) => { if (!cancelled) setKonsultan(res); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [accessToken, id, canManageKonsultan]);
 
   const PHASE_PIC_CONFIG = {
     phase1: {
@@ -2168,6 +2078,8 @@ function AdminProjectDetailPage({ id }: { id: string }) {
                       userName: p.userName || undefined,
                     }));
                     setPicDraft(entries);
+                    setKonsultanDraft((konsultan?.assigned || []).map((u: any) => u.id));
+                    setPicSaveError(null);
                     setPicEditTab("phase1");
                     setShowPicEdit(true);
                   }}
@@ -2797,11 +2709,12 @@ function AdminProjectDetailPage({ id }: { id: string }) {
           {/* PIC yang Ditunjuk */}
           <div className="rounded-xl bg-white p-6 shadow-sm md:col-span-2">
             <h3 className="mb-4 font-semibold text-ptba-charcoal">PIC yang Ditunjuk</h3>
-            {project.phasePics && project.phasePics.length > 0 ? (
+            {(project.phasePics?.length > 0 || (konsultan?.assigned.length ?? 0) > 0) ? (
               <div className="space-y-4">
                 {["phase1", "phase2"].map((phase) => {
-                  const pics = project.phasePics.filter((p: any) => p.phase === phase);
-                  if (pics.length === 0) return null;
+                  const pics = (project.phasePics || []).filter((p: any) => p.phase === phase);
+                  const konsultanPics = phase === "phase2" ? konsultan?.assigned || [] : [];
+                  if (pics.length === 0 && konsultanPics.length === 0) return null;
                   const phaseLabels: Record<string, string> = { phase1: "Fase 1 (PQ)", phase2: "Fase 2 (FRP)" };
                   return (
                     <div key={phase}>
@@ -2818,6 +2731,17 @@ function AdminProjectDetailPage({ id }: { id: string }) {
                             </div>
                           </div>
                         ))}
+                        {konsultanPics.map((u: any) => (
+                          <div key={`konsultan-${u.id}`} className="flex items-center gap-3 rounded-lg border border-ptba-steel-blue/30 bg-ptba-steel-blue/5 p-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ptba-steel-blue/10">
+                              <Eye className="h-4 w-4 text-ptba-steel-blue" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-ptba-charcoal truncate">{u.name}</p>
+                              <p className="text-xs text-ptba-steel-blue uppercase">Konsultan (lihat saja){u.status === "invited" ? " · belum aktivasi" : ""}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
@@ -2828,9 +2752,6 @@ function AdminProjectDetailPage({ id }: { id: string }) {
             )}
           </div>
 
-          {(role === "super_admin" || role === "ebd") && (
-            <KonsultanAccessPanel projectId={id} accessToken={accessToken} />
-          )}
           </div>
 
           {/* Bottom save bar in edit mode */}
@@ -2922,8 +2843,48 @@ function AdminProjectDetailPage({ id }: { id: string }) {
                   </div>
                 );
               })}
+
+              {picEditTab === "phase2" && canManageKonsultan && konsultan && (() => {
+                const assigned = konsultan.available.filter((u: any) => konsultanDraft.includes(u.id));
+                const addable = konsultan.available.filter((u: any) => !konsultanDraft.includes(u.id));
+                return (
+                  <div className="border-t border-ptba-light-gray pt-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-sm font-medium text-ptba-charcoal">Konsultan (lihat saja)</label>
+                      <span className="text-[10px] text-ptba-steel-blue font-medium">Multi</span>
+                    </div>
+                    <p className="mb-2 text-[11px] text-ptba-gray">
+                      Hanya dapat melihat daftar mitra dan dokumen Fase 2 lewat pratinjau, tanpa unduh. Tidak menerima notifikasi PIC.
+                    </p>
+                    <div className="space-y-2">
+                      {assigned.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {assigned.map((u: any) => (
+                            <span key={u.id} className="inline-flex items-center gap-1 rounded-full bg-ptba-steel-blue/10 px-2.5 py-1 text-xs text-ptba-steel-blue">
+                              {u.name}{u.status === "invited" ? " (belum aktivasi)" : ""}
+                              <button type="button" onClick={() => setKonsultanDraft((d) => d.filter((x) => x !== u.id))} className="ml-0.5 text-ptba-steel-blue/50 hover:text-ptba-red">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {konsultan.available.length === 0 ? (
+                        <p className="text-xs text-ptba-gray italic">Belum ada akun Konsultan. Buat dulu di Manajemen Pengguna dengan role Konsultan.</p>
+                      ) : (
+                        <select value="" onChange={(e) => { const v = e.target.value; if (v) setKonsultanDraft((d) => [...d, v]); }}
+                          className="w-full rounded-lg border border-ptba-light-gray px-3 py-2 text-sm focus:border-ptba-navy focus:outline-none focus:ring-1 focus:ring-ptba-navy">
+                          <option value="">Tambah konsultan...</option>
+                          {addable.map((u: any) => (
+                            <option key={u.id} value={u.id}>{u.name} ({u.email}){u.status === "invited" ? " · belum aktivasi" : ""}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
+            {picSaveError && <p className="px-6 pb-2 text-xs text-ptba-red">{picSaveError}</p>}
             <div className="flex justify-end gap-3 border-t border-ptba-light-gray px-6 py-4 shrink-0">
               <button onClick={() => setShowPicEdit(false)} className="rounded-lg border border-ptba-light-gray px-4 py-2 text-sm font-medium text-ptba-gray hover:bg-ptba-section-bg transition-colors">
                 Batal
@@ -2931,11 +2892,23 @@ function AdminProjectDetailPage({ id }: { id: string }) {
               <button disabled={picSaving} onClick={async () => {
                 if (!accessToken) return;
                 setPicSaving(true);
+                setPicSaveError(null);
                 try {
                   const res = await projectApi(accessToken).update(id, { phasePics: picDraft });
                   setProject(res.data);
+                  const before = (konsultan?.assigned || []).map((u: any) => u.id).sort().join(",");
+                  if (canManageKonsultan && konsultan && [...konsultanDraft].sort().join(",") !== before) {
+                    const kRes = await api<{ assigned: any[]; available: any[] }>(`/projects/${id}/consultants`, {
+                      method: "PUT",
+                      token: accessToken,
+                      body: { userIds: konsultanDraft },
+                    });
+                    setKonsultan(kRes);
+                  }
                   setShowPicEdit(false);
-                } catch { /* ignore */ }
+                } catch (err: any) {
+                  setPicSaveError(err?.message || "Gagal menyimpan PIC");
+                }
                 finally { setPicSaving(false); }
               }}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-ptba-navy px-5 py-2 text-sm font-semibold text-white hover:bg-ptba-steel-blue transition-colors disabled:opacity-50">
